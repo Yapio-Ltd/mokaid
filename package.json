@@ -1,0 +1,14 @@
+{
+  "name": "mokaid",
+  "private": true,
+  "version": "0.1.0",
+  "description": "mokaid — AI Workforce OS monorepo",
+  "workspaces": [
+    "apps/web",
+    "packages/design-tokens",
+    "packages/shared-types"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

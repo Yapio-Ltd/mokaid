@@ -1,0 +1,130 @@
+name: mokaid
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: mokaid
+      POSTGRES_PASSWORD: mokaid_dev_password
+      POSTGRES_DB: mokaid_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mokaid"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: mokaid
+      MINIO_ROOT_PASSWORD: mokaid_dev_password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 mokaid mokaid_dev_password &&
+      mc mb --ignore-existing local/mokaid-assets-3d-dev &&
+      mc mb --ignore-existing local/mokaid-user-uploads-dev &&
+      mc mb --ignore-existing local/mokaid-private-files-dev &&
+      mc mb --ignore-existing local/mokaid-generated-outputs-dev &&
+      mc mb --ignore-existing local/mokaid-exports-dev &&
+      mc anonymous set download local/mokaid-assets-3d-dev
+      "
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment:
+      CLICKHOUSE_USER: mokaid
+      CLICKHOUSE_PASSWORD: mokaid_dev_password
+      CLICKHOUSE_DB: mokaid_analytics
+    ports:
+      - "8123:8123"
+      - "9009:9000"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    profiles: ["analytics"]
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+      target: dev
+    environment:
+      DATABASE_URL: ecto://mokaid:mokaid_dev_password@postgres/mokaid_dev
+      SECRET_KEY_BASE: dev_secret_key_base_change_me_dev_secret_key_base_change_me_1234
+      PHX_HOST: localhost
+      PORT: "4000"
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY_ID: mokaid
+      S3_SECRET_ACCESS_KEY: mokaid_dev_password
+      AI_WORKER_URL: http://ai-worker:8100
+      AI_WORKER_TOKEN: dev-worker-token
+      MIX_ENV: dev
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./apps/api:/app
+
+  ai-worker:
+    build:
+      context: .
+      dockerfile: infra/docker/ai-worker.Dockerfile
+      target: dev
+    environment:
+      PHOENIX_API_URL: http://api:4000
+      WORKER_AUTH_TOKEN: dev-worker-token
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY_ID: mokaid
+      S3_SECRET_ACCESS_KEY: mokaid_dev_password
+    ports:
+      - "8100:8100"
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./apps/ai-worker/app:/srv/app/app
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      target: dev
+    environment:
+      VITE_API_URL: http://localhost:4000
+      VITE_WS_URL: ws://localhost:4000/socket
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    volumes:
+      - ./apps/web/src:/srv/apps/web/src
+
+volumes:
+  postgres-data:
+  minio-data:
+  clickhouse-data:

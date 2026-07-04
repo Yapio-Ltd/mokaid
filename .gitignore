@@ -1,0 +1,62 @@
+# Internal design mockups / instructions (not versioned)
+/instructions/
+
+# Dependencies
+node_modules/
+**/node_modules/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Elixir
+apps/api/_build/
+apps/api/deps/
+apps/api/.elixir_ls/
+apps/api/priv/static/
+erl_crash.dump
+*.ez
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.auto.tfvars.example
+.terraform.lock.hcl
+crash.log
+
+# IDE / OS
+.DS_Store
+.idea/
+*.swp
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+cover/
+htmlcov/
+
+# Local data
+.minio-data/
+.postgres-data/
+.clickhouse-data/

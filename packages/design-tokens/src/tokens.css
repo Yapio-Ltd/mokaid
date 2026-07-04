@@ -1,0 +1,94 @@
+/* mokaid design tokens — dark premium theme, purple accent.
+   Derived from the design exploration mockups. */
+
+:root {
+  /* Backgrounds */
+  --mk-bg: #0b0b10;
+  --mk-bg-deep: #08080c;
+  --mk-surface: #12121a;
+  --mk-surface-raised: #17171f;
+  --mk-surface-overlay: #1c1c26;
+  --mk-surface-hover: #20202c;
+
+  /* Borders */
+  --mk-border: #232330;
+  --mk-border-strong: #2e2e3e;
+  --mk-border-focus: #7c5cff;
+
+  /* Brand — purple accent */
+  --mk-primary-50: #f2eeff;
+  --mk-primary-100: #e4dcff;
+  --mk-primary-200: #c8b9ff;
+  --mk-primary-300: #ab95ff;
+  --mk-primary-400: #8f72ff;
+  --mk-primary-500: #7c5cff;
+  --mk-primary-600: #6a45f2;
+  --mk-primary-700: #5936d1;
+  --mk-primary-800: #472aa8;
+  --mk-primary-900: #362180;
+  --mk-primary: var(--mk-primary-500);
+  --mk-primary-muted: rgba(124, 92, 255, 0.14);
+
+  /* RGB channels for Tailwind alpha modifiers (e.g. ring-primary/40) */
+  --mk-primary-rgb: 124 92 255;
+  --mk-success-rgb: 52 211 153;
+  --mk-warning-rgb: 251 191 36;
+  --mk-danger-rgb: 248 113 113;
+  --mk-info-rgb: 96 165 250;
+
+  /* Semantic */
+  --mk-success: #34d399;
+  --mk-success-muted: rgba(52, 211, 153, 0.14);
+  --mk-warning: #fbbf24;
+  --mk-warning-muted: rgba(251, 191, 36, 0.14);
+  --mk-danger: #f87171;
+  --mk-danger-muted: rgba(248, 113, 113, 0.14);
+  --mk-info: #60a5fa;
+  --mk-info-muted: rgba(96, 165, 250, 0.14);
+
+  /* Text */
+  --mk-text: #f4f4f8;
+  --mk-text-secondary: #a3a3b8;
+  --mk-text-muted: #6b6b80;
+  --mk-text-disabled: #4a4a5c;
+  --mk-text-on-primary: #ffffff;
+
+  /* Radius */
+  --mk-radius-sm: 6px;
+  --mk-radius-md: 10px;
+  --mk-radius-lg: 14px;
+  --mk-radius-xl: 20px;
+  --mk-radius-full: 9999px;
+
+  /* Shadows */
+  --mk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --mk-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --mk-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --mk-shadow-glow: 0 0 0 1px rgba(124, 92, 255, 0.25), 0 4px 24px rgba(124, 92, 255, 0.18);
+
+  /* Spacing scale */
+  --mk-space-1: 4px;
+  --mk-space-2: 8px;
+  --mk-space-3: 12px;
+  --mk-space-4: 16px;
+  --mk-space-5: 20px;
+  --mk-space-6: 24px;
+  --mk-space-8: 32px;
+  --mk-space-10: 40px;
+
+  /* Typography */
+  --mk-font-sans: "Inter", "Inter Variable", system-ui, -apple-system, sans-serif;
+  --mk-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Motion */
+  --mk-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --mk-duration-fast: 120ms;
+  --mk-duration: 200ms;
+  --mk-duration-slow: 320ms;
+
+  /* Layout */
+  --mk-sidebar-width: 240px;
+  --mk-sidebar-collapsed: 68px;
+  --mk-detail-panel-width: 360px;
+  --mk-topbar-height: 60px;
+}
