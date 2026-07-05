@@ -14,7 +14,7 @@ const tourSteps: TourStep[] = [
   {
     target: "nav-dashboard",
     title: "Your virtual office",
-    body: "The dashboard shows your team — humans and AI agents — at work in real time.",
+    body: "The dashboard shows your team, humans and AI agents, at work in real time.",
   },
   {
     target: "nav-projects",

@@ -292,7 +292,7 @@ export function DropDispatchModal({
       }
       description={
         step === "describe"
-          ? "Describe what you need — the dispatcher will route it to the right agent."
+          ? "Describe what you need. The dispatcher will route it to the right agent."
           : step === "recommend"
             ? "Review the recommendation, then launch."
             : undefined
@@ -557,7 +557,7 @@ export function DropDispatchModal({
             )}
             <p className="mt-1 text-xs text-text-muted">
               {result.agentName
-                ? `${result.agentName} is on it — you'll be notified when it's ready for review.`
+                ? `${result.agentName} is on it. You'll be notified when it's ready for review.`
                 : "Task created. Assign an agent to start the work."}
             </p>
           </div>

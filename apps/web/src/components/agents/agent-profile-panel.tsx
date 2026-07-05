@@ -341,7 +341,7 @@ export function AgentProfilePanel({
               </div>
 
               <div className="rounded-xl bg-surface-raised/40 px-4 py-2">
-                <InfoRow label="Department" value={agent.department ?? "—"} />
+                <InfoRow label="Department" value={agent.department ?? "None"} />
                 <InfoRow label="Last active" value={formatRelative(agent.last_active_at)} />
                 <InfoRow label="AI enabled" value={agent.ai_enabled ? "Yes" : "No"} />
               </div>

@@ -43,7 +43,9 @@ defmodule MokaidWeb.Router do
     pipe_through [:api, :authenticated, :workspace]
 
     get "/workspaces/:id", WorkspaceController, :show
+    get "/workspaces/:id/logo", WorkspaceController, :logo
     patch "/workspaces/:id", WorkspaceController, :update
+    post "/workspaces/:id/logo", WorkspaceController, :upload_logo
     delete "/workspaces/:id", WorkspaceController, :delete
 
     resources "/agents", AgentController, only: [:index, :create, :show, :update, :delete]
@@ -89,6 +91,8 @@ defmodule MokaidWeb.Router do
     get "/integrations", IntegrationController, :index
     post "/integrations/:provider/connect", IntegrationController, :connect
     post "/integrations/:id/disconnect", IntegrationController, :disconnect
+    post "/integrations/google/oauth/start", IntegrationOAuthController, :google_start
+    post "/integrations/google/oauth/callback", IntegrationOAuthController, :google_callback
 
     get "/mcp", MCPController, :index
     post "/mcp/:server/install", MCPController, :install

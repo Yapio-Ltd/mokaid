@@ -25,6 +25,16 @@ defmodule MokaidWeb.IntegrationController do
       conn
       |> put_status(:created)
       |> json(%{data: Serializer.integration_connection(connection)})
+    else
+      {:error, :oauth_required} ->
+        conn
+        |> put_status(:conflict)
+        |> json(%{
+          error: %{
+            code: "oauth_required",
+            message: "This integration requires Google OAuth. Use /integrations/google/oauth/start."
+          }
+        })
     end
   end
 

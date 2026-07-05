@@ -21,7 +21,8 @@ defmodule MokaidWeb.JSON do
       id: workspace.id,
       name: workspace.name,
       slug: workspace.slug,
-      logo_url: workspace.logo_url,
+      logo_url: resolve_logo_url(workspace),
+      has_logo: logo_uploaded?(workspace),
       description: workspace.description,
       industry: workspace.industry,
       timezone: workspace.timezone,
@@ -454,6 +455,28 @@ defmodule MokaidWeb.JSON do
       read_at: notification.read_at,
       inserted_at: notification.inserted_at
     }
+  end
+
+  defp resolve_logo_url(workspace) do
+    case logo_storage_key(workspace) do
+      key when is_binary(key) and key != "" ->
+        # Served through the authenticated API proxy (see WorkspaceController.logo/2).
+        nil
+
+      _ ->
+        workspace.logo_url
+    end
+  end
+
+  defp logo_uploaded?(workspace) do
+    case logo_storage_key(workspace) do
+      key when is_binary(key) and key != "" -> true
+      _ -> false
+    end
+  end
+
+  defp logo_storage_key(workspace) do
+    get_in(workspace.settings, ["logo_storage_key"])
   end
 
   defp loaded(%Ecto.Association.NotLoaded{}), do: nil

@@ -36,6 +36,49 @@ defmodule MokaidWeb.WorkspaceController do
     end
   end
 
+  def upload_logo(conn, %{"id" => id, "file" => %Plug.Upload{} = file}) do
+    with :ok <- authorize_same_workspace(conn, id),
+         :ok <- Permissions.authorize(current_member(conn), "workspace.update"),
+         :ok <- validate_logo_file(file),
+         %{} = workspace <- Workspaces.get_workspace(id),
+         {:ok, updated} <- Workspaces.upload_logo(workspace, file) do
+      Audit.log(id, current_member(conn), "workspace.upload_logo", "workspace", id, %{})
+      json(conn, %{data: Serializer.workspace(updated)})
+    else
+      {:error, :invalid_image} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: %{code: "invalid_image", message: "Logo must be a PNG, JPG, WebP or GIF image"}})
+    end
+  end
+
+  def upload_logo(conn, _params) do
+    conn
+    |> put_status(:bad_request)
+    |> json(%{error: %{code: "missing_file", message: "Expected multipart field \"file\""}})
+  end
+
+  def logo(conn, %{"id" => id}) do
+    with :ok <- authorize_same_workspace(conn, id),
+         :ok <- Permissions.authorize(current_member(conn), "workspace.view"),
+         %{} = workspace <- Workspaces.get_workspace(id),
+         key when is_binary(key) and key != "" <- Workspaces.logo_storage_key(workspace),
+         {:ok, body, content_type} <- Mokaid.Storage.get_object(key) do
+      conn
+      |> put_resp_content_type(content_type)
+      |> put_resp_header("cache-control", "private, max-age=300")
+      |> send_resp(200, body)
+    else
+      nil ->
+        conn |> put_status(:not_found) |> json(%{error: %{code: "not_found", message: "No logo uploaded"}})
+
+      {:error, _} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: %{code: "not_found", message: "Logo file not found"}})
+    end
+  end
+
   def delete(conn, %{"id" => id}) do
     with :ok <- authorize_same_workspace(conn, id),
          :ok <- Permissions.authorize(current_member(conn), "workspace.delete"),
@@ -48,5 +91,13 @@ defmodule MokaidWeb.WorkspaceController do
 
   defp authorize_same_workspace(conn, id) do
     if workspace_id(conn) == id, do: :ok, else: {:error, :forbidden}
+  end
+
+  defp validate_logo_file(%Plug.Upload{content_type: ct, filename: name}) do
+    ext = name |> Path.extname() |> String.downcase()
+    ext_ok = ext in ~w(.jpg .jpeg .png .webp .gif .ico)
+    type_ok = is_binary(ct) and String.starts_with?(ct, "image/")
+
+    if ext_ok or type_ok, do: :ok, else: {:error, :invalid_image}
   end
 end

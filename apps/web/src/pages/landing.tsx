@@ -16,7 +16,6 @@ import {
   Library,
   Plug,
   Settings,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -229,6 +228,7 @@ export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
   const heroImageRef = useRef<HTMLDivElement>(null);
   const [activeStep, setActiveStep] = useState(0);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
   const token = useAuthStore((s) => s.token);
 
   useEffect(() => {
@@ -239,12 +239,24 @@ export function LandingPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const onScroll = () => setHeaderScrolled(window.scrollY > 32);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       // Hero entrance
       gsap
         .timeline({ defaults: { ease: "power3.out" } })
         .from("[data-hero-badge]", { y: 20, opacity: 0, duration: 0.6 })
+        .from(
+          "[data-hero-wordmark]",
+          { y: 12, opacity: 0, scale: 0.92, duration: 0.7, ease: "back.out(1.4)" },
+          "-=0.35",
+        )
         .from(
           "[data-hero-line]",
           { y: 42, opacity: 0, duration: 0.8, stagger: 0.12 },
@@ -315,50 +327,57 @@ export function LandingPage() {
 
   return (
     <div ref={rootRef} className="min-h-full bg-bg-deep text-text">
-      {/* Nav */}
-      <header className="fixed inset-x-0 top-0 z-50 mk-glass">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-          <Link to="/" className="mk-focus-ring rounded-md">
-            <LandingLogo />
-          </Link>
-          <nav className="hidden items-center gap-7 text-[13px] font-medium text-text-secondary md:flex">
-            <a href="#product" className="transition-colors hover:text-text">
-              Product
-            </a>
-            <a href="#features" className="transition-colors hover:text-text">
-              Features
-            </a>
-            <a href="#stats" className="transition-colors hover:text-text">
-              Why mokaid
-            </a>
-          </nav>
-          <div className="flex items-center gap-2.5">
-            {token ? (
-              <Link to="/dashboard">
-                <Button size="sm">
-                  Open app <ArrowRight size={14} />
-                </Button>
-              </Link>
-            ) : (
-              <>
-                <Link to="/login">
-                  <Button variant="ghost" size="sm">
-                    Sign in
-                  </Button>
-                </Link>
-                <Link to="/signup">
-                  <Button size="sm">
-                    Get started <ArrowRight size={14} />
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
       {/* Hero */}
-      <section className="relative overflow-hidden px-5 pb-24 pt-36">
+      <section className="relative overflow-hidden px-5 pb-24 pt-28 md:pt-32">
+        {/* Nav — transparent overlay, glass on scroll */}
+        <header
+          className={cn(
+            "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,backdrop-filter,-webkit-backdrop-filter] duration-300",
+            headerScrolled
+              ? "mk-glass border-primary/15 shadow-md backdrop-blur-xl"
+              : "border-transparent bg-transparent backdrop-blur-none",
+          )}
+        >
+          <div className="mx-auto grid h-[4.5rem] max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-6 lg:px-10">
+            <Link to="/" className="mk-focus-ring w-fit rounded-md">
+              <LandingLogo />
+            </Link>
+            <nav className="hidden items-center justify-center gap-8 text-[13px] font-medium text-text-secondary md:flex">
+              <a href="#product" className="transition-colors hover:text-text">
+                Product
+              </a>
+              <a href="#features" className="transition-colors hover:text-text">
+                Features
+              </a>
+              <a href="#stats" className="transition-colors hover:text-text">
+                Why mokaid
+              </a>
+            </nav>
+            <div className="flex items-center justify-end gap-2.5">
+              {token ? (
+                <Link to="/dashboard">
+                  <Button size="sm">
+                    Open app <ArrowRight size={14} />
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link to="/login">
+                    <Button variant="ghost" size="sm" className="text-text-secondary hover:text-text">
+                      Sign in
+                    </Button>
+                  </Link>
+                  <Link to="/signup">
+                    <Button size="sm">
+                      Get started <ArrowRight size={14} />
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </header>
+
         <div
           className="pointer-events-none absolute inset-0"
           aria-hidden
@@ -368,15 +387,24 @@ export function LandingPage() {
         </div>
 
         <div className="relative mx-auto max-w-4xl text-center">
-          <span
-            data-hero-badge
-            className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary-muted px-4 py-1.5 text-xs font-medium text-primary-light"
-          >
-            <Sparkles size={13} />
-            The first OS for AI and human employees
-          </span>
+          <div data-hero-badge className="flex flex-col items-center gap-4">
+            <img
+              src="/branding/logo-without-bg.png"
+              alt=""
+              aria-hidden
+              className="h-20 w-20 object-contain md:h-24 md:w-24"
+            />
+            <p
+              data-hero-wordmark
+              className="mk-brand-wordmark text-[2.75rem] md:text-[3.75rem]"
+              aria-label="mokaid"
+            >
+              <span className="mk-brand-wordmark-mok">mok</span>
+              <span className="mk-brand-wordmark-aid">aid</span>
+            </p>
+          </div>
 
-          <h1 className="mt-7 text-5xl font-bold leading-[1.06] tracking-tight md:text-[68px]">
+          <h1 className="mt-8 text-5xl font-bold leading-[1.06] tracking-tight md:mt-10 md:text-[68px]">
             <span data-hero-line className="block">
               Your workforce,
             </span>
@@ -411,7 +439,7 @@ export function LandingPage() {
         {/* Hero visual */}
         <div ref={heroImageRef} className="relative mx-auto mt-16 max-w-5xl">
           <div className="absolute -inset-6 rounded-2xl bg-primary/20 opacity-40 blur-3xl" aria-hidden />
-          <div className="relative overflow-hidden rounded-2xl border border-border-strong/60 shadow-lg">
+          <div className="relative overflow-hidden rounded-2xl border border-primary/30 shadow-glow">
             <img
               src="/desk-illustrations.png"
               alt="The mokaid virtual office with AI and human agents working at their desks"
@@ -493,9 +521,9 @@ export function LandingPage() {
       </section>
 
       {/* Scrollytelling product tour */}
-      <section id="product" className="px-5 pb-28">
-        <div className="mx-auto max-w-6xl">
-          <div data-reveal className="mx-auto mb-16 max-w-2xl text-center">
+      <section id="product" className="px-5 pb-28 lg:px-8">
+        <div className="mx-auto max-w-[1380px]">
+          <div data-reveal className="mx-auto mb-16 max-w-3xl text-center">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-light">
               Product tour
             </span>
@@ -504,7 +532,7 @@ export function LandingPage() {
             </h2>
           </div>
 
-          <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12 xl:gap-14">
             {/* Steps */}
             <div className="order-2 lg:order-1">
               {showcaseSteps.map((step, i) => {
@@ -514,35 +542,37 @@ export function LandingPage() {
                   <div
                     key={step.id}
                     data-step
-                    className="flex min-h-[46vh] flex-col justify-center py-10 lg:min-h-[62vh]"
+                    className="flex min-h-[46vh] flex-col justify-center py-10 lg:min-h-[58vh] lg:py-12"
                   >
                     <div
                       className={cn(
-                        "rounded-xl border p-7 transition-all duration-500",
+                        "rounded-2xl border p-8 transition-all duration-500 lg:p-10",
                         active
-                          ? "border-primary/30 bg-surface shadow-glow"
-                          : "border-transparent opacity-45",
+                          ? "border-primary/35 bg-surface shadow-glow"
+                          : "border-primary/12 opacity-45",
                       )}
                     >
                       <span
                         className={cn(
-                          "mb-4 inline-flex h-11 w-11 items-center justify-center rounded-md transition-colors duration-500",
+                          "mb-5 inline-flex h-12 w-12 items-center justify-center rounded-lg transition-colors duration-500 lg:h-14 lg:w-14",
                           active ? "bg-primary text-white" : "bg-surface-overlay text-text-muted",
                         )}
                       >
-                        <Icon size={20} />
+                        <Icon size={22} />
                       </span>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-light">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-light lg:text-[13px]">
                         {step.kicker}
                       </p>
-                      <h3 className="mt-2 text-2xl font-bold tracking-tight">{step.title}</h3>
-                      <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+                      <h3 className="mt-2 text-2xl font-bold tracking-tight lg:text-[30px] lg:leading-tight">
+                        {step.title}
+                      </h3>
+                      <p className="mt-3 text-sm leading-relaxed text-text-secondary lg:text-base lg:leading-7">
                         {step.description}
                       </p>
                     </div>
 
                     {/* Inline screenshot on small screens */}
-                    <div className="mt-6 overflow-hidden rounded-xl border border-border shadow-md lg:hidden">
+                    <div className="mt-6 overflow-hidden rounded-2xl border border-border shadow-md lg:hidden">
                       <img src={step.image} alt={step.title} className="w-full" loading="lazy" />
                     </div>
                   </div>
@@ -552,9 +582,9 @@ export function LandingPage() {
 
             {/* Sticky screenshot on large screens */}
             <div className="order-1 hidden lg:order-2 lg:block">
-              <div className="sticky top-28 h-[calc(100vh-180px)]">
+              <div className="sticky top-24 h-[calc(100vh-120px)]">
                 <div className="relative h-full">
-                  <div className="absolute -inset-4 rounded-2xl bg-primary/10 blur-2xl" aria-hidden />
+                  <div className="absolute -inset-6 rounded-2xl bg-primary/12 blur-3xl" aria-hidden />
                   {showcaseSteps.map((step, i) => (
                     <div
                       key={step.id}
@@ -569,7 +599,7 @@ export function LandingPage() {
                         src={step.image}
                         alt={step.title}
                         loading="lazy"
-                        className="w-full rounded-xl border border-border-strong/60 shadow-lg"
+                        className="w-full rounded-2xl border border-primary/30 shadow-glow"
                       />
                     </div>
                   ))}
@@ -591,7 +621,7 @@ export function LandingPage() {
               The full product, listed plainly
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-text-secondary md:text-base">
-              Same structure you&apos;ll find in the app — work tools on the left, workspace admin on
+              Same structure you&apos;ll find in the app: work tools on the left, workspace admin on
               the right.
             </p>
           </div>

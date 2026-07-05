@@ -10,9 +10,9 @@
   --mk-surface-overlay: #1c1c26;
   --mk-surface-hover: #20202c;
 
-  /* Borders — invisible dividers; depth comes from surface contrast + shadow */
-  --mk-border: transparent;
-  --mk-border-strong: rgba(255, 255, 255, 0.07);
+  /* Borders — light purple shade, consistent with primary accent */
+  --mk-border: rgba(124, 92, 255, 0.12);
+  --mk-border-strong: rgba(124, 92, 255, 0.24);
   --mk-border-focus: #7c5cff;
 
   /* Brand, purple accent */

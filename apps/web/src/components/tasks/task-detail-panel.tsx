@@ -268,7 +268,7 @@ export function TaskDetailPanel({
               <div className="flex items-center gap-2.5">
                 <Sparkles size={15} className="shrink-0 text-primary" />
                 <p className="text-[12px] leading-snug text-text-secondary">
-                  <span className="font-semibold text-text">Ready for review</span> — check the
+                  <span className="font-semibold text-text">Ready for review</span>. Check the
                   output below.
                 </p>
               </div>
@@ -346,7 +346,7 @@ export function TaskDetailPanel({
                   ]}
                 />
               ) : (
-                <span className="text-xs text-text">{task.project_name ?? "—"}</span>
+                <span className="text-xs text-text">{task.project_name ?? "None"}</span>
               )}
             </MetaRow>
 
@@ -365,7 +365,7 @@ export function TaskDetailPanel({
               ) : (
                 <span className="flex items-center gap-1.5 text-xs text-text">
                   <Clock size={12} className="text-text-muted" />
-                  {task.due_at ? formatDateTime(task.due_at) : "—"}
+                  {task.due_at ? formatDateTime(task.due_at) : "None"}
                 </span>
               )}
             </MetaRow>

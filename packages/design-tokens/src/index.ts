@@ -9,8 +9,8 @@ export const colors = {
   surface: "#12121a",
   surfaceRaised: "#17171f",
   surfaceOverlay: "#1c1c26",
-  border: "#232330",
-  borderStrong: "#2e2e3e",
+  border: "rgba(124, 92, 255, 0.12)",
+  borderStrong: "rgba(124, 92, 255, 0.24)",
 
   primary: "#7c5cff",
   primaryLight: "#ab95ff",

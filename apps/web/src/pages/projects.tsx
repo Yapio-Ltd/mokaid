@@ -209,7 +209,7 @@ export function ProjectsPage() {
             <div className="space-y-2 text-xs">
               <div className="flex justify-between gap-4">
                 <span className="text-text-muted">Owner</span>
-                <span className="text-text">{selected.owner_name ?? "—"}</span>
+                <span className="text-text">{selected.owner_name ?? "None"}</span>
               </div>
               <div className="flex justify-between gap-4">
                 <span className="text-text-muted">Start</span>

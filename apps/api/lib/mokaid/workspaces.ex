@@ -52,6 +52,21 @@ defmodule Mokaid.Workspaces do
     |> Repo.update()
   end
 
+  def upload_logo(%Workspace{} = workspace, %Plug.Upload{} = file) do
+    with {:ok, stored} <- Mokaid.Storage.upload_workspace_logo(workspace.id, file) do
+      settings =
+        workspace.settings
+        |> Kernel.||(%{})
+        |> Map.put("logo_storage_key", stored.storage_key)
+
+      update_workspace(workspace, %{"settings" => settings})
+    end
+  end
+
+  def logo_storage_key(%Workspace{} = workspace) do
+    get_in(workspace.settings, ["logo_storage_key"])
+  end
+
   def soft_delete_workspace(%Workspace{} = workspace) do
     workspace
     |> Ecto.Changeset.change(deleted_at: DateTime.utc_now())

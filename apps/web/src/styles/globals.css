@@ -89,6 +89,35 @@
     color: transparent;
   }
 
+  .mk-brand-wordmark {
+    font-family: "Space Grotesk", var(--mk-font-sans);
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+
+  .mk-brand-wordmark-mok {
+    color: #f4f4f8;
+    text-shadow: 0 0 48px rgba(244, 244, 248, 0.12);
+  }
+
+  .mk-brand-wordmark-aid {
+    background: linear-gradient(
+      115deg,
+      #e4dcff 0%,
+      #c8b9ff 25%,
+      #8f72ff 50%,
+      #ab95ff 75%,
+      #e4dcff 100%
+    );
+    background-size: 220% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: mk-brand-shimmer 4.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 18px rgba(124, 92, 255, 0.5));
+  }
+
   .mk-pressable {
     @apply transition-transform duration-150 ease-spring active:scale-[0.97];
   }
@@ -116,6 +145,28 @@
 
 .mk-float {
   animation: mk-float 6s ease-in-out infinite;
+}
+
+.mk-ai-icon-shimmer {
+  display: block;
+  margin-inline: auto;
+  color: #ab95ff;
+  animation:
+    mk-float 6s ease-in-out infinite,
+    mk-ai-icon-shimmer 4.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 18px rgba(124, 92, 255, 0.5));
+}
+
+@keyframes mk-ai-icon-shimmer {
+  0%,
+  100% {
+    color: #c8b9ff;
+    filter: drop-shadow(0 0 12px rgba(124, 92, 255, 0.35));
+  }
+  50% {
+    color: #8f72ff;
+    filter: drop-shadow(0 0 26px rgba(124, 92, 255, 0.75));
+  }
 }
 
 @keyframes mk-pulse-glow {
@@ -250,6 +301,16 @@ table tbody tr {
   animation: mk-toast-in 0.22s var(--mk-ease) both;
 }
 
+@keyframes mk-brand-shimmer {
+  0%,
+  100% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+}
+
 @keyframes mk-marquee {
   from {
     transform: translateX(0);
@@ -269,5 +330,15 @@ table tbody tr {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .mk-brand-wordmark-aid {
+    animation: none;
+    background-position: 50% center;
+  }
+
+  .mk-ai-icon-shimmer {
+    animation: none;
+    filter: drop-shadow(0 0 12px rgba(124, 92, 255, 0.35));
   }
 }

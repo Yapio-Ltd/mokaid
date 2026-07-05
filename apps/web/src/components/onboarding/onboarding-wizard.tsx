@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -14,6 +14,7 @@ import {
   Plug,
   Plus,
   Sparkles,
+  Upload,
   Users,
   X,
 } from "lucide-react";
@@ -21,10 +22,12 @@ import {
   useConnectIntegration,
   useCreateAgent,
   useCreateProject,
+  useGoogleOauthStart,
   useIntegrations,
   useInviteMember,
   useUpdateOnboarding,
   useUpdateWorkspace,
+  useUploadWorkspaceLogo,
   useWorkspace,
 } from "@/api/hooks";
 import { Avatar } from "@/components/ui/avatar";
@@ -33,6 +36,7 @@ import { Field } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "@/stores/auth-store";
 import { useOnboardingStore } from "@/stores/onboarding-store";
+import { fetchWorkspaceLogoBlob } from "@/api/client";
 import { cn } from "@/lib/cn";
 
 /* ─── Steps config ─── */
@@ -70,16 +74,25 @@ const skillPresets = [
 
 const featuredIntegrations = ["github", "slack", "google_drive", "gmail", "notion", "linear"];
 
+const googleProviderKeys = new Set([
+  "google_drive",
+  "gmail",
+  "google_calendar",
+  "google_docs",
+  "google_sheets",
+  "google_meet",
+]);
+
 /* ─── Small pieces ─── */
 
 function StepDots({ current }: { current: number }) {
   return (
-    <div className="mb-8 flex items-center gap-2">
+    <div className="mb-6 flex items-center gap-1 sm:gap-2">
       {steps.map((s, i) => {
         const Icon = s.icon;
         return (
-          <div key={s.key} className="flex flex-1 items-center gap-2">
-            <div className="flex flex-col items-center gap-1.5">
+          <div key={s.key} className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
+            <div className="flex min-w-0 flex-col items-center gap-1.5">
               <span
                 className={cn(
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-300",
@@ -94,7 +107,7 @@ function StepDots({ current }: { current: number }) {
               </span>
               <span
                 className={cn(
-                  "text-[9px] font-medium",
+                  "max-w-[4.5rem] truncate text-center text-[9px] font-medium sm:max-w-none",
                   i === current ? "text-primary-light" : "text-text-muted",
                 )}
               >
@@ -104,7 +117,7 @@ function StepDots({ current }: { current: number }) {
             {i < steps.length - 1 && (
               <span
                 className={cn(
-                  "mb-4 h-0.5 flex-1 rounded-full transition-colors duration-500",
+                  "mb-4 h-0.5 min-w-2 flex-1 rounded-full transition-colors duration-500",
                   i < current ? "bg-success/40" : "bg-surface-raised",
                 )}
               />
@@ -141,6 +154,84 @@ function FeatureCard({
   );
 }
 
+function LogoDropZone({
+  previewUrl,
+  uploading,
+  onFile,
+}: {
+  previewUrl: string | null;
+  uploading: boolean;
+  onFile: (file: File) => void;
+}) {
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const pickFile = useCallback(
+    (files: FileList | File[]) => {
+      const file = Array.from(files).find((f) => f.type.startsWith("image/"));
+      if (file) onFile(file);
+    },
+    [onFile],
+  );
+
+  return (
+    <div className="shrink-0">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files) pickFile(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      <button
+        type="button"
+        aria-label="Upload company logo"
+        onClick={() => fileInputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragActive(true);
+        }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragActive(false);
+          pickFile(e.dataTransfer.files);
+        }}
+        className={cn(
+          "group relative flex h-[4.5rem] w-[4.5rem] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed transition-all",
+          dragActive
+            ? "border-primary bg-primary-muted/30"
+            : "border-border/50 bg-surface-raised hover:border-primary/40 hover:bg-surface-hover/50",
+        )}
+      >
+        {previewUrl ? (
+          <img src={previewUrl} alt="Company logo" className="h-full w-full object-cover" />
+        ) : uploading ? (
+          <Loader2 size={22} className="animate-spin text-primary-light" />
+        ) : (
+          <>
+            <Upload size={18} className="text-text-muted group-hover:text-primary-light" />
+            <span className="mt-1 text-[9px] font-medium text-text-muted group-hover:text-text-secondary">
+              Logo
+            </span>
+          </>
+        )}
+        {previewUrl && !uploading && (
+          <span className="absolute inset-0 flex items-center justify-center bg-bg-deep/60 text-[9px] font-medium text-text opacity-0 transition-opacity group-hover:opacity-100">
+            Change
+          </span>
+        )}
+      </button>
+      <p className="mt-1.5 max-w-[4.5rem] text-center text-[10px] leading-tight text-text-muted">
+        Drop or click
+      </p>
+    </div>
+  );
+}
+
 /* ═══════════════ Wizard ═══════════════ */
 
 export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
@@ -150,18 +241,22 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
 
   const { data: workspaceData } = useWorkspace();
   const updateWorkspace = useUpdateWorkspace();
+  const uploadLogo = useUploadWorkspaceLogo();
   const updateOnboarding = useUpdateOnboarding();
   const createProject = useCreateProject();
   const createAgent = useCreateAgent();
   const inviteMember = useInviteMember();
   const { data: integrationsData } = useIntegrations();
   const connectIntegration = useConnectIntegration();
+  const googleOauthStart = useGoogleOauthStart();
 
   const [step, setStep] = useState(0);
 
   // Workspace step
-  const [companyName, setCompanyName] = useState(workspaceData?.data.name ?? "");
-  const [logoUrl, setLogoUrl] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const logoObjectUrlRef = useRef<string | null>(null);
   const [industry, setIndustry] = useState("");
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [emailDraft, setEmailDraft] = useState("");
@@ -203,9 +298,7 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
 
   const submitWorkspace = async () => {
     const updates: Record<string, string> = {};
-    if (companyName.trim() && companyName.trim() !== workspaceData?.data.name)
-      updates.name = companyName.trim();
-    if (logoUrl.trim()) updates.logo_url = logoUrl.trim();
+    if (companyName.trim()) updates.name = companyName.trim();
     if (industry) updates.industry = industry;
     if (Object.keys(updates).length > 0) await updateWorkspace.mutateAsync(updates);
     for (const email of inviteEmails) {
@@ -222,6 +315,14 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
     if (connectedKeys.has(key)) return;
     setConnecting(key);
     try {
+      if (googleProviderKeys.has(key)) {
+        const result = await googleOauthStart.mutateAsync({
+          redirect_uri: `${window.location.origin}/oauth/google/callback`,
+          provider_key: key,
+        });
+        window.location.href = result.data.authorize_url;
+        return;
+      }
       await connectIntegration.mutateAsync(key);
     } finally {
       setConnecting(null);
@@ -259,15 +360,83 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
   const busy =
     updateWorkspace.isPending || createProject.isPending || createAgent.isPending;
 
+  const setLogoObjectUrl = useCallback((url: string | null) => {
+    if (logoObjectUrlRef.current) {
+      URL.revokeObjectURL(logoObjectUrlRef.current);
+      logoObjectUrlRef.current = null;
+    }
+    if (url?.startsWith("blob:")) {
+      logoObjectUrlRef.current = url;
+    }
+    setLogoPreview(url);
+  }, []);
+
+  useEffect(() => {
+    const workspaceId = workspaceData?.data.id;
+    const hasLogo =
+      workspaceData?.data.has_logo ||
+      Boolean(
+        (workspaceData?.data.settings as Record<string, unknown> | null)?.logo_storage_key,
+      );
+
+    if (!workspaceId || !hasLogo || logoPreview) return;
+
+    let cancelled = false;
+    fetchWorkspaceLogoBlob(workspaceId).then((blob) => {
+      if (cancelled || !blob) return;
+      setLogoObjectUrl(URL.createObjectURL(blob));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceData?.data, logoPreview, setLogoObjectUrl]);
+
+  useEffect(
+    () => () => {
+      if (logoObjectUrlRef.current) URL.revokeObjectURL(logoObjectUrlRef.current);
+    },
+    [],
+  );
+
+  const handleLogoFile = useCallback(
+    (file: File) => {
+      setLogoError(null);
+      const preview = URL.createObjectURL(file);
+      setLogoObjectUrl(preview);
+      uploadLogo.mutate(file, {
+        onSuccess: async (res) => {
+          const workspaceId = res.data.id;
+          const blob = await fetchWorkspaceLogoBlob(workspaceId);
+          if (blob) {
+            setLogoObjectUrl(URL.createObjectURL(blob));
+          }
+        },
+        onError: (error) => {
+          setLogoObjectUrl(null);
+          setLogoError(
+            error instanceof Error ? error.message : "Logo upload failed. Try again.",
+          );
+        },
+      });
+    },
+    [uploadLogo, setLogoObjectUrl],
+  );
+
+  const logoDisplay = logoPreview;
+
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-bg-deep/95 backdrop-blur-md">
       <div className="relative my-8 w-full max-w-2xl px-6">
-        <button
-          onClick={() => finish(false)}
-          className="absolute -top-1 right-6 z-10 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
-        >
-          Skip for now <X size={13} />
-        </button>
+        <div className="mb-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() => finish(false)}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+          >
+            Skip for now <X size={13} />
+          </button>
+        </div>
 
         <StepDots current={step} />
 
@@ -278,16 +447,14 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
           {/* ── Step 0 : Welcome ── */}
           {step === 0 && (
             <div className="space-y-6 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/60 shadow-[0_8px_32px_rgba(124,92,255,0.4)] mk-float">
-                <Sparkles size={28} className="text-white" />
-              </div>
+              <Sparkles size={36} strokeWidth={1.75} className="mk-ai-icon-shimmer" />
               <div>
                 <h2 className="text-2xl font-bold text-text">
                   Welcome to mokaid, {firstName}
                 </h2>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-text-secondary">
-                  Your AI Workforce OS. Build a team of AI agents that work alongside you —
-                  they take tasks, produce real deliverables and ask for approval when it
+                  Your AI Workforce OS. Build a team of AI agents that work alongside you.
+                  They take tasks, produce real deliverables and ask for approval when it
                   matters.
                 </p>
               </div>
@@ -324,41 +491,29 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
               <div>
                 <h2 className="text-xl font-bold text-text">Set up your workspace</h2>
                 <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
-                  Tell us about your company — this gives your agents context to work with.
+                  Tell us about your company. This gives your agents context to work with.
                 </p>
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface-raised shadow-[0_2px_12px_rgba(0,0,0,0.15)]">
-                  {logoUrl ? (
-                    <img
-                      src={logoUrl}
-                      alt="Logo preview"
-                      className="h-full w-full object-cover"
-                      onError={() => setLogoUrl("")}
-                    />
-                  ) : (
-                    <Building2 size={24} className="text-text-muted" />
-                  )}
-                </div>
-                <div className="flex-1 space-y-3">
+                <LogoDropZone
+                  previewUrl={logoDisplay}
+                  uploading={uploadLogo.isPending}
+                  onFile={handleLogoFile}
+                />
+                <div className="min-w-0 flex-1">
                   <Field label="Company name" required>
                     <input
-                      className="mk-input"
+                      className="mk-input h-11"
                       placeholder="Acme Inc."
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
                       autoFocus
                     />
                   </Field>
-                  <Field label="Logo URL" hint="Optional — paste an image link">
-                    <input
-                      className="mk-input"
-                      placeholder="https://…/logo.png"
-                      value={logoUrl}
-                      onChange={(e) => setLogoUrl(e.target.value)}
-                    />
-                  </Field>
+                  {logoError && (
+                    <p className="mt-2 text-[11px] text-danger">{logoError}</p>
+                  )}
                 </div>
               </div>
 
@@ -382,7 +537,7 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
                 </div>
               </Field>
 
-              <Field label="Invite your team" hint="They'll get an email invite — you can also do this later.">
+              <Field label="Invite your team" hint="They'll get an email invite. You can also do this later.">
                 <div className="flex gap-2">
                   <input
                     className="mk-input flex-1"
@@ -443,7 +598,7 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
                 <h2 className="text-xl font-bold text-text">Connect your tools</h2>
                 <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
                   Plug in the tools your team already uses. Agents will be able to work with
-                  them — with your permission.
+                  them, with your permission.
                 </p>
               </div>
 
@@ -628,8 +783,8 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
               <div>
                 <h2 className="text-xl font-bold text-text">Create your first project</h2>
                 <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
-                  Projects group tasks, agents and files around one goal. Don't overthink it —
-                  you can rename it anytime.
+                  Projects group tasks, agents and files around one goal. Don't overthink it.
+                  You can rename it anytime.
                 </p>
               </div>
               <Field label="Project name" required>

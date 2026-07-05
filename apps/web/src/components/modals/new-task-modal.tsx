@@ -114,7 +114,7 @@ export function NewTaskModal({ open, onOpenChange, defaultProjectId }: NewTaskMo
       open={open}
       onOpenChange={onOpenChange}
       title="New Task"
-      description="Just describe what you need — everything else is optional."
+      description="Just describe what you need. Everything else is optional."
       footer={
         <>
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>

@@ -110,7 +110,7 @@ function OfficeDropzone({ children }: { children: ReactNode }) {
             <div className="text-center">
               <p className="text-sm font-semibold text-text">Drop your files here</p>
               <p className="mt-0.5 text-xs text-text-muted">
-                Any format — the dispatcher will route them to the right agent
+                Any format. The dispatcher will route them to the right agent
               </p>
             </div>
           </div>

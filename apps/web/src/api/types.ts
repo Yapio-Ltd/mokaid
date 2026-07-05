@@ -405,6 +405,7 @@ export interface Workspace {
   name: string;
   slug: string;
   logo_url: string | null;
+  has_logo?: boolean;
   description: string | null;
   industry: string | null;
   timezone: string;

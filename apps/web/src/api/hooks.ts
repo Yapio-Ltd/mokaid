@@ -589,6 +589,37 @@ export function useFigmaOauthCallback() {
   });
 }
 
+export function useGoogleOauthStart() {
+  return useMutation({
+    mutationFn: (body: { redirect_uri: string; provider_key?: string }) =>
+      apiFetch<Envelope<{ authorize_url: string }>>("/api/integrations/google/oauth/start", {
+        method: "POST",
+        body,
+      }),
+  });
+}
+
+export function useGoogleOauthCallback() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { code: string; state: string; redirect_uri: string }) =>
+      apiFetch<
+        Envelope<{
+          connections: IntegrationConnection[];
+          connected_account?: string;
+          provider_key: string;
+        }>
+      >("/api/integrations/google/oauth/callback", {
+        method: "POST",
+        body,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["mcp"] });
+    },
+  });
+}
+
 /* ---------- Billing & analytics ---------- */
 
 export function useBillingOverview() {
@@ -670,6 +701,25 @@ export function useUpdateWorkspace() {
     mutationFn: (body: Partial<Workspace>) =>
       apiFetch<Envelope<Workspace>>(`/api/workspaces/${workspaceId}`, { method: "PATCH", body }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workspace"] }),
+  });
+}
+
+export function useUploadWorkspaceLogo() {
+  const queryClient = useQueryClient();
+  const workspaceId = useAuthStore((s) => s.workspaceId);
+  return useMutation({
+    mutationFn: (file: File) => {
+      if (!workspaceId) {
+        return Promise.reject(new Error("No workspace selected"));
+      }
+      const formData = new FormData();
+      formData.append("file", file);
+      return apiUpload<Envelope<Workspace>>(`/api/workspaces/${workspaceId}/logo`, formData);
+    },
+    onSuccess: (res) => {
+      queryClient.setQueryData(["workspace", workspaceId], res);
+      queryClient.invalidateQueries({ queryKey: ["workspace"] });
+    },
   });
 }
 

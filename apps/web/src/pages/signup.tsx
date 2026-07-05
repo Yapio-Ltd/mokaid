@@ -76,7 +76,7 @@ export function SignupPage() {
               Create your workspace
             </h1>
             <p className="mt-1.5 text-sm text-text-muted">
-              You'll be guided step by step — your first agent is 2 minutes away.
+              You'll be guided step by step. Your first agent is 2 minutes away.
             </p>
           </div>
         </div>

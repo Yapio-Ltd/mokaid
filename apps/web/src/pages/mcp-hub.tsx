@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Check, ExternalLink, Plug, Star, Trash2 } from "lucide-react";
 import {
   useFigmaOauthStart,
+  useGoogleOauthStart,
   useInstallMcp,
   useMcpHub,
   useUninstallMcp,
@@ -38,6 +39,19 @@ const categories = [
 function figmaRedirectUri(): string {
   return `${window.location.origin}/oauth/figma/callback`;
 }
+
+function googleRedirectUri(): string {
+  return `${window.location.origin}/oauth/google/callback`;
+}
+
+const googleServerKeys = new Set([
+  "google_drive",
+  "gmail",
+  "google_calendar",
+  "google_docs",
+  "google_sheets",
+  "google_meet",
+]);
 
 function ServerCard({
   server,
@@ -95,6 +109,7 @@ function InstallPanel({
   const install = useInstallMcp();
   const uninstall = useUninstallMcp();
   const figmaStart = useFigmaOauthStart();
+  const googleStart = useGoogleOauthStart();
   const [apiKey, setApiKey] = useState("");
   const [serverUrl, setServerUrl] = useState("");
   const [token, setToken] = useState("");
@@ -102,6 +117,7 @@ function InstallPanel({
 
   const isConnected = installation?.status === "connected";
   const isFigma = server.key === "figma";
+  const isGoogle = googleServerKeys.has(server.key);
 
   const startFigmaOauth = async () => {
     setError(null);
@@ -110,6 +126,19 @@ function InstallPanel({
       window.location.href = result.data.authorize_url;
     } catch {
       setError("Figma OAuth is not configured on this environment.");
+    }
+  };
+
+  const startGoogleOauth = async () => {
+    setError(null);
+    try {
+      const result = await googleStart.mutateAsync({
+        redirect_uri: googleRedirectUri(),
+        provider_key: server.key,
+      });
+      window.location.href = result.data.authorize_url;
+    } catch {
+      setError("Google OAuth is not configured on this environment.");
     }
   };
 
@@ -212,6 +241,15 @@ function InstallPanel({
         >
           <Plug size={13} /> Connect with Figma
         </Button>
+      ) : isGoogle ? (
+        <Button
+          size="sm"
+          className="w-full"
+          loading={googleStart.isPending}
+          onClick={startGoogleOauth}
+        >
+          <Plug size={13} /> Connect with Google
+        </Button>
       ) : server.auth_kind === "api_key" ? (
         <div className="space-y-3">
           <Field label="API key" hint="Stored encrypted. Only used by agents you authorize.">
@@ -267,9 +305,9 @@ function InstallPanel({
         </div>
       )}
 
-      {server.auth_kind === "oauth2" && !isFigma && !isConnected && (
+      {server.auth_kind === "oauth2" && !isFigma && !isGoogle && !isConnected && (
         <p className="text-center text-[10px] text-text-muted">
-          Native OAuth for {server.name} is coming soon — you can connect it today through a custom
+          Native OAuth for {server.name} is coming soon. You can connect it today through a custom
           MCP server URL above.
         </p>
       )}
@@ -316,7 +354,7 @@ export function McpHubPage() {
           <div>
             <h1 className="text-xl font-bold text-text">MCP Hub</h1>
             <p className="text-xs text-text-muted">
-              Connect your tools, then decide which agent can use which — {installedCount} installed
+              Connect your tools, then decide which agent can use which. {installedCount} installed
               · {servers.length} available
             </p>
           </div>

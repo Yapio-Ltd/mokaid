@@ -16,6 +16,16 @@ config :mokaid, :figma_oauth,
       "http://localhost:5173/oauth/figma/callback"
     ])
 
+config :mokaid, :google_oauth,
+  client_id: System.get_env("GOOGLE_CLIENT_ID"),
+  client_secret: System.get_env("GOOGLE_CLIENT_SECRET"),
+  redirect_uris:
+    Enum.uniq([
+      System.get_env("GOOGLE_REDIRECT_URI") || "https://mokaid.com/oauth/google/callback",
+      "https://mokaid.com/oauth/google/callback",
+      "http://localhost:5173/oauth/google/callback"
+    ])
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||

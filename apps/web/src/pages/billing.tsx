@@ -37,9 +37,9 @@ function downloadInvoice(invoice: Invoice, workspaceName: string) {
 
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${invoice.number}</title></head>
 <body style="font-family:-apple-system,Segoe UI,sans-serif;max-width:640px;margin:48px auto;color:#111;">
-  <h1 style="font-size:20px;">Mokaid — Invoice ${invoice.number}</h1>
+  <h1 style="font-size:20px;">Mokaid · Invoice ${invoice.number}</h1>
   <p style="color:#555;font-size:13px;">Workspace: ${workspaceName}<br/>
-  Issued: ${invoice.issued_at ? new Date(invoice.issued_at).toLocaleDateString() : "—"}<br/>
+  Issued: ${invoice.issued_at ? new Date(invoice.issued_at).toLocaleDateString() : "N/A"}<br/>
   Status: ${invoice.status.toUpperCase()}</p>
   <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:24px;">
     <thead><tr><th style="text-align:left;padding:8px 0;border-bottom:2px solid #111;">Description</th><th style="text-align:right;padding:8px 0;border-bottom:2px solid #111;">Amount</th></tr></thead>

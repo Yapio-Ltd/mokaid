@@ -26,7 +26,7 @@ function maybeToast(event: string, payload: EventPayload): void {
       toast({
         tone: "info",
         title: "Task created",
-        description: agentName ? `“${title}” — assigned to ${agentName}` : `“${title}”`,
+        description: agentName ? `"${title}" assigned to ${agentName}` : `"${title}"`,
         taskId,
       });
       return;
@@ -50,7 +50,7 @@ function maybeToast(event: string, payload: EventPayload): void {
         toast({
           tone: "success",
           title: "Ready for review",
-          description: `“${title}” — the agent finished. Check the output.`,
+          description: `"${title}": the agent finished. Check the output.`,
           taskId,
           duration: 8000,
         });
@@ -58,7 +58,7 @@ function maybeToast(event: string, payload: EventPayload): void {
         toast({
           tone: "error",
           title: "Task failed",
-          description: `“${title}” — open the task to see what went wrong.`,
+          description: `"${title}": open the task to see what went wrong.`,
           taskId,
           duration: 8000,
         });

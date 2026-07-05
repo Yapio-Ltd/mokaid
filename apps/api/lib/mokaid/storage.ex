@@ -12,18 +12,34 @@ defmodule Mokaid.Storage do
       # Keep filenames short in the S3 key to stay under MinIO's 2 KB header limit.
       safe_name = upload.filename |> String.slice(0, 100)
       key = "workspaces/#{workspace_id}/drive/#{Ecto.UUID.generate()}/#{safe_name}"
-      checksum = :crypto.hash(:sha256, body) |> Base.encode16(case: :lower)
-      ct = safe_content_type(upload.content_type)
+      put_object(uploads_bucket(), key, body, upload.content_type)
+    end
+  end
 
-      request = ExAws.S3.put_object(uploads_bucket(), key, body, content_type: ct)
+  @doc "Uploads a workspace logo image (PNG/JPG/WebP/GIF)."
+  @spec upload_workspace_logo(String.t(), Plug.Upload.t()) ::
+          {:ok, %{storage_key: String.t(), size_bytes: non_neg_integer(), checksum: String.t()}}
+          | {:error, term()}
+  def upload_workspace_logo(workspace_id, %Plug.Upload{} = upload) do
+    with {:ok, body} <- File.read(upload.path) do
+      safe_name = upload.filename |> String.slice(0, 100)
+      key = "workspaces/#{workspace_id}/logo/#{Ecto.UUID.generate()}/#{safe_name}"
+      put_object(uploads_bucket(), key, body, upload.content_type)
+    end
+  end
 
-      case ExAws.request(request) do
-        {:ok, _} ->
-          {:ok, %{storage_key: key, size_bytes: byte_size(body), checksum: checksum}}
+  defp put_object(bucket, key, body, content_type) do
+    checksum = :crypto.hash(:sha256, body) |> Base.encode16(case: :lower)
+    ct = safe_content_type(content_type)
 
-        {:error, reason} ->
-          {:error, reason}
-      end
+    request = ExAws.S3.put_object(bucket, key, body, content_type: ct)
+
+    case ExAws.request(request) do
+      {:ok, _} ->
+        {:ok, %{storage_key: key, size_bytes: byte_size(body), checksum: checksum}}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -52,6 +68,24 @@ defmodule Mokaid.Storage do
   def download_url(storage_key) do
     config = ExAws.Config.new(:s3)
     ExAws.S3.presigned_url(config, :get, uploads_bucket(), storage_key, expires_in: 900)
+  end
+
+  @spec get_object(String.t()) :: {:ok, binary(), String.t()} | {:error, term()}
+  def get_object(storage_key) do
+    case uploads_bucket() |> ExAws.S3.get_object(storage_key) |> ExAws.request() do
+      {:ok, %{body: body, headers: headers}} ->
+        {:ok, body, object_content_type(headers)}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp object_content_type(headers) do
+    Enum.find_value(headers, fn
+      {"Content-Type", value} -> value |> String.split(";") |> hd() |> String.trim()
+      _ -> nil
+    end) || "application/octet-stream"
   end
 
   # MinIO rejects requests when combined header/metadata exceeds 2 KB.

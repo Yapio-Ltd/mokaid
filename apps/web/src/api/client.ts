@@ -91,3 +91,19 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
 
   return payload as T;
 }
+
+/** Fetch workspace logo bytes through the authenticated API proxy. */
+export async function fetchWorkspaceLogoBlob(workspaceId: string): Promise<Blob | null> {
+  const { token, workspaceId: activeWorkspaceId } = useAuthStore.getState();
+  if (!token) return null;
+
+  const response = await fetch(`${env.VITE_API_URL}/api/workspaces/${workspaceId}/logo`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "x-workspace-id": activeWorkspaceId ?? workspaceId,
+    },
+  });
+
+  if (!response.ok) return null;
+  return response.blob();
+}

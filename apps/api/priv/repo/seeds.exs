@@ -107,7 +107,10 @@ provider_specs = [
   {"stripe", "Stripe", "Finance", "Payments and billing."},
   {"jira", "Jira", "Project Management", "Issue tracking and agile boards."},
   {"linear", "Linear", "Project Management", "Modern issue tracking."},
-  {"google_calendar", "Google Calendar", "Productivity", "Sync events and schedules."}
+  {"google_calendar", "Google Calendar", "Productivity", "Sync events and schedules."},
+  {"google_docs", "Google Docs", "Productivity", "Create and edit documents."},
+  {"google_sheets", "Google Sheets", "Productivity", "Read and write spreadsheets."},
+  {"google_meet", "Google Meet", "Communication", "Schedule and manage video meetings."}
 ]
 
 for {key, name, category, description} <- provider_specs do
