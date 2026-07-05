@@ -1,5 +1,5 @@
 export function formatBytes(bytes: number | null | undefined): string {
-  if (bytes == null) return "—";
+  if (bytes == null) return "·";
   if (bytes < 1024) return `${bytes} B`;
   const units = ["KB", "MB", "GB", "TB"];
   let value = bytes / 1024;
@@ -12,7 +12,7 @@ export function formatBytes(bytes: number | null | undefined): string {
 }
 
 export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "·";
   return new Date(iso).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -21,7 +21,7 @@ export function formatDate(iso: string | null | undefined): string {
 }
 
 export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "·";
   return new Date(iso).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
@@ -31,7 +31,7 @@ export function formatDateTime(iso: string | null | undefined): string {
 }
 
 export function formatRelative(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "·";
   const diffMs = Date.now() - new Date(iso).getTime();
   const abs = Math.abs(diffMs);
   const future = diffMs < 0;

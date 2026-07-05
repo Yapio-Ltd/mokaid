@@ -5,7 +5,7 @@ import { joinChannel, leaveChannel } from "./phoenix-client";
 
 /**
  * Joins the workspace channel and invalidates the relevant queries when
- * compact realtime events arrive. Details are refetched — payloads stay small.
+ * compact realtime events arrive. Details are refetched, so payloads stay small.
  */
 export function useWorkspaceChannel(): void {
   const workspaceId = useAuthStore((s) => s.workspaceId);

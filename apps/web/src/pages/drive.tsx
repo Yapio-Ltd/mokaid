@@ -241,10 +241,10 @@ export function DrivePage() {
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-text-muted">
-                        {item.kind === "folder" ? "—" : formatBytes(item.size_bytes)}
+                        {item.kind === "folder" ? "·" : formatBytes(item.size_bytes)}
                       </td>
                       <td className="px-3 py-2.5 text-text-secondary">
-                        {item.created_by_name ?? "—"}
+                        {item.created_by_name ?? "·"}
                         {item.created_by_kind === "agent" && (
                           <Badge tone="primary" className="ml-1.5">
                             AI
@@ -297,7 +297,7 @@ export function DrivePage() {
               <div className="flex justify-between">
                 <span className="text-text-muted">Size</span>
                 <span className="text-text">
-                  {selected.kind === "folder" ? "—" : formatBytes(selected.size_bytes)}
+                  {selected.kind === "folder" ? "·" : formatBytes(selected.size_bytes)}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -306,7 +306,7 @@ export function DrivePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-text-muted">Created by</span>
-                <span className="text-text">{selected.created_by_name ?? "—"}</span>
+                <span className="text-text">{selected.created_by_name ?? "·"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-muted">Modified</span>

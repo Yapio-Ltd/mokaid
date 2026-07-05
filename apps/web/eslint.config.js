@@ -22,6 +22,8 @@ export default [
         HTMLInputElement: "readonly",
         HTMLDivElement: "readonly",
         HTMLHeadingElement: "readonly",
+        HTMLElement: "readonly",
+        HTMLSpanElement: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
       },

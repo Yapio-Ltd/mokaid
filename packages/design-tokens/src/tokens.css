@@ -1,4 +1,4 @@
-/* mokaid design tokens — dark premium theme, purple accent.
+/* mokaid design tokens. Dark premium theme, purple accent.
    Derived from the design exploration mockups. */
 
 :root {
@@ -10,12 +10,12 @@
   --mk-surface-overlay: #1c1c26;
   --mk-surface-hover: #20202c;
 
-  /* Borders */
-  --mk-border: #232330;
-  --mk-border-strong: #2e2e3e;
+  /* Borders (kept low-contrast on purpose, no harsh white lines) */
+  --mk-border: #1f1f2b;
+  --mk-border-strong: #2b2b3a;
   --mk-border-focus: #7c5cff;
 
-  /* Brand — purple accent */
+  /* Brand, purple accent */
   --mk-primary-50: #f2eeff;
   --mk-primary-100: #e4dcff;
   --mk-primary-200: #c8b9ff;
@@ -53,18 +53,25 @@
   --mk-text-disabled: #4a4a5c;
   --mk-text-on-primary: #ffffff;
 
-  /* Radius */
-  --mk-radius-sm: 6px;
-  --mk-radius-md: 10px;
-  --mk-radius-lg: 14px;
-  --mk-radius-xl: 20px;
+  /* Radius, generous squircle-like scale */
+  --mk-radius-sm: 8px;
+  --mk-radius-md: 12px;
+  --mk-radius-lg: 16px;
+  --mk-radius-xl: 24px;
+  --mk-radius-2xl: 32px;
   --mk-radius-full: 9999px;
 
-  /* Shadows */
-  --mk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --mk-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
-  --mk-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+  /* Shadows, layered and soft for a premium depth */
+  --mk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  --mk-shadow-md: 0 2px 6px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --mk-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.35), 0 16px 48px rgba(0, 0, 0, 0.5);
   --mk-shadow-glow: 0 0 0 1px rgba(124, 92, 255, 0.25), 0 4px 24px rgba(124, 92, 255, 0.18);
+  --mk-shadow-glow-strong:
+    0 0 0 1px rgba(124, 92, 255, 0.35), 0 8px 40px rgba(124, 92, 255, 0.35);
+
+  /* Gradients */
+  --mk-gradient-primary: linear-gradient(135deg, #8f72ff 0%, #6a45f2 55%, #5936d1 100%);
+  --mk-gradient-text: linear-gradient(120deg, #f4f4f8 20%, #c8b9ff 55%, #8f72ff 90%);
 
   /* Spacing scale */
   --mk-space-1: 4px;
@@ -82,6 +89,7 @@
 
   /* Motion */
   --mk-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --mk-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --mk-duration-fast: 120ms;
   --mk-duration: 200ms;
   --mk-duration-slow: 320ms;

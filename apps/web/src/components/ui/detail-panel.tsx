@@ -19,11 +19,11 @@ export function DetailPanel({ open, onClose, title, children, className }: Detai
     <aside
       className={cn(
         "flex w-[360px] shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-lg",
-        "animate-in slide-in-from-right duration-200",
+        "mk-panel-in",
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
         <h2 className="text-sm font-semibold text-text">{title}</h2>
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close panel">
           <X size={16} />

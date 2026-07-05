@@ -11,7 +11,7 @@ import { useUiStore } from "@/stores/ui-store";
 import { AgentProfilePanel } from "@/components/agents/agent-profile-panel";
 import { formatRelative } from "@/lib/format";
 
-// Babylon.js is heavy — load the 3D office chunk only when the dashboard renders.
+// Babylon.js is heavy, so load the 3D office chunk only when the dashboard renders.
 const OfficeCanvas = lazy(() =>
   import("@/three/office-canvas").then((m) => ({ default: m.OfficeCanvas })),
 );
@@ -40,25 +40,25 @@ export function DashboardPage() {
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <KpiCard
             label="Total Agents"
-            value={counts?.total ?? "—"}
+            value={counts?.total ?? "·"}
             icon={<Bot size={20} />}
             tone="primary"
           />
           <KpiCard
             label="Active Now"
-            value={counts?.active ?? "—"}
+            value={counts?.active ?? "·"}
             icon={<Users size={20} />}
             tone="success"
           />
           <KpiCard
             label="Tasks in Progress"
-            value={tasksData?.meta.counts?.in_progress ?? "—"}
+            value={tasksData?.meta.counts?.in_progress ?? "·"}
             icon={<ClipboardList size={20} />}
             tone="info"
           />
           <KpiCard
             label="Completed Today"
-            value={tasksData?.meta.completed_today ?? "—"}
+            value={tasksData?.meta.completed_today ?? "·"}
             icon={<CheckCircle2 size={20} />}
             tone="warning"
           />

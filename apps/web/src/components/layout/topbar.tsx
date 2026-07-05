@@ -26,7 +26,7 @@ export function Topbar() {
   };
 
   return (
-    <header className="flex h-[60px] shrink-0 items-center gap-4 border-b border-border bg-bg px-4">
+    <header className="flex h-[60px] shrink-0 items-center gap-4 border-b border-border/60 bg-bg px-4">
       <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Toggle sidebar">
         <PanelLeft size={17} />
       </Button>
@@ -43,7 +43,7 @@ export function Topbar() {
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button
-            className="relative flex h-9 w-9 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-hover hover:text-text mk-focus-ring"
+            className="relative flex h-9 w-9 items-center justify-center rounded-md text-text-secondary transition-all duration-150 hover:bg-surface-hover hover:text-text active:scale-95 mk-focus-ring"
             aria-label="Notifications"
           >
             <Bell size={17} />
@@ -80,7 +80,10 @@ export function Topbar() {
 
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
-          <button className="mk-focus-ring rounded-full" aria-label="Account menu">
+          <button
+            className="mk-focus-ring rounded-full transition-transform duration-150 hover:scale-105 active:scale-95"
+            aria-label="Account menu"
+          >
             <Avatar name={user?.full_name} size="sm" color="#5936d1" />
           </button>
         </DropdownMenu.Trigger>

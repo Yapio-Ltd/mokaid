@@ -6,7 +6,7 @@ describe("formatBytes", () => {
     expect(formatBytes(512)).toBe("512 B");
     expect(formatBytes(2048)).toBe("2.0 KB");
     expect(formatBytes(2_400_000)).toBe("2.3 MB");
-    expect(formatBytes(null)).toBe("—");
+    expect(formatBytes(null)).toBe("·");
   });
 });
 

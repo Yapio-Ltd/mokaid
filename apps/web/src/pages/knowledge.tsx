@@ -153,7 +153,7 @@ export function KnowledgePage() {
                             {item.category_name}
                           </span>
                         ) : (
-                          "—"
+                          "·"
                         )}
                       </td>
                       <td className="px-3 py-3 capitalize text-text-secondary">{item.type}</td>
@@ -198,7 +198,7 @@ export function KnowledgePage() {
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-text-muted">Category</span>
-                <span className="text-text">{selected.category_name ?? "—"}</span>
+                <span className="text-text">{selected.category_name ?? "·"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-muted">Version</span>
@@ -216,7 +216,7 @@ export function KnowledgePage() {
               )}
               <div className="flex justify-between">
                 <span className="text-text-muted">Created by</span>
-                <span className="text-text">{selected.created_by_name ?? "—"}</span>
+                <span className="text-text">{selected.created_by_name ?? "·"}</span>
               </div>
               {selected.source_url && (
                 <div className="flex justify-between gap-3">

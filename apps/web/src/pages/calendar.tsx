@@ -8,14 +8,14 @@ import { cn } from "@/lib/cn";
 
 type ViewMode = "month" | "week";
 
-const kindColor: Record<string, string> = {
-  meeting: "border-l-primary bg-primary-muted",
-  deadline: "border-l-danger bg-danger-muted",
-  milestone: "border-l-success bg-success-muted",
-  leave: "border-l-warning bg-warning-muted",
-  schedule: "border-l-info bg-info-muted",
-  event: "border-l-primary bg-primary-muted",
-  personal: "border-l-info bg-info-muted",
+const kindColor: Record<string, { dot: string; bg: string }> = {
+  meeting: { dot: "bg-primary", bg: "bg-primary-muted" },
+  deadline: { dot: "bg-danger", bg: "bg-danger-muted" },
+  milestone: { dot: "bg-success", bg: "bg-success-muted" },
+  leave: { dot: "bg-warning", bg: "bg-warning-muted" },
+  schedule: { dot: "bg-info", bg: "bg-info-muted" },
+  event: { dot: "bg-primary", bg: "bg-primary-muted" },
+  personal: { dot: "bg-info", bg: "bg-info-muted" },
 };
 
 function startOfWeek(date: Date): Date {
@@ -111,16 +111,19 @@ export function CalendarPage() {
       </div>
 
       <div className="mk-card flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-border">
+        <div className="grid grid-cols-7 px-2 pt-3">
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-            <div key={day} className="px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+            <div
+              key={day}
+              className="px-2 pb-2 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-text-muted"
+            >
               {day}
             </div>
           ))}
         </div>
         <div
           className={cn(
-            "grid flex-1 grid-cols-7 overflow-y-auto",
+            "grid flex-1 grid-cols-7 gap-1 overflow-y-auto px-2 pb-2",
             view === "month" ? "auto-rows-fr" : "grid-rows-1",
           )}
         >
@@ -133,41 +136,46 @@ export function CalendarPage() {
               <div
                 key={day.toISOString()}
                 className={cn(
-                  "min-h-24 border-b border-r border-border/50 p-1.5",
-                  !inMonth && view === "month" && "bg-bg-deep/50",
+                  "group min-h-24 rounded-md p-1.5 transition-colors duration-150 hover:bg-surface-hover/60",
+                  !inMonth && view === "month" && "opacity-45",
+                  isToday && "bg-primary-muted/40 ring-1 ring-inset ring-primary/25",
                 )}
               >
                 <span
                   className={cn(
-                    "mb-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium",
+                    "mb-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium transition-colors",
                     isToday ? "bg-primary text-white" : inMonth ? "text-text" : "text-text-disabled",
                   )}
                 >
                   {day.getDate()}
                 </span>
                 <div className="space-y-1">
-                  {dayEvents.slice(0, view === "week" ? 10 : 3).map((event) => (
-                    <div
-                      key={event.id}
-                      title={event.title}
-                      className={cn(
-                        "truncate rounded border-l-2 px-1.5 py-0.5 text-[10px] font-medium text-text",
-                        kindColor[event.kind] ?? kindColor.event,
-                      )}
-                    >
-                      {!event.all_day && (
-                        <span className="mr-1 text-text-muted">
-                          {new Date(event.start_at).toLocaleTimeString("en-US", {
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      )}
-                      {event.title}
-                    </div>
-                  ))}
+                  {dayEvents.slice(0, view === "week" ? 10 : 3).map((event) => {
+                    const colors = kindColor[event.kind] ?? kindColor.event;
+                    return (
+                      <div
+                        key={event.id}
+                        title={event.title}
+                        className={cn(
+                          "flex items-center gap-1.5 truncate rounded-full px-2 py-0.5 text-[10px] font-medium text-text transition-transform duration-150 hover:scale-[1.02]",
+                          colors.bg,
+                        )}
+                      >
+                        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", colors.dot)} />
+                        {!event.all_day && (
+                          <span className="shrink-0 text-text-muted">
+                            {new Date(event.start_at).toLocaleTimeString("en-US", {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        )}
+                        <span className="truncate">{event.title}</span>
+                      </div>
+                    );
+                  })}
                   {dayEvents.length > 3 && view === "month" && (
-                    <p className="px-1 text-[10px] text-text-muted">+{dayEvents.length - 3} more</p>
+                    <p className="px-2 text-[10px] text-text-muted">+{dayEvents.length - 3} more</p>
                   )}
                 </div>
               </div>

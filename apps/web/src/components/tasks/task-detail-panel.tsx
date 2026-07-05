@@ -60,7 +60,7 @@ export function TaskDetailPanel({ task, onClose }: { task: Task | null; onClose:
             </div>
             <div className="flex justify-between">
               <span className="text-text-muted">Project</span>
-              <span className="text-text">{task.project_name ?? "—"}</span>
+              <span className="text-text">{task.project_name ?? "·"}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-text-muted">Due</span>

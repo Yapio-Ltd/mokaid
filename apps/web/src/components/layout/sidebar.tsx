@@ -20,7 +20,7 @@ import { Logo } from "@/components/brand/logo";
 import { Avatar } from "@/components/ui/avatar";
 
 const mainNav = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/agents", label: "Agents", icon: Bot },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/projects", label: "Projects", icon: FolderKanban },
@@ -55,14 +55,23 @@ function NavItem({
       to={to}
       title={collapsed ? label : undefined}
       className={cn(
-        "group flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium transition-colors mk-focus-ring",
+        "group relative flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium transition-all duration-150 mk-focus-ring active:scale-[0.98]",
         active
           ? "bg-primary-muted text-primary-light"
           : "text-text-secondary hover:bg-surface-hover hover:text-text",
         collapsed && "justify-center px-2",
       )}
     >
-      <Icon size={17} className={cn(active ? "text-primary-light" : "text-text-muted group-hover:text-text")} />
+      {active && !collapsed && (
+        <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary" aria-hidden />
+      )}
+      <Icon
+        size={17}
+        className={cn(
+          "transition-transform duration-150 group-hover:scale-105",
+          active ? "text-primary-light" : "text-text-muted group-hover:text-text",
+        )}
+      />
       {!collapsed && <span className="truncate">{label}</span>}
     </Link>
   );
@@ -73,17 +82,17 @@ export function Sidebar() {
   const user = useAuthStore((s) => s.user);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+  const isActive = (to: string) => pathname.startsWith(to);
 
   return (
     <nav
       className={cn(
-        "flex h-full shrink-0 flex-col border-r border-border bg-bg-deep transition-[width] duration-200",
+        "flex h-full shrink-0 flex-col border-r border-border/60 bg-bg-deep transition-[width] duration-200",
         collapsed ? "w-[68px]" : "w-60",
       )}
     >
-      <div className={cn("flex h-[60px] items-center border-b border-border px-4", collapsed && "justify-center px-2")}>
-        <Link to="/" className="mk-focus-ring rounded-md">
+      <div className={cn("flex h-[60px] items-center px-4", collapsed && "justify-center px-2")}>
+        <Link to="/dashboard" className="mk-focus-ring rounded-md">
           <Logo collapsed={collapsed} />
         </Link>
       </div>
@@ -109,7 +118,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className={cn("border-t border-border p-3", collapsed && "flex justify-center")}>
+      <div className={cn("border-t border-border/60 p-3", collapsed && "flex justify-center")}>
         <div className={cn("flex items-center gap-2.5", collapsed && "justify-center")}>
           <Avatar name={user?.full_name} size="sm" color="#5936d1" />
           {!collapsed && (

@@ -4,7 +4,7 @@
  * Production GLB/KTX2 assets are not delivered yet: every entry currently
  * points to `procedural:*`, which the AssetManager resolves to runtime-built
  * placeholder meshes. When final assets arrive, swap the URLs for CDN paths
- * (e.g. `${VITE_ASSETS_CDN_URL}/office/desk.glb`) — no scene code changes.
+ * (e.g. `${VITE_ASSETS_CDN_URL}/office/desk.glb`) with no scene code changes.
  */
 
 export interface AssetEntry {

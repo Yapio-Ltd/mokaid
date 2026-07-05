@@ -23,7 +23,12 @@ const iconTone = {
 
 export function KpiCard({ label, value, icon, trend, tone = "default", className }: KpiCardProps) {
   return (
-    <Card className={cn("flex items-center gap-4 p-4", className)}>
+    <Card
+      className={cn(
+        "flex items-center gap-4 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md",
+        className,
+      )}
+    >
       {icon && (
         <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-md", iconTone[tone])}>
           {icon}

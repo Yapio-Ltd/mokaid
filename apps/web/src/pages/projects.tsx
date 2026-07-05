@@ -192,7 +192,7 @@ export function ProjectsPage() {
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-text-muted">Owner</span>
-                <span className="text-text">{selected.owner_name ?? "—"}</span>
+                <span className="text-text">{selected.owner_name ?? "·"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-text-muted">Start</span>

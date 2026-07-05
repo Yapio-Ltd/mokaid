@@ -1,5 +1,5 @@
 /**
- * OfficeScene — isolated Babylon.js layer.
+ * OfficeScene: isolated Babylon.js layer.
  *
  * The 3D world is fully decoupled from React: it is created once, receives
  * agent updates through `updateAgents`, and reports interactions through
@@ -160,7 +160,7 @@ export class OfficeScene {
     windowMat.alpha = 0.9;
     windowStrip.material = windowMat;
 
-    // Desk grid — 2 rows of 5
+    // Desk grid: 2 rows of 5
     let slot = 0;
     for (let row = 0; row < 2; row++) {
       for (let col = 0; col < SEATS_PER_ROW; col++) {

@@ -35,7 +35,7 @@ function toSceneAgents(agents: Agent[]): SceneAgent[] {
 function FallbackOffice({ agents, onSelectAgent }: { agents: Agent[]; onSelectAgent: (id: string) => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 bg-bg-deep p-6">
-      <p className="text-xs text-text-muted">3D view unavailable — showing team status</p>
+      <p className="text-xs text-text-muted">3D view unavailable, showing team status</p>
       <div className="flex max-w-xl flex-wrap items-center justify-center gap-3">
         {agents.map((agent) => (
           <button
@@ -161,7 +161,7 @@ export function OfficeCanvas({
 
       {/* Temporary assets notice */}
       <div className="absolute bottom-3 left-3 rounded-md border border-border bg-surface-overlay/80 px-2 py-1 text-[10px] text-text-muted backdrop-blur">
-        Preview office — final 3D assets coming soon
+        Preview office, final 3D assets coming soon
       </div>
     </div>
   );

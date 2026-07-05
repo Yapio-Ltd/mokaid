@@ -145,7 +145,7 @@ export function BillingPage() {
 
             <div className="h-44 pt-2">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                AI requests — last 30 days
+                AI requests, last 30 days
               </p>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dailyAiUsage}>

@@ -134,9 +134,9 @@ export function MembersPage() {
                           {member.role_name}
                         </Badge>
                       </td>
-                      <td className="px-3 py-3 text-text-secondary">{member.team_name ?? "—"}</td>
+                      <td className="px-3 py-3 text-text-secondary">{member.team_name ?? "·"}</td>
                       <td className="px-3 py-3 text-text-secondary">
-                        {member.linked_agent_name ?? "—"}
+                        {member.linked_agent_name ?? "·"}
                       </td>
                       <td className="px-3 py-3">
                         <Badge tone={member.status === "active" ? "success" : "muted"}>

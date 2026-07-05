@@ -47,12 +47,17 @@ export default {
         md: "var(--mk-radius-md)",
         lg: "var(--mk-radius-lg)",
         xl: "var(--mk-radius-xl)",
+        "2xl": "var(--mk-radius-2xl)",
       },
       boxShadow: {
         sm: "var(--mk-shadow-sm)",
         md: "var(--mk-shadow-md)",
         lg: "var(--mk-shadow-lg)",
         glow: "var(--mk-shadow-glow)",
+        "glow-strong": "var(--mk-shadow-glow-strong)",
+      },
+      transitionTimingFunction: {
+        spring: "var(--mk-ease-spring)",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

@@ -17,6 +17,14 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
+  /* Squircle corners (superellipse) where the browser supports it.
+     Falls back to regular rounded corners elsewhere. */
+  @supports (corner-shape: squircle) {
+    * {
+      corner-shape: squircle;
+    }
+  }
+
   ::selection {
     background: var(--mk-primary-700);
     color: white;
@@ -40,6 +48,11 @@
   *::-webkit-scrollbar-track {
     background: transparent;
   }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 @layer components {
@@ -51,6 +64,10 @@
     @apply rounded-lg border border-border bg-surface-raised shadow-md;
   }
 
+  .mk-card-interactive {
+    @apply mk-card transition-all duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md;
+  }
+
   .mk-input {
     @apply w-full rounded-md border border-border bg-surface-raised px-3 py-2 text-sm text-text placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40 disabled:opacity-50 transition-colors;
   }
@@ -58,6 +75,100 @@
   .mk-focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg;
   }
+
+  .mk-glass {
+    background: rgba(18, 18, 26, 0.72);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  }
+
+  .mk-gradient-text {
+    background: var(--mk-gradient-text);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .mk-pressable {
+    @apply transition-transform duration-150 ease-spring active:scale-[0.97];
+  }
+}
+
+@layer utilities {
+  .animation-delay-150 {
+    animation-delay: 150ms;
+  }
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+}
+
+/* Soft floating animation used on the landing and login pages */
+@keyframes mk-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.mk-float {
+  animation: mk-float 6s ease-in-out infinite;
+}
+
+@keyframes mk-pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(124, 92, 255, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 32px 4px rgba(124, 92, 255, 0.2);
+  }
+}
+
+@keyframes mk-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mk-fade-up {
+  animation: mk-fade-up 0.5s var(--mk-ease) both;
+}
+
+@keyframes mk-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.mk-panel-in {
+  animation: mk-panel-in 0.28s var(--mk-ease) both;
+}
+
+@keyframes mk-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.mk-marquee {
+  animation: mk-marquee 36s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

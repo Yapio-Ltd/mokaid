@@ -113,7 +113,7 @@ export function AgentProfilePanel({
               <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between">
                   <span className="text-text-muted">Department</span>
-                  <span className="text-text">{agent.department ?? "—"}</span>
+                  <span className="text-text">{agent.department ?? "·"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-text-muted">Last active</span>

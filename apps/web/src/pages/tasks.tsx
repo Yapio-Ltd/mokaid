@@ -238,7 +238,7 @@ export function TasksPage() {
                     <td className="max-w-[280px] truncate px-5 py-3 font-medium text-text">
                       {task.title}
                     </td>
-                    <td className="px-3 py-3 text-text-secondary">{task.project_name ?? "—"}</td>
+                    <td className="px-3 py-3 text-text-secondary">{task.project_name ?? "·"}</td>
                     <td className="px-3 py-3 text-text-secondary">
                       {task.assigned_agent_name ?? "Unassigned"}
                     </td>

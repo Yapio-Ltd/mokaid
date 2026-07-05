@@ -61,15 +61,15 @@ export function AgentsPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <KpiCard label="Total Agents" value={counts?.total ?? "—"} icon={<Bot size={20} />} tone="primary" />
-          <KpiCard label="AI Agents" value={counts?.ai ?? "—"} icon={<Bot size={20} />} tone="info" />
+          <KpiCard label="Total Agents" value={counts?.total ?? "·"} icon={<Bot size={20} />} tone="primary" />
+          <KpiCard label="AI Agents" value={counts?.ai ?? "·"} icon={<Bot size={20} />} tone="info" />
           <KpiCard
             label="Human-linked"
-            value={counts?.human_linked ?? "—"}
+            value={counts?.human_linked ?? "·"}
             icon={<Users size={20} />}
             tone="success"
           />
-          <KpiCard label="Active Now" value={counts?.active ?? "—"} icon={<Users size={20} />} tone="warning" />
+          <KpiCard label="Active Now" value={counts?.active ?? "·"} icon={<Users size={20} />} tone="warning" />
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -154,7 +154,7 @@ export function AgentsPage() {
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-text">{agent.display_name}</p>
                           <p className="truncate text-[11px] text-text-muted">
-                            {agent.role_title ?? "—"}
+                            {agent.role_title ?? "·"}
                           </p>
                         </div>
                       </div>
@@ -169,9 +169,9 @@ export function AgentsPage() {
                       )}
                     </td>
                     <td className="px-3 py-3 text-text-secondary">
-                      {agent.linked_user_name ?? (agent.kind === "ai" ? "Autonomous" : "—")}
+                      {agent.linked_user_name ?? (agent.kind === "ai" ? "Autonomous" : "·")}
                     </td>
-                    <td className="px-3 py-3 text-text-secondary">{agent.department ?? "—"}</td>
+                    <td className="px-3 py-3 text-text-secondary">{agent.department ?? "·"}</td>
                     <td className="px-3 py-3">
                       <AgentStatusBadge status={agent.status} />
                     </td>
@@ -186,7 +186,7 @@ export function AgentsPage() {
                               : "text-text-secondary",
                         )}
                       >
-                        {agent.performance_score != null ? `${agent.performance_score}%` : "—"}
+                        {agent.performance_score != null ? `${agent.performance_score}%` : "·"}
                       </span>
                     </td>
                     <td className="px-5 py-3 text-text-muted">

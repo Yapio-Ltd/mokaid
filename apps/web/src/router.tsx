@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/app-shell";
 import { useAuthStore } from "@/stores/auth-store";
+import { LandingPage } from "@/pages/landing";
 import { LoginPage } from "@/pages/login";
 import { DashboardPage } from "@/pages/dashboard";
 import { AgentsPage } from "@/pages/agents";
@@ -25,13 +26,19 @@ const rootRoute = createRootRoute({
   component: () => <Outlet />,
 });
 
+const landingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: LandingPage,
+});
+
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
   component: LoginPage,
   beforeLoad: () => {
     if (useAuthStore.getState().token) {
-      throw redirect({ to: "/" });
+      throw redirect({ to: "/dashboard" });
     }
   },
 });
@@ -48,7 +55,7 @@ const appRoute = createRoute({
 });
 
 const pages = [
-  { path: "/", component: DashboardPage },
+  { path: "/dashboard", component: DashboardPage },
   { path: "/agents", component: AgentsPage },
   { path: "/tasks", component: TasksPage },
   { path: "/projects", component: ProjectsPage },
@@ -66,7 +73,11 @@ const pageRoutes = pages.map(({ path, component }) =>
   createRoute({ getParentRoute: () => appRoute, path, component }),
 );
 
-const routeTree = rootRoute.addChildren([loginRoute, appRoute.addChildren(pageRoutes)]);
+const routeTree = rootRoute.addChildren([
+  landingRoute,
+  loginRoute,
+  appRoute.addChildren(pageRoutes),
+]);
 
 export const router = createRouter({ routeTree });
 
