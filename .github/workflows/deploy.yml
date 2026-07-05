@@ -28,10 +28,13 @@ jobs:
     name: Deploy (${{ inputs.environment || 'dev' }})
     runs-on: ubuntu-latest
     if: >
-      github.event_name == 'workflow_dispatch'
-      || (
-        github.event.workflow_run.conclusion == 'success'
-        && github.event.workflow_run.head_branch == 'main'
+      vars.AWS_DEPLOY_ENABLED == 'true'
+      && (
+        github.event_name == 'workflow_dispatch'
+        || (
+          github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.head_branch == 'main'
+        )
       )
 
     env:

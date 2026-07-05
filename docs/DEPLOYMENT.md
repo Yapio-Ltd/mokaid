@@ -71,7 +71,19 @@ aws cloudfront create-invalidation --distribution-id <id> --paths "/*"
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs typecheck/lint/tests for all three apps + `terraform fmt/validate` on every PR, and Docker builds on `main`. ECR push is pre-wired behind an AWS OIDC role (commented in the workflow).
+`.github/workflows/ci.yml` runs typecheck/lint/tests for all three apps + `terraform fmt/validate` on every PR, and Docker builds on `main`.
+
+`.github/workflows/deploy.yml` deploys API + AI worker to ECS on `main` after CI succeeds. Enable it once:
+
+```bash
+cd infra/terraform/bootstrap
+terraform init && terraform apply   # creates GitHub OIDC role
+# copy output github_deploy_role_arn into GitHub:
+gh secret set AWS_DEPLOY_ROLE_ARN --repo Tomyshh/mokaid
+gh variable set AWS_DEPLOY_ENABLED --repo Tomyshh/mokaid --body true
+```
+
+Then re-run **Deploy to AWS** from the Actions tab (or push to `main`).
 
 ## Rollback
 
