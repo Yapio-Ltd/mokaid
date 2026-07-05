@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { AgentStatusBadge, TaskStatusBadge } from "@/components/ui/status";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Badge } from "@/components/ui/badge";
+import { AgentMcpMatrix } from "@/components/mcp/agent-mcp-matrix";
 import { formatRelative } from "@/lib/format";
 
 const tabClass =
@@ -71,6 +72,9 @@ export function AgentProfilePanel({
               </Tabs.Trigger>
               <Tabs.Trigger value="tasks" className={tabClass}>
                 Tasks
+              </Tabs.Trigger>
+              <Tabs.Trigger value="tools" className={tabClass}>
+                Tools
               </Tabs.Trigger>
             </Tabs.List>
 
@@ -155,6 +159,10 @@ export function AgentProfilePanel({
               ) : (
                 <p className="text-xs text-text-muted">No tasks assigned.</p>
               )}
+            </Tabs.Content>
+
+            <Tabs.Content value="tools" className="px-5 py-4">
+              <AgentMcpMatrix agentId={agent.id} />
             </Tabs.Content>
           </Tabs.Root>
         </div>

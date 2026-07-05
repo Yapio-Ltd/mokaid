@@ -29,6 +29,16 @@ defmodule MokaidWeb.LeaveRequestController do
         leave_request_id: request.id
       })
 
+      Mokaid.Notifications.notify_roles(
+        workspace_id(conn),
+        ["Owner", "Admin", "Manager"],
+        "leave_request_created",
+        "New time off request",
+        body: "A team member requested time off (#{params["type"] || "leave"}).",
+        resource_type: "leave_request",
+        resource_id: request.id
+      )
+
       conn
       |> put_status(:created)
       |> json(%{data: Serializer.leave_request(request)})
@@ -61,6 +71,16 @@ defmodule MokaidWeb.LeaveRequestController do
       Mokaid.Realtime.broadcast_workspace(workspace_id(conn), "leave_request.#{status}", %{
         leave_request_id: updated.id
       })
+
+      Mokaid.Notifications.notify_member(
+        workspace_id(conn),
+        updated.member_id,
+        "leave_request_#{status}",
+        "Your time off request was #{status}",
+        body: note,
+        resource_type: "leave_request",
+        resource_id: updated.id
+      )
 
       json(conn, %{
         data: Serializer.leave_request(Members.get_leave_request(workspace_id(conn), updated.id))

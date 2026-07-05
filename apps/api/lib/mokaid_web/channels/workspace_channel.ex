@@ -50,7 +50,10 @@ defmodule MokaidWeb.WorkspaceChannel do
   @impl true
   def handle_in("page_changed", %{"page" => page}, socket) do
     Presence.update(socket, socket.assigns.current_user.id, fn meta ->
-      Map.merge(meta, %{current_page: page, last_seen_at: DateTime.utc_now() |> DateTime.to_iso8601()})
+      Map.merge(meta, %{
+        current_page: page,
+        last_seen_at: DateTime.utc_now() |> DateTime.to_iso8601()
+      })
     end)
 
     {:noreply, socket}

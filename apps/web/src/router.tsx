@@ -9,6 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { useAuthStore } from "@/stores/auth-store";
 import { LandingPage } from "@/pages/landing";
 import { LoginPage } from "@/pages/login";
+import { SignupPage } from "@/pages/signup";
 import { DashboardPage } from "@/pages/dashboard";
 import { AgentsPage } from "@/pages/agents";
 import { TasksPage } from "@/pages/tasks";
@@ -19,7 +20,8 @@ import { CalendarPage } from "@/pages/calendar";
 import { AnalyticsPage } from "@/pages/analytics";
 import { SettingsPage } from "@/pages/settings";
 import { MembersPage } from "@/pages/members";
-import { IntegrationsPage } from "@/pages/integrations";
+import { McpHubPage } from "@/pages/mcp-hub";
+import { FigmaCallbackPage } from "@/pages/figma-callback";
 import { BillingPage } from "@/pages/billing";
 
 const rootRoute = createRootRoute({
@@ -36,6 +38,17 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
   component: LoginPage,
+  beforeLoad: () => {
+    if (useAuthStore.getState().token) {
+      throw redirect({ to: "/dashboard" });
+    }
+  },
+});
+
+const signupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/signup",
+  component: SignupPage,
   beforeLoad: () => {
     if (useAuthStore.getState().token) {
       throw redirect({ to: "/dashboard" });
@@ -65,7 +78,7 @@ const pages = [
   { path: "/analytics", component: AnalyticsPage },
   { path: "/settings", component: SettingsPage },
   { path: "/members", component: MembersPage },
-  { path: "/integrations", component: IntegrationsPage },
+  { path: "/integrations", component: McpHubPage },
   { path: "/billing", component: BillingPage },
 ] as const;
 
@@ -73,9 +86,17 @@ const pageRoutes = pages.map(({ path, component }) =>
   createRoute({ getParentRoute: () => appRoute, path, component }),
 );
 
+const figmaCallbackRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/oauth/figma/callback",
+  component: FigmaCallbackPage,
+});
+
 const routeTree = rootRoute.addChildren([
   landingRoute,
   loginRoute,
+  signupRoute,
+  figmaCallbackRoute,
   appRoute.addChildren(pageRoutes),
 ]);
 

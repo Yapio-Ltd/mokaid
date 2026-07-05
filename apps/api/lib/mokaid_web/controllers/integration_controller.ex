@@ -32,7 +32,9 @@ defmodule MokaidWeb.IntegrationController do
     with :ok <- Permissions.authorize(current_member(conn), "integrations.disconnect"),
          %{} = connection <- Integrations.get_connection(workspace_id(conn), id),
          {:ok, updated} <- Integrations.disconnect(connection, current_member(conn)) do
-      json(conn, %{data: Serializer.integration_connection(Mokaid.Repo.preload(updated, :provider))})
+      json(conn, %{
+        data: Serializer.integration_connection(Mokaid.Repo.preload(updated, :provider))
+      })
     end
   end
 end

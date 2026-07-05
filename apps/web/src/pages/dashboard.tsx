@@ -1,6 +1,6 @@
 import { Suspense, lazy, useMemo } from "react";
 import { Bot, CheckCircle2, ClipboardList, Users } from "lucide-react";
-import { useAgents, useTasks } from "@/api/hooks";
+import { useAgents, useTasks, useWorkspace } from "@/api/hooks";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
@@ -19,8 +19,11 @@ const OfficeCanvas = lazy(() =>
 export function DashboardPage() {
   const { data: agentsData, isLoading: agentsLoading } = useAgents();
   const { data: tasksData, isLoading: tasksLoading } = useTasks();
+  const { data: workspaceData } = useWorkspace();
   const selectedAgentId = useUiStore((s) => s.selectedAgentId);
   const selectAgent = useUiStore((s) => s.selectAgent);
+
+  const show3dOffice = workspaceData?.data.feature_toggles?.["3d_office"] !== false;
 
   const agents = agentsData?.data ?? [];
   const counts = agentsData?.meta.counts;
@@ -64,14 +67,16 @@ export function DashboardPage() {
           />
         </div>
 
-        {/* 3D office */}
-        <Card className="overflow-hidden">
-          <div className="relative h-[420px]">
-            <Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
-              <OfficeCanvas agents={agents} onSelectAgent={selectAgent} />
-            </Suspense>
-          </div>
-        </Card>
+        {/* 3D office (toggleable from Workspace Settings) */}
+        {show3dOffice && (
+          <Card className="overflow-hidden">
+            <div className="relative h-[420px]">
+              <Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
+                <OfficeCanvas agents={agents} onSelectAgent={selectAgent} />
+              </Suspense>
+            </div>
+          </Card>
+        )}
 
         {/* Active tasks + team overview */}
         <div className="grid gap-5 xl:grid-cols-5">

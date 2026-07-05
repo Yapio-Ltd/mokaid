@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ChevronRight,
+  Download,
   File,
   FileText,
   Folder,
@@ -16,11 +17,14 @@ import {
   Upload,
 } from "lucide-react";
 import {
-  useCreateFolder,
   useDriveItems,
   useDriveTrash,
+  useRestoreDriveItem,
   useTrashDriveItem,
+  useUploadDriveFile,
 } from "@/api/hooks";
+import { apiFetch } from "@/api/client";
+import { NewFolderModal } from "@/components/modals/new-folder-modal";
 import type { DriveItem } from "@/api/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,12 +64,15 @@ export function DrivePage() {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showTrash, setShowTrash] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentFolder = crumbs[crumbs.length - 1];
   const { data, isLoading } = useDriveItems(currentFolder.id);
   const { data: trashData } = useDriveTrash();
-  const createFolder = useCreateFolder();
   const trashItem = useTrashDriveItem();
+  const restoreItem = useRestoreDriveItem();
+  const uploadFile = useUploadDriveFile();
 
   const items = showTrash ? (trashData?.data ?? []) : (data?.data ?? []);
   const selected = items.find((i) => i.id === selectedId) ?? null;
@@ -79,11 +86,19 @@ export function DrivePage() {
     }
   };
 
-  const handleNewFolder = () => {
-    const name = window.prompt("Folder name");
-    if (name?.trim()) {
-      createFolder.mutate({ name: name.trim(), parent_id: currentFolder.id });
-    }
+  const handleUploadChange = (files: FileList | null) => {
+    if (!files) return;
+    Array.from(files).forEach((file) => {
+      uploadFile.mutate({ file, parentId: currentFolder.id });
+    });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleDownload = async (id: string) => {
+    const res = await apiFetch<{ data: { url: string; name: string } }>(
+      `/api/drive/${id}/download`,
+    );
+    window.open(res.data.url, "_blank", "noopener");
   };
 
   return (
@@ -95,12 +110,23 @@ export function DrivePage() {
             <p className="text-xs text-text-muted">Workspace files, folders and agent outputs</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={handleNewFolder}>
+            <Button variant="secondary" size="sm" onClick={() => setShowNewFolder(true)}>
               <FolderPlus size={14} /> New Folder
             </Button>
-            <Button size="sm">
+            <Button
+              size="sm"
+              loading={uploadFile.isPending}
+              onClick={() => fileInputRef.current?.click()}
+            >
               <Upload size={14} /> Upload
             </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => handleUploadChange(e.target.files)}
+            />
           </div>
         </div>
 
@@ -325,25 +351,50 @@ export function DrivePage() {
             )}
 
             {showTrash ? (
-              <Button variant="secondary" size="sm" className="w-full">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                loading={restoreItem.isPending}
+                onClick={() =>
+                  restoreItem.mutate(selected.id, { onSuccess: () => setSelectedId(null) })
+                }
+              >
                 <RotateCcw size={13} /> Restore
               </Button>
             ) : (
-              <Button
-                variant="danger"
-                size="sm"
-                className="w-full"
-                loading={trashItem.isPending}
-                onClick={() =>
-                  trashItem.mutate(selected.id, { onSuccess: () => setSelectedId(null) })
-                }
-              >
-                <Trash2 size={13} /> Move to Trash
-              </Button>
+              <div className="space-y-2">
+                {selected.kind === "file" && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => handleDownload(selected.id)}
+                  >
+                    <Download size={13} /> Download
+                  </Button>
+                )}
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="w-full"
+                  loading={trashItem.isPending}
+                  onClick={() =>
+                    trashItem.mutate(selected.id, { onSuccess: () => setSelectedId(null) })
+                  }
+                >
+                  <Trash2 size={13} /> Move to Trash
+                </Button>
+              </div>
             )}
           </div>
         )}
       </DetailPanel>
+      <NewFolderModal
+        open={showNewFolder}
+        onOpenChange={setShowNewFolder}
+        parentId={currentFolder.id}
+      />
     </div>
   );
 }

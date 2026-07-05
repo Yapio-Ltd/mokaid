@@ -136,6 +136,17 @@ defmodule Mokaid.Tasks do
 
       Agents.change_status(agent, "busy", current_task_id: task.id, reason: "task_assigned")
 
+      if agent.linked_member_id do
+        Mokaid.Notifications.notify_member(
+          task.workspace_id,
+          agent.linked_member_id,
+          "task_assigned",
+          "New task assigned: #{task.title}",
+          resource_type: "task",
+          resource_id: task.id
+        )
+      end
+
       {:ok, Repo.preload(updated, @preloads, force: true)}
     else
       nil -> {:error, :agent_not_found}
@@ -151,6 +162,25 @@ defmodule Mokaid.Tasks do
       Map.merge(attrs, %{"workspace_id" => task.workspace_id, "task_id" => task.id})
     )
     |> Repo.insert()
+  end
+
+  def get_subtask(%Task{} = task, subtask_id) do
+    Repo.one(from s in Subtask, where: s.task_id == ^task.id and s.id == ^subtask_id)
+  end
+
+  def update_subtask(%Subtask{} = subtask, attrs) do
+    result =
+      subtask
+      |> Subtask.changeset(Map.put(attrs, "workspace_id", subtask.workspace_id))
+      |> Repo.update()
+
+    with {:ok, updated} <- result do
+      Realtime.broadcast_workspace(subtask.workspace_id, "task.updated", %{
+        task_id: subtask.task_id
+      })
+
+      {:ok, updated}
+    end
   end
 
   def create_comment(%Task{} = task, attrs, actor) do

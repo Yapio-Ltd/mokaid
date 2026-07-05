@@ -71,8 +71,8 @@ web.lint: ## Lint + typecheck frontend
 api.install: ## Install backend dependencies
 	cd apps/api && mix deps.get
 
-api.dev: ## Start Phoenix dev server
-	cd apps/api && mix phx.server
+api.dev: ## Start Phoenix dev server (loads apps/api/.env if present)
+	cd apps/api && set -a && [ -f .env ] && source .env; set +a; mix phx.server
 
 api.test: ## Run backend tests
 	cd apps/api && mix test

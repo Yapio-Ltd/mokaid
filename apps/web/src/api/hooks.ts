@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "./client";
+import { apiFetch, apiUpload } from "./client";
 import type {
   Agent,
   AgentCounts,
@@ -15,6 +15,9 @@ import type {
   KnowledgeCategory,
   KnowledgeItem,
   LeaveRequest,
+  McpGrant,
+  McpInstallation,
+  McpServer,
   Member,
   Project,
   ProjectActivity,
@@ -122,6 +125,18 @@ export function useCreateTaskComment() {
   });
 }
 
+export function useToggleSubtask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, subtaskId, done }: { taskId: string; subtaskId: string; done: boolean }) =>
+      apiFetch<Envelope<{ id: string; done: boolean }>>(
+        `/api/tasks/${taskId}/subtasks/${subtaskId}`,
+        { method: "PATCH", body: { done } },
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+}
+
 export function useExecuteAi() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -148,6 +163,24 @@ export function useProjects(filters: Record<string, string | undefined> = {}) {
   });
 }
 
+export function useCreateProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Partial<Project> & { name: string }) =>
+      apiFetch<Envelope<Project>>("/api/projects", { method: "POST", body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
+export function useUpdateProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: Partial<Project> & { id: string }) =>
+      apiFetch<Envelope<Project>>(`/api/projects/${id}`, { method: "PATCH", body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
 /* ---------- Knowledge ---------- */
 
 export function useKnowledgeItems(filters: Record<string, string | undefined> = {}) {
@@ -167,6 +200,22 @@ export function useKnowledgeCategories() {
   return useQuery({
     queryKey: [...key, "categories"],
     queryFn: () => apiFetch<Envelope<KnowledgeCategory[]>>("/api/knowledge-categories"),
+  });
+}
+
+export function useCreateKnowledge() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      title: string;
+      type: string;
+      body?: string;
+      source_url?: string;
+      category_id?: string;
+      tags?: string[];
+      status?: string;
+    }) => apiFetch<Envelope<KnowledgeItem>>("/api/knowledge", { method: "POST", body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["knowledge"] }),
   });
 }
 
@@ -211,6 +260,28 @@ export function useTrashDriveItem() {
   });
 }
 
+export function useUploadDriveFile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, parentId }: { file: File; parentId: string | null }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      if (parentId) formData.append("parent_id", parentId);
+      return apiUpload<Envelope<DriveItem>>("/api/drive/upload", formData);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["drive"] }),
+  });
+}
+
+export function useRestoreDriveItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<Envelope<DriveItem>>(`/api/drive/${id}/restore`, { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["drive"] }),
+  });
+}
+
 /* ---------- Calendar ---------- */
 
 export function useCalendarEvents(filters: Record<string, string | undefined> = {}) {
@@ -219,6 +290,26 @@ export function useCalendarEvents(filters: Record<string, string | undefined> = 
     queryKey: [...key, filters],
     queryFn: () =>
       apiFetch<Envelope<CalendarEvent[]>>("/api/calendar/events", { params: filters }),
+  });
+}
+
+export function useCreateCalendarEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      title: string;
+      kind?: string;
+      description?: string;
+      start_at: string;
+      end_at?: string;
+      all_day?: boolean;
+      project_id?: string;
+    }) =>
+      apiFetch<Envelope<{ id: string; title: string }>>("/api/calendar/events", {
+        method: "POST",
+        body,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["calendar"] }),
   });
 }
 
@@ -245,6 +336,38 @@ export function useInviteMember() {
         body,
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["members"] }),
+  });
+}
+
+export function useUpdateMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      title?: string;
+      status?: string;
+      role_id?: string;
+      team_id?: string;
+    }) => apiFetch<Envelope<Member>>(`/api/members/${id}`, { method: "PATCH", body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["members"] }),
+  });
+}
+
+export function useLinkMemberAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ memberId, agentId }: { memberId: string; agentId: string }) =>
+      apiFetch<Envelope<Agent>>(`/api/members/${memberId}/link-agent`, {
+        method: "POST",
+        body: { agent_id: agentId },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+    },
   });
 }
 
@@ -312,6 +435,102 @@ export function useDisconnectIntegration() {
   });
 }
 
+/* ---------- MCP Hub ---------- */
+
+export function useMcpHub() {
+  const key = useWorkspaceKey("mcp");
+  return useQuery({
+    queryKey: key,
+    queryFn: () =>
+      apiFetch<Envelope<{ servers: McpServer[]; installations: McpInstallation[] }>>("/api/mcp"),
+  });
+}
+
+export function useInstallMcp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      serverKey,
+      ...body
+    }: {
+      serverKey: string;
+      credentials?: Record<string, string>;
+      server_url?: string;
+      connected_account?: string;
+    }) =>
+      apiFetch<Envelope<McpInstallation>>(`/api/mcp/${serverKey}/install`, {
+        method: "POST",
+        body,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mcp"] }),
+  });
+}
+
+export function useUninstallMcp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (installationId: string) =>
+      apiFetch<Envelope<{ id: string }>>(`/api/mcp/installations/${installationId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mcp"] });
+      queryClient.invalidateQueries({ queryKey: ["mcp-grants"] });
+    },
+  });
+}
+
+export function useAgentMcpGrants(agentId: string | null) {
+  return useQuery({
+    queryKey: ["mcp-grants", agentId],
+    enabled: agentId != null,
+    queryFn: () => apiFetch<Envelope<McpGrant[]>>(`/api/agents/${agentId}/mcp-grants`),
+  });
+}
+
+export function useSetMcpGrant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      agentId,
+      installationId,
+      granted,
+    }: {
+      agentId: string;
+      installationId: string;
+      granted: boolean;
+    }) =>
+      apiFetch<Envelope<McpGrant>>(`/api/agents/${agentId}/mcp-grants/${installationId}`, {
+        method: "PUT",
+        body: { granted },
+      }),
+    onSuccess: (_data, { agentId }) =>
+      queryClient.invalidateQueries({ queryKey: ["mcp-grants", agentId] }),
+  });
+}
+
+export function useFigmaOauthStart() {
+  return useMutation({
+    mutationFn: (redirectUri: string) =>
+      apiFetch<Envelope<{ authorize_url: string }>>("/api/mcp/figma/oauth/start", {
+        method: "POST",
+        body: { redirect_uri: redirectUri },
+      }),
+  });
+}
+
+export function useFigmaOauthCallback() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { code: string; state: string; redirect_uri: string }) =>
+      apiFetch<Envelope<McpInstallation>>("/api/mcp/figma/oauth/callback", {
+        method: "POST",
+        body,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mcp"] }),
+  });
+}
+
 /* ---------- Billing & analytics ---------- */
 
 export function useBillingOverview() {
@@ -327,6 +546,32 @@ export function useInvoices() {
   return useQuery({
     queryKey: [...key, "invoices"],
     queryFn: () => apiFetch<Envelope<Invoice[]>>("/api/billing/invoices"),
+  });
+}
+
+export interface BillingPlanSummary {
+  key: string;
+  name: string;
+  price_cents_monthly: number;
+  price_cents_yearly: number;
+  limits: Record<string, number>;
+  features: string[];
+}
+
+export function useBillingPlans() {
+  const key = useWorkspaceKey("billing");
+  return useQuery({
+    queryKey: [...key, "plans"],
+    queryFn: () => apiFetch<Envelope<BillingPlanSummary[]>>("/api/billing/plans"),
+  });
+}
+
+export function useChangePlan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { plan_key: string; billing_cycle?: string }) =>
+      apiFetch<Envelope<unknown>>("/api/billing/change-plan", { method: "POST", body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["billing"] }),
   });
 }
 
@@ -364,5 +609,15 @@ export function useNotifications() {
   return useQuery({
     queryKey: key,
     queryFn: () => apiFetch<Envelope<AppNotification[]>>("/api/notifications"),
+    refetchInterval: 30_000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<Envelope<AppNotification>>(`/api/notifications/${id}/read`, { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 }

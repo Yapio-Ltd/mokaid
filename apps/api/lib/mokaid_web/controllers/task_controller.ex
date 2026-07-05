@@ -61,6 +61,23 @@ defmodule MokaidWeb.TaskController do
     end
   end
 
+  def update_subtask(conn, %{"task_id" => task_id, "id" => subtask_id} = params) do
+    with :ok <- Permissions.authorize(current_member(conn), "tasks.update"),
+         %{} = task <- Tasks.get_task(workspace_id(conn), task_id),
+         %{} = subtask <- Tasks.get_subtask(task, subtask_id),
+         {:ok, updated} <- Tasks.update_subtask(subtask, params) do
+      json(conn, %{
+        data: %{
+          id: updated.id,
+          task_id: updated.task_id,
+          title: updated.title,
+          done: updated.done,
+          position: updated.position
+        }
+      })
+    end
+  end
+
   def execute_ai(conn, %{"id" => id} = params) do
     with :ok <- Permissions.authorize(current_member(conn), "agents.run_ai"),
          %{} = task <- Tasks.get_task(workspace_id(conn), id),

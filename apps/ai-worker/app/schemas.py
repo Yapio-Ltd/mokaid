@@ -1,10 +1,10 @@
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class RunStatus(str, Enum):
+class RunStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"
     WAITING_FOR_APPROVAL = "waiting_for_approval"
@@ -14,11 +14,22 @@ class RunStatus(str, Enum):
     CANCELED = "canceled"
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
+
+
+class McpServerGrant(BaseModel):
+    """An MCP server the agent is authorized to use (from agent_mcp_grants)."""
+
+    key: str
+    name: str
+    url: str
+    transport: str = "http"
+    auth_kind: str = "api_key"
+    credentials: dict[str, Any] = Field(default_factory=dict)
 
 
 class RunRequest(BaseModel):
@@ -29,6 +40,7 @@ class RunRequest(BaseModel):
     task_title: str | None = None
     task_description: str | None = None
     input: dict[str, Any] = Field(default_factory=dict)
+    mcp_servers: list[McpServerGrant] = Field(default_factory=list)
 
 
 class ResumeRequest(BaseModel):

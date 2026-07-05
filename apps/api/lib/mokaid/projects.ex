@@ -8,7 +8,8 @@ defmodule Mokaid.Projects do
   alias Mokaid.Realtime
   alias Mokaid.Repo
 
-  @default_folders ~w(Briefs Design Development Reports) ++ ["AI Outputs", "Client Files", "Archives"]
+  @default_folders ~w(Briefs Design Development Reports) ++
+                     ["AI Outputs", "Client Files", "Archives"]
 
   @preloads [
     :tasks,
@@ -46,8 +47,7 @@ defmodule Mokaid.Projects do
              |> Project.changeset(
                Map.merge(attrs, %{
                  "workspace_id" => workspace_id,
-                 "owner_member_id" =>
-                   attrs["owner_member_id"] || (created_by && created_by.id)
+                 "owner_member_id" => attrs["owner_member_id"] || (created_by && created_by.id)
                })
              )
              |> Repo.insert(),

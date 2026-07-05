@@ -8,6 +8,7 @@ defmodule Mokaid.Auth.Cognito do
 
   def issuer do
     config = Application.fetch_env!(:mokaid, :auth)
+
     "https://cognito-idp.#{config[:cognito_region]}.amazonaws.com/#{config[:cognito_user_pool_id]}"
   end
 

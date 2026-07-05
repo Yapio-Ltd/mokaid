@@ -272,6 +272,13 @@ export function LoginPage() {
             </Button>
           </form>
 
+          <p className="mt-4 text-center text-xs text-text-muted lg:text-left">
+            New to Mokaid?{" "}
+            <Link to="/signup" className="text-primary-light hover:underline">
+              Create your workspace
+            </Link>
+          </p>
+
           <div className="mt-6 rounded-md border border-border bg-surface px-4 py-3">
             <p className="flex items-center gap-2 text-[11px] text-text-muted">
               <Sparkles size={12} className="text-primary-light" />

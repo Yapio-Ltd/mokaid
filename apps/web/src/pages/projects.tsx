@@ -11,6 +11,7 @@ import { DetailPanel } from "@/components/ui/detail-panel";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PriorityBadge } from "@/components/ui/status";
+import { NewProjectModal } from "@/components/modals/new-project-modal";
 import { cn } from "@/lib/cn";
 import { formatDate, formatRelative } from "@/lib/format";
 
@@ -90,6 +91,7 @@ function ProjectCard({ project, onSelect }: { project: Project; onSelect: () => 
 
 export function ProjectsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showNewProject, setShowNewProject] = useState(false);
   const { data, isLoading } = useProjects();
 
   const projects = data?.data ?? [];
@@ -104,7 +106,7 @@ export function ProjectsPage() {
             <h1 className="text-xl font-bold text-text">Projects</h1>
             <p className="text-xs text-text-muted">{projects.length} projects in this workspace</p>
           </div>
-          <Button>
+          <Button onClick={() => setShowNewProject(true)} data-tour="new-project">
             <Plus size={14} /> New Project
           </Button>
         </div>
@@ -116,6 +118,11 @@ export function ProjectsPage() {
             icon={<FolderKanban size={24} />}
             title="No projects yet"
             description="Create a project to organize tasks, agents and files."
+            action={
+              <Button size="sm" onClick={() => setShowNewProject(true)}>
+                <Plus size={13} /> New Project
+              </Button>
+            }
           />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -230,6 +237,11 @@ export function ProjectsPage() {
           </div>
         )}
       </DetailPanel>
+      <NewProjectModal
+        open={showNewProject}
+        onOpenChange={setShowNewProject}
+        onCreated={(id) => setSelectedId(id)}
+      />
     </div>
   );
 }

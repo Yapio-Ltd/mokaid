@@ -24,6 +24,133 @@ defmodule Mokaid.Billing do
 
   def get_plan_by_key(key), do: Repo.get_by(BillingPlan, key: key)
 
+  def list_plans do
+    Repo.all(from p in BillingPlan, order_by: [asc: p.price_cents_monthly])
+  end
+
+  @doc "Switches (or creates) the workspace subscription for another plan."
+  def change_plan(workspace_id, plan_key, billing_cycle \\ nil) do
+    case get_plan_by_key(plan_key) do
+      nil ->
+        {:error, :not_found}
+
+      plan ->
+        case get_subscription(workspace_id) do
+          nil -> create_subscription(workspace_id, plan, billing_cycle || "monthly")
+          subscription -> switch_subscription(subscription, plan, billing_cycle)
+        end
+    end
+  end
+
+  defp create_subscription(workspace_id, plan, billing_cycle) do
+    now = DateTime.utc_now()
+    period_days = if billing_cycle == "yearly", do: 365, else: 30
+
+    %Subscription{
+      workspace_id: workspace_id,
+      plan_id: plan.id,
+      status: "active",
+      billing_cycle: billing_cycle,
+      current_period_start: now,
+      current_period_end: DateTime.add(now, period_days, :day)
+    }
+    |> Repo.insert()
+    |> case do
+      {:ok, subscription} -> {:ok, Repo.preload(subscription, :plan)}
+      error -> error
+    end
+  end
+
+  defp switch_subscription(subscription, plan, billing_cycle) do
+    subscription
+    |> Ecto.Changeset.change(
+      plan_id: plan.id,
+      billing_cycle: billing_cycle || subscription.billing_cycle
+    )
+    |> Repo.update()
+    |> case do
+      {:ok, updated} -> {:ok, Repo.preload(updated, :plan, force: true)}
+      error -> error
+    end
+  end
+
+  @plan_seeds [
+    %{
+      key: "starter",
+      name: "Starter",
+      price_cents_monthly: 0,
+      price_cents_yearly: 0,
+      limits: %{
+        "agents" => 3,
+        "ai_requests_monthly" => 500,
+        "storage_gb" => 5,
+        "automations_monthly" => 100,
+        "api_calls_monthly" => 10_000
+      },
+      features: [
+        "Up to 3 agents",
+        "500 AI requests / month",
+        "5 GB storage",
+        "Community support"
+      ]
+    },
+    %{
+      key: "pro",
+      name: "Pro Plan",
+      price_cents_monthly: 4_900,
+      price_cents_yearly: 46_800,
+      limits: %{
+        "agents" => 15,
+        "ai_requests_monthly" => 10_000,
+        "storage_gb" => 50,
+        "automations_monthly" => 1_000,
+        "api_calls_monthly" => 50_000
+      },
+      features: [
+        "Up to 15 agents",
+        "10,000 AI requests / month",
+        "50 GB storage",
+        "1,000 automations / month",
+        "Email support",
+        "Analytics"
+      ]
+    },
+    %{
+      key: "business",
+      name: "Business Plan",
+      price_cents_monthly: 11_900,
+      price_cents_yearly: 118_800,
+      limits: %{
+        "agents" => 50,
+        "ai_requests_monthly" => 50_000,
+        "storage_gb" => 100,
+        "automations_monthly" => 5_000,
+        "api_calls_monthly" => 200_000
+      },
+      features: [
+        "Up to 50 agents",
+        "50,000 AI requests / month",
+        "100 GB storage",
+        "5,000 automations / month",
+        "Priority support",
+        "Advanced analytics",
+        "Custom integrations"
+      ]
+    }
+  ]
+
+  @doc "Upserts the standard plan catalog (idempotent, safe to rerun)."
+  def seed_plans do
+    Enum.each(@plan_seeds, fn attrs ->
+      case get_plan_by_key(attrs.key) do
+        nil -> Repo.insert!(struct(BillingPlan, attrs))
+        plan -> plan |> Ecto.Changeset.change(Map.delete(attrs, :key)) |> Repo.update!()
+      end
+    end)
+
+    :ok
+  end
+
   def record_usage(workspace_id, actor_type, actor_id, event_type, quantity, unit, opts \\ []) do
     %UsageEvent{}
     |> UsageEvent.changeset(%{

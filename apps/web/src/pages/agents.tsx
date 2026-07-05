@@ -10,6 +10,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AgentProfilePanel } from "@/components/agents/agent-profile-panel";
+import { NewAgentModal } from "@/components/modals/new-agent-modal";
 import { cn } from "@/lib/cn";
 import { formatRelative } from "@/lib/format";
 
@@ -27,6 +28,7 @@ export function AgentsPage() {
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showNewAgent, setShowNewAgent] = useState(false);
 
   const { data, isLoading } = useAgents({ kind: kind || undefined, status: status || undefined });
 
@@ -55,7 +57,7 @@ export function AgentsPage() {
               Manage your AI, human-linked and hybrid workforce
             </p>
           </div>
-          <Button>
+          <Button onClick={() => setShowNewAgent(true)} data-tour="new-agent">
             <Plus size={14} /> New Agent
           </Button>
         </div>
@@ -118,6 +120,11 @@ export function AgentsPage() {
             icon={<Bot size={24} />}
             title="No agents found"
             description="Adjust your filters or create your first agent."
+            action={
+              <Button size="sm" onClick={() => setShowNewAgent(true)}>
+                <Plus size={13} /> New Agent
+              </Button>
+            }
           />
         ) : (
           <div className="mk-card overflow-hidden">
@@ -201,6 +208,11 @@ export function AgentsPage() {
       </div>
 
       <AgentProfilePanel agent={selectedAgent} onClose={() => setSelectedId(null)} />
+      <NewAgentModal
+        open={showNewAgent}
+        onOpenChange={setShowNewAgent}
+        onCreated={(id) => setSelectedId(id)}
+      />
     </div>
   );
 }

@@ -16,6 +16,6 @@ COPY --from=build /install /usr/local
 COPY --chown=mokaid:mokaid apps/ai-worker/app ./app
 
 USER mokaid
-EXPOSE 8000
+EXPOSE 8100
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8100"]

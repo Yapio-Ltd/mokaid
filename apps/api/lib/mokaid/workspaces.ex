@@ -20,6 +20,18 @@ defmodule Mokaid.Workspaces do
     )
   end
 
+  @doc "Workspaces with the caller's role name, for /api/me."
+  def list_workspaces_with_role(user_id) do
+    Repo.all(
+      from w in Workspace,
+        join: m in assoc(w, :members),
+        join: r in assoc(m, :role),
+        where: m.user_id == ^user_id and m.status == "active" and is_nil(w.deleted_at),
+        order_by: w.name,
+        select: {w, r.name}
+    )
+  end
+
   def create_workspace(attrs, owner_user) do
     Repo.transaction(fn ->
       with {:ok, workspace} <- %Workspace{} |> Workspace.changeset(attrs) |> Repo.insert(),

@@ -332,6 +332,57 @@ defmodule MokaidWeb.JSON do
     }
   end
 
+  def mcp_server(server) do
+    %{
+      id: server.id,
+      key: server.key,
+      name: server.name,
+      category: server.category,
+      description: server.description,
+      logo_slug: server.logo_slug,
+      featured: server.featured,
+      auth_kind: server.auth_kind,
+      transport: server.transport,
+      server_url: server.server_url,
+      docs_url: server.docs_url
+    }
+  end
+
+  def mcp_installation(installation) do
+    server = loaded(installation.server)
+
+    %{
+      id: installation.id,
+      server_id: installation.server_id,
+      server_key: server && server.key,
+      server_name: server && server.name,
+      category: server && server.category,
+      logo_slug: server && server.logo_slug,
+      auth_kind: server && server.auth_kind,
+      status: installation.status,
+      connected_account: installation.connected_account,
+      settings: Map.take(installation.settings || %{}, ["server_url"]),
+      error: installation.error,
+      last_used_at: installation.last_used_at,
+      inserted_at: installation.inserted_at
+    }
+  end
+
+  def mcp_grant(grant) do
+    installation = loaded(grant.installation)
+    server = installation && loaded(installation.server)
+
+    %{
+      id: grant.id,
+      agent_id: grant.agent_id,
+      installation_id: grant.installation_id,
+      granted: grant.granted,
+      server_key: server && server.key,
+      server_name: server && server.name,
+      logo_slug: server && server.logo_slug
+    }
+  end
+
   def integration_provider(provider) do
     %{
       id: provider.id,

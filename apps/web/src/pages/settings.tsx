@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import * as Switch from "@radix-ui/react-switch";
+import { Compass } from "lucide-react";
 import { useUpdateWorkspace, useWorkspace } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { LogoMark } from "@/components/brand/logo";
+import { useAuthStore } from "@/stores/auth-store";
+import { useOnboardingStore } from "@/stores/onboarding-store";
 
 const featureToggles = [
   { key: "3d_office", label: "3D Office View", description: "Show the live 3D office on the dashboard" },
@@ -44,10 +47,13 @@ function ToggleRow({
 export function SettingsPage() {
   const { data, isLoading } = useWorkspace();
   const updateWorkspace = useUpdateWorkspace();
+  const workspaceId = useAuthStore((s) => s.workspaceId);
+  const resetTour = useOnboardingStore((s) => s.resetTour);
 
   const workspace = data?.data;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [industry, setIndustry] = useState("");
   const [timezone, setTimezone] = useState("UTC");
   const [language, setLanguage] = useState("en");
   const [toggles, setToggles] = useState<Record<string, boolean>>({});
@@ -56,6 +62,7 @@ export function SettingsPage() {
     if (workspace) {
       setName(workspace.name);
       setDescription(workspace.description ?? "");
+      setIndustry(workspace.industry ?? "");
       setTimezone(workspace.timezone);
       setLanguage(workspace.language);
       setToggles({
@@ -81,6 +88,7 @@ export function SettingsPage() {
     updateWorkspace.mutate({
       name,
       description,
+      industry: industry || null,
       timezone,
       language,
       feature_toggles: toggles,
@@ -118,7 +126,12 @@ export function SettingsPage() {
               <label htmlFor="ws-industry" className="mb-1.5 block text-xs font-medium text-text-secondary">
                 Industry
               </label>
-              <input id="ws-industry" className="mk-input" defaultValue={workspace.industry ?? ""} />
+              <input
+                id="ws-industry"
+                className="mk-input"
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value)}
+              />
             </div>
           </div>
 
@@ -182,6 +195,27 @@ export function SettingsPage() {
               onCheckedChange={(checked) => setToggles((prev) => ({ ...prev, [feature.key]: checked }))}
             />
           ))}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Help & onboarding</CardTitle>
+        </CardHeader>
+        <CardBody className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold text-text">Guided tour</p>
+            <p className="text-[11px] text-text-muted">
+              Replay the step-by-step tooltips that walk you through Mokaid.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => workspaceId && resetTour(workspaceId)}
+          >
+            <Compass size={14} /> Replay tour
+          </Button>
         </CardBody>
       </Card>
 

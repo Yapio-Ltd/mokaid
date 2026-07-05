@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { Bell, PanelLeft, Plus } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { SearchInput } from "@/components/ui/search-input";
 import { useUiStore } from "@/stores/ui-store";
 import { useAuthStore } from "@/stores/auth-store";
-import { useNotifications } from "@/api/hooks";
+import { useMarkNotificationRead, useNotifications } from "@/api/hooks";
+import { cn } from "@/lib/cn";
 import { formatRelative } from "@/lib/format";
 import { disconnect } from "@/realtime/phoenix-client";
 import { Avatar } from "@/components/ui/avatar";
+import { NewTaskModal } from "@/components/modals/new-task-modal";
+import { GlobalSearch } from "@/components/layout/global-search";
 
 export function Topbar() {
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
@@ -16,6 +19,8 @@ export function Topbar() {
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
   const { data: notifications } = useNotifications();
+  const markRead = useMarkNotificationRead();
+  const [showNewTask, setShowNewTask] = useState(false);
 
   const unread = notifications?.data.filter((n) => !n.read_at).length ?? 0;
 
@@ -26,19 +31,20 @@ export function Topbar() {
   };
 
   return (
-    <header className="flex h-[60px] shrink-0 items-center gap-4 border-b border-border/60 bg-bg px-4">
+    <header className="flex h-[60px] shrink-0 items-center gap-4 bg-bg px-4">
       <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Toggle sidebar">
         <PanelLeft size={17} />
       </Button>
 
-      <SearchInput placeholder="Search agents, tasks, projects…" className="w-80 max-w-full" />
+      <GlobalSearch />
 
       <div className="flex-1" />
 
-      <Button size="sm" onClick={() => navigate({ to: "/tasks" })}>
+      <Button size="sm" data-tour="new-task" onClick={() => setShowNewTask(true)}>
         <Plus size={14} />
         New Task
       </Button>
+      <NewTaskModal open={showNewTask} onOpenChange={setShowNewTask} />
 
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
@@ -60,14 +66,41 @@ export function Topbar() {
             sideOffset={8}
             className="z-50 w-80 rounded-lg border border-border bg-surface-overlay p-2 shadow-lg"
           >
-            <p className="px-2 py-1.5 text-xs font-semibold text-text">Notifications</p>
+            <div className="flex items-center justify-between px-2 py-1.5">
+              <p className="text-xs font-semibold text-text">Notifications</p>
+              {unread > 0 && (
+                <button
+                  className="text-[11px] text-primary-light hover:underline"
+                  onClick={() =>
+                    notifications?.data
+                      .filter((n) => !n.read_at)
+                      .forEach((n) => markRead.mutate(n.id))
+                  }
+                >
+                  Mark all as read
+                </button>
+              )}
+            </div>
             {notifications?.data.length ? (
               notifications.data.slice(0, 8).map((n) => (
                 <DropdownMenu.Item
                   key={n.id}
-                  className="cursor-default rounded-md px-2 py-2 outline-none data-[highlighted]:bg-surface-hover"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    if (!n.read_at) markRead.mutate(n.id);
+                  }}
+                  className={cn(
+                    "cursor-pointer rounded-md px-2 py-2 outline-none data-[highlighted]:bg-surface-hover",
+                    n.read_at && "opacity-55",
+                  )}
                 >
-                  <p className="text-xs font-medium text-text">{n.title}</p>
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-text">
+                    {!n.read_at && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
+                    {n.title}
+                  </p>
+                  {n.body && (
+                    <p className="mt-0.5 line-clamp-2 text-[11px] text-text-secondary">{n.body}</p>
+                  )}
                   <p className="text-[11px] text-text-muted">{formatRelative(n.inserted_at)}</p>
                 </DropdownMenu.Item>
               ))

@@ -60,3 +60,6 @@ htmlcov/
 .minio-data/
 .postgres-data/
 .clickhouse-data/
+
+# Python build artifacts
+*.egg-info/

@@ -78,6 +78,9 @@ services:
       S3_SECRET_ACCESS_KEY: mokaid_dev_password
       AI_WORKER_URL: http://ai-worker:8100
       AI_WORKER_TOKEN: dev-worker-token
+      FIGMA_CLIENT_ID: ${FIGMA_CLIENT_ID:-}
+      FIGMA_CLIENT_SECRET: ${FIGMA_CLIENT_SECRET:-}
+      FIGMA_REDIRECT_URI: ${FIGMA_REDIRECT_URI:-http://localhost:5173/oauth/figma/callback}
       MIX_ENV: dev
     ports:
       - "4000:4000"

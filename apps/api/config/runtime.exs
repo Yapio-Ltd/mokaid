@@ -4,6 +4,18 @@ if System.get_env("PHX_SERVER") do
   config :mokaid, MokaidWeb.Endpoint, server: true
 end
 
+# Figma OAuth credentials come from the environment (AWS Secrets Manager in
+# deployed environments, .env locally) — never from the repo.
+config :mokaid, :figma_oauth,
+  client_id: System.get_env("FIGMA_CLIENT_ID"),
+  client_secret: System.get_env("FIGMA_CLIENT_SECRET"),
+  redirect_uris:
+    Enum.uniq([
+      System.get_env("FIGMA_REDIRECT_URI") || "https://mokaid.com/oauth/figma/callback",
+      "https://mokaid.com/oauth/figma/callback",
+      "http://localhost:5173/oauth/figma/callback"
+    ])
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
@@ -55,6 +67,20 @@ if config_env() == :prod do
     url: System.get_env("AI_WORKER_URL"),
     token: System.fetch_env!("AI_WORKER_TOKEN")
 
+  aws_region = System.get_env("AWS_REGION", "il-central-1")
+
   config :ex_aws,
-    region: System.get_env("AWS_REGION", "il-central-1")
+    region: aws_region
+
+  # ex_aws cannot resolve hosts for il-* regions (its partition regex only
+  # covers us|eu|af|ap|sa|ca|me), so service hosts must be set explicitly.
+  config :ex_aws, :sqs,
+    scheme: "https://",
+    region: aws_region,
+    host: "sqs.#{aws_region}.amazonaws.com"
+
+  config :ex_aws, :s3,
+    scheme: "https://",
+    region: aws_region,
+    host: "s3.#{aws_region}.amazonaws.com"
 end

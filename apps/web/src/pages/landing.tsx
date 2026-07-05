@@ -6,15 +6,18 @@ import {
   ArrowRight,
   BarChart3,
   Bot,
-  CalendarDays,
+  Calendar,
   CheckCircle2,
+  CheckSquare,
   CreditCard,
+  FolderKanban,
+  FolderOpen,
+  LayoutDashboard,
   Library,
   Plug,
-  ShieldCheck,
+  Settings,
   Sparkles,
   Users,
-  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useSmoothScroll } from "@/lib/use-smooth-scroll";
@@ -27,7 +30,7 @@ const showcaseSteps = [
   {
     id: "dashboard",
     image: "/images/dashboard.png",
-    icon: Bot,
+    icon: LayoutDashboard,
     kicker: "Live workspace",
     title: "See your whole team at a glance",
     description:
@@ -36,7 +39,7 @@ const showcaseSteps = [
   {
     id: "agents",
     image: "/images/agents.png",
-    icon: Users,
+    icon: Bot,
     kicker: "Agent management",
     title: "Hire, brief and grow your agents",
     description:
@@ -45,11 +48,29 @@ const showcaseSteps = [
   {
     id: "tasks",
     image: "/images/tasks.png",
-    icon: CheckCircle2,
+    icon: CheckSquare,
     kicker: "Task orchestration",
     title: "Work flows through a living board",
     description:
       "Kanban, list and timeline views with live progress from every agent. Assign work to an AI the same way you assign it to a person.",
+  },
+  {
+    id: "projects",
+    image: "/images/projects.png",
+    icon: FolderKanban,
+    kicker: "Project management",
+    title: "Organize work by initiative",
+    description:
+      "Track milestones, owners and progress across every project. See activity, deadlines and agent assignments in one focused view.",
+  },
+  {
+    id: "knowledge",
+    image: "/images/knowledge.png",
+    icon: Library,
+    kicker: "Shared knowledge",
+    title: "One brain for the whole team",
+    description:
+      "Docs, guidelines and briefs that agents actually read. Your AI teammates stay on brand and on context, automatically.",
   },
   {
     id: "analytics",
@@ -61,58 +82,129 @@ const showcaseSteps = [
       "Throughput, completion rates and agent performance over time. Know exactly what your hybrid workforce delivers every week.",
   },
   {
-    id: "knowledge",
-    image: "/images/knowledge.png",
-    icon: Library,
-    kicker: "Shared knowledge",
-    title: "One brain for the whole team",
+    id: "settings",
+    image: "/images/workspace%20settings.png",
+    icon: Settings,
+    kicker: "Workspace settings",
+    title: "Tune the platform to your team",
     description:
-      "Docs, guidelines and briefs that agents actually read. Your AI teammates stay on brand and on context, automatically.",
+      "Branding, feature toggles, approval flows and workspace preferences. Configure how your hybrid workforce operates from day one.",
+  },
+  {
+    id: "members",
+    image: "/images/members.png",
+    icon: Users,
+    kicker: "Team management",
+    title: "Invite humans and assign roles",
+    description:
+      "Owners, admins and members with clear permissions. Grow your workspace and keep every teammate, human or AI, in the right place.",
+  },
+  {
+    id: "integrations",
+    image: "/images/integrations.png",
+    icon: Plug,
+    kicker: "Integrations",
+    title: "Plugs into your stack",
+    description:
+      "Slack, GitHub, Notion, Figma and more. Connect the tools your team already uses and let agents work where work already lives.",
+  },
+  {
+    id: "billing",
+    image: "/images/billing.png",
+    icon: CreditCard,
+    kicker: "Billing",
+    title: "Usage based, fully transparent",
+    description:
+      "Track AI requests, automations and storage in real time. Clear plans, detailed invoices and no billing surprises.",
   },
 ];
 
-const featureCards = [
+const featureGroups = [
   {
-    icon: Bot,
-    title: "AI and human, one roster",
-    description: "Manage autonomous agents and real teammates with the same tools, roles and rituals.",
+    label: "Work",
+    features: [
+      {
+        icon: LayoutDashboard,
+        title: "Dashboard",
+        description: "Live 3D office with every agent visible.",
+      },
+      {
+        icon: Bot,
+        title: "Agents",
+        description: "Hire and manage AI and human agents.",
+      },
+      {
+        icon: CheckSquare,
+        title: "Tasks",
+        description: "Kanban, list and timeline with live progress.",
+      },
+      {
+        icon: FolderKanban,
+        title: "Projects",
+        description: "Milestones, owners and activity in one view.",
+      },
+      {
+        icon: Library,
+        title: "Knowledge",
+        description: "Docs and briefs your agents actually read.",
+      },
+      {
+        icon: FolderOpen,
+        title: "Drive",
+        description: "Files, folders and shared workspace storage.",
+      },
+      {
+        icon: Calendar,
+        title: "Calendar",
+        description: "Deadlines, meetings and time off.",
+      },
+      {
+        icon: BarChart3,
+        title: "Analytics",
+        description: "Throughput and performance over time.",
+      },
+    ],
   },
   {
-    icon: Zap,
-    title: "Real time everything",
-    description: "Presence, task progress and notifications stream live over websockets. No refresh, ever.",
-  },
-  {
-    icon: CalendarDays,
-    title: "A calendar that breathes",
-    description: "Deadlines, meetings and time off in a calm, minimal view designed for focus.",
-  },
-  {
-    icon: Plug,
-    title: "Plugs into your stack",
-    description: "Slack, GitHub, Notion, Figma and more. Your agents work where your work already lives.",
-  },
-  {
-    icon: CreditCard,
-    title: "Usage based billing",
-    description: "Pay for the work your agents deliver. Transparent usage, clear invoices, zero surprises.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Enterprise grade security",
-    description: "Workspace isolation, scoped tokens and full audit trails, from day one.",
+    label: "Workspace",
+    features: [
+      {
+        icon: Settings,
+        title: "Settings",
+        description: "Branding, toggles and approval flows.",
+      },
+      {
+        icon: Users,
+        title: "Members",
+        description: "Roles and permissions for your team.",
+      },
+      {
+        icon: Plug,
+        title: "Integrations",
+        description: "Slack, GitHub, Notion, Figma and more.",
+      },
+      {
+        icon: CreditCard,
+        title: "Billing",
+        description: "Usage tracking and clear invoices.",
+      },
+    ],
   },
 ];
 
 const marqueeItems = [
-  "AI employees",
-  "Human teammates",
-  "Live 3D office",
-  "Task orchestration",
-  "Shared knowledge",
-  "Real time analytics",
-  "Smart calendar",
+  "Dashboard",
+  "Agents",
+  "Tasks",
+  "Projects",
+  "Knowledge",
+  "Drive",
+  "Calendar",
+  "Analytics",
+  "Members",
   "Integrations",
+  "Billing",
+  "3D office",
 ];
 
 const stats = [
@@ -224,7 +316,7 @@ export function LandingPage() {
   return (
     <div ref={rootRef} className="min-h-full bg-bg-deep text-text">
       {/* Nav */}
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-border/50 mk-glass">
+      <header className="fixed inset-x-0 top-0 z-50 mk-glass">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
           <Link to="/" className="mk-focus-ring rounded-md">
             <LandingLogo />
@@ -254,7 +346,7 @@ export function LandingPage() {
                     Sign in
                   </Button>
                 </Link>
-                <Link to="/login">
+                <Link to="/signup">
                   <Button size="sm">
                     Get started <ArrowRight size={14} />
                   </Button>
@@ -300,7 +392,7 @@ export function LandingPage() {
 
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <span data-hero-cta>
-              <Link to="/login">
+              <Link to="/signup">
                 <Button size="lg" className="px-7 shadow-glow">
                   Start for free <ArrowRight size={16} />
                 </Button>
@@ -488,37 +580,54 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Feature grid */}
-      <section id="features" className="border-t border-border/50 bg-bg px-5 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div data-reveal className="mx-auto mb-14 max-w-2xl text-center">
+      {/* Feature index — mirrors the app sidebar */}
+      <section id="features" className="bg-bg px-5 py-24">
+        <div className="mx-auto max-w-5xl">
+          <div data-reveal className="mb-14 max-w-lg">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-light">
-              Built for scale
+              What&apos;s inside
             </span>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-[42px] md:leading-[1.15]">
-              A serious platform with a playful heart
+            <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-[42px] md:leading-[1.12]">
+              The full product, listed plainly
             </h2>
+            <p className="mt-4 text-sm leading-relaxed text-text-secondary md:text-base">
+              Same structure you&apos;ll find in the app — work tools on the left, workspace admin on
+              the right.
+            </p>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {featureCards.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <div
-                  key={feature.title}
-                  data-reveal
-                  className="group rounded-xl border border-border bg-surface p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-glow"
-                >
-                  <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-md bg-primary-muted text-primary-light transition-transform duration-300 group-hover:scale-110">
-                    <Icon size={20} />
-                  </span>
-                  <h3 className="text-base font-semibold">{feature.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-                    {feature.description}
-                  </p>
-                </div>
-              );
-            })}
+          <div className="grid gap-14 md:grid-cols-2 md:gap-x-20">
+            {featureGroups.map((group) => (
+              <div key={group.label} data-reveal>
+                <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-text-muted">
+                  {group.label}
+                </p>
+                <ul className="space-y-0.5">
+                  {group.features.map((feature) => {
+                    const Icon = feature.icon;
+                    return (
+                      <li key={feature.title}>
+                        <div className="group -mx-3 flex items-start gap-3.5 rounded-lg px-3 py-3 transition-colors duration-200 hover:bg-surface/50">
+                          <Icon
+                            size={16}
+                            strokeWidth={1.75}
+                            className="mt-0.5 shrink-0 text-text-muted transition-colors duration-200 group-hover:text-primary-light"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-[15px] font-medium leading-snug text-text transition-colors duration-200 group-hover:text-primary-light">
+                              {feature.title}
+                            </p>
+                            <p className="mt-0.5 text-[13px] leading-relaxed text-text-muted">
+                              {feature.description}
+                            </p>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -560,7 +669,7 @@ export function LandingPage() {
             Spin up your workspace, invite your team and hire your first AI agent today.
           </p>
           <div className="relative mt-8 flex justify-center">
-            <Link to="/login">
+            <Link to="/signup">
               <Button size="lg" className="px-8 shadow-glow-strong">
                 Get started now <ArrowRight size={16} />
               </Button>
@@ -570,7 +679,7 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 bg-bg-deep px-5 py-10">
+      <footer className="bg-bg-deep px-5 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 md:flex-row">
           <LandingLogo />
           <p className="text-xs text-text-muted">

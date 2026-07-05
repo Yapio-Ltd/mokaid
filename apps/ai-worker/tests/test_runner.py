@@ -26,7 +26,9 @@ async def test_low_risk_run_completes_without_approval(phoenix):
 
 
 async def test_high_risk_tool_waits_for_approval_then_runs(phoenix):
-    task = asyncio.create_task(runner.execute_run(make_request("run-hi", "send_campaign"), phoenix=phoenix))
+    task = asyncio.create_task(
+        runner.execute_run(make_request("run-hi", "send_campaign"), phoenix=phoenix)
+    )
 
     # Wait until the run pauses on the send_email approval
     for _ in range(100):
@@ -50,7 +52,9 @@ async def test_high_risk_tool_waits_for_approval_then_runs(phoenix):
 
 
 async def test_rejected_tool_is_skipped(phoenix):
-    task = asyncio.create_task(runner.execute_run(make_request("run-rej", "send_campaign"), phoenix=phoenix))
+    task = asyncio.create_task(
+        runner.execute_run(make_request("run-rej", "send_campaign"), phoenix=phoenix)
+    )
 
     for _ in range(100):
         await asyncio.sleep(0.01)
@@ -69,3 +73,13 @@ async def test_rejected_tool_is_skipped(phoenix):
 
 async def test_resume_unknown_run_returns_false():
     assert runner.resume_run(ResumeRequest(run_id="missing", decision="approved")) is False
+
+
+async def test_run_posts_conversational_acknowledgement(phoenix):
+    await runner.execute_run(make_request("run-ack"), phoenix=phoenix)
+
+    comment_calls = [payload for kind, payload in phoenix.calls if kind == "comment"]
+    assert len(comment_calls) == 1
+    assert comment_calls[0]["task_id"] == "task-1"
+    assert comment_calls[0]["agent_id"] == "agent-1"
+    assert "Test task" in comment_calls[0]["body"]

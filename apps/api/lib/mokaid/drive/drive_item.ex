@@ -89,9 +89,14 @@ defmodule Mokaid.Drive.DriveItem do
     storage_key = get_field(changeset, :storage_key)
 
     case {kind, storage_key} do
-      {"file", nil} -> add_error(changeset, :storage_key, "is required for files")
-      {"folder", key} when not is_nil(key) -> add_error(changeset, :storage_key, "folders cannot have storage keys")
-      _ -> changeset
+      {"file", nil} ->
+        add_error(changeset, :storage_key, "is required for files")
+
+      {"folder", key} when not is_nil(key) ->
+        add_error(changeset, :storage_key, "folders cannot have storage keys")
+
+      _ ->
+        changeset
     end
   end
 

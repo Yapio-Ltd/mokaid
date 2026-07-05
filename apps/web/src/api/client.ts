@@ -58,3 +58,36 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   return payload as T;
 }
+
+/** Multipart upload (files). Content-Type is set automatically by the browser. */
+export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const { token, workspaceId } = useAuthStore.getState();
+
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (workspaceId) headers["x-workspace-id"] = workspaceId;
+
+  const response = await fetch(`${env.VITE_API_URL}${path}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (response.status === 401) {
+    useAuthStore.getState().logout();
+  }
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const error = payload?.error ?? {};
+    throw new ApiError(
+      response.status,
+      error.code ?? "unknown",
+      error.message ?? `Upload failed with ${response.status}`,
+      error.details,
+    );
+  }
+
+  return payload as T;
+}

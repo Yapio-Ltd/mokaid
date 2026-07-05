@@ -13,6 +13,7 @@ interface WorkspaceSummary {
   name: string;
   slug: string;
   logo_url: string | null;
+  role_name?: string;
 }
 
 interface AuthState {

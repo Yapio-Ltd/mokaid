@@ -41,6 +41,36 @@ defmodule Mokaid.Notifications do
     end
   end
 
+  @doc "Notifies every workspace member whose role is in `role_names` (e.g. approvers)."
+  def notify_roles(workspace_id, role_names, kind, title, opts \\ []) do
+    user_ids =
+      Repo.all(
+        from m in Mokaid.Members.Member,
+          join: r in assoc(m, :role),
+          where:
+            m.workspace_id == ^workspace_id and m.status == "active" and r.name in ^role_names,
+          select: m.user_id
+      )
+
+    Enum.each(user_ids, &notify(workspace_id, &1, kind, title, opts))
+    :ok
+  end
+
+  @doc "Notifies the user behind a member id. No-op when the member is missing."
+  def notify_member(workspace_id, member_id, kind, title, opts \\ [])
+  def notify_member(_workspace_id, nil, _kind, _title, _opts), do: :ok
+
+  def notify_member(workspace_id, member_id, kind, title, opts) do
+    case Repo.one(
+           from m in Mokaid.Members.Member,
+             where: m.workspace_id == ^workspace_id and m.id == ^member_id,
+             select: m.user_id
+         ) do
+      nil -> :ok
+      user_id -> notify(workspace_id, user_id, kind, title, opts)
+    end
+  end
+
   def mark_read(workspace_id, user_id, id) do
     case Repo.one(
            from n in Notification,

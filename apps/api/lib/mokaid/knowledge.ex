@@ -2,6 +2,7 @@ defmodule Mokaid.Knowledge do
   @moduledoc "Curated knowledge that AI agents may use, with permission controls."
 
   import Ecto.Query
+  import Pgvector.Ecto.Query
 
   alias Mokaid.Knowledge.{KnowledgeCategory, KnowledgeChunk, KnowledgeItem}
   alias Mokaid.Realtime
@@ -59,14 +60,37 @@ defmodule Mokaid.Knowledge do
 
     with {:ok, item} <- result do
       Realtime.broadcast_workspace(workspace_id, "knowledge.uploaded", %{item_id: item.id})
+      maybe_enqueue_ingestion(item)
       {:ok, Repo.preload(item, [:category, created_by_member: :user])}
     end
   end
 
   def update_item(%KnowledgeItem{} = item, attrs) do
+    old_body = item.body
+
+    result =
+      item
+      |> KnowledgeItem.changeset(Map.put(attrs, "workspace_id", item.workspace_id))
+      |> Repo.update()
+
+    with {:ok, updated} <- result do
+      if updated.body != old_body, do: maybe_enqueue_ingestion(updated)
+      {:ok, updated}
+    end
+  end
+
+  defp maybe_enqueue_ingestion(%KnowledgeItem{body: body}) when body in [nil, ""], do: :ok
+
+  defp maybe_enqueue_ingestion(%KnowledgeItem{} = item) do
     item
-    |> KnowledgeItem.changeset(Map.put(attrs, "workspace_id", item.workspace_id))
+    |> Ecto.Changeset.change(indexing_status: "indexing")
     |> Repo.update()
+
+    %{knowledge_item_id: item.id, workspace_id: item.workspace_id}
+    |> Mokaid.Knowledge.Workers.IngestionWorker.new()
+    |> Oban.insert()
+
+    :ok
   end
 
   def mark_indexed(%KnowledgeItem{} = item) do
@@ -102,6 +126,27 @@ defmodule Mokaid.Knowledge do
       end)
 
     Repo.insert_all(KnowledgeChunk, entries)
+  end
+
+  @doc "Replaces all chunks of an item (used on re-ingestion)."
+  def replace_chunks(%KnowledgeItem{} = item, chunks) do
+    Repo.delete_all(from c in KnowledgeChunk, where: c.knowledge_item_id == ^item.id)
+    insert_chunks(item, chunks)
+  end
+
+  @doc "Nearest-neighbor search over knowledge chunks (cosine distance, pgvector)."
+  def search_chunks(workspace_id, embedding, limit \\ 5) do
+    vector = Pgvector.new(embedding)
+
+    Repo.all(
+      from c in KnowledgeChunk,
+        join: i in assoc(c, :knowledge_item),
+        where: c.workspace_id == ^workspace_id and not is_nil(c.embedding),
+        where: i.status == "published",
+        order_by: cosine_distance(c.embedding, ^vector),
+        limit: ^limit,
+        select: %{chunk: c, item_title: i.title, distance: cosine_distance(c.embedding, ^vector)}
+    )
   end
 
   def counts(workspace_id) do

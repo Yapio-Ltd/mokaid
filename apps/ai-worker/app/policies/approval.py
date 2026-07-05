@@ -33,8 +33,17 @@ APPROVAL_THRESHOLD = {RiskLevel.HIGH, RiskLevel.CRITICAL}
 
 
 def risk_for_tool(tool_name: str) -> RiskLevel:
+    if tool_name.startswith("mcp:"):
+        return _risk_for_mcp_tool(tool_name)
     return TOOL_RISK.get(tool_name, RiskLevel.HIGH)
 
 
 def requires_approval(tool_name: str) -> bool:
     return risk_for_tool(tool_name) in APPROVAL_THRESHOLD
+
+
+def _risk_for_mcp_tool(tool_name: str) -> RiskLevel:
+    """MCP tools default to MEDIUM; sensitive writes are gated behind approval."""
+    from app.mcp.client import is_write_tool
+
+    return RiskLevel.HIGH if is_write_tool(tool_name) else RiskLevel.MEDIUM

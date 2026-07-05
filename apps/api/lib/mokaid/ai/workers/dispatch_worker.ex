@@ -19,6 +19,15 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
       run ->
         task = Tasks.get_task(run.workspace_id, run.task_id)
 
+        # MCP servers this agent is explicitly allowed to use (permission
+        # matrix), with decrypted credentials for the worker's MCP client.
+        mcp_servers =
+          if run.agent_id do
+            Mokaid.MCP.authorized_servers_for_agent(run.workspace_id, run.agent_id)
+          else
+            []
+          end
+
         payload = %{
           run_id: run.id,
           workspace_id: run.workspace_id,
@@ -26,7 +35,8 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
           task_id: run.task_id,
           task_title: task && task.title,
           task_description: task && task.description,
-          input: run.input
+          input: run.input,
+          mcp_servers: mcp_servers
         }
 
         dispatch(config[:dispatch], payload, config)
@@ -47,9 +57,7 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
   end
 
   defp dispatch(:sqs, payload, config) do
-    queue_url = config[:sqs_queue_url]
-
-    queue_url
+    config[:sqs_queue_url]
     |> ExAws.SQS.send_message(Jason.encode!(payload))
     |> ExAws.request()
     |> case do

@@ -43,6 +43,74 @@ defmodule MokaidWeb.DriveController do
     end
   end
 
+  @doc "Multipart upload: stores the blob in S3/MinIO then records drive metadata."
+  def upload(conn, %{"file" => %Plug.Upload{} = file_upload} = params) do
+    workspace_id = workspace_id(conn)
+
+    with :ok <- Permissions.authorize(current_member(conn), "drive.upload"),
+         {:ok, stored} <- Mokaid.Storage.upload(workspace_id, file_upload),
+         {:ok, item} <-
+           Drive.create_file(
+             workspace_id,
+             %{
+               "name" => file_upload.filename,
+               "parent_id" => params["parent_id"],
+               "mime_type" => file_upload.content_type,
+               "extension" => file_extension(file_upload.filename),
+               "size_bytes" => stored.size_bytes,
+               "storage_key" => stored.storage_key,
+               "checksum" => stored.checksum,
+               "is_ai_readable" => params["is_ai_readable"] in [true, "true"]
+             },
+             current_member(conn)
+           ) do
+      conn
+      |> put_status(:created)
+      |> json(%{data: Serializer.drive_item(item)})
+    else
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:error, changeset}
+
+      {:error, reason} ->
+        require Logger
+        Logger.error("Drive upload failed: #{inspect(reason)}")
+        {:error, :upload_failed}
+
+      other ->
+        other
+    end
+  end
+
+  def upload(conn, _params) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> json(%{error: %{code: "missing_file", message: "A multipart 'file' field is required"}})
+  end
+
+  def download(conn, %{"id" => id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "drive.view"),
+         %{} = item <- Drive.get_item(workspace_id(conn), id),
+         true <- item.kind == "file" and is_binary(item.storage_key),
+         {:ok, url} <- Mokaid.Storage.download_url(item.storage_key) do
+      json(conn, %{data: %{url: url, name: item.name}})
+    else
+      false ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: %{code: "not_a_file", message: "Only files can be downloaded"}})
+
+      other ->
+        other
+    end
+  end
+
+  defp file_extension(filename) do
+    case Path.extname(filename) do
+      "." <> ext -> String.downcase(ext)
+      _ -> nil
+    end
+  end
+
   def show(conn, %{"id" => id}) do
     with :ok <- Permissions.authorize(current_member(conn), "drive.view"),
          %{} = item <- Drive.get_item(workspace_id(conn), id) do

@@ -1,7 +1,7 @@
 import { useMemo, useState, type DragEvent } from "react";
 import { CheckSquare, LayoutGrid, List, Plus } from "lucide-react";
 import { KANBAN_COLUMNS, TASK_STATUS_LABELS, type TaskStatus } from "@mokaid/shared-types";
-import { useCreateTask, useTasks, useUpdateTask } from "@/api/hooks";
+import { useTasks, useUpdateTask } from "@/api/hooks";
 import type { Task } from "@/api/types";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TaskDetailPanel } from "@/components/tasks/task-detail-panel";
+import { NewTaskModal } from "@/components/modals/new-task-modal";
 import { cn } from "@/lib/cn";
 import { formatRelative } from "@/lib/format";
 
@@ -75,10 +76,10 @@ export function TasksPage() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
+  const [showNewTask, setShowNewTask] = useState(false);
 
   const { data, isLoading } = useTasks();
   const updateTask = useUpdateTask();
-  const createTask = useCreateTask();
 
   const tasks = useMemo(() => {
     const list = data?.data ?? [];
@@ -110,13 +111,6 @@ export function TasksPage() {
     }
   };
 
-  const handleQuickAdd = () => {
-    const title = window.prompt("Task title");
-    if (title?.trim()) {
-      createTask.mutate({ title: title.trim() });
-    }
-  };
-
   return (
     <div className="flex h-full gap-5">
       <div className="flex min-w-0 flex-1 flex-col gap-4">
@@ -127,7 +121,7 @@ export function TasksPage() {
               {tasks.length} tasks · {data?.meta.completed_today ?? 0} completed today
             </p>
           </div>
-          <Button onClick={handleQuickAdd}>
+          <Button onClick={() => setShowNewTask(true)} data-tour="new-task">
             <Plus size={14} /> New Task
           </Button>
         </div>
@@ -169,7 +163,7 @@ export function TasksPage() {
             title="No tasks found"
             description="Create your first task to get your agents working."
             action={
-              <Button size="sm" onClick={handleQuickAdd}>
+              <Button size="sm" onClick={() => setShowNewTask(true)}>
                 <Plus size={13} /> New Task
               </Button>
             }
@@ -258,6 +252,7 @@ export function TasksPage() {
       </div>
 
       <TaskDetailPanel task={selectedTask} onClose={() => setSelectedId(null)} />
+      <NewTaskModal open={showNewTask} onOpenChange={setShowNewTask} />
     </div>
   );
 }

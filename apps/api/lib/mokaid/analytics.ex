@@ -19,7 +19,8 @@ defmodule Mokaid.Analytics do
     %{
       total_tasks: total_tasks,
       completed_tasks: completed,
-      completion_rate: if(total_tasks > 0, do: Float.round(completed / total_tasks * 100, 1), else: 0.0),
+      completion_rate:
+        if(total_tasks > 0, do: Float.round(completed / total_tasks * 100, 1), else: 0.0),
       in_progress: Repo.aggregate(where(task_base, [t], t.status == "in_progress"), :count),
       overdue: Repo.aggregate(where(task_base, [t], t.status == "overdue"), :count),
       active_agents:
@@ -39,8 +40,7 @@ defmodule Mokaid.Analytics do
         where:
           t.workspace_id == ^workspace_id and t.status == "completed" and
             not is_nil(t.started_at) and not is_nil(t.completed_at),
-        select:
-          avg(fragment("EXTRACT(EPOCH FROM (? - ?)) / 3600", t.completed_at, t.started_at))
+        select: avg(fragment("EXTRACT(EPOCH FROM (? - ?)) / 3600", t.completed_at, t.started_at))
     )
     |> case do
       nil -> 0.0

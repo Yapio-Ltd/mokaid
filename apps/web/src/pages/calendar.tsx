@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useCalendarEvents } from "@/api/hooks";
 import type { CalendarEvent } from "@/api/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DetailPanel } from "@/components/ui/detail-panel";
+import { NewEventModal } from "@/components/modals/new-event-modal";
 import { cn } from "@/lib/cn";
 
 type ViewMode = "month" | "week";
@@ -28,9 +30,12 @@ function startOfWeek(date: Date): Date {
 export function CalendarPage() {
   const [view, setView] = useState<ViewMode>("month");
   const [cursor, setCursor] = useState(() => new Date());
+  const [showNewEvent, setShowNewEvent] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
   const { data } = useCalendarEvents();
   const events = data?.data ?? [];
+  const selectedEvent = events.find((e) => e.id === selectedEventId) ?? null;
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
@@ -74,7 +79,8 @@ export function CalendarPage() {
   const today = new Date().toDateString();
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full gap-5">
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-text">Calendar</h1>
@@ -106,6 +112,9 @@ export function CalendarPage() {
           </div>
           <Button variant="secondary" size="sm" onClick={() => setCursor(new Date())}>
             Today
+          </Button>
+          <Button size="sm" onClick={() => setShowNewEvent(true)}>
+            <Plus size={14} /> New Event
           </Button>
         </div>
       </div>
@@ -153,11 +162,13 @@ export function CalendarPage() {
                   {dayEvents.slice(0, view === "week" ? 10 : 3).map((event) => {
                     const colors = kindColor[event.kind] ?? kindColor.event;
                     return (
-                      <div
+                      <button
                         key={event.id}
+                        type="button"
                         title={event.title}
+                        onClick={() => setSelectedEventId(event.id)}
                         className={cn(
-                          "flex items-center gap-1.5 truncate rounded-full px-2 py-0.5 text-[10px] font-medium text-text transition-transform duration-150 hover:scale-[1.02]",
+                          "flex w-full items-center gap-1.5 truncate rounded-full px-2 py-0.5 text-left text-[10px] font-medium text-text transition-transform duration-150 hover:scale-[1.02]",
                           colors.bg,
                         )}
                       >
@@ -171,7 +182,7 @@ export function CalendarPage() {
                           </span>
                         )}
                         <span className="truncate">{event.title}</span>
-                      </div>
+                      </button>
                     );
                   })}
                   {dayEvents.length > 3 && view === "month" && (
@@ -192,6 +203,80 @@ export function CalendarPage() {
         <Badge tone="warning">Time off</Badge>
         <Badge tone="info">Schedule</Badge>
       </div>
+      </div>
+
+      <DetailPanel
+        open={selectedEvent != null}
+        onClose={() => setSelectedEventId(null)}
+        title="Event Details"
+      >
+        {selectedEvent && (
+          <div className="space-y-5 px-5 py-4">
+            <div>
+              <h3 className="text-sm font-bold text-text">{selectedEvent.title}</h3>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge tone="primary" className="capitalize">
+                  {selectedEvent.kind}
+                </Badge>
+                {selectedEvent.all_day && <Badge tone="muted">All day</Badge>}
+              </div>
+            </div>
+            {selectedEvent.description && (
+              <p className="text-xs leading-relaxed text-text-secondary">
+                {selectedEvent.description}
+              </p>
+            )}
+            <div className="space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-text-muted">Starts</span>
+                <span className="text-text">
+                  {new Date(selectedEvent.start_at).toLocaleString("en-US", {
+                    dateStyle: "medium",
+                    timeStyle: selectedEvent.all_day ? undefined : "short",
+                  })}
+                </span>
+              </div>
+              {selectedEvent.end_at && (
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Ends</span>
+                  <span className="text-text">
+                    {new Date(selectedEvent.end_at).toLocaleString("en-US", {
+                      dateStyle: "medium",
+                      timeStyle: selectedEvent.all_day ? undefined : "short",
+                    })}
+                  </span>
+                </div>
+              )}
+              {selectedEvent.project_name && (
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Project</span>
+                  <span className="text-text">{selectedEvent.project_name}</span>
+                </div>
+              )}
+              {selectedEvent.member_name && (
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Member</span>
+                  <span className="text-text">{selectedEvent.member_name}</span>
+                </div>
+              )}
+              {selectedEvent.agent_name && (
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Agent</span>
+                  <span className="text-text">{selectedEvent.agent_name}</span>
+                </div>
+              )}
+              {selectedEvent.task_title && (
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Task</span>
+                  <span className="text-text">{selectedEvent.task_title}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </DetailPanel>
+
+      <NewEventModal open={showNewEvent} onOpenChange={setShowNewEvent} defaultDate={cursor} />
     </div>
   );
 }

@@ -1,21 +1,30 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { Check, Mail, Plus, Users, X } from "lucide-react";
 import {
+  useAgents,
+  useCreateLeaveRequest,
   useInviteMember,
   useLeaveRequests,
   useMembers,
   useReviewLeaveRequest,
 } from "@/api/hooks";
+import { Dialog } from "@/components/ui/dialog";
+import { Field } from "@/components/ui/field";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { AgentProfilePanel } from "@/components/agents/agent-profile-panel";
+import { MemberDetailPanel } from "@/components/members/member-detail-panel";
 import { StatusAvatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { cn } from "@/lib/cn";
 import { formatDate, formatRelative } from "@/lib/format";
 
 const tabClass =
-  "border-b-2 border-transparent px-4 py-2.5 text-xs font-medium text-text-muted transition-colors data-[state=active]:border-primary data-[state=active]:text-text";
+  "rounded-md px-4 py-2 text-xs font-medium text-text-muted transition-colors data-[state=active]:bg-surface-raised data-[state=active]:text-text";
 
 const leaveTypeLabel: Record<string, string> = {
   vacation: "Vacation",
@@ -33,14 +42,53 @@ const leaveStatusTone: Record<string, "warning" | "success" | "danger" | "muted"
 
 export function MembersPage() {
   const { data: membersData, isLoading } = useMembers();
+  const { data: agentsData } = useAgents();
   const { data: leaveData } = useLeaveRequests();
   const inviteMember = useInviteMember();
   const reviewLeave = useReviewLeaveRequest();
+  const createLeave = useCreateLeaveRequest();
   const [inviteEmail, setInviteEmail] = useState("");
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [leaveType, setLeaveType] = useState("vacation");
+  const [leaveStart, setLeaveStart] = useState("");
+  const [leaveEnd, setLeaveEnd] = useState("");
+  const [leaveReason, setLeaveReason] = useState("");
+
+  const submitLeaveRequest = () => {
+    if (!leaveStart || !leaveEnd) return;
+    createLeave.mutate(
+      {
+        type: leaveType,
+        start_at: new Date(leaveStart).toISOString(),
+        end_at: new Date(leaveEnd).toISOString(),
+        reason: leaveReason.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          setShowLeaveModal(false);
+          setLeaveStart("");
+          setLeaveEnd("");
+          setLeaveReason("");
+        },
+      },
+    );
+  };
 
   const members = membersData?.data ?? [];
+  const agents = agentsData?.data ?? [];
   const invites = membersData?.meta.pending_invites ?? [];
   const leaveRequests = leaveData?.data ?? [];
+
+  const selectedMember = useMemo(
+    () => members.find((m) => m.id === selectedMemberId) ?? null,
+    [members, selectedMemberId],
+  );
+  const selectedAgent = useMemo(
+    () => agents.find((a) => a.id === selectedAgentId) ?? null,
+    [agents, selectedAgentId],
+  );
 
   const sendInvite = () => {
     if (inviteEmail.includes("@")) {
@@ -49,7 +97,8 @@ export function MembersPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="flex h-full gap-5">
+      <div className="min-w-0 flex-1 space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-text">Members</h1>
@@ -73,7 +122,7 @@ export function MembersPage() {
       </div>
 
       <Tabs.Root defaultValue="members">
-        <Tabs.List className="flex border-b border-border">
+        <Tabs.List className="flex gap-1">
           <Tabs.Trigger value="members" className={tabClass}>
             Members
           </Tabs.Trigger>
@@ -93,10 +142,10 @@ export function MembersPage() {
           ) : members.length === 0 ? (
             <EmptyState icon={<Users size={24} />} title="No members yet" />
           ) : (
-            <div className="mk-card overflow-hidden">
+            <div className="overflow-hidden rounded-lg bg-surface">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-border text-[11px] uppercase tracking-wide text-text-muted">
+                  <tr className="text-[11px] uppercase tracking-wide text-text-muted">
                     <th className="px-5 py-3 font-medium">Member</th>
                     <th className="px-3 py-3 font-medium">Role</th>
                     <th className="px-3 py-3 font-medium">Team</th>
@@ -109,7 +158,14 @@ export function MembersPage() {
                   {members.map((member) => (
                     <tr
                       key={member.id}
-                      className="border-b border-border/50 transition-colors last:border-0 hover:bg-surface-hover"
+                      onClick={() => {
+                        setSelectedAgentId(null);
+                        setSelectedMemberId(member.id);
+                      }}
+                      className={cn(
+                        "cursor-pointer transition-colors hover:bg-surface-hover",
+                        selectedMemberId === member.id && !selectedAgentId && "bg-primary-muted/40",
+                      )}
                     >
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
@@ -135,7 +191,19 @@ export function MembersPage() {
                         </Badge>
                       </td>
                       <td className="px-3 py-3 text-text-secondary">{member.team_name ?? "·"}</td>
-                      <td className="px-3 py-3 text-text-secondary">
+                      <td
+                        className={cn(
+                          "px-3 py-3 text-text-secondary",
+                          member.linked_agent_id &&
+                            "cursor-pointer hover:text-primary-light hover:underline",
+                        )}
+                        onClick={(e) => {
+                          if (!member.linked_agent_id) return;
+                          e.stopPropagation();
+                          setSelectedMemberId(null);
+                          setSelectedAgentId(member.linked_agent_id);
+                        }}
+                      >
                         {member.linked_agent_name ?? "·"}
                       </td>
                       <td className="px-3 py-3">
@@ -147,7 +215,7 @@ export function MembersPage() {
                     </tr>
                   ))}
                   {invites.map((invite) => (
-                    <tr key={invite.id} className="border-b border-border/50 bg-bg-deep/40 last:border-0">
+                    <tr key={invite.id} className="bg-bg-deep/40">
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           <span className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-border-strong text-text-muted">
@@ -171,6 +239,11 @@ export function MembersPage() {
         </Tabs.Content>
 
         <Tabs.Content value="timeoff" className="space-y-3 pt-4">
+          <div className="flex justify-end">
+            <Button size="sm" variant="secondary" onClick={() => setShowLeaveModal(true)}>
+              <Plus size={13} /> Request Time Off
+            </Button>
+          </div>
           {leaveRequests.length === 0 ? (
             <EmptyState
               icon={<Users size={24} />}
@@ -179,7 +252,7 @@ export function MembersPage() {
             />
           ) : (
             leaveRequests.map((request) => (
-              <div key={request.id} className="mk-card flex items-center gap-4 p-4">
+              <div key={request.id} className="flex items-center gap-4 rounded-lg bg-surface p-4">
                 <StatusAvatar name={request.member_name} size="md" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold text-text">
@@ -221,6 +294,82 @@ export function MembersPage() {
           )}
         </Tabs.Content>
       </Tabs.Root>
+      </div>
+
+      {selectedAgent ? (
+        <AgentProfilePanel agent={selectedAgent} onClose={() => setSelectedAgentId(null)} />
+      ) : (
+        <MemberDetailPanel
+          member={selectedMember}
+          onClose={() => setSelectedMemberId(null)}
+          onViewAgent={(agentId) => {
+            setSelectedMemberId(null);
+            setSelectedAgentId(agentId);
+          }}
+        />
+      )}
+
+      <Dialog
+        open={showLeaveModal}
+        onOpenChange={setShowLeaveModal}
+        title="Request Time Off"
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setShowLeaveModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              loading={createLeave.isPending}
+              disabled={!leaveStart || !leaveEnd}
+              onClick={submitLeaveRequest}
+            >
+              Submit Request
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="Type">
+            <Select
+              value={leaveType}
+              onValueChange={setLeaveType}
+              options={[
+                { value: "vacation", label: "Vacation" },
+                { value: "sick_leave", label: "Sick leave" },
+                { value: "remote_work", label: "Remote work" },
+                { value: "other", label: "Other" },
+              ]}
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="From" required>
+              <input
+                type="date"
+                className="mk-input"
+                value={leaveStart}
+                onChange={(e) => setLeaveStart(e.target.value)}
+              />
+            </Field>
+            <Field label="To" required>
+              <input
+                type="date"
+                className="mk-input"
+                value={leaveEnd}
+                onChange={(e) => setLeaveEnd(e.target.value)}
+              />
+            </Field>
+          </div>
+          <Field label="Reason">
+            <Textarea
+              className="min-h-[64px]"
+              placeholder="Optional note for your manager…"
+              value={leaveReason}
+              onChange={(e) => setLeaveReason(e.target.value)}
+            />
+          </Field>
+        </div>
+      </Dialog>
     </div>
   );
 }

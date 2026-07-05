@@ -9,6 +9,7 @@ import { DetailPanel } from "@/components/ui/detail-panel";
 import { SearchInput } from "@/components/ui/search-input";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { AddKnowledgeModal } from "@/components/modals/add-knowledge-modal";
 import { cn } from "@/lib/cn";
 import { formatBytes, formatRelative } from "@/lib/format";
 
@@ -31,6 +32,7 @@ export function KnowledgePage() {
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showAddKnowledge, setShowAddKnowledge] = useState(false);
 
   const { data: itemsData, isLoading } = useKnowledgeItems(
     categoryId ? { category_id: categoryId } : {},
@@ -62,7 +64,7 @@ export function KnowledgePage() {
               Documents, links and notes your agents can learn from
             </p>
           </div>
-          <Button>
+          <Button onClick={() => setShowAddKnowledge(true)}>
             <Plus size={14} /> Add Knowledge
           </Button>
         </div>
@@ -114,6 +116,11 @@ export function KnowledgePage() {
             icon={<Library size={24} />}
             title="No knowledge items"
             description="Upload documents or add links your agents can use."
+            action={
+              <Button size="sm" onClick={() => setShowAddKnowledge(true)}>
+                <Plus size={13} /> Add Knowledge
+              </Button>
+            }
           />
         ) : (
           <div className="mk-card overflow-hidden">
@@ -263,6 +270,7 @@ export function KnowledgePage() {
           </div>
         )}
       </DetailPanel>
+      <AddKnowledgeModal open={showAddKnowledge} onOpenChange={setShowAddKnowledge} />
     </div>
   );
 }

@@ -20,7 +20,14 @@ defmodule Mokaid.Knowledge.KnowledgeChunk do
 
   def changeset(chunk, attrs) do
     chunk
-    |> cast(attrs, [:workspace_id, :knowledge_item_id, :chunk_index, :content, :embedding, :metadata])
+    |> cast(attrs, [
+      :workspace_id,
+      :knowledge_item_id,
+      :chunk_index,
+      :content,
+      :embedding,
+      :metadata
+    ])
     |> validate_required([:workspace_id, :knowledge_item_id, :chunk_index, :content])
     |> unique_constraint([:knowledge_item_id, :chunk_index])
   end

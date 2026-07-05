@@ -21,7 +21,16 @@ defmodule Mokaid.Integrations.IntegrationProvider do
 
   def changeset(provider, attrs) do
     provider
-    |> cast(attrs, [:key, :name, :category, :description, :icon_slug, :auth_kind, :capabilities, :enabled])
+    |> cast(attrs, [
+      :key,
+      :name,
+      :category,
+      :description,
+      :icon_slug,
+      :auth_kind,
+      :capabilities,
+      :enabled
+    ])
     |> validate_required([:key, :name, :category])
     |> unique_constraint(:key)
   end

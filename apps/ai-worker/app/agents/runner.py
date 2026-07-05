@@ -1,21 +1,24 @@
 """Agent run orchestration.
 
-Executes a task as a sequence of planned steps. Each step may invoke a tool;
-HIGH/CRITICAL-risk tools pause the run in `waiting_for_approval` until the
-resume endpoint is called with a human decision. Run state is kept in-memory
-per worker instance (production: externalize to Redis/DB checkpointer via
-LangGraph's persistence layer).
+Executes a task as a sequence of planned steps (LLM planner when an OpenAI
+key is configured, deterministic plans otherwise). Each step may invoke a
+tool; HIGH/CRITICAL-risk tools pause the run in `waiting_for_approval` until
+the resume endpoint is called with a human decision. Run state is kept
+in-memory per worker instance (production: externalize to Redis/DB
+checkpointer via LangGraph's persistence layer).
 """
 
 import asyncio
-from typing import Any
 
 import structlog
 
+from app.agents.acknowledge import post_acknowledgement
+from app.agents.planner import plan_steps
 from app.clients.phoenix import PhoenixClient
+from app.mcp.client import TOOL_PREFIX, McpToolbox
 from app.policies.approval import requires_approval, risk_for_tool
 from app.schemas import ResumeRequest, RunRequest, RunState, RunStatus, ToolCall
-from app.tools.registry import get_tool
+from app.tools.registry import RunContext, get_tool
 
 log = structlog.get_logger()
 
@@ -28,45 +31,36 @@ def get_run(run_id: str) -> RunState | None:
     return _RUNS.get(run_id)
 
 
-def _plan_steps(request: RunRequest) -> list[dict[str, Any]]:
-    """Very small deterministic planner (placeholder for the LangGraph LLM planner).
-
-    Produces a plan based on requested action so the full run/approve/resume
-    lifecycle is exercisable end-to-end without an LLM key.
-    """
-    action = request.input.get("action", "summarize")
-
-    if action == "send_campaign":
-        return [
-            {"tool": "search_knowledge", "input": {"query": request.task_title or ""}},
-            {"tool": "draft_document", "input": {"title": f"Campaign: {request.task_title}"}},
-            {
-                "tool": "send_email",
-                "input": {"to": request.input.get("to", "list:subscribers"), "subject": request.task_title},
-            },
-        ]
-    if action == "report":
-        return [
-            {"tool": "generate_report", "input": {"period": request.input.get("period", "last_30_days")}},
-        ]
-    return [
-        {"tool": "search_knowledge", "input": {"query": request.task_title or ""}},
-        {"tool": "summarize", "input": {"text": request.task_description or request.task_title or ""}},
-    ]
-
-
 async def execute_run(request: RunRequest, phoenix: PhoenixClient | None = None) -> RunState:
     phoenix = phoenix or PhoenixClient()
     state = RunState(run_id=request.run_id, status=RunStatus.RUNNING)
     _RUNS[request.run_id] = state
 
+    ctx = RunContext(
+        run_id=request.run_id,
+        workspace_id=request.workspace_id,
+        task_id=request.task_id,
+        task_title=request.task_title,
+        task_description=request.task_description,
+        phoenix=phoenix,
+    )
+
     await phoenix.update_run_status(request.run_id, RunStatus.RUNNING.value)
     log.info("run_started", run_id=request.run_id, task_id=request.task_id)
 
+    # Granted MCP servers: discover their tools so the planner can decide,
+    # on its own, whether any external tool helps with this task.
+    toolbox = McpToolbox(request.mcp_servers)
+    mcp_tools = await toolbox.discover() if request.mcp_servers else []
+
+    # Conversational acknowledgement: the agent tells its teammates it is
+    # picking up the task (or explains why it can't). Never blocks the run.
+    await post_acknowledgement(request, phoenix, ctx.usage, mcp_tools)
+
     try:
-        for step in _plan_steps(request):
+        for step in await plan_steps(request, ctx.usage, mcp_tools):
             tool_name: str = step["tool"]
-            tool_input: dict[str, Any] = step["input"]
+            tool_input: dict = step["input"]
             risk = risk_for_tool(tool_name)
             call = ToolCall(tool=tool_name, input=tool_input, risk=risk)
 
@@ -92,11 +86,14 @@ async def execute_run(request: RunRequest, phoenix: PhoenixClient | None = None)
                 state.status = RunStatus.RUNNING
                 await phoenix.update_run_status(request.run_id, state.status.value)
 
-            fn = get_tool(tool_name)
-            if fn is None:
-                raise ValueError(f"unknown tool: {tool_name}")
+            if tool_name.startswith(TOOL_PREFIX):
+                call.output = await toolbox.call(tool_name, call.input)
+            else:
+                fn = get_tool(tool_name)
+                if fn is None:
+                    raise ValueError(f"unknown tool: {tool_name}")
+                call.output = await fn(call.input, ctx)
 
-            call.output = await fn(call.input)
             state.tool_calls.append(call)
             state.steps.append({"tool": tool_name, "ok": True})
             log.info("tool_executed", run_id=request.run_id, tool=tool_name)
@@ -106,8 +103,18 @@ async def execute_run(request: RunRequest, phoenix: PhoenixClient | None = None)
             "steps": len(state.steps),
             "tool_calls": [c.model_dump(mode="json") for c in state.tool_calls],
         }
-        await phoenix.complete_run(request.run_id, state.output)
-        log.info("run_completed", run_id=request.run_id)
+        await phoenix.complete_run(
+            request.run_id,
+            state.output,
+            token_usage=ctx.usage.as_dict(),
+            cost_cents=ctx.usage.cost_cents,
+        )
+        log.info(
+            "run_completed",
+            run_id=request.run_id,
+            tokens=ctx.usage.as_dict()["total_tokens"],
+            cost_cents=ctx.usage.cost_cents,
+        )
 
     except asyncio.CancelledError:
         state.status = RunStatus.CANCELED

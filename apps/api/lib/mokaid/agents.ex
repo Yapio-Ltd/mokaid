@@ -74,8 +74,7 @@ defmodule Mokaid.Agents do
         agent
         |> Agent.status_changeset(%{
           "status" => new_status,
-          "current_task_id" =>
-            Keyword.get(opts, :current_task_id, agent.current_task_id),
+          "current_task_id" => Keyword.get(opts, :current_task_id, agent.current_task_id),
           "last_active_at" => DateTime.utc_now()
         })
         |> Repo.update()
@@ -155,8 +154,7 @@ defmodule Mokaid.Agents do
       ai: Repo.aggregate(where(base, [a], a.kind == "ai"), :count),
       human_linked: Repo.aggregate(where(base, [a], a.kind == "human_linked"), :count),
       hybrid: Repo.aggregate(where(base, [a], a.kind == "hybrid"), :count),
-      active:
-        Repo.aggregate(where(base, [a], a.status in ["active", "busy"]), :count),
+      active: Repo.aggregate(where(base, [a], a.status in ["active", "busy"]), :count),
       offline: Repo.aggregate(where(base, [a], a.status == "offline"), :count)
     }
   end

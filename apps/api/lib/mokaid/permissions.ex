@@ -18,13 +18,11 @@ defmodule Mokaid.Permissions do
          calendar.view calendar.create calendar.update leave_requests.create
          leave_requests.view_own leave_requests.view_all leave_requests.approve
          integrations.view analytics.view notifications.view),
-    "Member" =>
-      ~w(workspace.view members.view agents.view tasks.view tasks.create tasks.update
+    "Member" => ~w(workspace.view members.view agents.view tasks.view tasks.create tasks.update
          projects.view knowledge.view knowledge.upload drive.view drive.upload
          drive.create_folder drive.rename calendar.view calendar.create
          leave_requests.create leave_requests.view_own integrations.view analytics.view),
-    "Viewer" =>
-      ~w(workspace.view members.view agents.view tasks.view projects.view knowledge.view
+    "Viewer" => ~w(workspace.view members.view agents.view tasks.view projects.view knowledge.view
          drive.view calendar.view analytics.view),
     "Agent User" =>
       ~w(workspace.view agents.view tasks.view tasks.update projects.view knowledge.view

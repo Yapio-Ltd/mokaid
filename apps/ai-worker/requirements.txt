@@ -8,3 +8,4 @@ langchain-core>=0.3
 openai>=1.50
 boto3>=1.35
 structlog>=24.4
+mcp>=1.9

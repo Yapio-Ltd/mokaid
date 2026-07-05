@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CheckCircle2, Circle, Send, Sparkles } from "lucide-react";
 import type { Task } from "@/api/types";
-import { useCreateTaskComment, useExecuteAi } from "@/api/hooks";
+import { useCreateTaskComment, useExecuteAi, useToggleSubtask } from "@/api/hooks";
 import { DetailPanel } from "@/components/ui/detail-panel";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ export function TaskDetailPanel({ task, onClose }: { task: Task | null; onClose:
   const [comment, setComment] = useState("");
   const createComment = useCreateTaskComment();
   const executeAi = useExecuteAi();
+  const toggleSubtask = useToggleSubtask();
 
   const submitComment = () => {
     if (!task || !comment.trim()) return;
@@ -99,7 +100,18 @@ export function TaskDetailPanel({ task, onClose }: { task: Task | null; onClose:
                   .slice()
                   .sort((a, b) => a.position - b.position)
                   .map((subtask) => (
-                    <div key={subtask.id} className="flex items-center gap-2 text-xs">
+                    <button
+                      key={subtask.id}
+                      type="button"
+                      onClick={() =>
+                        toggleSubtask.mutate({
+                          taskId: task.id,
+                          subtaskId: subtask.id,
+                          done: !subtask.done,
+                        })
+                      }
+                      className="flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-xs transition-colors hover:bg-surface-hover mk-focus-ring"
+                    >
                       {subtask.done ? (
                         <CheckCircle2 size={14} className="shrink-0 text-success" />
                       ) : (
@@ -108,7 +120,7 @@ export function TaskDetailPanel({ task, onClose }: { task: Task | null; onClose:
                       <span className={subtask.done ? "text-text-muted line-through" : "text-text"}>
                         {subtask.title}
                       </span>
-                    </div>
+                    </button>
                   ))}
               </div>
             </div>

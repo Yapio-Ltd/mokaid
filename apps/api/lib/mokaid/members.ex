@@ -60,7 +60,12 @@ defmodule Mokaid.Members do
     roles =
       Enum.map(@system_roles, fn {name, description} ->
         Repo.insert!(
-          %Role{workspace_id: workspace_id, name: name, description: description, is_system: true},
+          %Role{
+            workspace_id: workspace_id,
+            name: name,
+            description: description,
+            is_system: true
+          },
           on_conflict: :nothing
         )
       end)
@@ -99,8 +104,7 @@ defmodule Mokaid.Members do
   def get_member_for_user(workspace_id, user_id) do
     Repo.one(
       from m in Member,
-        where:
-          m.workspace_id == ^workspace_id and m.user_id == ^user_id and m.status == "active",
+        where: m.workspace_id == ^workspace_id and m.user_id == ^user_id and m.status == "active",
         preload: [:role, :linked_agent]
     )
   end

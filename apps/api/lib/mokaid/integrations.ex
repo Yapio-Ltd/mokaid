@@ -42,7 +42,8 @@ defmodule Mokaid.Integrations do
           "connected_by_member_id" => member.id
         })
         |> Repo.insert(
-          on_conflict: {:replace, [:status, :connected_account, :connected_by_member_id, :updated_at]},
+          on_conflict:
+            {:replace, [:status, :connected_account, :connected_by_member_id, :updated_at]},
           conflict_target: [:workspace_id, :provider_id]
         )
 

@@ -255,9 +255,11 @@ module "secrets" {
 
   name_prefix = local.name
   secrets = {
-    secret_key_base   = "CHANGE_ME"
-    worker_auth_token = "CHANGE_ME"
-    openai_api_key    = "CHANGE_ME"
+    secret_key_base     = "CHANGE_ME"
+    worker_auth_token   = "CHANGE_ME"
+    openai_api_key      = "CHANGE_ME"
+    figma_client_id     = "CHANGE_ME"
+    figma_client_secret = "CHANGE_ME"
   }
   parameters = {
     cognito_user_pool_id = module.cognito.user_pool_id
@@ -375,12 +377,15 @@ module "api_service" {
     S3_BUCKET_EXPORTS      = module.s3_exports.bucket_id
     AI_DISPATCH_QUEUE_URL  = module.sqs_ai_runs.queue_url
     CORS_ORIGINS           = local.app_origin
+    FIGMA_REDIRECT_URI     = var.app_domain != "" ? "https://${var.app_domain}/oauth/figma/callback" : "https://mokaid.com/oauth/figma/callback"
   }
 
   secrets = {
-    DATABASE_URL    = module.rds.database_url_secret_arn
-    SECRET_KEY_BASE = module.secrets.secret_arns["secret_key_base"]
-    AI_WORKER_TOKEN = module.secrets.secret_arns["worker_auth_token"]
+    DATABASE_URL        = module.rds.database_url_secret_arn
+    SECRET_KEY_BASE     = module.secrets.secret_arns["secret_key_base"]
+    AI_WORKER_TOKEN     = module.secrets.secret_arns["worker_auth_token"]
+    FIGMA_CLIENT_ID     = module.secrets.secret_arns["figma_client_id"]
+    FIGMA_CLIENT_SECRET = module.secrets.secret_arns["figma_client_secret"]
   }
 
   task_policy_json   = data.aws_iam_policy_document.api_task.json
@@ -415,7 +420,7 @@ module "worker_service" {
   private_subnet_ids = module.vpc.private_subnet_ids
 
   container_image = "${module.ecr.repository_urls["mokaid-ai-worker"]}:${var.worker_image_tag}"
-  container_port  = 8000
+  container_port  = 8100
   cpu             = var.worker_cpu
   memory          = var.worker_memory
   desired_count   = 1

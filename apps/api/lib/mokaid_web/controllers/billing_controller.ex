@@ -27,6 +27,34 @@ defmodule MokaidWeb.BillingController do
     end
   end
 
+  def plans(conn, _params) do
+    with :ok <- Permissions.authorize(current_member(conn), "billing.view") do
+      plans = Billing.list_plans()
+
+      json(conn, %{
+        data:
+          Enum.map(plans, fn plan ->
+            %{
+              key: plan.key,
+              name: plan.name,
+              price_cents_monthly: plan.price_cents_monthly,
+              price_cents_yearly: plan.price_cents_yearly,
+              limits: plan.limits,
+              features: plan.features
+            }
+          end)
+      })
+    end
+  end
+
+  def change_plan(conn, %{"plan_key" => plan_key} = params) do
+    with :ok <- Permissions.authorize(current_member(conn), "billing.manage"),
+         {:ok, subscription} <-
+           Billing.change_plan(workspace_id(conn), plan_key, params["billing_cycle"]) do
+      json(conn, %{data: subscription_json(subscription)})
+    end
+  end
+
   defp subscription_json(nil), do: nil
 
   defp subscription_json(subscription) do

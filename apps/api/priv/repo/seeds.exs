@@ -1,7 +1,20 @@
 # mokaid demo seeds — matches the design mockups.
 # Run with: mix run priv/repo/seeds.exs
 
-alias Mokaid.{Accounts, Agents, Billing, Calendar, Drive, Knowledge, Members, Projects, Repo, Tasks, Workspaces}
+alias Mokaid.{
+  Accounts,
+  Agents,
+  Billing,
+  Calendar,
+  Drive,
+  Knowledge,
+  Members,
+  Projects,
+  Repo,
+  Tasks,
+  Workspaces
+}
+
 alias Mokaid.Billing.{BillingPlan, Invoice, Subscription}
 alias Mokaid.Integrations.IntegrationProvider
 
@@ -10,6 +23,8 @@ require Logger
 Logger.info("Seeding mokaid demo data...")
 
 Members.seed_global_permissions()
+Mokaid.MCP.seed_catalog()
+Billing.seed_plans()
 
 ## ---------- Users ----------
 
@@ -122,15 +137,36 @@ else
 
   human_agent_specs = [
     {"Ava Rodriguez", "UI/UX Designer", "Design", "ava", "#a78bfa",
-     [%{"name" => "UI Design", "level" => 90}, %{"name" => "UX Research", "level" => 75}, %{"name" => "Figma", "level" => 85}, %{"name" => "Prototyping", "level" => 70}]},
+     [
+       %{"name" => "UI Design", "level" => 90},
+       %{"name" => "UX Research", "level" => 75},
+       %{"name" => "Figma", "level" => 85},
+       %{"name" => "Prototyping", "level" => 70}
+     ]},
     {"Ethan Carter", "Software Engineer", "Development", "ethan", "#60a5fa",
-     [%{"name" => "React", "level" => 92}, %{"name" => "Node.js", "level" => 84}, %{"name" => "TypeScript", "level" => 88}]},
+     [
+       %{"name" => "React", "level" => 92},
+       %{"name" => "Node.js", "level" => 84},
+       %{"name" => "TypeScript", "level" => 88}
+     ]},
     {"Sophia Bennett", "Content Writer", "Marketing", "sophia", "#f472b6",
-     [%{"name" => "Copywriting", "level" => 89}, %{"name" => "SEO", "level" => 72}, %{"name" => "Content Strategy", "level" => 80}]},
+     [
+       %{"name" => "Copywriting", "level" => 89},
+       %{"name" => "SEO", "level" => 72},
+       %{"name" => "Content Strategy", "level" => 80}
+     ]},
     {"Noah Williams", "Product Manager", "Product", "noah", "#34d399",
-     [%{"name" => "Roadmapping", "level" => 86}, %{"name" => "User Stories", "level" => 82}, %{"name" => "Analytics", "level" => 74}]},
+     [
+       %{"name" => "Roadmapping", "level" => 86},
+       %{"name" => "User Stories", "level" => 82},
+       %{"name" => "Analytics", "level" => 74}
+     ]},
     {"Mason Lee", "DevOps Engineer", "IT", "mason", "#fbbf24",
-     [%{"name" => "AWS", "level" => 91}, %{"name" => "Terraform", "level" => 85}, %{"name" => "CI/CD", "level" => 88}]}
+     [
+       %{"name" => "AWS", "level" => 91},
+       %{"name" => "Terraform", "level" => 85},
+       %{"name" => "CI/CD", "level" => 88}
+     ]}
   ]
 
   human_agents =
@@ -150,7 +186,8 @@ else
             "linked_user_id" => member.user_id,
             "linked_member_id" => member.id,
             "status" => Enum.at(["active", "active", "busy", "active", "offline"], index),
-            "presence_status" => Enum.at(["online", "online", "online", "away", "offline"], index),
+            "presence_status" =>
+              Enum.at(["online", "online", "online", "away", "offline"], index),
             "ai_enabled" => false,
             "human_takeover_enabled" => false,
             "skills" => skills,
@@ -170,9 +207,16 @@ else
 
   ai_agent_specs = [
     {"Marketing Assistant", "Campaign Management", "Marketing", "#f472b6",
-     [%{"name" => "Campaign Planning", "level" => 82}, %{"name" => "Email Drafting", "level" => 88}]},
+     [
+       %{"name" => "Campaign Planning", "level" => 82},
+       %{"name" => "Email Drafting", "level" => 88}
+     ]},
     {"Data Analyst", "Data & Analytics", "Analytics", "#fbbf24",
-     [%{"name" => "SQL", "level" => 90}, %{"name" => "Reporting", "level" => 85}, %{"name" => "Python", "level" => 80}]},
+     [
+       %{"name" => "SQL", "level" => 90},
+       %{"name" => "Reporting", "level" => 85},
+       %{"name" => "Python", "level" => 80}
+     ]},
     {"Customer Support Bot", "Customer Support", "Support", "#22d3ee",
      [%{"name" => "Ticket Triage", "level" => 93}, %{"name" => "FAQ Answers", "level" => 89}]},
     {"Code Review Agent", "Development", "Engineering", "#60a5fa",
@@ -217,11 +261,17 @@ else
   ## ---------- Projects ----------
 
   project_specs = [
-    {"AI Dashboard Redesign", "Redesign the main dashboard to improve user experience, add new analytics widgets, and optimize performance.", "active", "high", 75, "meeting"},
-    {"Mobile App Development", "Build the mobile application for iOS and Android platforms.", "active", "high", 60, "coding"},
-    {"Marketing Website", "Create a new marketing website with modern design and animations.", "in_review", "medium", 90, "design"},
-    {"AI Feature Expansion", "Plan and implement new AI features based on user feedback.", "planning", "medium", 30, "whiteboard"},
-    {"Internal Tools Update", "Update internal tooling and automation scripts.", "on_hold", "low", 45, "office"}
+    {"AI Dashboard Redesign",
+     "Redesign the main dashboard to improve user experience, add new analytics widgets, and optimize performance.",
+     "active", "high", 75, "meeting"},
+    {"Mobile App Development", "Build the mobile application for iOS and Android platforms.",
+     "active", "high", 60, "coding"},
+    {"Marketing Website", "Create a new marketing website with modern design and animations.",
+     "in_review", "medium", 90, "design"},
+    {"AI Feature Expansion", "Plan and implement new AI features based on user feedback.",
+     "planning", "medium", 30, "whiteboard"},
+    {"Internal Tools Update", "Update internal tooling and automation scripts.", "on_hold", "low",
+     45, "office"}
   ]
 
   projects =
@@ -262,30 +312,52 @@ else
 
   task_specs = [
     # {title, description, status, priority, agent, project, progress, tags, due_in_hours}
-    {"Market research analysis", "Analyze market trends and competitor strategies", "to_do", "high", "Data Analyst", "AI Feature Expansion", 0, ["Research"], 48},
-    {"Create landing page wireframe", "Design wireframe for the new landing page", "to_do", "medium", "Ava Rodriguez", "Marketing Website", 0, ["Design"], 72},
-    {"Competitor pricing analysis", "Collect and analyze competitor pricing data", "to_do", "medium", "Sophia Bennett", "AI Feature Expansion", 0, ["Research"], 96},
-    {"Blog content ideation", "Generate ideas for upcoming blog posts", "to_do", "low", "Marketing Assistant", "Marketing Website", 0, ["Content"], 120},
-    {"UI design system", "Create components and style guide for the platform interface", "in_progress", "high", "Ava Rodriguez", "AI Dashboard Redesign", 60, ["Design", "UI/UX"], 24},
-    {"API integration", "Integrate payment gateway and user APIs", "in_progress", "high", "Ethan Carter", "Mobile App Development", 45, ["Development"], 30},
-    {"User flow optimization", "Optimize user flow based on analytics", "in_progress", "medium", "Noah Williams", "AI Dashboard Redesign", 70, ["Design"], 48},
-    {"Database schema update", "Update database schema for new features", "in_progress", "medium", "Ethan Carter", "Mobile App Development", 30, ["Development"], 60},
-    {"Landing page design", "Review and finalize the landing page design", "in_review", "high", "Sophia Bennett", "Marketing Website", 90, ["Design"], 12},
-    {"Content strategy", "Review content strategy and approve topics", "in_review", "medium", "Noah Williams", "Marketing Website", 75, ["Content"], 36},
-    {"Security audit", "Review security implementation and dependencies", "in_review", "high", "Code Review Agent", "Mobile App Development", 50, ["Development"], 24},
-    {"Client feedback", "Waiting for client feedback on design concepts", "waiting", "high", "Ava Rodriguez", "Marketing Website", 0, ["Feedback"], 48},
-    {"Legal approval", "Waiting for legal team review and approval", "waiting", "medium", "Mason Lee", "Internal Tools Update", 0, ["Legal"], 72},
-    {"API access", "Waiting for third-party API access credentials", "waiting", "low", "Ethan Carter", "Mobile App Development", 0, ["External"], 96},
-    {"Project feedoff", "Initial project setup and requirement gathering", "completed", "medium", "Noah Williams", "AI Dashboard Redesign", 100, ["General"], -24},
-    {"Team onboarding", "Onboard new AI agents to the workspace", "completed", "medium", "Noah Williams", "AI Dashboard Redesign", 100, ["General"], -48},
-    {"Requirements document", "Create comprehensive requirements document", "completed", "high", "Sophia Bennett", "AI Dashboard Redesign", 100, ["Documentation"], -72},
-    {"Technical specification", "Define technical architecture and specifications", "completed", "high", "Ethan Carter", "AI Dashboard Redesign", 100, ["Documentation"], -96},
-    {"Weekly usage report", "Generate the weekly workspace usage report", "in_progress", "medium", "Reporting Agent", "Internal Tools Update", 40, ["Reporting"], 24},
-    {"Support ticket triage", "Categorize and prioritize incoming support tickets", "in_progress", "urgent", "Customer Support Bot", "Internal Tools Update", 55, ["Support"], 8}
+    {"Market research analysis", "Analyze market trends and competitor strategies", "to_do",
+     "high", "Data Analyst", "AI Feature Expansion", 0, ["Research"], 48},
+    {"Create landing page wireframe", "Design wireframe for the new landing page", "to_do",
+     "medium", "Ava Rodriguez", "Marketing Website", 0, ["Design"], 72},
+    {"Competitor pricing analysis", "Collect and analyze competitor pricing data", "to_do",
+     "medium", "Sophia Bennett", "AI Feature Expansion", 0, ["Research"], 96},
+    {"Blog content ideation", "Generate ideas for upcoming blog posts", "to_do", "low",
+     "Marketing Assistant", "Marketing Website", 0, ["Content"], 120},
+    {"UI design system", "Create components and style guide for the platform interface",
+     "in_progress", "high", "Ava Rodriguez", "AI Dashboard Redesign", 60, ["Design", "UI/UX"],
+     24},
+    {"API integration", "Integrate payment gateway and user APIs", "in_progress", "high",
+     "Ethan Carter", "Mobile App Development", 45, ["Development"], 30},
+    {"User flow optimization", "Optimize user flow based on analytics", "in_progress", "medium",
+     "Noah Williams", "AI Dashboard Redesign", 70, ["Design"], 48},
+    {"Database schema update", "Update database schema for new features", "in_progress", "medium",
+     "Ethan Carter", "Mobile App Development", 30, ["Development"], 60},
+    {"Landing page design", "Review and finalize the landing page design", "in_review", "high",
+     "Sophia Bennett", "Marketing Website", 90, ["Design"], 12},
+    {"Content strategy", "Review content strategy and approve topics", "in_review", "medium",
+     "Noah Williams", "Marketing Website", 75, ["Content"], 36},
+    {"Security audit", "Review security implementation and dependencies", "in_review", "high",
+     "Code Review Agent", "Mobile App Development", 50, ["Development"], 24},
+    {"Client feedback", "Waiting for client feedback on design concepts", "waiting", "high",
+     "Ava Rodriguez", "Marketing Website", 0, ["Feedback"], 48},
+    {"Legal approval", "Waiting for legal team review and approval", "waiting", "medium",
+     "Mason Lee", "Internal Tools Update", 0, ["Legal"], 72},
+    {"API access", "Waiting for third-party API access credentials", "waiting", "low",
+     "Ethan Carter", "Mobile App Development", 0, ["External"], 96},
+    {"Project feedoff", "Initial project setup and requirement gathering", "completed", "medium",
+     "Noah Williams", "AI Dashboard Redesign", 100, ["General"], -24},
+    {"Team onboarding", "Onboard new AI agents to the workspace", "completed", "medium",
+     "Noah Williams", "AI Dashboard Redesign", 100, ["General"], -48},
+    {"Requirements document", "Create comprehensive requirements document", "completed", "high",
+     "Sophia Bennett", "AI Dashboard Redesign", 100, ["Documentation"], -72},
+    {"Technical specification", "Define technical architecture and specifications", "completed",
+     "high", "Ethan Carter", "AI Dashboard Redesign", 100, ["Documentation"], -96},
+    {"Weekly usage report", "Generate the weekly workspace usage report", "in_progress", "medium",
+     "Reporting Agent", "Internal Tools Update", 40, ["Reporting"], 24},
+    {"Support ticket triage", "Categorize and prioritize incoming support tickets", "in_progress",
+     "urgent", "Customer Support Bot", "Internal Tools Update", 55, ["Support"], 8}
   ]
 
   tasks =
-    Enum.map(task_specs, fn {title, description, status, priority, agent_name, project_name, progress, tags, due_in} ->
+    Enum.map(task_specs, fn {title, description, status, priority, agent_name, project_name,
+                             progress, tags, due_in} ->
       agent = all_agents[agent_name]
       project = projects[project_name]
 
@@ -324,7 +396,10 @@ else
   {:ok, _} =
     Tasks.create_comment(
       ui_task,
-      %{"body" => "Great progress on the component library! Let's sync on the style guide tomorrow."},
+      %{
+        "body" =>
+          "Great progress on the component library! Let's sync on the style guide tomorrow."
+      },
       tom_member
     )
 
@@ -508,7 +583,8 @@ else
     {"github", "GitHub", "Developer", "Sync repositories, issues and PRs."},
     {"zapier", "Zapier", "Automation", "Automate workflows between apps."},
     {"hubspot", "HubSpot", "CRM", "CRM, contacts and marketing."},
-    {"microsoft_teams", "Microsoft Teams", "Communication", "Notifications and team collaboration."},
+    {"microsoft_teams", "Microsoft Teams", "Communication",
+     "Notifications and team collaboration."},
     {"dropbox", "Dropbox", "Storage", "Cloud storage and file sharing."},
     {"stripe", "Stripe", "Finance", "Payments and billing."},
     {"jira", "Jira", "Project Management", "Issue tracking and agile boards."},
@@ -529,32 +605,8 @@ else
 
   ## ---------- Billing ----------
 
-  business_plan =
-    Repo.insert!(
-      %BillingPlan{
-        key: "business",
-        name: "Business Plan",
-        price_cents_monthly: 11_900,
-        price_cents_yearly: 118_800,
-        limits: %{
-          "agents" => 50,
-          "ai_requests_monthly" => 50_000,
-          "storage_gb" => 100,
-          "automations_monthly" => 5_000,
-          "api_calls_monthly" => 200_000
-        },
-        features: [
-          "Up to 50 agents",
-          "50,000 AI requests / month",
-          "100 GB storage",
-          "5,000 automations / month",
-          "Priority support",
-          "Advanced analytics",
-          "Custom integrations"
-        ]
-      },
-      on_conflict: :nothing
-    )
+  # Plans are seeded globally by Billing.seed_plans/0 above.
+  business_plan = Billing.get_plan_by_key("business")
 
   Repo.insert!(
     %Subscription{

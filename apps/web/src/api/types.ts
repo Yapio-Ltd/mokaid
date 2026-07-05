@@ -264,6 +264,46 @@ export interface IntegrationConnection {
   last_sync_at: string | null;
 }
 
+export interface McpServer {
+  id: string;
+  key: string;
+  name: string;
+  category: string;
+  description: string | null;
+  logo_slug: string | null;
+  featured: boolean;
+  auth_kind: "oauth2" | "api_key" | "none" | "custom";
+  transport: string;
+  server_url: string | null;
+  docs_url: string | null;
+}
+
+export interface McpInstallation {
+  id: string;
+  server_id: string;
+  server_key: string;
+  server_name: string;
+  category: string;
+  logo_slug: string | null;
+  auth_kind: string;
+  status: "pending" | "connected" | "error" | "disconnected";
+  connected_account: string | null;
+  settings: { server_url?: string };
+  error: string | null;
+  last_used_at: string | null;
+  inserted_at: string;
+}
+
+export interface McpGrant {
+  id: string;
+  agent_id: string;
+  installation_id: string;
+  granted: boolean;
+  server_key: string;
+  server_name: string;
+  logo_slug: string | null;
+}
+
 export interface BillingOverview {
   subscription: {
     id: string;

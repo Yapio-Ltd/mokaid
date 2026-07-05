@@ -5,7 +5,8 @@ defmodule MokaidWeb.FallbackController do
     errors =
       Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
         Enum.reduce(opts, msg, fn {key, value}, acc ->
-          String.replace(acc, "%{#{key}}", to_string(value))
+          # Cast errors carry non-string values like `type: {:array, :map}`.
+          String.replace(acc, "%{#{key}}", stringify(value))
         end)
       end)
 
@@ -44,5 +45,11 @@ defmodule MokaidWeb.FallbackController do
 
   defp humanize(reason) do
     reason |> to_string() |> String.replace("_", " ") |> String.capitalize()
+  end
+
+  defp stringify(value) do
+    to_string(value)
+  rescue
+    Protocol.UndefinedError -> inspect(value)
   end
 end
