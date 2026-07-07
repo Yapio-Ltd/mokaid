@@ -391,6 +391,29 @@ export interface BillingOverview {
     total_cost_cents: number;
   }>;
   daily_usage: Array<{ day: string; event_type: string; total: string }>;
+  credits: CreditsSummary;
+  credit_transactions: CreditTransaction[];
+}
+
+export interface CreditsSummary {
+  included_remaining: number;
+  balance: number;
+  spendable: number;
+  monthly_credits: number;
+  unlimited: boolean;
+  auto_recharge_enabled?: boolean;
+  auto_recharge_pack_key?: string | null;
+  auto_recharge_threshold?: number;
+}
+
+export interface CreditTransaction {
+  id: string;
+  kind: "spend" | "plan_grant" | "purchase" | "auto_recharge" | "adjustment";
+  amount: number;
+  cost_cents: number;
+  balance_after: number;
+  description: string | null;
+  inserted_at: string;
 }
 
 export interface CreditPack {

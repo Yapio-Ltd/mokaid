@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Coins, CreditCard, Download, Sparkles } from "lucide-react";
+import { Check, Coins, CreditCard, Download, RefreshCw, Sparkles } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -18,6 +18,7 @@ import {
   useCreditsCheckout,
   useInvoices,
   usePlanCheckout,
+  useUpdateAutoRecharge,
 } from "@/api/hooks";
 import type { Invoice } from "@/api/types";
 import { Badge } from "@/components/ui/badge";
@@ -60,13 +61,6 @@ function downloadInvoice(invoice: Invoice, workspaceName: string) {
   }
 }
 
-// Customer-facing usage vocabulary: employees, tasks and AI credits —
-// never tokens or raw API metrics.
-const usageLabels: Record<string, { label: string; limitKey: string }> = {
-  task_executed: { label: "Tasks completed by your AI team", limitKey: "tasks_monthly" },
-  ai_request: { label: "AI actions", limitKey: "" },
-};
-
 const planTagline: Record<string, string> = {
   free: "Try your first AI employee",
   starter: "For solo builders",
@@ -82,6 +76,7 @@ export function BillingPage() {
   const { data: packsData } = useCreditPacks();
   const planCheckout = usePlanCheckout();
   const creditsCheckout = useCreditsCheckout();
+  const autoRecharge = useUpdateAutoRecharge();
   const queryClient = useQueryClient();
   const [showManagePlan, setShowManagePlan] = useState(false);
 
@@ -109,10 +104,9 @@ export function BillingPage() {
     );
   }
 
-  const { subscription, usage, daily_usage } = overviewData.data;
+  const { subscription, daily_usage, credits, credit_transactions } = overviewData.data;
   const invoices = invoicesData?.data ?? [];
   const plan = subscription?.plan;
-  const creditsBalance = subscription?.credits_balance ?? 0;
 
   const dailyAiUsage = daily_usage
     .filter((d) => d.event_type === "ai_request")
@@ -219,43 +213,82 @@ export function BillingPage() {
 
         <Card className="xl:col-span-2">
           <CardHeader>
-            <CardTitle>Usage This Period</CardTitle>
-            <span className="flex items-center gap-1.5 rounded-full bg-primary-muted px-2.5 py-1 text-[11px] font-semibold text-primary-light">
+            <CardTitle>AI Credits</CardTitle>
+            <span
+              className={cn(
+                "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                credits.spendable < 0
+                  ? "bg-danger-muted text-danger"
+                  : "bg-primary-muted text-primary-light",
+              )}
+            >
               <Coins size={12} />
-              {formatNumber(creditsBalance)} AI credits
+              {credits.unlimited ? "Unlimited" : `${formatNumber(credits.spendable)} credits`}
             </span>
           </CardHeader>
           <CardBody className="space-y-4">
-            {usage
-              .filter((u) => usageLabels[u.event_type])
-              .map((u) => {
-                const config = usageLabels[u.event_type];
-                const quantity = Number(u.total_quantity);
-                const limit = config.limitKey ? plan?.limits?.[config.limitKey] : undefined;
-                const unlimited = limit != null && limit < 0;
-                const percent =
-                  limit && limit > 0 ? Math.min(100, (quantity / limit) * 100) : 0;
-
-                return (
-                  <div key={u.event_type}>
-                    <div className="mb-1 flex justify-between text-xs">
-                      <span className="font-medium text-text">{config.label}</span>
-                      <span className="text-text-muted">
-                        {formatNumber(Math.round(quantity))}
-                        {unlimited ? " / unlimited" : limit && limit > 0 ? ` / ${formatNumber(limit)}` : ""}
-                      </span>
-                    </div>
-                    <ProgressBar
-                      value={percent}
-                      tone={percent > 90 ? "danger" : percent > 70 ? "warning" : "primary"}
-                    />
+            {credits.unlimited ? (
+              <p className="text-sm text-text-secondary">
+                Your plan includes unlimited AI credits — your team can work without limits.
+              </p>
+            ) : (
+              <>
+                {/* Monthly plan pool */}
+                <div>
+                  <div className="mb-1 flex justify-between text-xs">
+                    <span className="font-medium text-text">Monthly credits (plan)</span>
+                    <span className="text-text-muted">
+                      {formatNumber(credits.included_remaining)} /{" "}
+                      {formatNumber(credits.monthly_credits)}
+                    </span>
                   </div>
-                );
-              })}
+                  <ProgressBar
+                    value={
+                      credits.monthly_credits > 0
+                        ? Math.max(
+                            0,
+                            (credits.included_remaining / credits.monthly_credits) * 100,
+                          )
+                        : 0
+                    }
+                    tone={
+                      credits.included_remaining <= 0
+                        ? "danger"
+                        : credits.included_remaining / Math.max(credits.monthly_credits, 1) < 0.2
+                          ? "warning"
+                          : "primary"
+                    }
+                  />
+                  <p className="mt-1 text-[10px] text-text-muted">
+                    Resets on {formatDate(subscription?.current_period_end)}
+                  </p>
+                </div>
 
-            <div className="h-44 pt-2">
+                {/* Purchased top-up balance */}
+                <div className="flex items-center justify-between rounded-lg border border-border bg-surface-raised px-3 py-2.5">
+                  <span className="text-xs font-medium text-text">Top-up balance (never expires)</span>
+                  <span
+                    className={cn(
+                      "text-sm font-bold",
+                      credits.balance < 0 ? "text-danger" : "text-text",
+                    )}
+                  >
+                    {formatNumber(credits.balance)}
+                  </span>
+                </div>
+
+                {credits.balance < 0 && (
+                  <p className="rounded-lg bg-danger-muted px-3 py-2 text-[11px] text-danger">
+                    You're in credit debt from a task that overran. Your next credit purchase
+                    settles it automatically before topping up.
+                  </p>
+                )}
+              </>
+            )}
+
+            <div className="h-40 pt-1">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                AI team activity, last 30 days
+                AI activity, last 30 days
               </p>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dailyAiUsage}>
@@ -326,8 +359,85 @@ export function BillingPage() {
               </div>
             ))}
           </div>
+
+          {/* Auto-recharge toggle */}
+          {!credits.unlimited && (
+            <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-surface-raised px-4 py-3">
+              <div className="flex items-start gap-2.5">
+                <RefreshCw size={15} className="mt-0.5 text-primary-light" />
+                <div>
+                  <p className="text-xs font-semibold text-text">Auto-recharge</p>
+                  <p className="text-[11px] text-text-muted">
+                    Automatically buy the smallest pack when you run low, so your team never
+                    stops mid-task.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={credits.auto_recharge_enabled ?? false}
+                disabled={autoRecharge.isPending}
+                onClick={() =>
+                  autoRecharge.mutate({
+                    enabled: !credits.auto_recharge_enabled,
+                    pack_key: credits.auto_recharge_pack_key ?? packsData?.data?.[0]?.key,
+                    threshold: credits.auto_recharge_threshold || 100,
+                  })
+                }
+                className={cn(
+                  "relative h-5 w-9 shrink-0 rounded-full transition-colors",
+                  credits.auto_recharge_enabled ? "bg-primary" : "bg-surface-overlay",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform",
+                    credits.auto_recharge_enabled ? "translate-x-4" : "translate-x-0.5",
+                  )}
+                />
+              </button>
+            </div>
+          )}
         </CardBody>
       </Card>
+
+      {/* Live consumption history */}
+      {credit_transactions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent AI usage</CardTitle>
+            <p className="text-[11px] text-text-muted">Live — updates as your team works</p>
+          </CardHeader>
+          <CardBody className="px-0 pb-2">
+            <table className="w-full text-left text-xs">
+              <tbody>
+                {credit_transactions.slice(0, 12).map((txn) => (
+                  <tr
+                    key={txn.id}
+                    className="border-b border-border/50 last:border-0 hover:bg-surface-hover"
+                  >
+                    <td className="px-5 py-2.5 text-text-secondary">{formatDate(txn.inserted_at)}</td>
+                    <td className="px-3 py-2.5 text-text">
+                      {txn.description ??
+                        (txn.kind === "spend" ? "AI task" : txn.kind.replace("_", " "))}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-5 py-2.5 text-right font-semibold",
+                        txn.amount < 0 ? "text-text-muted" : "text-success",
+                      )}
+                    >
+                      {txn.amount > 0 ? "+" : ""}
+                      {formatNumber(txn.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

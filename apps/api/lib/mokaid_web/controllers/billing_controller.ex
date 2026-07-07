@@ -2,23 +2,63 @@ defmodule MokaidWeb.BillingController do
   use MokaidWeb, :controller
 
   alias Mokaid.Billing
-  alias Mokaid.Billing.PayMe
+  alias Mokaid.Billing.{Credits, PayMe}
   alias MokaidWeb.JSON, as: Serializer
 
   def overview(conn, _params) do
     with :ok <- Permissions.authorize(current_member(conn), "billing.view") do
-      subscription = Billing.get_subscription(workspace_id(conn))
-      usage = Billing.usage_summary(workspace_id(conn))
-      daily = Billing.usage_daily_series(workspace_id(conn))
+      workspace_id = workspace_id(conn)
+      subscription = Billing.get_subscription(workspace_id)
 
       json(conn, %{
         data: %{
           subscription: subscription_json(subscription),
-          usage: usage,
-          daily_usage: daily
+          usage: Billing.usage_summary(workspace_id),
+          daily_usage: Billing.usage_daily_series(workspace_id),
+          credits: Credits.summary(workspace_id),
+          credit_transactions:
+            Enum.map(Credits.recent_transactions(workspace_id), &credit_transaction_json/1)
         }
       })
     end
+  end
+
+  @doc "Turn auto-recharge on/off and configure the pack + threshold."
+  def update_auto_recharge(conn, params) do
+    with :ok <- Permissions.authorize(current_member(conn), "billing.manage"),
+         %{} = subscription <- Billing.get_subscription(workspace_id(conn)) do
+      attrs =
+        %{}
+        |> put_if(params, "enabled", :auto_recharge_enabled)
+        |> put_if(params, "pack_key", :auto_recharge_pack_key)
+        |> put_if(params, "threshold", :auto_recharge_threshold)
+
+      {:ok, updated} =
+        subscription |> Ecto.Changeset.change(attrs) |> Mokaid.Repo.update()
+
+      json(conn, %{
+        data: Credits.summary(workspace_id(conn)) |> Map.put(:subscription_id, updated.id)
+      })
+    end
+  end
+
+  defp put_if(attrs, params, key, field) do
+    case Map.fetch(params, key) do
+      {:ok, value} -> Map.put(attrs, field, value)
+      :error -> attrs
+    end
+  end
+
+  defp credit_transaction_json(txn) do
+    %{
+      id: txn.id,
+      kind: txn.kind,
+      amount: txn.amount,
+      cost_cents: txn.cost_cents,
+      balance_after: txn.balance_after,
+      description: txn.description,
+      inserted_at: txn.inserted_at
+    }
   end
 
   def invoices(conn, _params) do
@@ -127,8 +167,11 @@ defmodule MokaidWeb.BillingController do
           ]
         })
       else
-        # Dev fallback: credit immediately.
-        Billing.add_credits(workspace_id(conn), pack.credits)
+        # Dev fallback: credit immediately (settles debt first, like a real buy).
+        Credits.add_purchased(workspace_id(conn), pack.credits,
+          description: "#{pack.credits} AI credits"
+        )
+
         json(conn, %{data: %{activated: true, simulated: true, credits: pack.credits}})
       end
     end

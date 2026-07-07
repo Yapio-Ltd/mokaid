@@ -118,10 +118,14 @@ async def draft_document(params: dict[str, Any], ctx: RunContext) -> Any:
     if not llm.is_configured():
         return {"title": title, "content": f"# {title}\n\n(offline draft placeholder)"}
 
-    content = await llm.chat(
+    # A deliverable — generate the full document without truncating it. The
+    # long-form generator streams and continues across turns as needed. Length
+    # is driven by the work, not an artificial cap (usage is metered as credits).
+    content = await llm.generate_long(
         system=(
-            "You are a professional writer on a product team. Write a well-structured "
-            "Markdown document. Be concrete and actionable; avoid filler."
+            "You are a professional writer on a product team. Write a complete, "
+            "well-structured Markdown document — as long as the task genuinely "
+            "requires, no filler. Be concrete and actionable."
         ),
         user=(
             f"{_task_context_block(ctx)}\n\n"
@@ -130,7 +134,8 @@ async def draft_document(params: dict[str, Any], ctx: RunContext) -> Any:
             + (f"Relevant knowledge:\n{knowledge}\n" if knowledge else "")
         ),
         usage=ctx.usage,
-        max_tokens=1800,
+        max_tokens=16000,
+        quality="smart",
     )
     return {"title": title, "content": content}
 
@@ -151,7 +156,8 @@ async def generate_report(params: dict[str, Any], ctx: RunContext) -> Any:
         ),
         user=f"{_task_context_block(ctx)}\n\nReporting period: {period}",
         usage=ctx.usage,
-        max_tokens=1200,
+        max_tokens=8000,
+        quality="smart",
     )
     return {"report": report}
 

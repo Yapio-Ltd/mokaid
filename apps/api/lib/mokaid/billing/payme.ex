@@ -64,6 +64,35 @@ defmodule Mokaid.Billing.PayMe do
     String.downcase(status) in ["completed", "success", "settled"]
   end
 
+  @doc """
+  Charges a stored buyer (tokenized card, `buyer_key`) directly — no hosted
+  page. Used by auto-recharge. Returns {:ok, sale} or {:error, reason}.
+  """
+  def charge_buyer(%{buyer_key: buyer_key, amount_cents: amount, description: description}) do
+    payload = %{
+      seller_payme_id: config()[:seller_id],
+      currency: config()[:currency] || "USD",
+      sale_payment_method: "credit-card",
+      sale_type: "sale",
+      sale_price: to_string(amount),
+      product_name: description,
+      buyer_key: buyer_key
+    }
+
+    case Req.post(url: "#{base_url()}/generate-sale", json: payload, receive_timeout: 20_000) do
+      {:ok, %{status: status, body: body}} when status in 200..299 ->
+        if Map.get(body, "status_code", 0) in [0, nil],
+          do: {:ok, body},
+          else: {:error, body["status_error_details"] || "declined"}
+
+      {:ok, %{status: status, body: body}} ->
+        {:error, "http #{status}: #{inspect(body)}"}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, _key, ""), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)

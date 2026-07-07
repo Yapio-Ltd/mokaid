@@ -45,6 +45,7 @@ defmodule Mokaid.Billing do
   defp create_subscription(workspace_id, plan, billing_cycle) do
     now = DateTime.utc_now()
     period_days = if billing_cycle == "yearly", do: 365, else: 30
+    monthly = plan_monthly_credits(plan)
 
     %Subscription{
       workspace_id: workspace_id,
@@ -52,7 +53,10 @@ defmodule Mokaid.Billing do
       status: "active",
       billing_cycle: billing_cycle,
       current_period_start: now,
-      current_period_end: DateTime.add(now, period_days, :day)
+      current_period_end: DateTime.add(now, period_days, :day),
+      monthly_credits: monthly,
+      included_credits_remaining: max(monthly, 0),
+      credits_period_start: now
     }
     |> Repo.insert()
     |> case do
@@ -62,10 +66,17 @@ defmodule Mokaid.Billing do
   end
 
   defp switch_subscription(subscription, plan, billing_cycle) do
+    monthly = plan_monthly_credits(plan)
+
+    # Switching plan refreshes the monthly grant to the new plan's amount.
+    # Purchased balance (credits_balance) is untouched — packs never expire.
     subscription
     |> Ecto.Changeset.change(
       plan_id: plan.id,
-      billing_cycle: billing_cycle || subscription.billing_cycle
+      billing_cycle: billing_cycle || subscription.billing_cycle,
+      monthly_credits: monthly,
+      included_credits_remaining: max(monthly, 0),
+      credits_period_start: DateTime.utc_now()
     )
     |> Repo.update()
     |> case do
@@ -74,18 +85,27 @@ defmodule Mokaid.Billing do
     end
   end
 
-  # Customer-facing language is employees / tasks / AI credits — never tokens
-  # or API-level limits. -1 in a limit means unlimited.
+  # Monthly credit grant lives in the plan's limits map (-1 = unlimited).
+  defp plan_monthly_credits(%BillingPlan{limits: limits}) do
+    case limits["credits_monthly"] do
+      n when is_integer(n) -> n
+      _ -> 0
+    end
+  end
+
+  # Credit-metered pricing (ElevenLabs-style): each plan grants a monthly pool
+  # of AI credits that resets every period, plus a hard cap on AI employees.
+  # Customer-facing language is employees / credits — never tokens. -1 = unlimited.
   @plan_seeds [
     %{
       key: "free",
       name: "Free",
       price_cents_monthly: 0,
       price_cents_yearly: 0,
-      limits: %{"agents" => 1, "tasks_monthly" => 20, "mcp_integrations" => 0},
+      limits: %{"agents" => 1, "credits_monthly" => 500, "mcp_integrations" => 0},
       features: [
         "1 AI employee",
-        "20 tasks / month",
+        "500 AI credits / month",
         "Landing page generation",
         "HTML export"
       ]
@@ -95,13 +115,13 @@ defmodule Mokaid.Billing do
       name: "Starter",
       price_cents_monthly: 4_900,
       price_cents_yearly: 49_000,
-      limits: %{"agents" => 3, "tasks_monthly" => 500, "mcp_integrations" => 3},
+      limits: %{"agents" => 3, "credits_monthly" => 5_000, "mcp_integrations" => 3},
       features: [
         "3 AI employees",
-        "500 tasks / month",
-        "Live Preview",
-        "Version history",
-        "3 MCP integrations"
+        "5,000 AI credits / month",
+        "Live Preview & versions",
+        "3 MCP integrations",
+        "Buy extra credits anytime"
       ]
     },
     %{
@@ -109,14 +129,14 @@ defmodule Mokaid.Billing do
       name: "Professional",
       price_cents_monthly: 14_900,
       price_cents_yearly: 149_000,
-      limits: %{"agents" => 10, "tasks_monthly" => 3_000, "mcp_integrations" => -1},
+      limits: %{"agents" => 10, "credits_monthly" => 20_000, "mcp_integrations" => -1},
       features: [
         "10 AI employees",
-        "3,000 tasks / month",
+        "20,000 AI credits / month",
         "All MCP integrations",
-        "GitHub & Figma",
-        "One-click deployment",
-        "Team collaboration"
+        "GitHub & Figma, deployment",
+        "Team collaboration",
+        "Auto-recharge available"
       ]
     },
     %{
@@ -124,14 +144,14 @@ defmodule Mokaid.Billing do
       name: "Business",
       price_cents_monthly: 39_900,
       price_cents_yearly: 399_000,
-      limits: %{"agents" => 30, "tasks_monthly" => 15_000, "mcp_integrations" => -1},
+      limits: %{"agents" => 30, "credits_monthly" => 60_000, "mcp_integrations" => -1},
       features: [
         "30 AI employees",
-        "15,000 tasks / month",
-        "Full AI team",
-        "API access",
+        "60,000 AI credits / month",
+        "Full AI team & API access",
         "Execution priority",
-        "Priority support"
+        "Priority support",
+        "Auto-recharge available"
       ]
     },
     %{
@@ -139,13 +159,12 @@ defmodule Mokaid.Billing do
       name: "Enterprise",
       price_cents_monthly: 0,
       price_cents_yearly: 0,
-      limits: %{"agents" => -1, "tasks_monthly" => -1, "mcp_integrations" => -1},
+      limits: %{"agents" => -1, "credits_monthly" => -1, "mcp_integrations" => -1},
       features: [
         "Unlimited AI employees",
-        "SSO",
-        "Private deployment",
-        "SLA",
-        "Custom models",
+        "Unlimited AI credits",
+        "SSO & private deployment",
+        "SLA & custom models",
         "Dedicated support"
       ]
     }
@@ -250,7 +269,14 @@ defmodule Mokaid.Billing do
   defp apply_invoice_effect(%Invoice{kind: "credits"} = invoice) do
     item = List.first(invoice.line_items) || %{}
     credits = item["credits"] || item[:credits] || 0
-    if credits > 0, do: add_credits(invoice.workspace_id, credits)
+
+    if credits > 0 do
+      # add_purchased settles any negative balance (debt) before topping up.
+      Mokaid.Billing.Credits.add_purchased(invoice.workspace_id, credits,
+        description: "Credit pack purchase",
+        cost_cents: invoice.amount_cents
+      )
+    end
   end
 
   defp apply_invoice_effect(_invoice), do: :ok

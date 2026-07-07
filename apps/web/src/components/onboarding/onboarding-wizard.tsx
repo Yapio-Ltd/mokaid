@@ -11,6 +11,7 @@ import {
   Building2,
   Check,
   CheckCircle2,
+  Coins,
   FolderKanban,
   Loader2,
   Mail,
@@ -23,6 +24,8 @@ import {
   X,
 } from "lucide-react";
 import {
+  useBillingOverview,
+  useBillingPlans,
   useConnectIntegration,
   useCreateAgent,
   useCreateProject,
@@ -30,6 +33,7 @@ import {
   useGoogleOauthStart,
   useLinearOauthStart,
   useNotionOauthStart,
+  usePlanCheckout,
   useSlackOauthStart,
   useIntegrations,
   useInviteMember,
@@ -46,6 +50,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import { ApiError, fetchWorkspaceLogoBlob } from "@/api/client";
 import { IntegrationLogo } from "@/components/integrations/integration-logo";
+import { PlanPicker } from "@/components/billing/plan-picker";
 import { cn } from "@/lib/cn";
 import { consumeOnboardingRestoreStep, navigateOauthPopup, openOauthPopup } from "@/lib/oauth-callback";
 import { useOauthPopupListener } from "@/lib/use-oauth-popup-listener";
@@ -59,6 +64,7 @@ const steps = [
   { key: "integrations", label: "Tools", icon: Plug },
   { key: "agent", label: "First agent", icon: Bot },
   { key: "project", label: "First project", icon: FolderKanban },
+  { key: "plan", label: "Plan", icon: Coins },
   { key: "done", label: "Ready", icon: PartyPopper },
 ] as const;
 
@@ -255,6 +261,9 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
   const createAgent = useCreateAgent();
   const inviteMember = useInviteMember();
   const { data: integrationsData } = useIntegrations();
+  const { data: plansData } = useBillingPlans();
+  const { data: billingData } = useBillingOverview();
+  const planCheckout = usePlanCheckout();
   const connectIntegration = useConnectIntegration();
   const googleOauthStart = useGoogleOauthStart();
   const githubOauthStart = useGithubOauthStart();
@@ -300,6 +309,34 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
     updateOnboarding.mutate({ wizard_done: true });
     onFinish();
     if (withTour) startTour();
+  };
+
+  // Plan step — real catalog, Free by default.
+  const onboardingPlans = plansData?.data ?? [];
+  const currentPlanKey = billingData?.data.subscription?.plan?.key ?? "free";
+
+  const choosePlan = (planKey: string) => {
+    if (planKey === "enterprise") {
+      window.location.href =
+        "mailto:sales@mokaid.com?subject=Mokaid%20Enterprise&body=Tell%20us%20about%20your%20team.";
+      return;
+    }
+    if (planKey === "free" || planKey === currentPlanKey) {
+      setStep(6);
+      return;
+    }
+    // Paid plan → PayMe checkout (redirects; in dev it activates directly).
+    planCheckout.mutate(
+      { plan_key: planKey },
+      {
+        onSuccess: (result) => {
+          if (result.data.activated) {
+            toast({ tone: "success", title: "Plan activated", description: "Welcome aboard!" });
+            setStep(6);
+          }
+        },
+      },
+    );
   };
 
   const addEmail = () => {
@@ -890,8 +927,38 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
             </div>
           )}
 
-          {/* ── Step 5 : Done ── */}
+          {/* ── Step 5 : Choose a plan ── */}
           {step === 5 && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-xl font-bold text-text">Choose your plan</h2>
+                <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
+                  Every plan includes a monthly pool of AI credits — the fuel your employees
+                  spend as they work. Start free, upgrade anytime.
+                </p>
+              </div>
+
+              <PlanPicker
+                plans={onboardingPlans}
+                currentKey={currentPlanKey}
+                pendingKey={planCheckout.isPending ? planCheckout.variables?.plan_key : undefined}
+                onChoose={choosePlan}
+                compact
+              />
+
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setStep(4)}>
+                  <ArrowLeft size={14} />
+                </Button>
+                <Button variant="ghost" className="flex-1" onClick={() => setStep(6)}>
+                  Continue with Free
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 6 : Done ── */}
+          {step === 6 && (
             <div className="space-y-6 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success-muted mk-float">
                 <PartyPopper size={28} className="text-success" />

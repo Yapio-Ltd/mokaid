@@ -130,6 +130,7 @@ defmodule MokaidWeb.Router do
     post "/billing/change-plan", BillingController, :change_plan
     post "/billing/checkout", BillingController, :checkout
     post "/billing/credits/checkout", BillingController, :credits_checkout
+    post "/billing/auto-recharge", BillingController, :update_auto_recharge
 
     get "/analytics/overview", AnalyticsController, :overview
     get "/analytics/agents", AnalyticsController, :agents

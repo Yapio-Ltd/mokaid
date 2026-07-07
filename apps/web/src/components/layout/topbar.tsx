@@ -12,6 +12,7 @@ import { disconnect } from "@/realtime/phoenix-client";
 import { Avatar } from "@/components/ui/avatar";
 import { NewTaskModal } from "@/components/modals/new-task-modal";
 import { GlobalSearch } from "@/components/layout/global-search";
+import { CreditBalance } from "@/components/billing/credit-balance";
 import { WorkspaceProjectSwitcher } from "@/components/layout/workspace-project-switcher";
 import { useActiveProjectId } from "@/stores/project-store";
 
@@ -53,6 +54,8 @@ export function Topbar() {
       <div className="flex-1" />
 
       <GlobalSearch />
+
+      <CreditBalance />
 
       <Button size="sm" data-tour="new-task" onClick={() => setShowNewTask(true)}>
         <Plus size={14} />

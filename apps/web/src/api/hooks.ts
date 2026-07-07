@@ -947,6 +947,15 @@ export function useCreditsCheckout() {
   });
 }
 
+export function useUpdateAutoRecharge() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { enabled?: boolean; pack_key?: string; threshold?: number }) =>
+      apiFetch<{ data: unknown }>("/api/billing/auto-recharge", { method: "POST", body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["billing"] }),
+  });
+}
+
 export function useAnalyticsOverview() {
   const key = useWorkspaceKey("analytics");
   return useQuery({
@@ -1075,6 +1084,7 @@ export function useAgentChatMessages(agentId: string | null) {
 
 export function useSendAgentChatMessage(agentId: string) {
   const queryClient = useQueryClient();
+  const workspaceId = useAuthStore((s) => s.workspaceId);
   return useMutation({
     mutationFn: (input: string | { body: string; drive_item_ids?: string[] }) => {
       const payload = typeof input === "string" ? { body: input } : input;
@@ -1083,8 +1093,17 @@ export function useSendAgentChatMessage(agentId: string) {
         body: payload,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agent-chat"] });
+    // Insert the sent message straight into the thread cache so it shows
+    // instantly; the realtime broadcast dedupes on id.
+    onSuccess: (result) => {
+      queryClient.setQueryData<Envelope<AgentChatMessage[]>>(
+        ["agent-chat", workspaceId, agentId],
+        (prev) => {
+          if (!prev) return prev;
+          if (prev.data.some((m) => m.id === result.data.id)) return prev;
+          return { ...prev, data: [...prev.data, result.data] };
+        },
+      );
       queryClient.invalidateQueries({ queryKey: ["agent-chats"] });
     },
   });

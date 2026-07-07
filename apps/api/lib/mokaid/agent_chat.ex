@@ -300,13 +300,11 @@ defmodule Mokaid.AgentChat do
   defp normalize_attachment_entry(_), do: %{}
 
   defp broadcast_message(%ChatMessage{} = message) do
+    # Carry the fully-serialized message so the dock can insert it straight
+    # into its cache — no refetch, so it appears instantly (true realtime).
     Realtime.broadcast_workspace(message.workspace_id, "agent_chat.message", %{
       agent_id: message.agent_id,
-      message_id: message.id,
-      author_kind: message.author_kind,
-      body: message.body,
-      has_attachments: message.attachments != [],
-      inserted_at: message.inserted_at
+      message: MokaidWeb.JSON.agent_chat_message(message)
     })
   end
 end

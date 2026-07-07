@@ -18,6 +18,12 @@ defmodule Mokaid.Billing.Subscription do
     field :external_subscription_id, :string
     field :payment_method, :map, default: %{}
     field :credits_balance, :integer, default: 0
+    field :monthly_credits, :integer, default: 0
+    field :included_credits_remaining, :integer, default: 0
+    field :credits_period_start, :utc_datetime_usec
+    field :auto_recharge_enabled, :boolean, default: false
+    field :auto_recharge_pack_key, :string
+    field :auto_recharge_threshold, :integer, default: 0
 
     timestamps()
   end
@@ -31,7 +37,14 @@ defmodule Mokaid.Billing.Subscription do
       :billing_cycle,
       :current_period_start,
       :current_period_end,
-      :payment_method
+      :payment_method,
+      :credits_balance,
+      :monthly_credits,
+      :included_credits_remaining,
+      :credits_period_start,
+      :auto_recharge_enabled,
+      :auto_recharge_pack_key,
+      :auto_recharge_threshold
     ])
     |> validate_required([:workspace_id])
     |> unique_constraint(:workspace_id)

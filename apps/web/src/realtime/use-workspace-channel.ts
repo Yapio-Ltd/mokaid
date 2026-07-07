@@ -1,5 +1,7 @@
 import { useEffect } from "react";
+import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
+import type { AgentChatMessage, BillingOverview, Envelope } from "@/api/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "@/stores/toast-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -8,6 +10,58 @@ import { playSound } from "@/lib/sounds";
 import { joinChannel, leaveChannel, onSocketOpen } from "./phoenix-client";
 
 type EventPayload = Record<string, unknown>;
+
+/** Inserts a chat message into the cached thread + summary — no refetch. */
+function insertChatMessage(
+  queryClient: QueryClient,
+  workspaceId: string,
+  agentId: string,
+  message: AgentChatMessage,
+): void {
+  // Thread cache: ["agent-chat", workspaceId, agentId]
+  queryClient.setQueryData<Envelope<AgentChatMessage[]>>(
+    ["agent-chat", workspaceId, agentId],
+    (prev) => {
+      if (!prev) return prev;
+      if (prev.data.some((m) => m.id === message.id)) return prev; // dedupe
+      return { ...prev, data: [...prev.data, message] };
+    },
+  );
+  // Summaries (last message + unread badge) refresh cheaply.
+  queryClient.invalidateQueries({ queryKey: ["agent-chats"] });
+}
+
+/** Patches the live AI-credit balance in the billing overview cache. */
+function patchCreditsBalance(
+  queryClient: QueryClient,
+  workspaceId: string,
+  payload: EventPayload,
+): void {
+  const spendable = typeof payload.spendable === "number" ? payload.spendable : undefined;
+  const balance = typeof payload.balance === "number" ? payload.balance : undefined;
+  const includedRemaining =
+    typeof payload.included_remaining === "number" ? payload.included_remaining : undefined;
+  if (spendable === undefined) return;
+
+  queryClient.setQueryData<Envelope<BillingOverview>>(
+    ["billing", workspaceId, "overview"],
+    (prev) => {
+      if (!prev?.data.credits) return prev;
+    return {
+      ...prev,
+      data: {
+          ...prev.data,
+          credits: {
+            ...prev.data.credits,
+            spendable,
+            balance: balance ?? prev.data.credits.balance,
+            included_remaining: includedRemaining ?? prev.data.credits.included_remaining,
+          },
+        },
+      };
+    },
+  );
+}
 
 function str(payload: EventPayload, key: string): string | undefined {
   const value = payload[key];
@@ -138,7 +192,6 @@ export function useWorkspaceChannel(): void {
       ["leave_request.approved", [["leave-requests"], ["calendar"]]],
       ["leave_request.rejected", [["leave-requests"]]],
       ["notification.created", [["notifications"]]],
-      ["agent_chat.message", [["agent-chats"], ["agent-chat"]]],
       ["billing.updated", [["billing"]]],
     ];
 
@@ -146,17 +199,30 @@ export function useWorkspaceChannel(): void {
       channel.on(event, (payload: EventPayload) => {
         invalidate(keys);
         maybeToast(event, payload ?? {});
-
-        // Floating dock: typing indicator off + a soft pop on agent replies.
-        if (event === "agent_chat.message") {
-          const agentId = str(payload ?? {}, "agent_id");
-          if (agentId && str(payload ?? {}, "author_kind") === "agent") {
-            useChatStore.getState().clearAgentTyping(agentId);
-            playSound("message");
-          }
-        }
       }),
     );
+
+    // Agent chat: insert the message straight into the cache so it appears
+    // instantly (no refetch round-trip). The broadcast carries the full
+    // serialized message.
+    const chatMsgRef = channel.on("agent_chat.message", (payload: EventPayload) => {
+      const agentId = str(payload ?? {}, "agent_id");
+      const message = (payload as { message?: AgentChatMessage }).message;
+      if (!agentId || !message) return;
+
+      insertChatMessage(queryClient, workspaceId, agentId, message);
+
+      if (message.author_kind === "agent") {
+        useChatStore.getState().clearAgentTyping(agentId);
+        playSound("message");
+      }
+    });
+
+    // Live AI-credit balance: patch the billing overview cache in place so the
+    // consumption meter ticks down without a refetch.
+    const creditsRef = channel.on("credits.updated", (payload: EventPayload) => {
+      patchCreditsBalance(queryClient, workspaceId, payload);
+    });
 
     // Typing indicator on: broadcast when a member message is queued for an
     // AI reply (kept out of `bindings` — no queries to invalidate).
@@ -179,6 +245,8 @@ export function useWorkspaceChannel(): void {
     return () => {
       offOpen?.();
       bindings.forEach(([event], index) => channel.off(event, refs[index]));
+      channel.off("agent_chat.message", chatMsgRef);
+      channel.off("credits.updated", creditsRef);
       channel.off("agent_chat.typing", typingRef);
       leaveChannel(topic);
     };

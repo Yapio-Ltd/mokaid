@@ -20,6 +20,7 @@ defmodule Mokaid.AI do
   """
   def start_run(%WorkTask{} = task, input \\ %{}) do
     with :ok <- validate_ai_assignable(task),
+         :ok <- validate_credits(task.workspace_id),
          {:ok, run} <- Tasks.create_execution_run(task, input) do
       # Visible in the pipeline right away, even while waiting in the queue.
       if task.status == "to_do" do
@@ -42,6 +43,16 @@ defmodule Mokaid.AI do
 
   defp validate_ai_assignable(%WorkTask{assigned_agent_id: nil}), do: {:error, :no_agent_assigned}
   defp validate_ai_assignable(_task), do: :ok
+
+  # New AI work is blocked once the workspace is out of credits (unless
+  # auto-recharge is armed or the plan is unlimited). A task already running
+  # is never interrupted — the charge lands at completion and may dip the
+  # balance negative, settled on the next top-up.
+  defp validate_credits(workspace_id) do
+    if Mokaid.Billing.Credits.can_start_task?(workspace_id),
+      do: :ok,
+      else: {:error, :insufficient_credits}
+  end
 
   @doc """
   Sends the agent's next queued run to the worker — a no-op while a run is
@@ -332,8 +343,16 @@ defmodule Mokaid.AI do
              "cost_cents" => cost_cents
            }) do
       if cost_cents > 0 do
+        # Meter real cost AND charge the workspace's AI credits (live balance).
         Billing.record_usage(run.workspace_id, "agent", run.agent_id, "ai_cost", 1, "run",
           cost_cents: cost_cents
+        )
+
+        Mokaid.Billing.Credits.charge_run(
+          run.workspace_id,
+          run.id,
+          run.agent_id,
+          cost_cents
         )
       end
 

@@ -12,6 +12,7 @@ import { UploadCloud } from "lucide-react";
 import type { Agent } from "@/api/types";
 import { env } from "@/lib/env";
 import { useSceneStore } from "@/stores/scene-store";
+import { useChatStore } from "@/stores/chat-store";
 import { OfficeScene } from "./office-scene";
 import type { SceneAgent } from "./types";
 import { AgentSceneLabel } from "./agent-scene-label";
@@ -28,23 +29,35 @@ interface BubblePosition {
 
 const MAX_OFFICE_SEATS = 9;
 
-function toSceneAgents(agents: Agent[]): SceneAgent[] {
+function toSceneAgents(agents: Agent[], typingIds: string[]): SceneAgent[] {
+  const typing = new Set(typingIds);
   return agents
     .filter((a) => a.status !== "archived")
     .slice(0, MAX_OFFICE_SEATS)
-    .map((agent, index) => ({
-      id: agent.id,
-      name: agent.display_name,
-      kind: agent.kind,
-      status: agent.status,
-      presenceStatus: agent.presence_status,
-      visualState: toVisualState(agent.status, agent.presence_status, {
-        has_task: Boolean(agent.current_task_id),
-      }),
-      color: agent.avatar_config?.primary_color ?? "#7c5cff",
-      seatIndex: agent.avatar_config?.seat_index ?? index,
-      currentTaskTitle: agent.current_task_id ? "Working on task" : null,
-    }));
+    .map((agent, index) => {
+      // An agent composing a chat reply visibly types at its desk, whatever
+      // its task status is.
+      const isTyping = typing.has(agent.id);
+      return {
+        id: agent.id,
+        name: agent.display_name,
+        kind: agent.kind,
+        status: agent.status,
+        presenceStatus: agent.presence_status,
+        visualState: isTyping
+          ? "typing"
+          : toVisualState(agent.status, agent.presence_status, {
+              has_task: Boolean(agent.current_task_id),
+            }),
+        color: agent.avatar_config?.primary_color ?? "#7c5cff",
+        seatIndex: agent.avatar_config?.seat_index ?? index,
+        currentTaskTitle: isTyping
+          ? "typing a message…"
+          : agent.current_task_id
+            ? "Working on task"
+            : null,
+      };
+    });
 }
 
 /**
@@ -170,7 +183,11 @@ export function OfficeCanvas({
   const fps = useSceneStore((s) => s.fps);
   const setFps = useSceneStore((s) => s.setFps);
 
-  const sceneAgents = useMemo(() => toSceneAgents(agents), [agents]);
+  const typingAgentIds = useChatStore((s) => s.typingAgentIds);
+  const sceneAgents = useMemo(
+    () => toSceneAgents(agents, typingAgentIds),
+    [agents, typingAgentIds],
+  );
   const disable3d = env.VITE_DISABLE_3D || webglFailed;
 
   const registerLabel = useCallback((agentId: string, node: HTMLButtonElement | null) => {
