@@ -487,6 +487,30 @@ defmodule Mokaid.AI do
 
   defp looks_french?(_), do: false
 
+  defp maybe_report_failure_to_chat(run, task) do
+    chat_agent_id = get_in(task.metadata || %{}, ["chat_agent_id"])
+
+    if is_binary(chat_agent_id) do
+      instruction = get_in(task.metadata || %{}, ["instruction"]) || task.title || ""
+
+      body =
+        if looks_french?(instruction) do
+          "Je suis désolé, j'ai rencontré un problème en travaillant sur « #{task.title} ». Peux-tu reformuler ou réessayer ? Je reste dispo."
+        else
+          "Sorry — I ran into a problem working on “#{task.title}”. Could you rephrase or try again? I'm still here to help."
+        end
+
+      Mokaid.AgentChat.post_agent_message(run.workspace_id, chat_agent_id, body)
+    end
+
+    :ok
+  rescue
+    error ->
+      require Logger
+      Logger.warning("chat_failure_report_failed: #{inspect(error)}")
+      :ok
+  end
+
   def handle_failure(run_id, error_message) do
     with %{} = run <- Tasks.get_run(run_id),
          {:ok, run} <-
@@ -515,6 +539,9 @@ defmodule Mokaid.AI do
           resource_type: "task",
           resource_id: task.id
         )
+
+        # Chat-launched task → tell the teammate in the thread, in character.
+        maybe_report_failure_to_chat(run, task)
       end
 
       Realtime.broadcast_workspace(run.workspace_id, "task.progress_changed", %{

@@ -89,6 +89,68 @@ async def _anthropic_chat(
     return "".join(block.text for block in response.content if block.type == "text")
 
 
+async def generate_long(
+    system: str,
+    user: str,
+    usage: "UsageTracker | None" = None,
+    max_tokens: int = 16000,
+    quality: Quality = "smart",
+    max_rounds: int = 4,
+) -> str:
+    """Generates long-form content (e.g. a full HTML page), continuing across
+    turns when the model hits `max_tokens` so the result is never truncated.
+
+    Continuation is driven by follow-up user turns (assistant prefill is not
+    supported on current Claude models). Falls back to a single `chat` call on
+    the OpenAI path (no continuation there — max_tokens is set high enough)."""
+    if not _use_anthropic():
+        return await chat(system, user, usage=usage, max_tokens=max_tokens, quality=quality)
+
+    model = _anthropic_model(quality)
+    client = _get_anthropic()
+    messages: list[dict[str, Any]] = [{"role": "user", "content": user}]
+    pieces: list[str] = []
+
+    for _ in range(max_rounds):
+        # Streaming is required for large max_tokens (the SDK refuses a
+        # non-streaming call that could exceed the 10-minute timeout).
+        async with client.messages.stream(
+            model=model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=messages,
+        ) as stream:
+            response = await stream.get_final_message()
+
+        if usage:
+            usage.add(model, response.usage.input_tokens, response.usage.output_tokens)
+
+        chunk = "".join(block.text for block in response.content if block.type == "text")
+        pieces.append(chunk)
+
+        if response.stop_reason != "max_tokens":
+            break
+
+        # Truncated — ask it to continue seamlessly. We echo what we have so
+        # far as an assistant turn and instruct a raw continuation (no repeat,
+        # no preamble). This is a normal multi-turn message, not a prefill.
+        so_far = "".join(pieces)
+        messages = [
+            {"role": "user", "content": user},
+            {"role": "assistant", "content": so_far[-4000:]},
+            {
+                "role": "user",
+                "content": (
+                    "You were cut off by the length limit. Continue the output from "
+                    "EXACTLY where you stopped — output only the remaining raw content, "
+                    "no repetition, no preamble, no code fences."
+                ),
+            },
+        ]
+
+    return "".join(pieces)
+
+
 def _extract_json(content: str) -> dict[str, Any]:
     """Parses a JSON object out of model text (tolerates code fences)."""
     text = content.strip()

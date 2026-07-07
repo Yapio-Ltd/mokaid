@@ -204,13 +204,44 @@ defmodule Mokaid.AgentChat do
            ) do
       link_drive_items(workspace_id, task.id, drive_ids)
 
+      # Immediate acknowledgement in the chat itself, before the run starts —
+      # the teammate sees "on it" right away, in the thread they're looking at.
+      post_agent_message(workspace_id, agent.id, acknowledgement_message(instruction),
+        task_id: task.id
+      )
+
       if agent.kind != "human_linked" do
-        Mokaid.AI.start_run(task, %{"instruction" => instruction, "drive_item_ids" => drive_ids})
+        # chat_task: true tells the worker to skip the task-thread
+        # acknowledgement comment — the chat already got its "on it" reply, and
+        # we don't want a parallel conversation living in the task menu.
+        Mokaid.AI.start_run(task, %{
+          "instruction" => instruction,
+          "drive_item_ids" => drive_ids,
+          "chat_task" => true
+        })
       end
 
       {:ok, task}
     end
   end
+
+  # A warm, natural "I'm on it" line in the teammate's language.
+  defp acknowledgement_message(instruction) do
+    if french?(instruction) do
+      "Oui, bien sûr ! Je m'en occupe tout de suite — je te montre le résultat ici dès que c'est prêt. 👍"
+    else
+      "On it! I'll get this done and share the result right here as soon as it's ready. 👍"
+    end
+  end
+
+  defp french?(text) when is_binary(text) do
+    Regex.match?(
+      ~r/\b(je|tu|le|la|les|un|une|pour|avec|dans|que|qui|fais|génère|créer?|change|voici|s'il|à|é|è|ê|ç)\b/iu,
+      text
+    )
+  end
+
+  defp french?(_), do: false
 
   defp message_instruction(%ChatMessage{body: body}, attachments) do
     text = (body || "") |> String.trim()

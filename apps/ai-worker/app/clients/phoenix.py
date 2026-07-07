@@ -1,5 +1,6 @@
 """HTTP client for the Phoenix API worker endpoints (callbacks + resources)."""
 
+import re
 from typing import Any
 
 import httpx
@@ -8,6 +9,24 @@ import structlog
 from app.config import get_settings
 
 log = structlog.get_logger()
+
+# PostgreSQL text/jsonb columns cannot store NUL bytes (0x00); other C0 control
+# characters (except \t \n \r) are also invalid in JSON strings and would
+# reject the whole payload. Poorly-decoded binary (e.g. a raw PDF read as
+# UTF-8) is the usual source — strip these so one bad tool output can never
+# wedge a run in "running".
+_INVALID_TEXT = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def _sanitize(value: Any) -> Any:
+    """Recursively strips control characters from all strings in a payload."""
+    if isinstance(value, str):
+        return _INVALID_TEXT.sub("", value)
+    if isinstance(value, dict):
+        return {k: _sanitize(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_sanitize(v) for v in value]
+    return value
 
 
 class PhoenixClient:
@@ -20,7 +39,7 @@ class PhoenixClient:
         try:
             async with httpx.AsyncClient(timeout=15) as client:
                 response = await client.post(
-                    f"{self.base_url}{path}", json=payload, headers=self.headers
+                    f"{self.base_url}{path}", json=_sanitize(payload), headers=self.headers
                 )
                 response.raise_for_status()
                 if response.content:

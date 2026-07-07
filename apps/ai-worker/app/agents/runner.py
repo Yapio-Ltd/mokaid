@@ -77,9 +77,11 @@ async def execute_run(request: RunRequest, phoenix: PhoenixClient | None = None)
     toolbox = McpToolbox(request.mcp_servers)
     mcp_tools = await toolbox.discover() if request.mcp_servers else []
 
-    # Conversational acknowledgement: the agent tells its teammates it is
-    # picking up the task (or explains why it can't). Never blocks the run.
-    await post_acknowledgement(request, phoenix, ctx.usage, mcp_tools)
+    # Conversational acknowledgement in the task thread. Skipped for tasks
+    # launched from the chat dock — that thread already got its "on it" reply,
+    # and we don't want a second conversation living in the task menu.
+    if not request.input.get("chat_task"):
+        await post_acknowledgement(request, phoenix, ctx.usage, mcp_tools)
 
     try:
         for step in await plan_steps(request, ctx.usage, mcp_tools):

@@ -86,6 +86,24 @@ def _strip_fences(html: str) -> str:
     return text[start:] if start > 0 else text
 
 
+def _ensure_closed(html: str) -> str:
+    """Closes the structural tags if generation stopped mid-document, so the
+    page renders. Best-effort — a fully-generated page passes through as-is."""
+    lower = html.lower()
+    additions = ""
+    # If an open <style> or <script> was left dangling, close it first so the
+    # rest of the page isn't swallowed by the browser's parser.
+    if lower.rfind("<style") > lower.rfind("</style>"):
+        additions += "\n</style>"
+    if lower.rfind("<script") > lower.rfind("</script>"):
+        additions += "\n</script>"
+    if "<body" in lower and "</body>" not in lower:
+        additions += "\n</body>"
+    if "<html" in lower and "</html>" not in lower:
+        additions += "\n</html>"
+    return html + additions if additions else html
+
+
 @tool("generate_website")
 async def generate_website(params: dict[str, Any], ctx: RunContext) -> Any:
     """Generates a production-ready landing page / one-page website (HTML)."""
@@ -105,7 +123,8 @@ async def generate_website(params: dict[str, Any], ctx: RunContext) -> Any:
     if not llm.is_configured():
         return {"error": "LLM not configured.", "note": "offline fallback"}
 
-    # Phase 1 — art direction (design system matched to the industry).
+    # Phase 1 — art direction (design system matched to the industry). Enough
+    # headroom that the JSON is never cut off mid-object.
     design = await llm.chat_json(
         system=_ART_DIRECTION_SYSTEM,
         user=(
@@ -114,12 +133,13 @@ async def generate_website(params: dict[str, Any], ctx: RunContext) -> Any:
             + (f"Style requested by the user (respect it): {style_hint}\n" if style_hint else "")
         ),
         usage=ctx.usage,
-        max_tokens=900,
+        max_tokens=1500,
         quality="smart",
     )
 
-    # Phase 2 — build the page against the design system.
-    html = await llm.chat(
+    # Phase 2 — build the page against the design system. Use the long-form
+    # generator so a full page is never cut off by the length limit.
+    html = await llm.generate_long(
         system=_BUILDER_SYSTEM,
         user=(
             f"Brief:\n{brief}\n\n"
@@ -127,13 +147,17 @@ async def generate_website(params: dict[str, Any], ctx: RunContext) -> Any:
             + f"Design system to follow exactly:\n{design}\n"
         ),
         usage=ctx.usage,
-        max_tokens=16000,
+        max_tokens=24000,
         quality="smart",
     )
 
     html = _strip_fences(html or "")
     if "<html" not in html.lower():
         return {"error": "Website generation produced no valid HTML."}
+
+    # Safety net: if the page still came back unclosed (rare), close the open
+    # structural tags so it renders instead of showing a blank page.
+    html = _ensure_closed(html)
 
     filename = f"{_slugify(brand or ctx.task_title or 'landing-page')}.html"
 

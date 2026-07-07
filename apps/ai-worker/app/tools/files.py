@@ -293,6 +293,29 @@ async def transcribe_audio(params: dict[str, Any], ctx: RunContext) -> Any:
     return {"transcript": transcript, "filename": filename}
 
 
+def _looks_like_text(value: str) -> bool:
+    """True when the string is mostly clean text (not decoded binary).
+
+    A raw PDF/binary decoded as UTF-8 is dominated by control chars and the
+    U+FFFD replacement character — we must never return that as "extracted
+    text": it pollutes the run output and PostgreSQL rejects NUL bytes.
+    """
+    if not value:
+        return False
+    sample = value[:4000]
+    # Replacement chars mark bytes that couldn't be decoded — lots of them
+    # means we decoded binary, not text.
+    if sample.count("�") / len(sample) > 0.1:
+        return False
+    clean = sum(1 for ch in sample if (ch.isprintable() and ch != "�") or ch in "\t\n\r")
+    return clean / len(sample) >= 0.85
+
+
+# Extracted text is truncated so a huge document can't blow the LLM context
+# or the run output payload.
+_MAX_EXTRACTED_CHARS = 20000
+
+
 @tool("extract_document_text")
 async def extract_document_text(params: dict[str, Any], ctx: RunContext) -> Any:
     """Extract text content from a document (PDF, etc.) for further processing."""
@@ -307,33 +330,62 @@ async def extract_document_text(params: dict[str, Any], ctx: RunContext) -> Any:
         return {"error": f"Could not download the document: {exc}"}
 
     filename = params.get("original_filename") or "document"
+    is_pdf = filename.lower().endswith(".pdf") or doc_bytes[:5] == b"%PDF-"
     text = ""
 
-    try:
-        import fitz  # PyMuPDF — optional dependency
-
-        doc = fitz.open(stream=doc_bytes, filetype="pdf")
-        pages = []
-        for page in doc:
-            pages.append(page.get_text())
-        text = "\n\n".join(pages)
-        doc.close()
-    except ImportError:
+    # 1) PyMuPDF (best quality) if available.
+    if is_pdf:
         try:
-            text = doc_bytes.decode("utf-8", errors="replace")
-        except Exception:
-            if llm.is_configured():
-                img_url = f"data:application/octet-stream;base64,{base64.b64encode(doc_bytes).decode()}"
-                text = await llm.vision(
-                    system="Extract all visible text from this document image.",
-                    user_text="Extract all text from this document.",
-                    image_url=img_url,
-                    usage=ctx.usage,
-                )
-    except Exception:
-        try:
-            text = doc_bytes.decode("utf-8", errors="replace")
-        except Exception:
-            return {"error": "Could not extract text from the document."}
+            import fitz  # PyMuPDF — optional
 
-    return {"text": text[:10000], "filename": filename, "char_count": len(text)}
+            doc = fitz.open(stream=doc_bytes, filetype="pdf")
+            text = "\n\n".join(page.get_text() for page in doc)
+            doc.close()
+        except ImportError:
+            text = ""
+        except Exception as exc:
+            log.warning("pdf_fitz_failed", error=str(exc))
+            text = ""
+
+        # 2) pypdf fallback (pure-python, always available).
+        if not text.strip():
+            try:
+                import io
+
+                from pypdf import PdfReader
+
+                reader = PdfReader(io.BytesIO(doc_bytes))
+                text = "\n\n".join((page.extract_text() or "") for page in reader.pages)
+            except Exception as exc:
+                log.warning("pdf_pypdf_failed", error=str(exc))
+                text = ""
+
+    # 3) Plain-text documents: decode, but only keep it if it reads as text.
+    if not text.strip():
+        decoded = doc_bytes.decode("utf-8", errors="replace")
+        if _looks_like_text(decoded):
+            text = decoded
+
+    # 4) Last resort: OCR the document with vision (never returns binary).
+    if not text.strip() and llm.is_configured():
+        try:
+            img_url = f"data:application/octet-stream;base64,{base64.b64encode(doc_bytes).decode()}"
+            text = await llm.vision(
+                system="Extract all visible text from this document. Return only the text.",
+                user_text="Extract all text from this document.",
+                image_url=img_url,
+                usage=ctx.usage,
+            )
+        except Exception as exc:
+            log.warning("document_vision_failed", error=str(exc))
+
+    text = (text or "").strip()
+    if not text:
+        return {"error": "Could not extract readable text from the document.", "filename": filename}
+
+    return {
+        "text": text[:_MAX_EXTRACTED_CHARS],
+        "filename": filename,
+        "char_count": len(text),
+        "truncated": len(text) > _MAX_EXTRACTED_CHARS,
+    }

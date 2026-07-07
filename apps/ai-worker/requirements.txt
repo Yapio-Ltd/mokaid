@@ -11,3 +11,4 @@ boto3>=1.35
 structlog>=24.4
 mcp>=1.9
 Pillow>=10.0
+pypdf>=5.0
