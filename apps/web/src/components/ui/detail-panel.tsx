@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { SlidePanel } from "./motion";
 import { Button } from "./button";
+import { useUiStore } from "@/stores/ui-store";
 
 interface DetailPanelProps {
   open: boolean;
@@ -17,6 +18,15 @@ interface DetailPanelProps {
 
 /** Right-side detail panel used across Agents, Tasks, Projects, Knowledge, Drive. */
 export function DetailPanel({ open, onClose, title, children, className, overlay }: DetailPanelProps) {
+  const increment = useUiStore((s) => s.incrementDetailPanel);
+  const decrement = useUiStore((s) => s.decrementDetailPanel);
+
+  useEffect(() => {
+    if (!open) return;
+    increment();
+    return () => decrement();
+  }, [open, increment, decrement]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -33,7 +43,7 @@ export function DetailPanel({ open, onClose, title, children, className, overlay
               <X size={16} />
             </Button>
           </div>
-          <div className="flex-1 overflow-y-auto">{children}</div>
+          <div className="flex-1 overflow-y-auto pb-20">{children}</div>
         </SlidePanel>
       )}
     </AnimatePresence>

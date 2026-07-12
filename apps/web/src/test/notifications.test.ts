@@ -56,7 +56,7 @@ describe("notification helpers", () => {
   it("picks tone and CTA by kind", () => {
     expect(notificationTone("ai_run_completed")).toBe("warning");
     expect(notificationTone("ai_run_failed")).toBe("error");
-    expect(notificationCta(base)).toBe("View task");
+    expect(notificationCta(base)).toBe("Voir conversation");
     expect(
       notificationCta({ ...base, kind: "ai_run_completed", title: "Ready for review: X" }),
     ).toBe("Approve");

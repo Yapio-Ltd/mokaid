@@ -8,6 +8,7 @@ import { agentRingOuterPx } from "@/components/agents/agent-level-ring";
 import { ChatWindow } from "./chat-window";
 import { FadeSlide } from "@/components/ui/motion";
 import { useChatStore } from "@/stores/chat-store";
+import { useUiStore } from "@/stores/ui-store";
 import { cn } from "@/lib/cn";
 
 const MAX_HEADS = 5;
@@ -100,6 +101,7 @@ export function FloatingChatDock() {
   const openChatIds = useChatStore((s) => s.openChatIds);
   const openChat = useChatStore((s) => s.openChat);
   const closeChat = useChatStore((s) => s.closeChat);
+  const detailPanelOpen = useUiStore((s) => s.detailPanelCount > 0);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -131,7 +133,12 @@ export function FloatingChatDock() {
 
   return (
     <>
-      <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex items-end gap-3">
+      <div
+        className={cn(
+          "pointer-events-none fixed bottom-4 z-40 flex items-end gap-3 transition-[right] duration-300 ease-out",
+          detailPanelOpen ? "right-[472px]" : "right-4",
+        )}
+      >
         <AnimatePresence>
           {openChatIds.map((agentId) => {
             const agent = agentById.get(agentId);

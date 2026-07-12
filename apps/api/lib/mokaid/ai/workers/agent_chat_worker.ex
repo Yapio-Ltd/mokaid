@@ -120,7 +120,23 @@ defmodule Mokaid.AI.Workers.AgentChatWorker do
             t.status not in ["completed", "canceled"],
         order_by: [desc: t.updated_at],
         limit: 5,
-        select: %{title: t.title, status: t.status, progress_percent: t.progress_percent}
+        preload: [
+          execution_runs:
+            ^from(r in Mokaid.Tasks.TaskExecutionRun, order_by: [desc: r.inserted_at], limit: 1)
+        ]
     )
+    |> Enum.map(fn t ->
+      latest = List.first(t.execution_runs || [])
+
+      %{
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        progress_percent: t.progress_percent,
+        latest_run_status: latest && latest.status,
+        conversation_id: get_in(t.metadata || %{}, ["conversation_id"]),
+        source: get_in(t.metadata || %{}, ["source"])
+      }
+    end)
   end
 end

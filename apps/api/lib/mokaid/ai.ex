@@ -457,6 +457,7 @@ defmodule Mokaid.AI do
     chat_agent_id = get_in(task.metadata || %{}, ["chat_agent_id"]) || run.agent_id
 
     if is_binary(chat_agent_id) do
+      {task, conversation_id} = ensure_task_conversation(task, chat_agent_id)
       outputs = chat_output_attachments(run.workspace_id, task.id)
 
       # Never claim "Done" when there is nothing to open — that was the main
@@ -466,8 +467,13 @@ defmodule Mokaid.AI do
         Logger.info("chat_delivery_skipped_no_outputs task=#{task.id}")
       else
         body = chat_delivery_message(task, outputs)
-        Mokaid.AgentChat.deliver_task_output(run.workspace_id, chat_agent_id, body, outputs)
-        deliver_output_summary(run.workspace_id, chat_agent_id, output)
+
+        Mokaid.AgentChat.deliver_task_output(run.workspace_id, chat_agent_id, body, outputs,
+          task_id: task.id,
+          conversation_id: conversation_id
+        )
+
+        deliver_output_summary(run.workspace_id, chat_agent_id, output, conversation_id, task.id)
       end
     end
 
@@ -478,6 +484,28 @@ defmodule Mokaid.AI do
       require Logger
       Logger.warning("chat_delivery_failed: #{inspect(error)}")
       :ok
+  end
+
+  defp ensure_task_conversation(task, agent_id) do
+    case get_in(task.metadata || %{}, ["conversation_id"]) do
+      id when is_binary(id) ->
+        {task, id}
+
+      _ ->
+        {:ok, conv} =
+          Mokaid.AgentChat.get_or_create_active_conversation(task.workspace_id, agent_id)
+
+        meta =
+          Map.merge(task.metadata || %{}, %{
+            "conversation_id" => conv.id,
+            "chat_agent_id" => get_in(task.metadata || %{}, ["chat_agent_id"]) || agent_id
+          })
+
+        case Tasks.update_task(task, %{"metadata" => meta}) do
+          {:ok, updated} -> {updated, conv.id}
+          _ -> {task, conv.id}
+        end
+    end
   end
 
   defp chat_output_attachments(workspace_id, task_id) do
@@ -532,13 +560,16 @@ defmodule Mokaid.AI do
 
   defp html_attachment?(_), do: false
 
-  defp deliver_output_summary(workspace_id, chat_agent_id, output) do
+  defp deliver_output_summary(workspace_id, chat_agent_id, output, conversation_id, task_id) do
     summary = (output || %{})["summary"] || (output || %{})["headline"]
 
     # Skip tool-ish / English clarification leftovers that contradict the delivery.
     if is_binary(summary) and String.trim(summary) != "" and String.length(summary) < 400 and
          not String.contains?(String.downcase(summary), "write_todos") do
-      Mokaid.AgentChat.post_agent_message(workspace_id, chat_agent_id, String.trim(summary))
+      Mokaid.AgentChat.post_agent_message(workspace_id, chat_agent_id, String.trim(summary),
+        conversation_id: conversation_id,
+        task_id: task_id
+      )
     end
 
     :ok
@@ -556,9 +587,10 @@ defmodule Mokaid.AI do
   defp looks_french?(_), do: false
 
   defp maybe_report_failure_to_chat(run, task, error_message) do
-    chat_agent_id = get_in(task.metadata || %{}, ["chat_agent_id"])
+    chat_agent_id = get_in(task.metadata || %{}, ["chat_agent_id"]) || run.agent_id
 
     if is_binary(chat_agent_id) do
+      {task, conversation_id} = ensure_task_conversation(task, chat_agent_id)
       instruction = get_in(task.metadata || %{}, ["instruction"]) || task.title || ""
       error = if is_binary(error_message), do: error_message, else: run.error
 
@@ -577,7 +609,10 @@ defmodule Mokaid.AI do
         end
 
       if is_binary(body) and String.trim(body) != "" do
-        Mokaid.AgentChat.post_agent_message(run.workspace_id, chat_agent_id, body)
+        Mokaid.AgentChat.post_agent_message(run.workspace_id, chat_agent_id, body,
+          task_id: task.id,
+          conversation_id: conversation_id
+        )
       end
     end
 

@@ -246,7 +246,7 @@ defmodule Mokaid.AgentChat do
   def post_agent_message(workspace_id, agent_id, body, opts \\ []) do
     attachments = normalize_attachments(Keyword.get(opts, :attachments, []))
 
-    {:ok, conv} = get_or_create_active_conversation(workspace_id, agent_id)
+    conv = resolve_conversation(workspace_id, agent_id, Keyword.get(opts, :conversation_id))
 
     result =
       %ChatMessage{}
@@ -272,13 +272,35 @@ defmodule Mokaid.AgentChat do
     end
   end
 
+  defp resolve_conversation(workspace_id, agent_id, conversation_id)
+       when is_binary(conversation_id) do
+    case get_conversation(workspace_id, conversation_id) do
+      %Conversation{agent_id: ^agent_id} = conv ->
+        conv
+
+      _ ->
+        {:ok, conv} = get_or_create_active_conversation(workspace_id, agent_id)
+        conv
+    end
+  end
+
+  defp resolve_conversation(workspace_id, agent_id, _) do
+    {:ok, conv} = get_or_create_active_conversation(workspace_id, agent_id)
+    conv
+  end
+
   @doc """
   Delivers a finished run's output into the agent's chat thread: a natural
   message plus the produced files as attachments. Called from AI completion
   when the task was launched from chat (`metadata.chat_agent_id`).
   """
-  def deliver_task_output(workspace_id, agent_id, body, output_items) do
-    post_agent_message(workspace_id, agent_id, body, attachments: output_items)
+  def deliver_task_output(workspace_id, agent_id, body, output_items, opts \\ []) do
+    post_agent_message(
+      workspace_id,
+      agent_id,
+      body,
+      Keyword.merge([attachments: output_items], opts)
+    )
   end
 
   def mark_read(workspace_id, agent_id, member_id) do
@@ -355,7 +377,7 @@ defmodule Mokaid.AgentChat do
   # a task — we let the worker decide and start the task from its callback.
   defp route_member_message(workspace_id, agent, member, message, attachments) do
     if attachments != [] do
-      start_chat_task(workspace_id, agent, member, message, attachments)
+      resume_or_start_chat_task(workspace_id, agent, member, message, attachments)
     else
       # No files: the worker replies conversationally, and if it judges the
       # message to be an actionable work request it asks us to start a task.
@@ -383,6 +405,8 @@ defmodule Mokaid.AgentChat do
     skip_ack? = Keyword.get(opts, :skip_ack, false)
     language = Keyword.get(opts, :language)
 
+    {:ok, conv} = get_or_create_active_conversation(workspace_id, agent.id)
+
     with {:ok, task} <-
            Mokaid.Tasks.create_task(
              workspace_id,
@@ -394,6 +418,7 @@ defmodule Mokaid.AgentChat do
                "metadata" => %{
                  "source" => "chat",
                  "chat_agent_id" => agent.id,
+                 "conversation_id" => conv.id,
                  "instruction" => instruction,
                  "drive_item_ids" => drive_ids,
                  "language" => language || if(french?(instruction), do: "fr", else: "en"),
@@ -411,7 +436,8 @@ defmodule Mokaid.AgentChat do
           workspace_id,
           agent.id,
           acknowledgement_message(instruction, language),
-          task_id: task.id
+          task_id: task.id,
+          conversation_id: conv.id
         )
       end
 
@@ -433,7 +459,122 @@ defmodule Mokaid.AgentChat do
             post_agent_message(
               workspace_id,
               agent.id,
-              start_run_error_message(reason, language || instruction)
+              start_run_error_message(reason, language || instruction),
+              conversation_id: conv.id
+            )
+        end
+      end
+
+      {:ok, task}
+    end
+  end
+
+  @doc """
+  Resumes a recently failed chat-born task in the active conversation when
+  possible; otherwise starts a fresh chat task.
+  """
+  def resume_or_start_chat_task(workspace_id, agent, member, message, attachments, opts \\ []) do
+    instruction = message_instruction(message, attachments)
+    {:ok, conv} = get_or_create_active_conversation(workspace_id, agent.id)
+
+    case find_resumable_chat_task(workspace_id, agent.id, conv.id) do
+      %Mokaid.Tasks.Task{} = task when instruction != "" ->
+        resume_chat_task(workspace_id, agent, member, task, instruction, attachments, opts)
+
+      _ ->
+        start_chat_task(workspace_id, agent, member, message, attachments, opts)
+    end
+  end
+
+  defp find_resumable_chat_task(workspace_id, agent_id, conversation_id) do
+    since = DateTime.add(DateTime.utc_now(), -24 * 3600, :second)
+
+    tasks =
+      Repo.all(
+        from t in Mokaid.Tasks.Task,
+          where:
+            t.workspace_id == ^workspace_id and t.assigned_agent_id == ^agent_id and
+              t.status in ["to_do", "in_progress", "blocked", "waiting"] and
+              t.inserted_at >= ^since,
+          order_by: [desc: t.updated_at],
+          limit: 10,
+          preload: [execution_runs: ^from(r in Mokaid.Tasks.TaskExecutionRun, order_by: [desc: r.inserted_at])]
+      )
+
+    Enum.find(tasks, fn task ->
+      meta = task.metadata || %{}
+      conv_match? = meta["conversation_id"] == conversation_id or meta["source"] == "chat"
+      latest = List.first(task.execution_runs || [])
+      failed? = match?(%{status: "failed"}, latest)
+      conv_match? and failed?
+    end)
+  end
+
+  defp resume_chat_task(workspace_id, agent, _member, task, instruction, attachments, opts) do
+    drive_ids = Enum.map(attachments, & &1["drive_item_id"]) |> Enum.filter(&is_binary/1)
+    language = Keyword.get(opts, :language)
+    skip_ack? = Keyword.get(opts, :skip_ack, false)
+
+    conv_id =
+      get_in(task.metadata || %{}, ["conversation_id"]) ||
+        case active_conversation(workspace_id, agent.id) do
+          %{id: id} -> id
+          _ -> nil
+        end
+
+    meta =
+      Map.merge(task.metadata || %{}, %{
+        "instruction" => instruction,
+        "drive_item_ids" =>
+          Enum.uniq((get_in(task.metadata || %{}, ["drive_item_ids"]) || []) ++ drive_ids),
+        "language" =>
+          language || get_in(task.metadata || %{}, ["language"]) ||
+            if(french?(instruction), do: "fr", else: "en"),
+        "chat_agent_id" => agent.id,
+        "source" => "chat",
+        "conversation_id" => conv_id
+      })
+
+    with {:ok, task} <-
+           Mokaid.Tasks.update_task(task, %{
+             "description" => instruction,
+             "status" => "to_do",
+             "progress_percent" => 0,
+             "metadata" => meta
+           }) do
+      link_drive_items(workspace_id, task.id, drive_ids)
+
+      unless skip_ack? do
+        post_agent_message(
+          workspace_id,
+          agent.id,
+          acknowledgement_message(instruction, language),
+          task_id: task.id,
+          conversation_id: conv_id
+        )
+      end
+
+      if agent.kind != "human_linked" do
+        case Mokaid.AI.start_run(task, %{
+               "instruction" => instruction,
+               "drive_item_ids" => meta["drive_item_ids"],
+               "chat_task" => true,
+               "language" => meta["language"],
+               "mission_kind" =>
+                 get_in(meta, ["mission_kind"]) || detect_mission_kind(instruction)
+             }) do
+          {:ok, _} ->
+            :ok
+
+          {:error, reason} ->
+            require Logger
+            Logger.warning("chat_task_resume_run_failed: #{inspect(reason)}")
+
+            post_agent_message(
+              workspace_id,
+              agent.id,
+              start_run_error_message(reason, language || instruction),
+              conversation_id: conv_id
             )
         end
       end
@@ -450,7 +591,7 @@ defmodule Mokaid.AgentChat do
       Regex.match?(~r/\b(site|website|landing|page web|html|vitrine)\b/iu, t) ->
         "website"
 
-      Regex.match?(~r/\b(image|logo|photo|picture|design|visuel)\b/iu, t) ->
+      Regex.match?(~r/\b(image|logo|photo|picture|design|visuel|avatar)\b/iu, t) ->
         "image"
 
       Regex.match?(~r/\b(rapport|report|document|résumé|resume|brief|markdown)\b/iu, t) ->

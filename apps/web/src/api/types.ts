@@ -177,6 +177,9 @@ export interface Task {
   latest_run: TaskRun | null;
   /** Present on the task detail endpoint when an agent is waiting on a human decision. */
   pending_approval: TaskPendingApproval | null;
+  /** Anchored agent DM for chat-born (or delivered) missions. */
+  conversation_id: string | null;
+  chat_agent_id: string | null;
   inserted_at: string;
   updated_at: string;
 }

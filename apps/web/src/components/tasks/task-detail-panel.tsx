@@ -12,11 +12,11 @@ import {
   FolderInput,
   Image as ImageIcon,
   Loader2,
+  MessageCircle,
   Music,
   Paperclip,
   Play,
   RefreshCw,
-  Send,
   ShieldAlert,
   Sparkles,
   Square,
@@ -24,7 +24,6 @@ import {
   ThumbsDown,
   ThumbsUp,
   Undo2,
-  User,
 } from "lucide-react";
 import { fetchDriveFileBlob } from "@/api/client";
 import type { TaskAttachment, TaskRunToolCall } from "@/api/types";
@@ -32,7 +31,6 @@ import {
   useAgents,
   useApproveTaskAction,
   useAttachTaskFile,
-  useCreateTaskComment,
   useDeleteTask,
   useExecuteAi,
   useProjects,
@@ -46,7 +44,7 @@ import { DetailPanel } from "@/components/ui/detail-panel";
 import { toast } from "@/stores/toast-store";
 import { motion } from "framer-motion";
 import { useMissionPlanStore, type MissionPlanStep } from "@/stores/mission-plan-store";
-import { useTaskTypingStore } from "@/stores/task-typing-store";
+import { useChatStore } from "@/stores/chat-store";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -88,8 +86,6 @@ function producedDocs(toolCalls: TaskRunToolCall[]): ProducedDoc[] {
       return [{ title: "Summary", content: out.summary }];
     if (call.tool === "generate_report" && out.report)
       return [{ title: "Report", content: JSON.stringify(out.report, null, 2) }];
-    if (call.tool === "analyze_file" && typeof out.analysis === "string")
-      return [{ title: "Analysis", content: out.analysis }];
     if (call.tool === "generate_website" && typeof out.filename === "string")
       return [
         {
@@ -378,22 +374,11 @@ export function TaskDetailPanel({
   onClose: () => void;
   overlay?: boolean;
 }) {
-  const [comment, setComment] = useState("");
   const [expandedDoc, setExpandedDoc] = useState<number | null>(0);
-  const [relaunchOpen, setRelaunchOpen] = useState(false);
-  const [instructions, setInstructions] = useState("");
-
-  // Fresh composer state whenever another task is opened.
-  useEffect(() => {
-    setRelaunchOpen(false);
-    setInstructions("");
-    setComment("");
-  }, [taskId]);
 
   const { data: taskData, isLoading } = useTask(taskId);
   const { data: agentsData } = useAgents();
   const { data: projectsData } = useProjects();
-  const createComment = useCreateTaskComment();
   const toggleSubtask = useToggleSubtask();
   const updateTask = useUpdateTask();
   const approveAction = useApproveTaskAction();
@@ -402,6 +387,7 @@ export function TaskDetailPanel({
   const deleteTask = useDeleteTask();
   const attachFile = useAttachTaskFile();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const openChat = useChatStore((s) => s.openChat);
 
   const task = taskData?.data ?? null;
   const agents = agentsData?.data ?? [];
@@ -429,6 +415,15 @@ export function TaskDetailPanel({
   const canRetry =
     task != null && !["completed", "canceled"].includes(task.status) && !agentWorking;
 
+  const chatAgentId = task?.chat_agent_id ?? task?.assigned_agent_id;
+  const canOpenConversation =
+    chatAgentId != null && task?.assigned_agent_kind !== "human_linked";
+
+  const openTaskConversation = () => {
+    if (!chatAgentId) return;
+    openChat(chatAgentId, task?.conversation_id ?? null);
+  };
+
   const decide = (decision: "approved" | "rejected") => {
     if (!task || !pendingApproval) return;
     approveAction.mutate({
@@ -443,50 +438,10 @@ export function TaskDetailPanel({
     executeAi.mutate({ taskId: task.id });
   };
 
-  // Relaunch with fresh instructions: the message lands in the task thread
-  // first, so the agent reads it (the run input carries the conversation).
-  const relaunchWithInstructions = async () => {
-    if (!task) return;
-    const text = instructions.trim();
-    if (text) {
-      await createComment.mutateAsync({ taskId: task.id, body: text });
-    }
-    executeAi.mutate({ taskId: task.id });
-    setInstructions("");
-    setRelaunchOpen(false);
-  };
-
   const onFilesPicked = (files: FileList | null) => {
     if (!task || !files) return;
     Array.from(files).forEach((file) => attachFile.mutate({ file, taskId: task.id }));
     if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  // The agent can be (re)launched whenever nothing is actively running and
-  // no human decision is pending — e.g. to continue after a failed attempt
-  // or after the user replied / attached new material.
-  const canRelaunch =
-    task != null &&
-    task.assigned_agent_id != null &&
-    !agentWorking &&
-    !waitingApproval &&
-    !["completed", "canceled"].includes(task.status);
-
-  const agentTyping = useTaskTypingStore((s) =>
-    taskId != null && s.typingTaskIds.includes(taskId),
-  );
-
-  const submitComment = () => {
-    if (!task || !comment.trim()) return;
-    // Optimistic typing indicator: the agent "starts typing" the instant the
-    // message leaves, without waiting for the broadcast round-trip.
-    if (task.assigned_agent_id && !agentWorking) {
-      useTaskTypingStore.getState().setTyping(task.id);
-    }
-    createComment.mutate(
-      { taskId: task.id, body: comment.trim() },
-      { onSuccess: () => setComment("") },
-    );
   };
 
   const patch = (body: Record<string, unknown>) => {
@@ -903,135 +858,18 @@ export function TaskDetailPanel({
             </Section>
           )}
 
-          {/* Conversation — a real chat with the agent: it acknowledges
-              missions, explains failures and replies when you write to it. */}
-          <Section
-            title="Conversation"
-            count={task.comments.length || undefined}
-            icon={<User size={11} className="text-text-muted" />}
-          >
-            {task.comments.length > 0 && (
-              <div className="mb-3 space-y-2.5">
-                {task.comments.map((c) => {
-                  const isAgent = c.author_kind === "agent";
-                  return (
-                    <div
-                      key={c.id}
-                      className={cn("flex gap-2", isAgent ? "" : "flex-row-reverse")}
-                    >
-                      <Avatar name={c.author_name} size="xs" isAi={isAgent} />
-                      <div className={cn("max-w-[85%]", isAgent ? "" : "text-right")}>
-                        <div
-                          className={cn(
-                            "rounded-2xl px-3 py-2 text-left",
-                            isAgent
-                              ? "rounded-tl-sm bg-surface-raised/80"
-                              : "rounded-tr-sm bg-primary/15",
-                          )}
-                        >
-                          <p className="whitespace-pre-wrap text-xs leading-relaxed text-text">
-                            {c.body}
-                          </p>
-                        </div>
-                        <p className="mt-1 px-1 text-[10px] text-text-muted">
-                          {c.author_name ?? "Unknown"} · {formatDateTime(c.inserted_at)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {agentTyping && (
-              <div className="mb-3 flex items-end gap-2">
-                <Avatar name={task.assigned_agent_name ?? "Agent"} size="xs" isAi />
-                <div className="rounded-2xl rounded-tl-sm bg-surface-raised/80 px-3 py-2.5">
-                  <span className="inline-flex items-center gap-1 px-1" aria-label="typing">
-                    {[0, 1, 2].map((i) => (
-                      <span
-                        key={i}
-                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted"
-                        style={{ animationDelay: `${i * 150}ms` }}
-                      />
-                    ))}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <input
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitComment()}
-                placeholder={`Message ${task.assigned_agent_name ?? "the agent"}…`}
-                className="mk-input flex-1 text-xs"
-              />
-              <Button
-                size="icon"
-                variant="secondary"
-                onClick={submitComment}
-                loading={createComment.isPending}
-                aria-label="Send message"
-              >
-                <Send size={13} />
-              </Button>
-            </div>
-
-            {/* Relaunch with fresh instructions + documents. The agent gets
-                the whole thread and every linked file as context. */}
-            {canRelaunch && !relaunchOpen && (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="mt-2.5 w-full gap-1.5"
-                onClick={() => setRelaunchOpen(true)}
-              >
-                <Sparkles size={12} />
-                Ask {task.assigned_agent_name ?? "the agent"} to continue the mission
-              </Button>
-            )}
-
-            {canRelaunch && relaunchOpen && (
-              <div className="mt-2.5 space-y-2.5 rounded-xl bg-surface-raised/50 p-3.5">
-                <p className="text-[11px] font-semibold text-text">
-                  New instructions for {task.assigned_agent_name ?? "the agent"}
-                </p>
-                <textarea
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
-                  rows={3}
-                  autoFocus
-                  placeholder="Explain what to do differently, add details, reference the attached documents…"
-                  className="mk-input w-full resize-none text-xs leading-relaxed"
-                />
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="gap-1.5"
-                    loading={attachFile.isPending}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Paperclip size={12} /> Add document
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="flex-1 gap-1.5"
-                    loading={executeAi.isPending || createComment.isPending}
-                    onClick={relaunchWithInstructions}
-                  >
-                    <Sparkles size={12} /> Send & relaunch
-                  </Button>
-                </div>
-                <p className="text-[10px] leading-snug text-text-muted">
-                  {task.assigned_agent_name ?? "The agent"} will read the whole conversation and
-                  every attached file before continuing.
-                </p>
-              </div>
-            )}
-          </Section>
+          {/* Conversation lives in the floating agent chat bubble. */}
+          {canOpenConversation && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full gap-1.5"
+              onClick={openTaskConversation}
+            >
+              <MessageCircle size={12} />
+              Voir conversation
+            </Button>
+          )}
 
           {/* Danger zone — deleting also aborts the agent's run and frees it
               for its next queued mission. */}

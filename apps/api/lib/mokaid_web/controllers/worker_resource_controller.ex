@@ -184,7 +184,12 @@ defmodule MokaidWeb.WorkerResourceController do
     if member && instruction != "" do
       pseudo_message = %Mokaid.AgentChat.ChatMessage{body: instruction, attachments: []}
 
-      Mokaid.AgentChat.start_chat_task(workspace_id, agent, member, pseudo_message, [],
+      Mokaid.AgentChat.resume_or_start_chat_task(
+        workspace_id,
+        agent,
+        member,
+        pseudo_message,
+        [],
         skip_ack: skip_ack?,
         language: language
       )

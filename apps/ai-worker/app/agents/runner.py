@@ -534,15 +534,13 @@ async def _post_failure_comment(request: RunRequest, phoenix, usage, errors: lis
             log.warning("failure_comment_llm_failed", error=str(exc))
 
     try:
-        # Prefer the chat thread when the mission was launched from DM.
-        if request.input.get("chat_task") and request.agent_id:
-            await phoenix.post_agent_chat_message(
-                request.workspace_id, request.agent_id, text.strip()
-            )
-        else:
-            await phoenix.post_task_comment(
-                request.workspace_id, request.task_id, text.strip(), agent_id=request.agent_id
-            )
+        # Chat-born missions: Phoenix handle_failure posts the explanation in
+        # the anchored DM once — avoid a duplicate bubble here.
+        if request.input.get("chat_task"):
+            return
+        await phoenix.post_task_comment(
+            request.workspace_id, request.task_id, text.strip(), agent_id=request.agent_id
+        )
     except Exception as exc:  # noqa: BLE001
         log.warning("failure_comment_post_failed", run_id=request.run_id, error=str(exc))
 

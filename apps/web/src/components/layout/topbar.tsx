@@ -73,6 +73,10 @@ export function Topbar() {
         );
         return;
       }
+      if (n.kind === "ai_run_failed" && n.agent?.id) {
+        useChatStore.getState().openChat(n.agent.id);
+        return;
+      }
       selectTask(n.resource_id);
       navigate({ to: "/tasks" });
     }

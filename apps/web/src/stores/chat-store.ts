@@ -27,7 +27,7 @@ interface ChatState {
   /** When true the conversation list sidebar is shown for this agent. */
   historyOpenIds: string[];
   soundEnabled: boolean;
-  openChat: (agentId: string) => void;
+  openChat: (agentId: string, conversationId?: string | null) => void;
   closeChat: (agentId: string) => void;
   toggleMinimize: (agentId: string) => void;
   setAgentTyping: (agentId: string) => void;
@@ -54,15 +54,20 @@ export const useChatStore = create<ChatState>((set) => ({
   historyOpenIds: [],
   soundEnabled: localStorage.getItem(SOUND_PREF_KEY) !== "off",
 
-  openChat: (agentId) =>
+  openChat: (agentId, conversationId) =>
     set((s) => {
       const already = s.openChatIds.includes(agentId);
       const openChatIds = already
         ? s.openChatIds
         : [...s.openChatIds, agentId].slice(-MAX_OPEN_WINDOWS);
+      const activeConversationIds =
+        conversationId !== undefined
+          ? { ...s.activeConversationIds, [agentId]: conversationId }
+          : s.activeConversationIds;
       return {
         openChatIds,
         minimizedIds: s.minimizedIds.filter((id) => id !== agentId),
+        activeConversationIds,
       };
     }),
 

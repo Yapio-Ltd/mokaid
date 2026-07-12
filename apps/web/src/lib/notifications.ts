@@ -96,7 +96,7 @@ export function formatNotificationBody(n: AppNotification): string | null {
 
 export function notificationCta(n: AppNotification): string | null {
   if (n.resource_type !== "task") return null;
-  if (n.kind === "ai_run_failed") return "View task";
+  if (n.kind === "ai_run_failed") return "Voir conversation";
   if (n.kind === "approval_requested") return "Approve";
   if (n.kind === "ai_run_completed") return "Approve";
   return "Open";

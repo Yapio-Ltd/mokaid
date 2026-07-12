@@ -48,4 +48,17 @@ describe("chat streaming store", () => {
     useChatStore.getState().finalizeStream("agent-1", "s1");
     expect(useChatStore.getState().streamingDrafts["agent-1"]?.text).toBe("new reply");
   });
+
+  it("openChat can pin an anchored conversation id", () => {
+    useChatStore.setState({
+      openChatIds: [],
+      minimizedIds: ["agent-1"],
+      activeConversationIds: {},
+    });
+    useChatStore.getState().openChat("agent-1", "conv-42");
+    const state = useChatStore.getState();
+    expect(state.openChatIds).toContain("agent-1");
+    expect(state.minimizedIds).not.toContain("agent-1");
+    expect(state.activeConversationIds["agent-1"]).toBe("conv-42");
+  });
 });

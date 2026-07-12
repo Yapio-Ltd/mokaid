@@ -123,6 +123,8 @@ defmodule MokaidWeb.JSON do
       attachments: task_attachments(loaded(task.drive_items)),
       latest_run: latest_run(loaded(task.execution_runs)),
       pending_approval: pending_approval(loaded(task.approval_requests)),
+      conversation_id: get_in(task.metadata || %{}, ["conversation_id"]),
+      chat_agent_id: get_in(task.metadata || %{}, ["chat_agent_id"]),
       inserted_at: task.inserted_at,
       updated_at: task.updated_at
     }
