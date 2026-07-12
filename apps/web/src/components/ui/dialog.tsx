@@ -30,17 +30,17 @@ export function Dialog({
         <DialogPrimitive.Content
           className={cn(
             "mk-dialog-in fixed left-1/2 top-1/2 z-50 w-[440px] max-w-[calc(100vw-2rem)]",
-            "max-h-[min(85vh,calc(100dvh-2rem))] overflow-y-auto rounded-lg bg-surface shadow-lg",
+            "max-h-[min(92vh,calc(100dvh-1.5rem))] overflow-y-auto rounded-xl bg-surface shadow-lg",
             className,
           )}
         >
-          <div className="flex items-start justify-between px-5 py-4">
-            <div>
-              <DialogPrimitive.Title className="text-sm font-semibold text-text">
+          <div className="flex items-start justify-between px-6 py-5 md:px-8">
+            <div className="pr-4">
+              <DialogPrimitive.Title className="text-base font-semibold text-text">
                 {title}
               </DialogPrimitive.Title>
               {description && (
-                <DialogPrimitive.Description className="mt-0.5 text-xs text-text-muted">
+                <DialogPrimitive.Description className="mt-1 text-sm text-text-muted">
                   {description}
                 </DialogPrimitive.Description>
               )}
@@ -52,9 +52,9 @@ export function Dialog({
               <X size={16} />
             </DialogPrimitive.Close>
           </div>
-          <div className="px-5 py-4">{children}</div>
+          <div className="px-6 py-5 md:px-8 md:py-6">{children}</div>
           {footer && (
-            <div className="flex items-center justify-end gap-2 px-5 py-3">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 md:px-8">
               {footer}
             </div>
           )}

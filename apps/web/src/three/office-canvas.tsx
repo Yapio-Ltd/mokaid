@@ -10,6 +10,7 @@ import {
 import { toVisualState } from "@mokaid/shared-types";
 import { UploadCloud } from "lucide-react";
 import type { Agent } from "@/api/types";
+import { useAssets3d } from "@/api/hooks";
 import { env } from "@/lib/env";
 import { useSceneStore } from "@/stores/scene-store";
 import { useChatStore } from "@/stores/chat-store";
@@ -20,6 +21,7 @@ import { applyLabelPositions } from "./label-overlay";
 import { AgentStatusBadge } from "@/components/ui/status";
 import { Avatar } from "@/components/ui/avatar";
 import { DropDispatchModal } from "@/components/modals/drop-dispatch-modal";
+import { DEFAULT_AVATAR_CDN_PATH } from "./agent-model";
 
 interface BubblePosition {
   x: number;
@@ -29,7 +31,11 @@ interface BubblePosition {
 
 const MAX_OFFICE_SEATS = 9;
 
-function toSceneAgents(agents: Agent[], typingIds: string[]): SceneAgent[] {
+function toSceneAgents(
+  agents: Agent[],
+  typingIds: string[],
+  assetCdnById: Map<string, string>,
+): SceneAgent[] {
   const typing = new Set(typingIds);
   return agents
     .filter((a) => a.status !== "archived")
@@ -38,6 +44,10 @@ function toSceneAgents(agents: Agent[], typingIds: string[]): SceneAgent[] {
       // An agent composing a chat reply visibly types at its desk, whatever
       // its task status is.
       const isTyping = typing.has(agent.id);
+      const avatarCdnPath =
+        agent.avatar_cdn_path ||
+        (agent.avatar_asset_id && assetCdnById.get(agent.avatar_asset_id)) ||
+        DEFAULT_AVATAR_CDN_PATH;
       return {
         id: agent.id,
         name: agent.display_name,
@@ -56,6 +66,7 @@ function toSceneAgents(agents: Agent[], typingIds: string[]): SceneAgent[] {
           : agent.current_task_id
             ? "Working on task"
             : null,
+        avatarCdnPath,
       };
     });
 }
@@ -184,9 +195,17 @@ export function OfficeCanvas({
   const setFps = useSceneStore((s) => s.setFps);
 
   const typingAgentIds = useChatStore((s) => s.typingAgentIds);
+  const { data: characterAssets } = useAssets3d("character");
+  const assetCdnById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const asset of characterAssets ?? []) {
+      map.set(asset.id, asset.cdn_path || asset.url);
+    }
+    return map;
+  }, [characterAssets]);
   const sceneAgents = useMemo(
-    () => toSceneAgents(agents, typingAgentIds),
-    [agents, typingAgentIds],
+    () => toSceneAgents(agents, typingAgentIds, assetCdnById),
+    [agents, typingAgentIds, assetCdnById],
   );
   const disable3d = env.VITE_DISABLE_3D || webglFailed;
 

@@ -22,6 +22,10 @@ interface ChatState {
   streamingDrafts: Record<string, StreamingDraft>;
   /** streamIds that already received their final message — reject late chunks. */
   finalizedStreamIds: Record<string, true>;
+  /** Active conversation id per agent. null = latest / legacy. */
+  activeConversationIds: Record<string, string | null>;
+  /** When true the conversation list sidebar is shown for this agent. */
+  historyOpenIds: string[];
   soundEnabled: boolean;
   openChat: (agentId: string) => void;
   closeChat: (agentId: string) => void;
@@ -29,9 +33,13 @@ interface ChatState {
   setAgentTyping: (agentId: string) => void;
   clearAgentTyping: (agentId: string) => void;
   appendStreamChunk: (agentId: string, streamId: string, chunk: string) => void;
+  markStreamDone: (agentId: string, streamId: string) => void;
   finalizeStream: (agentId: string, streamId?: string | null) => void;
   clearStreamingDraft: (agentId: string) => void;
+  setActiveConversation: (agentId: string, conversationId: string | null) => void;
+  toggleHistory: (agentId: string) => void;
   toggleSound: () => void;
+  setSoundEnabled: (enabled: boolean) => void;
 }
 
 const typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -42,6 +50,8 @@ export const useChatStore = create<ChatState>((set) => ({
   typingAgentIds: [],
   streamingDrafts: {},
   finalizedStreamIds: {},
+  activeConversationIds: {},
+  historyOpenIds: [],
   soundEnabled: localStorage.getItem(SOUND_PREF_KEY) !== "off",
 
   openChat: (agentId) =>
@@ -103,6 +113,21 @@ export const useChatStore = create<ChatState>((set) => ({
       };
     }),
 
+  markStreamDone: (agentId, streamId) =>
+    set((s) => {
+      const current = s.streamingDrafts[agentId];
+      return {
+        streamingDrafts:
+          current?.streamId === streamId
+            ? {
+                ...s.streamingDrafts,
+                [agentId]: { ...current, finalized: true },
+              }
+            : s.streamingDrafts,
+        finalizedStreamIds: { ...s.finalizedStreamIds, [streamId]: true },
+      };
+    }),
+
   finalizeStream: (agentId, streamId) =>
     set((s) => {
       const current = s.streamingDrafts[agentId];
@@ -127,10 +152,28 @@ export const useChatStore = create<ChatState>((set) => ({
       return { streamingDrafts: rest };
     }),
 
+  setActiveConversation: (agentId, conversationId) =>
+    set((s) => ({
+      activeConversationIds: { ...s.activeConversationIds, [agentId]: conversationId },
+      historyOpenIds: s.historyOpenIds.filter((id) => id !== agentId),
+    })),
+
+  toggleHistory: (agentId) =>
+    set((s) => ({
+      historyOpenIds: s.historyOpenIds.includes(agentId)
+        ? s.historyOpenIds.filter((id) => id !== agentId)
+        : [...s.historyOpenIds, agentId],
+    })),
+
   toggleSound: () =>
     set((s) => {
       const soundEnabled = !s.soundEnabled;
       localStorage.setItem(SOUND_PREF_KEY, soundEnabled ? "on" : "off");
       return { soundEnabled };
     }),
+
+  setSoundEnabled: (enabled) => {
+    localStorage.setItem(SOUND_PREF_KEY, enabled ? "on" : "off");
+    set({ soundEnabled: enabled });
+  },
 }));

@@ -40,7 +40,8 @@ defmodule Mokaid.AICompletionTest do
   test "completion without artifacts stays in_progress and skips chat Done" do
     %{agent: agent, task: task, run: run} = setup_run!()
 
-    assert {:ok, _} = AI.handle_completion(run.id, %{"summary" => "Need more info", "artifacts" => []})
+    assert {:ok, _} =
+             AI.handle_completion(run.id, %{"summary" => "Need more info", "artifacts" => []})
 
     updated_task = Tasks.get_task(task.workspace_id, task.id)
     assert updated_task.status == "in_progress"

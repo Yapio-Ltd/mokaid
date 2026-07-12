@@ -9,6 +9,7 @@ defmodule Mokaid.AgentChat.ChatMessage do
   schema "agent_chat_messages" do
     belongs_to :workspace, Mokaid.Workspaces.Workspace
     belongs_to :agent, Mokaid.Agents.Agent
+    belongs_to :conversation, Mokaid.AgentChat.Conversation
     belongs_to :author_member, Mokaid.Members.Member
     belongs_to :task, Mokaid.Tasks.Task
 
@@ -24,6 +25,7 @@ defmodule Mokaid.AgentChat.ChatMessage do
     |> cast(attrs, [
       :workspace_id,
       :agent_id,
+      :conversation_id,
       :author_kind,
       :author_member_id,
       :body,

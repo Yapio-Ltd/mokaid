@@ -193,3 +193,51 @@ async def test_deep_analysis_without_file_waits_for_user(phoenix, monkeypatch):
     assert any(kind == "comment" for kind, _ in phoenix.calls)
     assert any(kind == "chat" for kind, _ in phoenix.calls)
     assert not any(kind == "complete" for kind, _ in phoenix.calls)
+
+
+def test_is_refusal_detects_ethics_and_policy_messages():
+    assert runner._is_refusal(
+        "I understand the request, but I cannot help with this task because "
+        "it involves creating symbols associated with harmful historical regimes."
+    )
+    assert runner._is_refusal(
+        "Je ne peux pas effectuer cette tâche pour des raisons éthiques."
+    )
+    assert runner._is_refusal("Blocked by the content policy of the provider.")
+    assert not runner._is_refusal("Here's the resized avatar — let me know if you want tweaks!")
+    assert not runner._is_refusal("")
+
+
+async def test_deep_refusal_without_tools_fails(phoenix, monkeypatch):
+    async def fake_deep(request, ctx, state, phoenix_client, toolbox, mcp_tools, wait_fn):
+        return {
+            "summary": (
+                "I understand the request, but I cannot help with this task "
+                "because it involves historically harmful symbols."
+            ),
+            "artifacts": [],
+        }
+
+    monkeypatch.setattr(runner.deep_runner, "is_available", lambda: True)
+    monkeypatch.setattr(runner.deep_runner, "execute", fake_deep)
+
+    req = RunRequest(
+        run_id="run-refusal",
+        workspace_id="ws-1",
+        agent_id="agent-1",
+        task_id="task-1",
+        task_title="Edit avatar",
+        task_description="Add a historically harmful symbol to the avatar",
+        input={
+            "instruction": "Add that symbol to the avatar",
+            "mission_kind": "general",
+            "language": "en",
+            "chat_task": True,
+        },
+    )
+    state = await runner.execute_run(req, phoenix=phoenix)
+
+    assert state.status == RunStatus.FAILED
+    assert state.error and state.error.startswith("content_policy:")
+    assert any(kind == "fail" for kind, _ in phoenix.calls)
+    assert not any(kind == "complete" for kind, _ in phoenix.calls)

@@ -288,11 +288,13 @@ def vadd(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[
     return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
 
 
-# Bind pose is T-pose. Swing arms down around local Z (~80°) before any gesture.
-ARM_DOWN_L = (0.2, 0.05, 1.45)
-ARM_DOWN_R = (0.2, -0.05, -1.45)
-FOREARM_RELAX_L = (-0.4, 0.0, 0.12)
-FOREARM_RELAX_R = (-0.4, 0.0, -0.12)
+# Bind pose is T-pose. Swing arms down to the sides (not behind the back).
+# On this Rigify export, negative Z on .l / positive Z on .r drops the arms
+# forward-of-torso; the previous +1.45 / -1.45 signs pinned them rearward.
+ARM_DOWN_L = (0.10, 0.22, -1.18)
+ARM_DOWN_R = (0.10, -0.22, 1.18)
+FOREARM_RELAX_L = (-0.32, 0.06, 0.10)
+FOREARM_RELAX_R = (-0.32, -0.06, -0.10)
 # Legs: keep rest unless walking — zero deltas reset mid-stride leftovers.
 LEG_REST = (0.0, 0.0, 0.0)
 
@@ -358,61 +360,98 @@ def build_clip(
         add_rot(
             "arm_stretch.l",
             times,
-            [vadd(ARM_DOWN_L, (0.03 * math.sin(u * math.pi * 2 + 1.0), 0.0, 0.04 * math.sin(u * math.pi * 2))) for u in us],
+            [vadd(ARM_DOWN_L, (0.03 * math.sin(u * math.pi * 2 + 1.0), 0.02 * math.sin(u * math.pi * 2), 0.03)) for u in us],
         )
         add_rot(
             "arm_stretch.r",
             times,
-            [vadd(ARM_DOWN_R, (0.03 * math.sin(u * math.pi * 2 + 2.0), 0.0, -0.04 * math.sin(u * math.pi * 2))) for u in us],
+            [vadd(ARM_DOWN_R, (0.03 * math.sin(u * math.pi * 2 + 2.0), -0.02 * math.sin(u * math.pi * 2), -0.03)) for u in us],
         )
         add_rot("forearm_stretch.l", times, [FOREARM_RELAX_L for _ in times])
         add_rot("forearm_stretch.r", times, [FOREARM_RELAX_R for _ in times])
         legs_rest(times)
 
     elif name == "walking":
-        duration = 1.0
-        times = sample_times(duration, fps=36)
+        # In-place walk cycle tuned for this Rigify export.
+        # Thigh bones sit near ±90° on Y in rest — sagittal swing is local Z.
+        # Arms stay in ARM_DOWN and rock on Y (forward/back), opposite the legs.
+        duration = 1.05
+        times = sample_times(duration, fps=40)
         us = [ti / duration for ti in times]
-        # Thigh swing around local X — moderate so it doesn't fight Rigify rest.
-        add_rot("thigh_stretch.l", times, [(0.45 * math.sin(u * math.pi * 2), 0.0, 0.0) for u in us])
-        add_rot("thigh_stretch.r", times, [(0.45 * math.sin(u * math.pi * 2 + math.pi), 0.0, 0.0) for u in us])
+
+        def gait(u: float, phase: float = 0.0) -> float:
+            return math.sin(u * math.pi * 2 + phase)
+
+        # Legs — opposite phase, moderate amplitude (avoid hyperextension)
+        add_rot(
+            "thigh_stretch.l",
+            times,
+            [(0.0, 0.0, 0.50 * gait(u)) for u in us],
+        )
+        add_rot(
+            "thigh_stretch.r",
+            times,
+            [(0.0, 0.0, -0.50 * gait(u)) for u in us],
+        )
         add_rot(
             "leg_stretch.l",
             times,
-            [(0.55 * max(0.0, math.sin(u * math.pi * 2 + math.pi)), 0.0, 0.0) for u in us],
+            [(0.0, 0.0, 0.65 * max(0.0, -gait(u))) for u in us],
         )
         add_rot(
             "leg_stretch.r",
             times,
-            [(0.55 * max(0.0, math.sin(u * math.pi * 2)), 0.0, 0.0) for u in us],
+            [(0.0, 0.0, -0.65 * max(0.0, gait(u))) for u in us],
         )
+        # Feet tip slightly with the stride
+        if "foot.l" in by_name:
+            add_rot("foot.l", times, [(0.18 * max(0.0, gait(u)), 0.0, 0.0) for u in us])
+        if "foot.r" in by_name:
+            add_rot("foot.r", times, [(0.18 * max(0.0, -gait(u)), 0.0, 0.0) for u in us])
+
+        # Arms — hang at sides, swing forward/back opposite same-side leg
         add_rot(
             "arm_stretch.l",
             times,
-            [vadd(ARM_DOWN_L, (0.45 * math.sin(u * math.pi * 2 + math.pi), 0.0, 0.05)) for u in us],
+            [vadd(ARM_DOWN_L, (0.0, 0.30 * gait(u, math.pi), 0.04)) for u in us],
         )
         add_rot(
             "arm_stretch.r",
             times,
-            [vadd(ARM_DOWN_R, (0.45 * math.sin(u * math.pi * 2), 0.0, -0.05)) for u in us],
+            [vadd(ARM_DOWN_R, (0.0, -0.30 * gait(u, math.pi), -0.04)) for u in us],
         )
         add_rot(
             "forearm_stretch.l",
             times,
-            [vadd(FOREARM_RELAX_L, (0.2 * max(0.0, math.sin(u * math.pi * 2 + math.pi)), 0.0, 0.0)) for u in us],
+            [vadd(FOREARM_RELAX_L, (-0.12 * max(0.0, gait(u, math.pi)), 0.0, 0.0)) for u in us],
         )
         add_rot(
             "forearm_stretch.r",
             times,
-            [vadd(FOREARM_RELAX_R, (0.2 * max(0.0, math.sin(u * math.pi * 2)), 0.0, 0.0)) for u in us],
+            [vadd(FOREARM_RELAX_R, (-0.12 * max(0.0, gait(u)), 0.0, 0.0)) for u in us],
         )
-        add_rot("spine_01.x", times, [(0.0, 0.05 * math.sin(u * math.pi * 2 * 2), 0.0) for u in us])
-        add_rot("head.x", times, [(0.0, -0.03 * math.sin(u * math.pi * 2 * 2), 0.0) for u in us])
+
+        # Subtle torso counter-rotation + vertical bob (2 bounces / cycle)
+        add_rot(
+            "spine_01.x",
+            times,
+            [(0.015 * gait(u, 0.3), 0.07 * gait(u), 0.0) for u in us],
+        )
+        add_rot(
+            "spine_02.x",
+            times,
+            [(0.0, 0.04 * gait(u, math.pi), 0.0) for u in us],
+        )
+        add_rot(
+            "head.x",
+            times,
+            [(0.0, -0.04 * gait(u), 0.0) for u in us],
+        )
         if "root.x" in by_name:
             add_trans(
                 "root.x",
                 times,
-                [(0.0, 0.025 * abs(math.sin(u * math.pi * 2 * 2)), 0.0) for u in us],
+                [(0.0, 0.018 * abs(math.sin(u * math.pi * 4)), 0.0) for u in us],
             )
 
     elif name == "typing":

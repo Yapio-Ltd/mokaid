@@ -85,7 +85,8 @@ defmodule Mokaid.Billing.Workers.AutoRechargeWorker do
           ["Owner", "Admin"],
           "billing_auto_recharge_failed",
           "Auto-recharge failed — your card was declined",
-          body: "Update your payment method from the Billing page to keep your AI employees running."
+          body:
+            "Update your payment method from the Billing page to keep your AI employees running."
         )
 
         :ok

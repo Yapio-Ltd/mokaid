@@ -15,6 +15,7 @@ defmodule MokaidWeb.AgentChatController do
           Enum.map(summaries, fn summary ->
             %{
               agent_id: summary.agent_id,
+              conversation_id: summary.conversation_id,
               unread_count: summary.unread_count,
               last_message: Serializer.agent_chat_message(summary.last_message)
             }
@@ -23,10 +24,18 @@ defmodule MokaidWeb.AgentChatController do
     end
   end
 
-  def show(conn, %{"agent_id" => agent_id}) do
+  def show(conn, %{"agent_id" => agent_id} = params) do
     with :ok <- Permissions.authorize(current_member(conn), "agents.view"),
-         %{} = agent <- Agents.get_agent(workspace_id(conn), agent_id) do
-      messages = AgentChat.list_messages(workspace_id(conn), agent.id)
+         %{} = _agent <- Agents.get_agent(workspace_id(conn), agent_id) do
+      messages =
+        case params["conversation_id"] do
+          conv_id when is_binary(conv_id) and conv_id != "" ->
+            AgentChat.list_messages_for_conversation(conv_id)
+
+          _ ->
+            AgentChat.list_messages(workspace_id(conn), agent_id)
+        end
+
       json(conn, %{data: Enum.map(messages, &Serializer.agent_chat_message/1)})
     end
   end
@@ -51,8 +60,31 @@ defmodule MokaidWeb.AgentChatController do
     end
   end
 
-  # Resolves dropped Drive item ids into attachment maps (name/mime/size),
-  # dropping any id that isn't a real file in this workspace.
+  @doc "List all conversations for an agent (newest first)."
+  def conversations(conn, %{"agent_id" => agent_id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "agents.view"),
+         %{} = _agent <- Agents.get_agent(workspace_id(conn), agent_id) do
+      conversations = AgentChat.list_conversations(workspace_id(conn), agent_id)
+      json(conn, %{data: Enum.map(conversations, &Serializer.agent_chat_conversation/1)})
+    end
+  end
+
+  @doc "Start a new conversation with the agent (archives the previous one)."
+  def new_conversation(conn, %{"agent_id" => agent_id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "agents.view"),
+         %{} = _agent <- Agents.get_agent(workspace_id(conn), agent_id),
+         {:ok, conv} <-
+           AgentChat.new_conversation(
+             workspace_id(conn),
+             agent_id,
+             current_member(conn).id
+           ) do
+      conn
+      |> put_status(:created)
+      |> json(%{data: Serializer.agent_chat_conversation(conv)})
+    end
+  end
+
   defp build_attachments(_workspace_id, []), do: []
 
   defp build_attachments(workspace_id, drive_item_ids) do

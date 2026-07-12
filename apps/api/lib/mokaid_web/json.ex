@@ -54,6 +54,7 @@ defmodule MokaidWeb.JSON do
 
   def agent(agent) do
     linked_user = loaded(agent.linked_user)
+    avatar_cdn_path = resolve_avatar_cdn_path(agent.avatar_asset_id)
 
     %{
       id: agent.id,
@@ -64,6 +65,7 @@ defmodule MokaidWeb.JSON do
       email_alias: agent.email_alias,
       avatar_config: agent.avatar_config,
       avatar_asset_id: agent.avatar_asset_id,
+      avatar_cdn_path: avatar_cdn_path,
       role_title: agent.role_title,
       department: agent.department,
       status: agent.status,
@@ -222,12 +224,24 @@ defmodule MokaidWeb.JSON do
     %{
       id: message.id,
       agent_id: message.agent_id,
+      conversation_id: message.conversation_id,
       body: message.body,
       author_kind: message.author_kind,
       author_name: member_user && member_user.full_name,
       attachments: chat_attachments(message.attachments),
       task_id: message.task_id,
       inserted_at: message.inserted_at
+    }
+  end
+
+  def agent_chat_conversation(conversation) do
+    %{
+      id: conversation.id,
+      agent_id: conversation.agent_id,
+      title: conversation.title,
+      status: conversation.status,
+      inserted_at: conversation.inserted_at,
+      updated_at: conversation.updated_at
     }
   end
 
@@ -573,7 +587,23 @@ defmodule MokaidWeb.JSON do
       resource_type: notification.resource_type,
       resource_id: notification.resource_id,
       read_at: notification.read_at,
-      inserted_at: notification.inserted_at
+      inserted_at: notification.inserted_at,
+      agent: notification_agent(Map.get(notification, :agent))
+    }
+  end
+
+  defp notification_agent(nil), do: nil
+
+  defp notification_agent(agent) do
+    %{
+      id: agent.id,
+      display_name: agent.display_name,
+      kind: agent.kind,
+      avatar_config: agent.avatar_config || %{},
+      avatar_cdn_path: resolve_avatar_cdn_path(agent.avatar_asset_id),
+      level: agent.level || 1,
+      xp: agent.xp || 0,
+      xp_for_next_level: agent.xp_for_next_level || 100
     }
   end
 
@@ -597,6 +627,16 @@ defmodule MokaidWeb.JSON do
 
   defp logo_storage_key(workspace) do
     get_in(workspace.settings, ["logo_storage_key"])
+  end
+
+  defp resolve_avatar_cdn_path(nil), do: nil
+  defp resolve_avatar_cdn_path(""), do: nil
+
+  defp resolve_avatar_cdn_path(asset_id) when is_binary(asset_id) do
+    case Mokaid.Assets3d.get_asset(asset_id) do
+      %{cdn_path: path} when is_binary(path) and path != "" -> path
+      _ -> nil
+    end
   end
 
   defp loaded(%Ecto.Association.NotLoaded{}), do: nil

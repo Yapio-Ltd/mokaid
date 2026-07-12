@@ -2,8 +2,12 @@
 
 ## Current state
 
-- **Character**: `avatar_male` GLB with 14 baked `AgentVisualState` clips, served from `/assets3d/avatar_male.<hash>.glb` (also uploaded to S3 `mokaid-assets-3d-*`).
-- **Catalog**: Postgres table `asset_3d` (metadata only) — API `GET /api/assets-3d`.
+- **Characters**: `avatar_male`, `avatar_female`, `avatar_finance`, `avatar_corporate` GLBs with 14 `AgentVisualState` clips.
+  - Female (stylish): Fiverr walking + procedural bake (Mixamo biped).
+  - Female finance: Meshy biped clips mapped to AgentVisualState (`scripts/bake-avatar-finance.py`).
+  - Corporate: Meshy walking + procedural bake (`scripts/bake-avatar-female.py`).
+  - Served from `/assets3d/avatar_*.<hash>.glb` (also on S3 `mokaid-assets-3d-*`).
+- **Catalog**: Postgres table `asset_3d` — API `GET /api/assets-3d`. Agents reference via `avatar_asset_id`.
 - **Office furniture**: still procedural via `asset-manifest.ts` until environment GLBs ship.
 
 ## Delivery requirements for final assets

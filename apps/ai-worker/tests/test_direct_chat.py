@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.agents.direct_chat import _decide, detect_language, _latest_teammate_message
+from app.agents.direct_chat import _decide, _latest_teammate_message, detect_language, reply
 from app.agents.mission_kind import (
     PRODUCER_KINDS,
     detect_mission_kind,
@@ -124,3 +124,33 @@ async def test_decide_malformed_falls_back_to_chat(monkeypatch):
     assert decision["kind"] == "chat"
     assert decision["language"] == "fr"
     assert decision["instruction"] == ""
+
+
+@pytest.mark.asyncio
+async def test_reply_persists_final_message_before_done(monkeypatch, phoenix):
+    async def fake_decide(*_args, **_kwargs):
+        return {"kind": "chat", "instruction": "", "language": "fr"}
+
+    async def fake_stream(**_kwargs):
+        return "Voici la réponse complète."
+
+    monkeypatch.setattr("app.agents.direct_chat.llm.is_configured", lambda: True)
+    monkeypatch.setattr("app.agents.direct_chat._decide", fake_decide)
+    monkeypatch.setattr("app.agents.direct_chat._stream_reply", fake_stream)
+
+    posted = await reply(
+        {
+            "workspace_id": "ws-1",
+            "agent_id": "agent-1",
+            "member_id": "member-1",
+            "agent": {"display_name": "Pablo", "skills": []},
+            "conversation": [{"author": "Tom", "body": "Réponds-moi"}],
+        },
+        phoenix=phoenix,
+    )
+
+    assert posted
+    assert phoenix.calls[-2][0] == "chat"
+    assert phoenix.calls[-2][1]["body"] == "Voici la réponse complète."
+    assert phoenix.calls[-1][0] == "stream"
+    assert phoenix.calls[-1][1]["done"] is True

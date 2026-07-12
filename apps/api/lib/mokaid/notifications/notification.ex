@@ -17,6 +17,9 @@ defmodule Mokaid.Notifications.Notification do
     field :resource_id, :binary_id
     field :read_at, :utc_datetime_usec
 
+    # Populated when listing — agent linked to the resource (task), not persisted.
+    field :agent, :any, virtual: true, default: nil
+
     timestamps()
   end
 

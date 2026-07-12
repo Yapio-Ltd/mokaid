@@ -7,6 +7,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { LogoMark } from "@/components/brand/logo";
 import { useAuthStore } from "@/stores/auth-store";
+import { useChatStore } from "@/stores/chat-store";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 
 const featureToggles = [
@@ -49,6 +50,8 @@ export function SettingsPage() {
   const updateWorkspace = useUpdateWorkspace();
   const workspaceId = useAuthStore((s) => s.workspaceId);
   const startTour = useOnboardingStore((s) => s.startTour);
+  const soundEnabled = useChatStore((s) => s.soundEnabled);
+  const setSoundEnabled = useChatStore((s) => s.setSoundEnabled);
 
   const workspace = data?.data;
   const [name, setName] = useState("");
@@ -178,6 +181,20 @@ export function SettingsPage() {
               <option value="he">עברית</option>
             </select>
           </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Preferences</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <ToggleRow
+            label="Interface sounds"
+            description="Play subtle sounds for messages, task updates, and notifications"
+            checked={soundEnabled}
+            onCheckedChange={setSoundEnabled}
+          />
         </CardBody>
       </Card>
 

@@ -421,8 +421,7 @@ defmodule Mokaid.AI do
             task.created_by_member_id,
             "ai_run_completed",
             "Ready for review: #{task.title}",
-            body:
-              "The agent finished its work. Review the output and approve or request changes.",
+            body: "Finished this task. Review the output and approve or request changes.",
             resource_type: "task",
             resource_id: task.id
           )
@@ -527,7 +526,9 @@ defmodule Mokaid.AI do
     do: String.contains?(mime, "html")
 
   defp html_attachment?(%{"name" => name}) when is_binary(name),
-    do: String.ends_with?(String.downcase(name), ".html") or String.ends_with?(String.downcase(name), ".htm")
+    do:
+      String.ends_with?(String.downcase(name), ".html") or
+        String.ends_with?(String.downcase(name), ".htm")
 
   defp html_attachment?(_), do: false
 
@@ -554,20 +555,30 @@ defmodule Mokaid.AI do
 
   defp looks_french?(_), do: false
 
-  defp maybe_report_failure_to_chat(run, task) do
+  defp maybe_report_failure_to_chat(run, task, error_message) do
     chat_agent_id = get_in(task.metadata || %{}, ["chat_agent_id"])
 
     if is_binary(chat_agent_id) do
       instruction = get_in(task.metadata || %{}, ["instruction"]) || task.title || ""
+      error = if is_binary(error_message), do: error_message, else: run.error
 
       body =
-        if looks_french?(instruction) do
-          "Je suis désolé, j'ai rencontré un problème en travaillant sur « #{task.title} ». Peux-tu reformuler ou réessayer ? Je reste dispo."
-        else
-          "Sorry — I ran into a problem working on “#{task.title}”. Could you rephrase or try again? I'm still here to help."
+        cond do
+          is_binary(error) and String.starts_with?(error, "content_policy: ") ->
+            error
+            |> String.trim_leading("content_policy: ")
+            |> String.trim()
+
+          looks_french?(instruction) ->
+            "Je suis désolé, j'ai rencontré un problème en travaillant sur « #{task.title} ». Peux-tu reformuler ou réessayer ? Je reste dispo."
+
+          true ->
+            "Sorry — I ran into a problem working on “#{task.title}”. Could you rephrase or try again? I'm still here to help."
         end
 
-      Mokaid.AgentChat.post_agent_message(run.workspace_id, chat_agent_id, body)
+      if is_binary(body) and String.trim(body) != "" do
+        Mokaid.AgentChat.post_agent_message(run.workspace_id, chat_agent_id, body)
+      end
     end
 
     :ok
@@ -590,25 +601,28 @@ defmodule Mokaid.AI do
       task = Tasks.get_task(run.workspace_id, run.task_id)
 
       if task do
-        # Keep the task in its current status — but store that the latest run failed.
-        # The frontend reads latest_run.status == "failed" to show a red error banner.
-        # A task parked in "waiting" (approval flow) goes back to to_do so it
-        # doesn't look like it is still waiting on a decision.
-        status_fix = if task.status == "waiting", do: %{"status" => "to_do"}, else: %{}
+        # A failed run must leave the pipeline so the UI stops showing progress
+        # rings. waiting / in_progress go back to to_do for a clean retry.
+        # The frontend also reads latest_run.status == "failed" for the banner.
+        status_fix =
+          if task.status in ["waiting", "in_progress"],
+            do: %{"status" => "to_do"},
+            else: %{}
+
         Tasks.update_task(task, Map.merge(%{"progress_percent" => 0}, status_fix))
 
         Notifications.notify_member(
           run.workspace_id,
           task.created_by_member_id,
           "ai_run_failed",
-          "Task failed: #{task.title}",
-          body: error_message,
+          "Couldn't finish: #{task.title}",
+          body: Notifications.humanize_error(error_message),
           resource_type: "task",
           resource_id: task.id
         )
 
         # Chat-launched task → tell the teammate in the thread, in character.
-        maybe_report_failure_to_chat(run, task)
+        maybe_report_failure_to_chat(run, task, error_message)
       end
 
       Realtime.broadcast_workspace(run.workspace_id, "task.progress_changed", %{

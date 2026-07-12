@@ -41,6 +41,8 @@ export interface Agent {
   email_alias: string | null;
   avatar_config: Partial<AvatarConfig>;
   avatar_asset_id: string | null;
+  /** Resolved /assets3d/... path from the asset_3d catalog. */
+  avatar_cdn_path?: string | null;
   role_title: string | null;
   department: string | null;
   status: AgentStatus;
@@ -578,6 +580,7 @@ export interface ChatAttachment {
 export interface AgentChatMessage {
   id: string;
   agent_id: string;
+  conversation_id: string | null;
   body: string;
   author_kind: "member" | "agent";
   author_name: string | null;
@@ -586,8 +589,18 @@ export interface AgentChatMessage {
   inserted_at: string;
 }
 
+export interface AgentChatConversation {
+  id: string;
+  agent_id: string;
+  title: string | null;
+  status: "active" | "archived";
+  inserted_at: string;
+  updated_at: string;
+}
+
 export interface AgentChatSummary {
   agent_id: string;
+  conversation_id: string | null;
   unread_count: number;
   last_message: AgentChatMessage;
 }
@@ -601,4 +614,15 @@ export interface AppNotification {
   resource_id: string | null;
   read_at: string | null;
   inserted_at: string;
+  /** Agent linked to the task resource, when available. */
+  agent?: {
+    id: string;
+    display_name: string;
+    kind: AgentKind;
+    avatar_config: Partial<AvatarConfig>;
+    avatar_cdn_path?: string | null;
+    level: number;
+    xp: number;
+    xp_for_next_level: number;
+  } | null;
 }

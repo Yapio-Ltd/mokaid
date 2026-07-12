@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import {
   Check,
@@ -19,13 +19,8 @@ import {
   useDeleteAgent,
 } from "@/api/hooks";
 import { DetailPanel } from "@/components/ui/detail-panel";
-import { Avatar } from "@/components/ui/avatar";
-import { AgentLevelRing } from "@/components/agents/agent-level-ring";
+import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { AgentStatusBadge, TaskStatusBadge } from "@/components/ui/status";
-
-const AgentHeadPreview3D = lazy(() =>
-  import("@/three/agent-preview").then((m) => ({ default: m.AgentHeadPreview3D })),
-);
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Badge } from "@/components/ui/badge";
 import { AgentMcpMatrix } from "@/components/mcp/agent-mcp-matrix";
@@ -228,14 +223,7 @@ function ProgressionTab({ agent }: { agent: Agent }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-4 rounded-xl bg-surface-raised/60 p-4">
-        <AgentLevelRing level={level} xp={xp} xpForNext={xpForNext} size="lg">
-          <Avatar
-            name={agent.display_name}
-            size="lg"
-            isAi
-            color={agent.avatar_config?.primary_color}
-          />
-        </AgentLevelRing>
+        <AgentAvatar agent={{ ...agent, level, xp, xp_for_next_level: xpForNext }} size="lg" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-text">Level {level}</p>
           <div className="mt-1.5">
@@ -340,32 +328,7 @@ export function AgentProfilePanel({
         <div className="flex flex-col gap-0">
           {/* Header */}
           <div className="flex flex-col items-center gap-3 px-6 pb-5 pt-4">
-            <AgentLevelRing
-              level={agent.level}
-              xp={agent.xp}
-              xpForNext={agent.xp_for_next_level}
-              size="xl"
-              showBadge={agent.kind === "ai"}
-            >
-              <div className="h-20 w-20 overflow-hidden rounded-full border border-border-strong bg-surface-raised">
-                <Suspense
-                  fallback={
-                    <Avatar
-                      name={agent.display_name}
-                      size="xl"
-                      isAi={agent.kind === "ai"}
-                      color={agent.avatar_config?.primary_color}
-                    />
-                  }
-                >
-                  <AgentHeadPreview3D
-                    name={agent.display_name}
-                    color={agent.avatar_config?.primary_color ?? (agent.kind === "ai" ? "#5936d1" : "#472aa8")}
-                    size={80}
-                  />
-                </Suspense>
-              </div>
-            </AgentLevelRing>
+            <AgentAvatar agent={agent} size="xl" showBadge={agent.kind === "ai"} />
 
             <div className="flex flex-col items-center gap-1">
               <EditableName value={agent.display_name} onSave={handleRename} />

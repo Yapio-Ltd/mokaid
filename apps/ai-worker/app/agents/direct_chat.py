@@ -164,13 +164,10 @@ async def _stream_reply(
     """Streams a pure chat reply (no control header) and returns the full text."""
     text_parts: list[str] = []
     buffer = ""
-    streamed = False
 
     async def flush(chunk: str) -> None:
-        nonlocal streamed
         if not chunk:
             return
-        streamed = True
         try:
             await phoenix.stream_agent_chat_chunk(
                 workspace_id, agent_id, stream_id, chunk
@@ -197,14 +194,6 @@ async def _stream_reply(
     if buffer:
         text_parts.append(buffer)
         await flush(buffer)
-
-    if streamed:
-        try:
-            await phoenix.stream_agent_chat_chunk(
-                workspace_id, agent_id, stream_id, "", done=True
-            )
-        except Exception as exc:  # noqa: BLE001
-            log.warning("direct_chat_stream_failed", error=str(exc))
 
     return "".join(text_parts).strip()
 
@@ -286,6 +275,15 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
         stream_id=stream_id,
     )
     if posted:
+        # Persist and broadcast the canonical message before closing its
+        # typewriter stream. A `done` sent first could clear the draft while
+        # the final message was still in flight (or during a socket reconnect).
+        try:
+            await phoenix.stream_agent_chat_chunk(
+                workspace_id, agent_id, stream_id, "", done=True
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("direct_chat_stream_finalize_failed", error=str(exc))
         log.info(
             "direct_chat_replied",
             agent_id=agent_id,

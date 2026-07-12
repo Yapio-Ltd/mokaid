@@ -67,6 +67,8 @@ defmodule MokaidWeb.Router do
     get "/agents/:agent_id/chat", AgentChatController, :show
     post "/agents/:agent_id/chat", AgentChatController, :create
     post "/agents/:agent_id/chat/read", AgentChatController, :mark_read
+    get "/agents/:agent_id/conversations", AgentChatController, :conversations
+    post "/agents/:agent_id/conversations/new", AgentChatController, :new_conversation
 
     post "/dispatch/analyze", DispatchController, :analyze
     post "/dispatch/confirm", DispatchController, :confirm

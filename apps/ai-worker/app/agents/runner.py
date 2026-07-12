@@ -266,6 +266,22 @@ async def _execute_deep(
             await _pause_for_user_input(request, phoenix, state, kind=kind)
             return state
 
+        # Agent refused (ethics / content policy) without producing anything —
+        # treat as failure so the task leaves in_progress.
+        refusal_text = (output.get("summary") or "").strip()
+        if not has_deliverable and not state.tool_calls and _is_refusal(refusal_text):
+            error_msg = "content_policy: " + refusal_text[:200]
+            await _post_refusal_message(request, phoenix, refusal_text)
+            state.status = RunStatus.FAILED
+            state.error = error_msg
+            await phoenix.fail_run(request.run_id, error_msg)
+            log.info(
+                "deep_run_failed_refusal",
+                run_id=request.run_id,
+                kind=kind,
+            )
+            return state
+
         if (errors and not has_deliverable) or (producer and not has_deliverable):
             lang = language_for_request(request)
             if errors:
@@ -317,6 +333,52 @@ async def _execute_deep(
         log.error("deep_run_failed", run_id=request.run_id, error=state.error)
 
     return state
+
+
+_REFUSAL_PATTERNS = [
+    r"je ne (peux|puis) pas (aider|assister|effectuer|réaliser|faire|compléter|terminer)",
+    r"i (can't|cannot|am unable to|won't) (help|assist|complete|do|finish|perform)",
+    r"i understand.{0,40}(but|however).{0,20}(cannot|can't|won't)",
+    r"content policy",
+    r"politique de contenu",
+    r"safety (system|policy|guidelines)",
+    r"(symboles?|éléments?) .*(historique|nuisible|offens)",
+    r"\b(ethically|éthique|éthique?ment)\b",
+    r"\b(harmful|nuisible|inappropri[ée]?)\b",
+    r"historically harmful",
+    r"régimes? historiques?",
+]
+
+
+def _is_refusal(summary: str) -> bool:
+    """True when the agent's closing message is a content/ethics refusal."""
+    if not summary or not summary.strip():
+        return False
+    text = summary.strip().lower()
+    return any(re.search(pattern, text, re.IGNORECASE) for pattern in _REFUSAL_PATTERNS)
+
+
+async def _post_refusal_message(
+    request: RunRequest, phoenix: PhoenixClient, text: str
+) -> None:
+    """Posts the agent's refusal to the task thread (chat DM is handled by
+    Phoenix handle_failure using the content_policy error body)."""
+    body = (text or "").strip()
+    if not body:
+        return
+    # Chat-born missions: Phoenix maybe_report_failure_to_chat posts the
+    # content_policy body — avoid a duplicate bubble here.
+    if request.input.get("chat_task"):
+        return
+    try:
+        await phoenix.post_task_comment(
+            request.workspace_id,
+            request.task_id,
+            body,
+            agent_id=request.agent_id,
+        )
+    except Exception as exc:  # noqa: BLE001 — messaging is best-effort
+        log.warning("refusal_message_post_failed", run_id=request.run_id, error=str(exc))
 
 
 async def _pause_for_user_input(
@@ -380,11 +442,27 @@ async def _force_producer_tool(
     tool_input: dict = {"brief": brief} if tool_name == "generate_website" else {}
     if tool_name == "draft_document":
         tool_input = {"title": request.task_title or "Document", "brief": brief}
-    if tool_name == "analyze_file":
+    if tool_name in ("analyze_file", "transform_image", "transcribe_audio", "extract_document_text"):
         files = request.attached_files
         if not files:
             return []
-        tool_input = {"file_url": files[0].download_url or "", "question": brief}
+        # Prefer user input over agent output, then the most recent match.
+        inputs = [f for f in files if f.source != "agent_output"]
+        chosen = (inputs or files)[-1]
+        file_url = chosen.download_url or ""
+        if tool_name == "analyze_file":
+            tool_input = {"file_url": file_url, "question": brief}
+        elif tool_name == "transform_image":
+            tool_input = {
+                "file_url": file_url,
+                "instruction": brief,
+                "original_filename": chosen.name or "",
+            }
+        else:
+            tool_input = {
+                "file_url": file_url,
+                "original_filename": chosen.name or "",
+            }
 
     call = ToolCall(tool=tool_name, input=tool_input, risk=risk_for_tool(tool_name))
     try:

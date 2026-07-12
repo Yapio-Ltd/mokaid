@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiUpload } from "./client";
 import type {
   Agent,
+  AgentChatConversation,
   AgentChatMessage,
   AgentChatSummary,
   AgentProgression,
@@ -1108,12 +1109,15 @@ export function useAgentChats() {
   });
 }
 
-export function useAgentChatMessages(agentId: string | null) {
+export function useAgentChatMessages(agentId: string | null, conversationId?: string | null) {
   const key = useWorkspaceKey("agent-chat");
   return useQuery({
-    queryKey: [...key, agentId],
+    queryKey: [...key, agentId, conversationId ?? null],
     enabled: agentId != null,
-    queryFn: () => apiFetch<Envelope<AgentChatMessage[]>>(`/api/agents/${agentId}/chat`),
+    queryFn: () => {
+      const qs = conversationId ? `?conversation_id=${conversationId}` : "";
+      return apiFetch<Envelope<AgentChatMessage[]>>(`/api/agents/${agentId}/chat${qs}`);
+    },
   });
 }
 
@@ -1128,17 +1132,22 @@ export function useSendAgentChatMessage(agentId: string) {
         body: payload,
       });
     },
-    // Insert the sent message straight into the thread cache so it shows
-    // instantly; the realtime broadcast dedupes on id.
     onSuccess: (result) => {
-      queryClient.setQueryData<Envelope<AgentChatMessage[]>>(
-        ["agent-chat", workspaceId, agentId],
-        (prev) => {
+      const convId = result.data.conversation_id ?? null;
+      const key = ["agent-chat", workspaceId, agentId, convId];
+      queryClient.setQueryData<Envelope<AgentChatMessage[]>>(key, (prev) => {
+        if (!prev) return prev;
+        if (prev.data.some((m) => m.id === result.data.id)) return prev;
+        return { ...prev, data: [...prev.data, result.data] };
+      });
+      const legacyKey = ["agent-chat", workspaceId, agentId, null];
+      if (convId) {
+        queryClient.setQueryData<Envelope<AgentChatMessage[]>>(legacyKey, (prev) => {
           if (!prev) return prev;
           if (prev.data.some((m) => m.id === result.data.id)) return prev;
           return { ...prev, data: [...prev.data, result.data] };
-        },
-      );
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["agent-chats"] });
     },
   });
@@ -1150,5 +1159,35 @@ export function useMarkAgentChatRead() {
     mutationFn: (agentId: string) =>
       apiFetch<{ data: { ok: boolean } }>(`/api/agents/${agentId}/chat/read`, { method: "POST" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agent-chats"] }),
+  });
+}
+
+export function useAgentConversations(agentId: string | null) {
+  const key = useWorkspaceKey("agent-conversations");
+  return useQuery({
+    queryKey: [...key, agentId],
+    enabled: agentId != null,
+    queryFn: () =>
+      apiFetch<Envelope<AgentChatConversation[]>>(`/api/agents/${agentId}/conversations`),
+  });
+}
+
+export function useNewConversation(agentId: string) {
+  const queryClient = useQueryClient();
+  const workspaceId = useAuthStore((s) => s.workspaceId);
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<Envelope<AgentChatConversation>>(
+        `/api/agents/${agentId}/conversations/new`,
+        { method: "POST" },
+      ),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["agent-conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["agent-chats"] });
+      queryClient.setQueryData<Envelope<AgentChatMessage[]>>(
+        ["agent-chat", workspaceId, agentId, result.data.id],
+        { data: [] },
+      );
+    },
   });
 }

@@ -47,7 +47,7 @@ def detect_mission_kind(request: RunRequest) -> str:
 
     if re.search(r"\b(site|website|landing|page web|html|vitrine)\b", text):
         return "website"
-    if re.search(r"\b(image|logo|photo|picture|design|visuel)\b", text):
+    if re.search(r"\b(image|logo|photo|picture|design|visuel|avatar)\b", text):
         return "image"
     if re.search(r"\b(rapport|report|document|résumé|resume|brief|markdown)\b", text):
         return "document"

@@ -11,6 +11,8 @@ export interface SceneAgent {
   color: string;
   seatIndex: number;
   currentTaskTitle: string | null;
+  /** Resolved CDN/public path for the agent's 3D avatar GLB. */
+  avatarCdnPath?: string | null;
 }
 
 export interface SceneCallbacks {

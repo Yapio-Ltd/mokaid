@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
-import type { AgentChatMessage, BillingOverview, Envelope } from "@/api/types";
+import type { Agent, AgentChatMessage, BillingOverview, Envelope } from "@/api/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "@/stores/toast-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -9,6 +9,7 @@ import { useChatStore } from "@/stores/chat-store";
 import { useMissionPlanStore, type MissionPlanStep } from "@/stores/mission-plan-store";
 import { useTaskTypingStore } from "@/stores/task-typing-store";
 import { playSound } from "@/lib/sounds";
+import { useReviewQueueStore } from "@/stores/review-queue-store";
 import { joinChannel, onSocketOpen } from "./phoenix-client";
 
 type EventPayload = Record<string, unknown>;
@@ -20,24 +21,31 @@ function insertChatMessage(
   agentId: string,
   message: AgentChatMessage,
 ): void {
-  const key = ["agent-chat", workspaceId, agentId];
-  const existing = queryClient.getQueryData<Envelope<AgentChatMessage[]>>(key);
+  const convId = message.conversation_id ?? null;
 
-  if (existing) {
-    // Thread is loaded — append in place (dedupe on id) for instant render.
-    if (!existing.data.some((m) => m.id === message.id)) {
-      queryClient.setQueryData<Envelope<AgentChatMessage[]>>(key, {
-        ...existing,
-        data: [...existing.data, message],
-      });
+  const tryInsert = (cacheKey: (string | null)[]) => {
+    const existing = queryClient.getQueryData<Envelope<AgentChatMessage[]>>(cacheKey);
+    if (existing) {
+      if (!existing.data.some((m) => m.id === message.id)) {
+        queryClient.setQueryData<Envelope<AgentChatMessage[]>>(cacheKey, {
+          ...existing,
+          data: [...existing.data, message],
+        });
+      }
+      return true;
     }
-  } else {
-    // Thread not in cache yet (window just opened, or first message ever) —
-    // invalidate so it refetches with the new message instead of missing it.
-    queryClient.invalidateQueries({ queryKey: key });
+    return false;
+  };
+
+  const keyWithConv = ["agent-chat", workspaceId, agentId, convId];
+  const keyLegacy = ["agent-chat", workspaceId, agentId, null];
+
+  if (!tryInsert(keyWithConv)) {
+    if (!tryInsert(keyLegacy)) {
+      queryClient.invalidateQueries({ queryKey: ["agent-chat", workspaceId, agentId] });
+    }
   }
 
-  // Summaries (last message + unread badge) always refresh.
   queryClient.invalidateQueries({ queryKey: ["agent-chats"] });
 }
 
@@ -68,6 +76,43 @@ function patchCreditsBalance(
             included_remaining: includedRemaining ?? prev.data.credits.included_remaining,
           },
         },
+      };
+    },
+  );
+}
+
+/** Applies status broadcasts immediately while the background refetch verifies them. */
+function patchAgentStatus(
+  queryClient: QueryClient,
+  workspaceId: string,
+  payload: EventPayload,
+): void {
+  const agentId = str(payload, "agent_id");
+  const status = str(payload, "status");
+  if (!agentId || !status) return;
+
+  const patch = (agent: Agent): Agent =>
+    agent.id === agentId
+      ? {
+          ...agent,
+          status: status as Agent["status"],
+          presence_status:
+            (str(payload, "presence_status") as Agent["presence_status"] | undefined) ??
+            agent.presence_status,
+          current_task_id:
+            payload.current_task_id === null
+              ? null
+              : (str(payload, "current_task_id") ?? agent.current_task_id),
+        }
+      : agent;
+
+  queryClient.setQueriesData<{ data: Agent[] | Agent }>(
+    { queryKey: ["agents", workspaceId] },
+    (previous) => {
+      if (!previous) return previous;
+      return {
+        ...previous,
+        data: Array.isArray(previous.data) ? previous.data.map(patch) : patch(previous.data),
       };
     },
   );
@@ -116,13 +161,24 @@ function maybeToast(event: string, payload: EventPayload): void {
       const status = str(payload, "status");
       if (status === "completed") {
         if (taskId) useUiStore.getState().flashTask(taskId);
-        playSound("task-done");
+        playSound("attention");
+        if (taskId) {
+          useReviewQueueStore.getState().enqueue(
+            {
+              taskId,
+              kind: "in_review",
+              title,
+              agentName: str(payload, "agent_name"),
+            },
+            { open: true },
+          );
+        }
         toast({
-          tone: "success",
-          title: "Ready for review",
-          description: `"${title}": the agent finished. Check the output.`,
+          tone: "warning",
+          title: "Validation required",
+          description: `"${title}": approve or revise the agent's output.`,
           taskId,
-          duration: 8000,
+          duration: 12000,
         });
       } else if (status === "failed") {
         if (taskId) useUiStore.getState().flashTask(taskId);
@@ -139,14 +195,26 @@ function maybeToast(event: string, payload: EventPayload): void {
     }
     case "task.approval_required": {
       playSound("attention");
+      if (taskId) {
+        useReviewQueueStore.getState().enqueue(
+          {
+            taskId,
+            kind: "tool_approval",
+            title: title ?? "Task",
+            approvalRequestId: str(payload, "approval_request_id"),
+            agentName: str(payload, "agent_name"),
+          },
+          { open: true },
+        );
+      }
       toast({
-        tone: "info",
+        tone: "warning",
         title: "Approval needed",
         description: title
           ? `"${title}": the agent is waiting for your go-ahead.`
           : "An agent is waiting for your go-ahead.",
         taskId,
-        duration: 10000,
+        duration: 12000,
       });
       return;
     }
@@ -253,7 +321,26 @@ export function useWorkspaceChannel(): void {
       const done = payload.done === true;
       const chunk = typeof payload.chunk === "string" ? payload.chunk : "";
       if (done) {
-        useChatStore.getState().finalizeStream(agentId, streamId);
+        useChatStore.getState().clearAgentTyping(agentId);
+        useChatStore.getState().markStreamDone(agentId, streamId);
+        const activeConvId = useChatStore.getState().activeConversationIds[agentId] ?? null;
+        const chatKey = ["agent-chat", workspaceId, agentId, activeConvId] as const;
+        void queryClient
+          .invalidateQueries({ queryKey: ["agent-chat", workspaceId, agentId] })
+          .then(() => {
+            const draft = useChatStore.getState().streamingDrafts[agentId];
+            const cached =
+              queryClient.getQueryData<Envelope<AgentChatMessage[]>>(chatKey);
+            const persisted =
+              draft?.streamId === streamId &&
+              cached?.data.some(
+                (message) =>
+                  message.author_kind === "agent" && message.body === draft.text,
+              );
+            if (persisted) {
+              useChatStore.getState().finalizeStream(agentId, streamId);
+            }
+          });
         return;
       }
       if (chunk) {
@@ -266,6 +353,10 @@ export function useWorkspaceChannel(): void {
     // consumption meter ticks down without a refetch.
     const creditsRef = channel.on("credits.updated", (payload: EventPayload) => {
       patchCreditsBalance(queryClient, workspaceId, payload);
+    });
+
+    const agentStatusRef = channel.on("agent.status_changed", (payload: EventPayload) => {
+      patchAgentStatus(queryClient, workspaceId, payload);
     });
 
     // Typing indicator on: broadcast when a member message is queued for an
@@ -303,7 +394,15 @@ export function useWorkspaceChannel(): void {
     let firstOpen = true;
     const offOpen = onSocketOpen(() => {
       if (!firstOpen) {
-        invalidate([["tasks"], ["agents"], ["dashboard"], ["notifications"], ["analytics"]]);
+        invalidate([
+          ["tasks"],
+          ["agents"],
+          ["dashboard"],
+          ["notifications"],
+          ["analytics"],
+          ["agent-chat"],
+          ["agent-chats"],
+        ]);
       }
       firstOpen = false;
     });
@@ -321,6 +420,7 @@ export function useWorkspaceChannel(): void {
       channel.off("agent_chat.message", chatMsgRef);
       channel.off("agent_chat.chunk", chatChunkRef);
       channel.off("credits.updated", creditsRef);
+      channel.off("agent.status_changed", agentStatusRef);
       channel.off("agent_chat.typing", typingRef);
       channel.off("task.agent_typing", taskTypingRef);
       channel.off("task.comment_added", commentRef);

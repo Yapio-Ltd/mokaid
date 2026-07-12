@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowRight, CheckCircle2, Loader2, Sparkles, X } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useToastStore, type ToastTone } from "@/stores/toast-store";
+import { useReviewQueueStore } from "@/stores/review-queue-store";
 import { useUiStore } from "@/stores/ui-store";
 import { cn } from "@/lib/cn";
 
@@ -9,6 +10,7 @@ const toneIcon: Record<ToastTone, typeof Sparkles> = {
   success: CheckCircle2,
   error: AlertTriangle,
   working: Loader2,
+  warning: AlertTriangle,
 };
 
 const toneClasses: Record<ToastTone, string> = {
@@ -16,19 +18,22 @@ const toneClasses: Record<ToastTone, string> = {
   success: "text-success",
   error: "text-danger",
   working: "text-info",
+  warning: "text-warning",
 };
 
-/** Bottom-right realtime toast stack (task lifecycle, agent activity…). */
+/** Top-right realtime toast stack (task lifecycle, agent activity…). */
 export function Toaster() {
   const toasts = useToastStore((s) => s.toasts);
   const dismiss = useToastStore((s) => s.dismiss);
   const selectTask = useUiStore((s) => s.selectTask);
+  const openReview = useReviewQueueStore((s) => s.open);
+  const enqueueReview = useReviewQueueStore((s) => s.enqueue);
   const navigate = useNavigate();
 
   if (toasts.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed bottom-5 right-5 z-[90] flex w-80 flex-col gap-2">
+    <div className="pointer-events-none fixed top-[72px] right-5 z-[90] flex w-80 flex-col-reverse gap-2">
       {toasts.map((toast) => {
         const Icon = toneIcon[toast.tone];
         const clickable = toast.taskId != null;
@@ -40,7 +45,26 @@ export function Toaster() {
               clickable
                 ? () => {
                     dismiss(toast.id);
-                    selectTask(toast.taskId!);
+                    const taskId = toast.taskId!;
+                    if (toast.tone === "warning") {
+                      const store = useReviewQueueStore.getState();
+                      if (!store.queue.some((q) => q.taskId === taskId)) {
+                        enqueueReview(
+                          {
+                            taskId,
+                            kind: toast.title.toLowerCase().includes("approval")
+                              ? "tool_approval"
+                              : "in_review",
+                            title: toast.description?.replace(/^"|"$/g, "") || toast.title,
+                          },
+                          { open: true },
+                        );
+                      } else {
+                        openReview();
+                      }
+                      return;
+                    }
+                    selectTask(taskId);
                     navigate({ to: "/tasks" });
                   }
                 : undefined

@@ -217,7 +217,7 @@ export function TasksPage() {
                       {columnTasks.length}
                     </span>
                   </div>
-                  <div className="flex-1 space-y-2.5 overflow-y-auto px-2.5 pb-3">
+                  <div className="flex-1 space-y-2.5 overflow-y-auto px-2.5 pb-3 pt-2">
                     {columnTasks.map((task) => (
                       <KanbanCard
                         key={task.id}

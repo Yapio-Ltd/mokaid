@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Loader2, Minus, Paperclip, Send, Upload, X } from "lucide-react";
-import type { Agent } from "@/api/types";
+import { History, Loader2, Minus, Paperclip, Plus, Send, Upload, X } from "lucide-react";
+import type { Agent, AgentChatConversation } from "@/api/types";
 import {
   useAgentChatMessages,
+  useAgentConversations,
   useMarkAgentChatRead,
+  useNewConversation,
   useSendAgentChatMessage,
   useUploadDriveFile,
 } from "@/api/hooks";
-import { Avatar } from "@/components/ui/avatar";
-import { AgentLevelRing } from "@/components/agents/agent-level-ring";
+import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { ChatAttachmentView } from "./chat-attachment";
 import { FadeSlide } from "@/components/ui/motion";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -46,20 +47,83 @@ interface PendingFile {
   name: string;
 }
 
+function ConversationList({
+  conversations,
+  activeConvId,
+  onSelect,
+}: {
+  conversations: AgentChatConversation[];
+  activeConvId: string | null;
+  onSelect: (convId: string | null) => void;
+}) {
+  return (
+    <div className="flex flex-1 flex-col overflow-y-auto">
+      <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+        Conversations
+      </p>
+      {conversations.length === 0 && (
+        <p className="px-3 py-2 text-xs text-text-muted">No conversations yet.</p>
+      )}
+      {conversations.map((conv) => {
+        const isActive = conv.id === activeConvId;
+        const title = conv.title || "New conversation";
+        const date = new Date(conv.inserted_at);
+        const dateStr = date.toLocaleDateString([], { day: "numeric", month: "short" });
+        return (
+          <button
+            key={conv.id}
+            type="button"
+            onClick={() => onSelect(conv.id)}
+            className={cn(
+              "flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-surface-hover",
+              isActive && "bg-primary-muted/40",
+            )}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[12px] font-medium text-text">{title}</span>
+              <span className="block text-[10px] text-text-muted">
+                {dateStr}
+                {conv.status === "archived" && " · archived"}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ChatWindow({ agent }: { agent: Agent }) {
   const closeChat = useChatStore((s) => s.closeChat);
   const toggleMinimize = useChatStore((s) => s.toggleMinimize);
   const minimized = useChatStore((s) => s.minimizedIds.includes(agent.id));
   const typing = useChatStore((s) => s.typingAgentIds.includes(agent.id));
-  const streamedReply = useChatStore((s) => s.streamingDrafts[agent.id]?.text ?? "");
+  const streamingDraft = useChatStore((s) => s.streamingDrafts[agent.id]);
+  const streamedReply = streamingDraft?.text ?? "";
+  const activeConvId = useChatStore((s) => s.activeConversationIds[agent.id] ?? null);
+  const historyOpen = useChatStore((s) => s.historyOpenIds.includes(agent.id));
+  const setActiveConversation = useChatStore((s) => s.setActiveConversation);
+  const toggleHistory = useChatStore((s) => s.toggleHistory);
 
-  const { data } = useAgentChatMessages(agent.id);
+  const { data } = useAgentChatMessages(agent.id, activeConvId);
   const messages = useMemo(() => data?.data ?? [], [data]);
 
+  const { data: convData } = useAgentConversations(agent.id);
+  const conversations = useMemo(() => convData?.data ?? [], [convData]);
+
   const send = useSendAgentChatMessage(agent.id);
+  const newConv = useNewConversation(agent.id);
   const uploadFile = useUploadDriveFile();
   const markRead = useMarkAgentChatRead();
   const markReadMutate = markRead.mutate;
+
+  const handleNewConversation = () => {
+    newConv.mutate(undefined, {
+      onSuccess: (result) => {
+        setActiveConversation(agent.id, result.data.id);
+      },
+    });
+  };
 
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState<PendingFile[]>([]);
@@ -136,7 +200,13 @@ export function ChatWindow({ agent }: { agent: Agent }) {
 
   const online = agent.presence_status === "online";
   const busy = agent.status === "busy" || agent.status === "active";
-  const canSend = (draft.trim().length > 0 || pending.length > 0) && !send.isPending;
+
+  const viewingArchived = useMemo(() => {
+    if (!activeConvId) return false;
+    return conversations.some((c) => c.id === activeConvId && c.status === "archived");
+  }, [activeConvId, conversations]);
+
+  const canSend = !viewingArchived && (draft.trim().length > 0 || pending.length > 0) && !send.isPending;
 
   return (
     <div
@@ -168,19 +238,7 @@ export function ChatWindow({ agent }: { agent: Agent }) {
         className="flex w-full items-center gap-2.5 border-b border-border bg-surface-raised px-3 py-2 text-left transition-colors hover:bg-surface-hover"
       >
         <span className="relative">
-          {agent.kind === "ai" ? (
-            <AgentLevelRing
-              level={agent.level}
-              xp={agent.xp}
-              xpForNext={agent.xp_for_next_level}
-              size="sm"
-              showBadge={false}
-            >
-              <Avatar name={agent.display_name} size="sm" isAi />
-            </AgentLevelRing>
-          ) : (
-            <Avatar name={agent.display_name} size="sm" isAi={false} />
-          )}
+          <AgentAvatar agent={agent} size="sm" showBadge={false} />
           <span
             className={cn(
               "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-surface-raised",
@@ -211,6 +269,35 @@ export function ChatWindow({ agent }: { agent: Agent }) {
           </span>
         </span>
         <span className="flex items-center gap-0.5">
+          <Tooltip content="New conversation">
+            <span
+              role="button"
+              aria-label="New conversation"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleNewConversation();
+              }}
+              className="rounded-md p-1.5 text-text-muted hover:bg-surface-hover hover:text-text"
+            >
+              <Plus size={14} />
+            </span>
+          </Tooltip>
+          <Tooltip content="Conversation history">
+            <span
+              role="button"
+              aria-label="Conversation history"
+              onClick={(event) => {
+                event.stopPropagation();
+                toggleHistory(agent.id);
+              }}
+              className={cn(
+                "rounded-md p-1.5 text-text-muted hover:bg-surface-hover hover:text-text",
+                historyOpen && "bg-surface-hover text-text",
+              )}
+            >
+              <History size={14} />
+            </span>
+          </Tooltip>
           <span
             role="button"
             aria-label={minimized ? "Expand chat" : "Minimize chat"}
@@ -232,13 +319,21 @@ export function ChatWindow({ agent }: { agent: Agent }) {
         </span>
       </button>
 
-      {!minimized && (
+      {!minimized && historyOpen && (
+        <ConversationList
+          conversations={conversations}
+          activeConvId={activeConvId}
+          onSelect={(convId) => setActiveConversation(agent.id, convId)}
+        />
+      )}
+
+      {!minimized && !historyOpen && (
         <>
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 space-y-2.5 overflow-y-auto px-3 py-3">
             {messages.length === 0 && !typing && (
               <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
-                <Avatar name={agent.display_name} size="lg" isAi={agent.kind === "ai"} />
+                <AgentAvatar agent={agent} size="lg" showRing={false} />
                 <p className="text-sm font-medium text-text">{agent.display_name}</p>
                 <p className="text-xs text-text-muted">
                   Ask a question, or drop a file to put {agent.display_name} to work — they'll deliver
@@ -256,7 +351,7 @@ export function ChatWindow({ agent }: { agent: Agent }) {
                     className={cn("flex items-end gap-2", !isAgent && "justify-end")}
                   >
                     {isAgent && (
-                      <Avatar name={agent.display_name} size="xs" isAi={agent.kind === "ai"} />
+                      <AgentAvatar agent={agent} size="xs" showRing={false} showBadge={false} />
                     )}
                     <div
                       className={cn(
@@ -289,11 +384,13 @@ export function ChatWindow({ agent }: { agent: Agent }) {
                 token, then the persisted message replaces it. */}
             {streamedReply && (
               <div className="flex items-end gap-2">
-                <Avatar name={agent.display_name} size="xs" isAi={agent.kind === "ai"} />
+                <AgentAvatar agent={agent} size="xs" showRing={false} showBadge={false} />
                 <div className="max-w-[78%] rounded-2xl rounded-bl-sm bg-surface-raised px-3 py-2 text-[13px] leading-snug text-text">
                   <p className="whitespace-pre-wrap">
                     {streamedReply}
-                    <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-pulse bg-text-muted align-middle" />
+                    {!streamingDraft?.finalized && (
+                      <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-pulse bg-text-muted align-middle" />
+                    )}
                   </p>
                 </div>
               </div>
@@ -301,7 +398,7 @@ export function ChatWindow({ agent }: { agent: Agent }) {
 
             {typing && !streamedReply && (
               <div className="flex items-end gap-2">
-                <Avatar name={agent.display_name} size="xs" isAi={agent.kind === "ai"} />
+                <AgentAvatar agent={agent} size="xs" showRing={false} showBadge={false} />
                 <div className="rounded-2xl rounded-bl-sm bg-surface-raised px-3 py-2.5">
                   <TypingDots />
                 </div>
@@ -340,51 +437,64 @@ export function ChatWindow({ agent }: { agent: Agent }) {
             </div>
           )}
 
-          {/* Composer */}
-          <div className="flex items-end gap-1.5 border-t border-border px-3 py-2.5">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                void uploadFiles([...(e.target.files ?? [])]);
-                e.target.value = "";
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              aria-label="Attach a file"
-              title="Attach a file"
-              className="rounded-lg p-2 text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
-            >
-              <Paperclip size={15} />
-            </button>
-            <textarea
-              ref={inputRef}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  submit();
-                }
-              }}
-              rows={1}
-              placeholder={`Message ${agent.display_name}…`}
-              className="max-h-24 min-h-[2.25rem] flex-1 resize-none rounded-lg border border-border bg-bg px-3 py-2 text-[13px] text-text placeholder:text-text-disabled focus:border-primary focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!canSend}
-              aria-label="Send message"
-              className="rounded-lg bg-primary p-2 text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-            >
-              <Send size={15} />
-            </button>
-          </div>
+          {/* Composer or archived notice */}
+          {viewingArchived ? (
+            <div className="flex items-center justify-between border-t border-border px-3 py-2.5">
+              <span className="text-[11px] text-text-muted">Archived conversation</span>
+              <button
+                type="button"
+                onClick={() => setActiveConversation(agent.id, null)}
+                className="rounded-md bg-primary px-3 py-1 text-[11px] font-medium text-white hover:opacity-90"
+              >
+                Back to current
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-end gap-1.5 border-t border-border px-3 py-2.5">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  void uploadFiles([...(e.target.files ?? [])]);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Attach a file"
+                title="Attach a file"
+                className="rounded-lg p-2 text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+              >
+                <Paperclip size={15} />
+              </button>
+              <textarea
+                ref={inputRef}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    submit();
+                  }
+                }}
+                rows={1}
+                placeholder={`Message ${agent.display_name}…`}
+                className="max-h-24 min-h-[2.25rem] flex-1 resize-none rounded-lg border border-border bg-bg px-3 py-2 text-[13px] text-text placeholder:text-text-disabled focus:border-primary focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={submit}
+                disabled={!canSend}
+                aria-label="Send message"
+                className="rounded-lg bg-primary p-2 text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+              >
+                <Send size={15} />
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

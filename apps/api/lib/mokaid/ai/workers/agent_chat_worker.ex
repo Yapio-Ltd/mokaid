@@ -9,9 +9,9 @@ defmodule Mokaid.AI.Workers.AgentChatWorker do
   use Oban.Worker,
     queue: :ai_dispatch,
     max_attempts: 2,
-    # Serialize DM replies per agent — concurrent jobs interleave streams and
-    # produce half-cut / double replies.
-    unique: [period: 60, fields: [:args], keys: [:workspace_id, :agent_id]]
+    # Deduplicate retries of the same triggering message without dropping a
+    # distinct message sent to the same agent during the uniqueness window.
+    unique: [period: 60, fields: [:args], keys: [:workspace_id, :agent_id, :message_id]]
 
   import Ecto.Query
 
@@ -25,7 +25,7 @@ defmodule Mokaid.AI.Workers.AgentChatWorker do
     config = Application.fetch_env!(:mokaid, :ai_worker)
     agent = Agents.get_agent(workspace_id, agent_id)
 
-    if agent == nil do
+    if agent == nil or stale_trigger?(workspace_id, agent_id, args["message_id"]) do
       :ok
     else
       payload = %{
@@ -70,10 +70,31 @@ defmodule Mokaid.AI.Workers.AgentChatWorker do
     end
   end
 
+  defp stale_trigger?(_workspace_id, _agent_id, nil), do: false
+
+  defp stale_trigger?(workspace_id, agent_id, message_id) do
+    latest_id =
+      Repo.one(
+        from m in Mokaid.AgentChat.ChatMessage,
+          where:
+            m.workspace_id == ^workspace_id and m.agent_id == ^agent_id and
+              m.author_kind == "member",
+          order_by: [desc: m.inserted_at],
+          limit: 1,
+          select: m.id
+      )
+
+    latest_id != message_id
+  end
+
   defp conversation(workspace_id, agent_id) do
-    workspace_id
-    |> AgentChat.list_messages(agent_id, 14)
-    |> Enum.map(fn message ->
+    messages =
+      case AgentChat.active_conversation(workspace_id, agent_id) do
+        %{id: conv_id} -> AgentChat.list_messages_for_conversation(conv_id, 14)
+        nil -> AgentChat.list_messages(workspace_id, agent_id, 14)
+      end
+
+    Enum.map(messages, fn message ->
       author =
         case message.author_kind do
           "agent" -> "you"

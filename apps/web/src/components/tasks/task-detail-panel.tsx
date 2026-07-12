@@ -54,6 +54,7 @@ import { Select } from "@/components/ui/select";
 import { PriorityBadge, TaskStatusBadge } from "@/components/ui/status";
 import { cn } from "@/lib/cn";
 import { formatBytes, formatDateTime } from "@/lib/format";
+import { humanizeErrorMessage } from "@/lib/notifications";
 
 const NO_PROJECT = "__none__";
 const NO_AGENT = "__none__";
@@ -673,7 +674,7 @@ export function TaskDetailPanel({
                 <div>
                   <p className="text-[12px] font-semibold text-danger">Run failed</p>
                   <p className="mt-0.5 text-[11px] leading-snug text-text-secondary">
-                    {run?.error || "An unexpected error occurred."}
+                    {humanizeErrorMessage(run?.error) || "An unexpected error occurred."}
                   </p>
                 </div>
               </div>

@@ -3,8 +3,8 @@ import { AlertTriangle, Bot, CheckCircle2, ClipboardList, Users } from "lucide-r
 import { useAgents, useTasks, useWorkspace } from "@/api/hooks";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
+import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { Avatar } from "@/components/ui/avatar";
-import { AgentLevelRing } from "@/components/agents/agent-level-ring";
 import { AgentStatusBadge, TaskStatusBadge } from "@/components/ui/status";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -159,11 +159,18 @@ export function DashboardPage() {
                         </td>
                         <td className="px-3 py-2.5 text-text-secondary">
                           <span className="flex items-center gap-2">
-                            <Avatar
-                              name={task.assigned_agent_name}
-                              size="xs"
-                              isAi={task.assigned_agent_kind === "ai"}
-                            />
+                            {(() => {
+                              const agent = agents.find((a) => a.id === task.assigned_agent_id);
+                              return agent ? (
+                                <AgentAvatar agent={agent} size="xs" showRing={false} showBadge={false} />
+                              ) : (
+                                <Avatar
+                                  name={task.assigned_agent_name}
+                                  size="xs"
+                                  isAi={task.assigned_agent_kind === "ai"}
+                                />
+                              );
+                            })()}
                             <span className="max-w-[90px] truncate">
                               {task.assigned_agent_name ?? "Unassigned"}
                             </span>
@@ -204,28 +211,7 @@ export function DashboardPage() {
                       onClick={() => selectAgent(agent.id)}
                       className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-surface-hover mk-focus-ring"
                     >
-                      {agent.kind === "ai" ? (
-                        <AgentLevelRing
-                          level={agent.level}
-                          xp={agent.xp}
-                          xpForNext={agent.xp_for_next_level}
-                          size="sm"
-                        >
-                          <Avatar
-                            name={agent.display_name}
-                            size="sm"
-                            isAi
-                            color={agent.avatar_config?.primary_color}
-                          />
-                        </AgentLevelRing>
-                      ) : (
-                        <Avatar
-                          name={agent.display_name}
-                          size="sm"
-                          isAi={false}
-                          color={agent.avatar_config?.primary_color}
-                        />
-                      )}
+                      <AgentAvatar agent={agent} size="sm" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-xs font-semibold text-text">
                           {agent.display_name}

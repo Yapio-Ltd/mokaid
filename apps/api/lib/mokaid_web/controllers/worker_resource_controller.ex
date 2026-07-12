@@ -190,6 +190,7 @@ defmodule MokaidWeb.WorkerResourceController do
       )
     else
       require Logger
+
       Logger.warning(
         "chat_start_task_skipped agent=#{agent.id} member=#{inspect(member_id)} instruction_empty=#{instruction == ""}"
       )

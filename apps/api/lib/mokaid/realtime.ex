@@ -4,13 +4,10 @@ defmodule Mokaid.Realtime do
   Payloads are intentionally small — clients refetch details as needed.
   """
 
-  alias Phoenix.PubSub
-
-  @pubsub Mokaid.PubSub
-
   def broadcast_workspace(workspace_id, event, payload) do
-    PubSub.broadcast(@pubsub, "workspace:#{workspace_id}", {:realtime, event, payload})
-
+    # Endpoint.broadcast/3 already publishes through Mokaid.PubSub. Publishing
+    # a second raw {:realtime, ...} tuple on the same topic makes every joined
+    # WorkspaceChannel receive an unsupported handle_info message and crash.
     MokaidWeb.Endpoint.broadcast("workspace:#{workspace_id}", event, payload)
   end
 

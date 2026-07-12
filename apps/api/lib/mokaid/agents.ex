@@ -83,35 +83,42 @@ defmodule Mokaid.Agents do
 
   @doc "Transitions an agent's status, records the event, broadcasts realtime update."
   def change_status(%Agent{} = agent, new_status, opts \\ []) do
-    Repo.transaction(fn ->
-      {:ok, updated} =
-        agent
-        |> Agent.status_changeset(%{
-          "status" => new_status,
-          "current_task_id" => Keyword.get(opts, :current_task_id, agent.current_task_id),
-          "last_active_at" => DateTime.utc_now()
+    result =
+      Repo.transaction(fn ->
+        {:ok, updated} =
+          agent
+          |> Agent.status_changeset(%{
+            "status" => new_status,
+            "current_task_id" => Keyword.get(opts, :current_task_id, agent.current_task_id),
+            "last_active_at" => DateTime.utc_now()
+          })
+          |> Repo.update()
+
+        %AgentStatusEvent{}
+        |> AgentStatusEvent.changeset(%{
+          "workspace_id" => agent.workspace_id,
+          "agent_id" => agent.id,
+          "from_status" => agent.status,
+          "to_status" => new_status,
+          "reason" => Keyword.get(opts, :reason)
         })
-        |> Repo.update()
+        |> Repo.insert!()
 
-      %AgentStatusEvent{}
-      |> AgentStatusEvent.changeset(%{
-        "workspace_id" => agent.workspace_id,
-        "agent_id" => agent.id,
-        "from_status" => agent.status,
-        "to_status" => new_status,
-        "reason" => Keyword.get(opts, :reason)
-      })
-      |> Repo.insert!()
+        updated
+      end)
 
-      Realtime.broadcast_workspace(agent.workspace_id, "agent.status_changed", %{
+    # Broadcast only after commit. A client refetch triggered inside the
+    # transaction can otherwise read the old status and remain stale.
+    with {:ok, updated} <- result do
+      Realtime.broadcast_workspace(updated.workspace_id, "agent.status_changed", %{
         agent_id: agent.id,
         status: new_status,
         presence_status: updated.presence_status,
         current_task_id: updated.current_task_id
       })
 
-      updated
-    end)
+      {:ok, updated}
+    end
   end
 
   def link_user(%Agent{} = agent, user_id, member_id, actor) do

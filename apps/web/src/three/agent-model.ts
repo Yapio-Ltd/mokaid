@@ -22,7 +22,7 @@ import type { AgentVisualState } from "@mokaid/shared-types";
 import { env } from "@/lib/env";
 
 /** Hashed filename matching assets/optimized + S3 upload + asset_3d seed. */
-export const DEFAULT_AVATAR_CDN_PATH = "/assets3d/avatar_male.e84cdc437276.glb";
+export const DEFAULT_AVATAR_CDN_PATH = "/assets3d/avatar_male.fb67abfedaea.glb";
 
 const VISUAL_STATES: AgentVisualState[] = [
   "idle",
@@ -41,11 +41,12 @@ const VISUAL_STATES: AgentVisualState[] = [
   "requesting_approval",
 ];
 
-/** Clip name aliases → AgentVisualState (GLB + legacy RobotExpressive). */
+/** Clip name aliases → AgentVisualState (GLB + Mixamo + legacy). */
 const CLIP_ALIASES: Record<string, AgentVisualState> = {
   idle: "idle",
   walk: "walking",
   walking: "walking",
+  walking_man: "walking",
   typing: "typing",
   working: "working",
   thinking: "thinking",
@@ -137,6 +138,9 @@ export function loadAgentModelTemplate(
     let footOffset = 0;
 
     if (root) {
+      // Mixamo exports often put 0.01 on Armature (cm→m). Measure against a
+      // unit root scale so spawn can apply an absolute meters scale.
+      root.scaling.setAll(1);
       root.computeWorldMatrix(true);
       const bounds = root.getHierarchyBoundingVectors(true);
       const height = bounds.max.y - bounds.min.y;

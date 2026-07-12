@@ -11,17 +11,173 @@ defmodule Mokaid.AgentChat do
 
   import Ecto.Query
 
-  alias Mokaid.AgentChat.{ChatMessage, ChatRead}
+  alias Mokaid.AgentChat.{ChatMessage, ChatRead, Conversation}
   alias Mokaid.Agents
   alias Mokaid.Realtime
   alias Mokaid.Repo
 
   @history_limit 50
 
+  # ── Conversations ──────────────────────────────────────────────────────
+
+  @doc "Returns the active conversation for an agent, creating one if none exists."
+  def get_or_create_active_conversation(workspace_id, agent_id) do
+    case active_conversation(workspace_id, agent_id) do
+      %Conversation{} = conv -> {:ok, conv}
+      nil -> create_conversation(workspace_id, agent_id)
+    end
+  end
+
+  def active_conversation(workspace_id, agent_id) do
+    Repo.one(
+      from c in Conversation,
+        where:
+          c.workspace_id == ^workspace_id and c.agent_id == ^agent_id and
+            c.status == "active",
+        order_by: [desc: c.inserted_at],
+        limit: 1
+    )
+  end
+
+  def get_conversation(workspace_id, conversation_id) do
+    Repo.one(
+      from c in Conversation,
+        where: c.workspace_id == ^workspace_id and c.id == ^conversation_id
+    )
+  end
+
+  def list_conversations(workspace_id, agent_id) do
+    Repo.all(
+      from c in Conversation,
+        where: c.workspace_id == ^workspace_id and c.agent_id == ^agent_id,
+        order_by: [desc: c.inserted_at]
+    )
+  end
+
+  def create_conversation(workspace_id, agent_id, attrs \\ %{}) do
+    %Conversation{}
+    |> Conversation.changeset(
+      Map.merge(%{"workspace_id" => workspace_id, "agent_id" => agent_id}, attrs)
+    )
+    |> Repo.insert()
+  end
+
+  @doc """
+  Starts a fresh conversation: archives the currently active one (saving it
+  to the knowledge base), then creates and returns a new active conversation.
+  """
+  def new_conversation(workspace_id, agent_id, member_id \\ nil) do
+    case active_conversation(workspace_id, agent_id) do
+      %Conversation{} = old ->
+        archive_conversation(old, workspace_id, member_id)
+
+      nil ->
+        :ok
+    end
+
+    create_conversation(workspace_id, agent_id)
+  end
+
+  defp archive_conversation(%Conversation{} = conv, workspace_id, member_id) do
+    conv
+    |> Conversation.changeset(%{"status" => "archived"})
+    |> Repo.update()
+
+    save_conversation_to_knowledge(conv, workspace_id, member_id)
+  end
+
+  @doc "Persists the conversation transcript as knowledge items (agent-scoped + general)."
+  def save_conversation_to_knowledge(%Conversation{} = conv, workspace_id, member_id) do
+    messages =
+      Repo.all(
+        from m in ChatMessage,
+          where: m.conversation_id == ^conv.id,
+          order_by: [asc: m.inserted_at],
+          preload: [author_member: :user]
+      )
+
+    if messages != [] do
+      agent = Agents.get_agent(workspace_id, conv.agent_id)
+      agent_name = if agent, do: agent.display_name, else: "Agent"
+      title = conv.title || auto_title(messages) || "Conversation with #{agent_name}"
+
+      body =
+        messages
+        |> Enum.map(fn m ->
+          author =
+            case m.author_kind do
+              "agent" ->
+                agent_name
+
+              _ ->
+                case m.author_member do
+                  %{user: %{full_name: name}} when is_binary(name) -> name
+                  _ -> "User"
+                end
+            end
+
+          "**#{author}**: #{m.body || "(file)"}"
+        end)
+        |> Enum.join("\n\n")
+
+      base_attrs = %{
+        "title" => title,
+        "type" => "note",
+        "body" => body,
+        "status" => "published",
+        "tags" => ["chat-history"],
+        "created_by_member_id" => member_id
+      }
+
+      Mokaid.Knowledge.create_item(workspace_id, Map.put(base_attrs, "agent_id", conv.agent_id))
+      Mokaid.Knowledge.create_item(workspace_id, base_attrs)
+    end
+
+    :ok
+  end
+
+  defp auto_title(messages) do
+    first_user_msg =
+      Enum.find(messages, fn m -> m.author_kind == "member" && is_binary(m.body) end)
+
+    case first_user_msg do
+      %{body: body} when is_binary(body) ->
+        body
+        |> String.split(~r/[.\n!?]/, parts: 2)
+        |> List.first()
+        |> String.trim()
+        |> String.slice(0, 80)
+
+      _ ->
+        nil
+    end
+  end
+
+  # ── Messages ───────────────────────────────────────────────────────────
+
   def list_messages(workspace_id, agent_id, limit \\ @history_limit) do
+    case active_conversation(workspace_id, agent_id) do
+      %Conversation{id: conv_id} ->
+        list_messages_for_conversation(conv_id, limit)
+
+      nil ->
+        Repo.all(
+          from m in ChatMessage,
+            where:
+              m.workspace_id == ^workspace_id and m.agent_id == ^agent_id and
+                is_nil(m.conversation_id),
+            order_by: [desc: m.inserted_at],
+            limit: ^limit,
+            preload: [author_member: :user]
+        )
+        |> Enum.reverse()
+    end
+  end
+
+  def list_messages_for_conversation(conversation_id, limit \\ @history_limit) do
     Repo.all(
       from m in ChatMessage,
-        where: m.workspace_id == ^workspace_id and m.agent_id == ^agent_id,
+        where: m.conversation_id == ^conversation_id,
         order_by: [desc: m.inserted_at],
         limit: ^limit,
         preload: [author_member: :user]
@@ -41,11 +197,14 @@ defmodule Mokaid.AgentChat do
   def post_member_message(workspace_id, agent, member, body, opts \\ []) do
     attachments = normalize_attachments(Keyword.get(opts, :attachments, []))
 
+    {:ok, conv} = get_or_create_active_conversation(workspace_id, agent.id)
+
     result =
       %ChatMessage{}
       |> ChatMessage.changeset(%{
         "workspace_id" => workspace_id,
         "agent_id" => agent.id,
+        "conversation_id" => conv.id,
         "author_kind" => "member",
         "author_member_id" => member.id,
         "body" => body,
@@ -54,6 +213,7 @@ defmodule Mokaid.AgentChat do
       |> Repo.insert()
 
     with {:ok, message} <- result do
+      maybe_set_conversation_title(conv, body)
       message = Repo.preload(message, author_member: :user)
       mark_read(workspace_id, agent.id, member.id)
       broadcast_message(message)
@@ -66,15 +226,34 @@ defmodule Mokaid.AgentChat do
     end
   end
 
+  defp maybe_set_conversation_title(%Conversation{title: nil} = conv, body)
+       when is_binary(body) and body != "" do
+    title =
+      body
+      |> String.split(~r/[.\n!?]/, parts: 2)
+      |> List.first()
+      |> String.trim()
+      |> String.slice(0, 80)
+
+    if title != "" do
+      conv |> Conversation.changeset(%{"title" => title}) |> Repo.update()
+    end
+  end
+
+  defp maybe_set_conversation_title(_conv, _body), do: :ok
+
   @doc "Agent reply coming back from the AI worker (optionally with files)."
   def post_agent_message(workspace_id, agent_id, body, opts \\ []) do
     attachments = normalize_attachments(Keyword.get(opts, :attachments, []))
+
+    {:ok, conv} = get_or_create_active_conversation(workspace_id, agent_id)
 
     result =
       %ChatMessage{}
       |> ChatMessage.changeset(%{
         "workspace_id" => workspace_id,
         "agent_id" => agent_id,
+        "conversation_id" => conv.id,
         "author_kind" => "agent",
         "body" => body,
         "attachments" => attachments,
@@ -146,10 +325,22 @@ defmodule Mokaid.AgentChat do
       )
       |> Map.new()
 
+    active_convs =
+      Repo.all(
+        from c in Conversation,
+          where: c.workspace_id == ^workspace_id and c.status == "active",
+          distinct: c.agent_id,
+          order_by: [asc: c.agent_id, desc: c.inserted_at]
+      )
+      |> Map.new(&{&1.agent_id, &1})
+
     last_messages
     |> Enum.map(fn message ->
+      conv = Map.get(active_convs, message.agent_id)
+
       %{
         agent_id: message.agent_id,
+        conversation_id: conv && conv.id,
         last_message: message,
         unread_count: Map.get(unread, message.agent_id, 0)
       }
@@ -170,7 +361,12 @@ defmodule Mokaid.AgentChat do
       # message to be an actionable work request it asks us to start a task.
       Realtime.broadcast_workspace(workspace_id, "agent_chat.typing", %{agent_id: agent.id})
 
-      %{workspace_id: workspace_id, agent_id: agent.id, member_id: member.id}
+      %{
+        workspace_id: workspace_id,
+        agent_id: agent.id,
+        member_id: member.id,
+        message_id: message.id
+      }
       |> Mokaid.AI.Workers.AgentChatWorker.new()
       |> Oban.insert()
     end
@@ -251,12 +447,20 @@ defmodule Mokaid.AgentChat do
     t = String.downcase(text)
 
     cond do
-      Regex.match?(~r/\b(site|website|landing|page web|html|vitrine)\b/iu, t) -> "website"
-      Regex.match?(~r/\b(image|logo|photo|picture|design|visuel)\b/iu, t) -> "image"
+      Regex.match?(~r/\b(site|website|landing|page web|html|vitrine)\b/iu, t) ->
+        "website"
+
+      Regex.match?(~r/\b(image|logo|photo|picture|design|visuel)\b/iu, t) ->
+        "image"
+
       Regex.match?(~r/\b(rapport|report|document|résumé|resume|brief|markdown)\b/iu, t) ->
         "document"
-      Regex.match?(~r/\b(analyse|analyze|analyse|transcri)/iu, t) -> "analysis"
-      true -> "general"
+
+      Regex.match?(~r/\b(analyse|analyze|analyse|transcri)/iu, t) ->
+        "analysis"
+
+      true ->
+        "general"
     end
   end
 
@@ -368,12 +572,9 @@ defmodule Mokaid.AgentChat do
   defp normalize_attachment_entry(_), do: %{}
 
   defp broadcast_message(%ChatMessage{} = message, opts \\ []) do
-    # Carry the fully-serialized message so the dock can insert it straight
-    # into its cache — no refetch, so it appears instantly (true realtime).
-    # stream_id lets the client clear the matching typewriter draft and ignore
-    # late chunks from a superseded stream.
     Realtime.broadcast_workspace(message.workspace_id, "agent_chat.message", %{
       agent_id: message.agent_id,
+      conversation_id: message.conversation_id,
       stream_id: Keyword.get(opts, :stream_id),
       message: MokaidWeb.JSON.agent_chat_message(message)
     })

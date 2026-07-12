@@ -18,10 +18,17 @@
   }
 
   /* Squircle corners (superellipse) where the browser supports it.
-     Falls back to regular rounded corners elsewhere. */
+     Falls back to regular rounded corners elsewhere.
+     True circles (rounded-full / 50%) must keep corner-shape:round —
+     squircle + 50% radius becomes a visible rounded square. */
   @supports (corner-shape: squircle) {
     * {
       corner-shape: squircle;
+    }
+
+    .rounded-full,
+    .mk-circle {
+      corner-shape: round;
     }
   }
 
@@ -179,6 +186,29 @@
   }
 }
 
+/* Tight circular busy pulse — stays on the avatar ring (no 2× scale overflow). */
+@keyframes mk-avatar-busy-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.45);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.35);
+  }
+}
+
+@keyframes mk-ring-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
 @keyframes mk-fade-up {
   from {
     opacity: 0;
@@ -285,11 +315,11 @@ table tbody tr {
   animation: mk-panel-in 0.28s var(--mk-ease) both;
 }
 
-/* Realtime toasts: slide up + fade in from the bottom-right corner */
+/* Realtime toasts: slide down + fade in from the top-right corner */
 @keyframes mk-toast-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(-10px) scale(0.98);
   }
   to {
     opacity: 1;

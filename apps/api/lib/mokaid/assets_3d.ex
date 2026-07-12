@@ -10,37 +10,81 @@ defmodule Mokaid.Assets3d do
   alias Mokaid.Assets3d.Asset
   alias Mokaid.Repo
 
-  @avatar_male_clips ~w(
+  @all_clips ~w(
     idle walking typing working thinking talking waiting blocked
     celebrating away offline reviewing learning requesting_approval
   )
 
-  # sha256 of apps/web/public/assets3d/avatar_male.e84cdc437276.glb
-  @avatar_male_sha256 "e84cdc4372762e99f23edeac77299fd8d6557e7abfdb225fad8f5ecb4104ec2c"
-  @avatar_male_bytes 3_665_504
-  @avatar_male_file "avatar_male.e84cdc437276.glb"
-
-  @doc "Idempotent upsert of the default male avatar (safe to rerun from seeds)."
-  def seed_catalog do
-    attrs = %{
+  @catalog [
+    %{
       "slug" => "avatar_male",
       "kind" => "character",
-      "storage_key" => "assets3d/#{@avatar_male_file}",
-      "cdn_path" => "/assets3d/#{@avatar_male_file}",
-      "sha256" => @avatar_male_sha256,
-      "byte_size" => @avatar_male_bytes,
-      "animation_clips" => @avatar_male_clips,
+      "storage_key" => "assets3d/avatar_male.fb67abfedaea.glb",
+      "cdn_path" => "/assets3d/avatar_male.fb67abfedaea.glb",
+      "sha256" => "fb67abfedaea32d84a10ad18575598223b3ffeebfc2fb1b00805d04464d43307",
+      "byte_size" => 4_178_208,
+      "animation_clips" => @all_clips,
       "metadata" => %{
         "display_name" => "Male character",
         "target_height_m" => 1.75,
         "source" => "fiverr + procedural bake"
       }
+    },
+    %{
+      "slug" => "avatar_female",
+      "kind" => "character",
+      "storage_key" => "assets3d/avatar_female.dbad3a7ec430.glb",
+      "cdn_path" => "/assets3d/avatar_female.dbad3a7ec430.glb",
+      "sha256" => "dbad3a7ec430bb9728ca5929d5271e0ace5d0c5275766ab07e847ee27a0422ee",
+      "byte_size" => 575_432,
+      "animation_clips" => @all_clips,
+      "metadata" => %{
+        "display_name" => "Female character",
+        "target_height_m" => 1.65,
+        "source" => "fiverr walking + procedural bake",
+        "skeleton" => "mixamo_biped"
+      }
+    },
+    %{
+      "slug" => "avatar_finance",
+      "kind" => "character",
+      "storage_key" => "assets3d/avatar_finance.9b8810aace2c.glb",
+      "cdn_path" => "/assets3d/avatar_finance.9b8810aace2c.glb",
+      "sha256" => "9b8810aace2cb11fa8d63c85b6d55a048f4c51d6935db173f8c9c1291b75c9e5",
+      "byte_size" => 945_372,
+      "animation_clips" => @all_clips,
+      "metadata" => %{
+        "display_name" => "Female finance",
+        "target_height_m" => 1.65,
+        "source" => "meshy biped + mapped AgentVisualState clips",
+        "skeleton" => "mixamo_biped"
+      }
+    },
+    %{
+      "slug" => "avatar_corporate",
+      "kind" => "character",
+      "storage_key" => "assets3d/avatar_corporate.cbbd97eecc61.glb",
+      "cdn_path" => "/assets3d/avatar_corporate.cbbd97eecc61.glb",
+      "sha256" => "cbbd97eecc61b97c906e54d533e295f10646310f550220a39f09f93f33b8bde0",
+      "byte_size" => 660_308,
+      "animation_clips" => @all_clips,
+      "metadata" => %{
+        "display_name" => "Corporate",
+        "target_height_m" => 1.70,
+        "source" => "meshy corporate walking + procedural bake",
+        "skeleton" => "mixamo_biped"
+      }
     }
+  ]
 
-    case Repo.get_by(Asset, slug: attrs["slug"]) do
-      nil -> %Asset{} |> Asset.changeset(attrs) |> Repo.insert!()
-      asset -> asset |> Asset.changeset(attrs) |> Repo.update!()
-    end
+  @doc "Idempotent upsert of catalog characters (safe to rerun from seeds)."
+  def seed_catalog do
+    Enum.each(@catalog, fn attrs ->
+      case Repo.get_by(Asset, slug: attrs["slug"]) do
+        nil -> %Asset{} |> Asset.changeset(attrs) |> Repo.insert!()
+        asset -> asset |> Asset.changeset(attrs) |> Repo.update!()
+      end
+    end)
 
     backfill_agent_avatar_ids()
     :ok
@@ -49,7 +93,9 @@ defmodule Mokaid.Assets3d do
   defp backfill_agent_avatar_ids do
     case default_character() do
       %{id: id} ->
-        from(a in Mokaid.Agents.Agent, where: is_nil(a.avatar_asset_id) or a.avatar_asset_id == "")
+        from(a in Mokaid.Agents.Agent,
+          where: is_nil(a.avatar_asset_id) or a.avatar_asset_id == ""
+        )
         |> Repo.update_all(set: [avatar_asset_id: id])
 
       _ ->

@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Bot, Plus, Users } from "lucide-react";
 import { useAgents } from "@/api/hooks";
 import { KpiCard } from "@/components/ui/kpi-card";
-import { Avatar } from "@/components/ui/avatar";
 import { AgentStatusBadge } from "@/components/ui/status";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AgentProfilePanel } from "@/components/agents/agent-profile-panel";
-import { AgentLevelRing } from "@/components/agents/agent-level-ring";
+import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { NewAgentModal } from "@/components/modals/new-agent-modal";
 import { cn } from "@/lib/cn";
 import { formatRelative } from "@/lib/format";
@@ -128,7 +127,7 @@ export function AgentsPage() {
             }
           />
         ) : (
-          <div className="mk-card overflow-hidden">
+          <div className="mk-card overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="text-[11px] uppercase tracking-wide text-text-muted">
@@ -151,30 +150,9 @@ export function AgentsPage() {
                       selectedId === agent.id && "bg-primary-muted/40",
                     )}
                   >
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        {agent.kind === "ai" ? (
-                          <AgentLevelRing
-                            level={agent.level}
-                            xp={agent.xp}
-                            xpForNext={agent.xp_for_next_level}
-                            size="sm"
-                          >
-                            <Avatar
-                              name={agent.display_name}
-                              size="sm"
-                              isAi
-                              color={agent.avatar_config?.primary_color}
-                            />
-                          </AgentLevelRing>
-                        ) : (
-                          <Avatar
-                            name={agent.display_name}
-                            size="sm"
-                            isAi={false}
-                            color={agent.avatar_config?.primary_color}
-                          />
-                        )}
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-3 overflow-visible">
+                        <AgentAvatar agent={agent} size="sm" />
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-text">{agent.display_name}</p>
                           <p className="truncate text-[11px] text-text-muted">

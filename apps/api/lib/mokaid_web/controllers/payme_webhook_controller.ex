@@ -42,7 +42,12 @@ defmodule MokaidWeb.PaymeWebhookController do
         # or a serious misconfiguration.
         Logger.error(
           "payme_callback_rejected reason=#{reason} " <>
-            inspect(Map.take(params, ~w(payme_sale_id sale_status transaction_id sale_price price seller_payme_id)))
+            inspect(
+              Map.take(
+                params,
+                ~w(payme_sale_id sale_status transaction_id sale_price price seller_payme_id)
+              )
+            )
         )
     end
 

@@ -23,6 +23,21 @@ describe("chat streaming store", () => {
     expect(useChatStore.getState().streamingDrafts["agent-1"]).toBeUndefined();
   });
 
+  it("keeps the full draft visible on done until the persisted message arrives", () => {
+    useChatStore.setState({ streamingDrafts: {}, finalizedStreamIds: {} });
+    useChatStore.getState().appendStreamChunk("agent-1", "s1", "Réponse complète");
+    useChatStore.getState().markStreamDone("agent-1", "s1");
+
+    expect(useChatStore.getState().streamingDrafts["agent-1"]).toEqual({
+      streamId: "s1",
+      text: "Réponse complète",
+      finalized: true,
+    });
+
+    useChatStore.getState().appendStreamChunk("agent-1", "s1", " en retard");
+    expect(useChatStore.getState().streamingDrafts["agent-1"]?.text).toBe("Réponse complète");
+  });
+
   it("does not clear a different streamId on finalize", () => {
     useChatStore.setState({
       streamingDrafts: {

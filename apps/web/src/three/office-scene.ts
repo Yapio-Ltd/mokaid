@@ -3,8 +3,8 @@
  *
  * The 3D world is fully decoupled from React: it is created once, receives
  * agent updates through `updateAgents`, and reports interactions through
- * callbacks. Avatars use the catalog male GLB; furniture remains procedural
- * until environment assets ship (see asset-manifest.ts).
+ * callbacks. Avatars load from the asset_3d catalog (male/female GLBs);
+ * furniture remains procedural until environment assets ship.
  */
 
 import {
@@ -29,10 +29,12 @@ import { PBRMaterial } from "@babylonjs/core";
 import { statusColors } from "@mokaid/design-tokens";
 import {
   applyTint,
+  DEFAULT_AVATAR_CDN_PATH,
   disposeAgentAnims,
   groundAgent,
   loadAgentModelTemplate,
   playAgentAnimation,
+  resolveAgentGlbUrl,
   spawnAgentModel,
   type AgentAnimMap,
   type AgentAnimName,
@@ -87,6 +89,8 @@ interface AvatarNode {
   idleBehavior: IdleBehavior;
   behaviorEnd: number;
   facing: number;
+  avatarUrl: string;
+  footOffset: number;
 }
 
 export class OfficeScene {
@@ -99,8 +103,9 @@ export class OfficeScene {
   private fpsTimer = 0;
   private disposed = false;
   private resizeObserver: ResizeObserver | null = null;
-  private modelTemplate: AgentModelTemplate | null = null;
-  private modelReady = false;
+  /** Templates keyed by resolved GLB URL (supports male + female catalog). */
+  private templates = new Map<string, AgentModelTemplate>();
+  private templateLoads = new Map<string, Promise<AgentModelTemplate>>();
   private lastAgents: SceneAgent[] = [];
 
   constructor(
@@ -122,13 +127,12 @@ export class OfficeScene {
     this.buildOffice();
     this.setupPicking();
 
-    void loadAgentModelTemplate(this.scene).then((template) => {
+    // Prefetch the default male avatar so the office populates quickly.
+    void this.ensureTemplate(DEFAULT_AVATAR_CDN_PATH).then(() => {
       if (this.disposed) return;
-      this.modelTemplate = template;
-      this.modelReady = true;
       this.lastAgents.forEach((agent, index) => {
         if (!this.avatars.has(agent.id)) {
-          this.createAvatar(agent, agent.seatIndex >= 0 ? agent.seatIndex : index);
+          void this.createAvatar(agent, agent.seatIndex >= 0 ? agent.seatIndex : index);
         }
       });
     });
@@ -152,6 +156,25 @@ export class OfficeScene {
     // positions stay in sync with the render buffer.
     this.resizeObserver = new ResizeObserver(resize);
     this.resizeObserver.observe(canvas);
+  }
+
+  private agentAvatarUrl(agent: SceneAgent): string {
+    return resolveAgentGlbUrl(agent.avatarCdnPath);
+  }
+
+  private ensureTemplate(cdnPathOrUrl: string | null | undefined): Promise<AgentModelTemplate> {
+    const url = resolveAgentGlbUrl(cdnPathOrUrl);
+    const cached = this.templates.get(url);
+    if (cached) return Promise.resolve(cached);
+    const pending = this.templateLoads.get(url);
+    if (pending) return pending;
+    const load = loadAgentModelTemplate(this.scene, url).then((template) => {
+      this.templates.set(url, template);
+      this.templateLoads.delete(url);
+      return template;
+    });
+    this.templateLoads.set(url, load);
+    return load;
   }
 
   /* ---------- setup ---------- */
@@ -428,7 +451,18 @@ export class OfficeScene {
     agents.forEach((agent, index) => {
       seen.add(agent.id);
       const existing = this.avatars.get(agent.id);
+      const nextUrl = this.agentAvatarUrl(agent);
+
       if (existing) {
+        // Swap mesh if the catalog asset changed.
+        if (existing.avatarUrl !== nextUrl) {
+          disposeAgentAnims(existing);
+          existing.root.dispose();
+          this.avatars.delete(agent.id);
+          void this.createAvatar(agent, agent.seatIndex >= 0 ? agent.seatIndex : index);
+          return;
+        }
+
         const wasIdle = isIdleVisual(existing.agent.visualState);
         const nowIdle = isIdleVisual(agent.visualState);
         const colorChanged = existing.agent.color !== agent.color;
@@ -436,7 +470,7 @@ export class OfficeScene {
         if (colorChanged) applyTint(existing.meshes, agent.color);
         if (wasIdle && !nowIdle) {
           existing.root.position.copyFrom(existing.homePos);
-          groundAgent(existing.root, this.modelTemplate?.footOffset ?? 0);
+          groundAgent(existing.root, existing.footOffset);
           existing.idleBehavior = "patrol";
           playAgentAnimation(existing, "idle");
         } else if (!wasIdle && nowIdle) {
@@ -450,8 +484,8 @@ export class OfficeScene {
           );
         }
         this.applyStatusVisual(existing);
-      } else if (this.modelReady && this.modelTemplate) {
-        this.createAvatar(agent, agent.seatIndex >= 0 ? agent.seatIndex : index);
+      } else {
+        void this.createAvatar(agent, agent.seatIndex >= 0 ? agent.seatIndex : index);
       }
     });
 
@@ -465,14 +499,25 @@ export class OfficeScene {
     }
   }
 
-  private createAvatar(agent: SceneAgent, seatIndex: number) {
-    if (!this.modelTemplate) return;
-    const slot = this.deskSlots[seatIndex % this.deskSlots.length] ?? Vector3.Zero();
+  private async createAvatar(agent: SceneAgent, seatIndex: number) {
+    if (this.disposed || this.avatars.has(agent.id)) return;
 
-    const spawned = spawnAgentModel(this.modelTemplate, this.scene, agent.id, agent.color);
+    let template: AgentModelTemplate;
+    try {
+      template = await this.ensureTemplate(agent.avatarCdnPath);
+    } catch (err) {
+      console.warn("[OfficeScene] failed to load avatar GLB for", agent.id, err);
+      return;
+    }
+    if (this.disposed || this.avatars.has(agent.id)) return;
+
+    const slot = this.deskSlots[seatIndex % this.deskSlots.length] ?? Vector3.Zero();
+    const avatarUrl = this.agentAvatarUrl(agent);
+
+    const spawned = spawnAgentModel(template, this.scene, agent.id, agent.color);
     const root = spawned.root;
     root.position.copyFrom(slot);
-    groundAgent(root, this.modelTemplate.footOffset);
+    groundAgent(root, template.footOffset);
 
     // Fallback: if the GLB produced no meshes (e.g. stale container after
     // a scene navigation), create a simple capsule so the agent is still
@@ -522,6 +567,8 @@ export class OfficeScene {
       idleBehavior: "patrol",
       behaviorEnd: 0,
       facing: root.rotation.y,
+      avatarUrl,
+      footOffset: template.footOffset,
     };
 
     this.avatars.set(agent.id, avatar);

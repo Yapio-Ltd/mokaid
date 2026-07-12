@@ -19,6 +19,75 @@ from app.tools.registry import RunContext, tool
 
 log = structlog.get_logger()
 
+_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff", ".tif", ".ico")
+_AUDIO_EXTS = (".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac", ".webm", ".mp4", ".mov")
+_DOC_EXTS = (".pdf", ".txt", ".md", ".doc", ".docx", ".rtf", ".csv", ".json")
+
+
+def _mime_matches(mime: str | None, prefixes: tuple[str, ...]) -> bool:
+    if not mime:
+        return False
+    return any(mime.startswith(p) for p in prefixes)
+
+
+def _name_matches(name: str | None, exts: tuple[str, ...]) -> bool:
+    if not name:
+        return False
+    lower = name.lower()
+    return any(lower.endswith(ext) for ext in exts)
+
+
+def _pick_attached_file(
+    attached: list[dict[str, Any]],
+    *,
+    mime_prefixes: tuple[str, ...] = (),
+    name_exts: tuple[str, ...] = (),
+) -> dict[str, Any] | None:
+    """Pick the best attached file with a download_url.
+
+    Prefers user input over agent output, then the last matching entry
+    (most recent). When mime/name filters are empty, any file with a URL.
+    """
+    with_url = [f for f in attached if isinstance(f, dict) and f.get("download_url")]
+    if not with_url:
+        return None
+
+    def matches(f: dict[str, Any]) -> bool:
+        if not mime_prefixes and not name_exts:
+            return True
+        return _mime_matches(f.get("mime_type"), mime_prefixes) or _name_matches(
+            f.get("name"), name_exts
+        )
+
+    matching = [f for f in with_url if matches(f)] or with_url
+    inputs = [f for f in matching if f.get("source") != "agent_output"]
+    pool = inputs or matching
+    return pool[-1]
+
+
+def resolve_file_url(
+    params: dict[str, Any],
+    *,
+    mime_prefixes: tuple[str, ...] = (),
+    name_exts: tuple[str, ...] = (),
+) -> tuple[str | None, str | None]:
+    """Return (file_url, original_filename), falling back to _attached_files."""
+    file_url = (params.get("file_url") or "").strip() or None
+    filename = (params.get("original_filename") or "").strip() or None
+    if file_url:
+        return file_url, filename
+
+    attached = params.get("_attached_files") or []
+    if not isinstance(attached, list):
+        return None, filename
+
+    picked = _pick_attached_file(
+        attached, mime_prefixes=mime_prefixes, name_exts=name_exts
+    )
+    if not picked:
+        return None, filename
+    return picked.get("download_url"), filename or picked.get("name")
+
 
 async def _download(url: str) -> bytes:
     """Download a file from a presigned URL."""
@@ -32,7 +101,7 @@ async def _download(url: str) -> bytes:
 async def analyze_file(params: dict[str, Any], ctx: RunContext) -> Any:
     """Analyze any file (image, document) using GPT-4 Vision and return a text description."""
     question = params.get("question") or ctx.task_description or "Describe this file in detail."
-    file_url = params.get("file_url")
+    file_url, _ = resolve_file_url(params)
 
     if not file_url:
         return {"analysis": "", "error": "No file URL provided. Ensure a file is attached to the task."}
@@ -55,7 +124,11 @@ async def transform_image(params: dict[str, Any], ctx: RunContext) -> Any:
     """Transform/modify an image based on instructions. Supports color changes, filters,
     adjustments, format conversion, and creative modifications via DALL-E."""
     instruction = params.get("instruction") or ctx.task_description or ""
-    file_url = params.get("file_url")
+    file_url, resolved_name = resolve_file_url(
+        params, mime_prefixes=("image/",), name_exts=_IMAGE_EXTS
+    )
+    if resolved_name and not params.get("original_filename"):
+        params = {**params, "original_filename": resolved_name}
 
     if not file_url:
         return {"error": "No image URL provided. Ensure an image file is attached to the task."}
@@ -263,7 +336,9 @@ produces a cheap color-filter result. pillow_ops (only when method=pillow):
 @tool("transcribe_audio")
 async def transcribe_audio(params: dict[str, Any], ctx: RunContext) -> Any:
     """Transcribe an audio file using OpenAI Whisper."""
-    file_url = params.get("file_url")
+    file_url, resolved_name = resolve_file_url(
+        params, mime_prefixes=("audio/", "video/"), name_exts=_AUDIO_EXTS
+    )
 
     if not file_url:
         return {"error": "No audio file URL provided."}
@@ -276,7 +351,7 @@ async def transcribe_audio(params: dict[str, Any], ctx: RunContext) -> Any:
     except Exception as exc:
         return {"error": f"Could not download the audio: {exc}"}
 
-    filename = params.get("original_filename") or "audio.mp3"
+    filename = resolved_name or params.get("original_filename") or "audio.mp3"
     transcript = await llm.transcribe_audio_data(audio_bytes, filename, usage=ctx.usage)
 
     if ctx.phoenix and transcript:
@@ -319,7 +394,11 @@ _MAX_EXTRACTED_CHARS = 20000
 @tool("extract_document_text")
 async def extract_document_text(params: dict[str, Any], ctx: RunContext) -> Any:
     """Extract text content from a document (PDF, etc.) for further processing."""
-    file_url = params.get("file_url")
+    file_url, resolved_name = resolve_file_url(
+        params,
+        mime_prefixes=("application/pdf", "text/", "application/msword", "application/vnd"),
+        name_exts=_DOC_EXTS,
+    )
 
     if not file_url:
         return {"error": "No document URL provided."}
@@ -329,7 +408,7 @@ async def extract_document_text(params: dict[str, Any], ctx: RunContext) -> Any:
     except Exception as exc:
         return {"error": f"Could not download the document: {exc}"}
 
-    filename = params.get("original_filename") or "document"
+    filename = resolved_name or params.get("original_filename") or "document"
     is_pdf = filename.lower().endswith(".pdf") or doc_bytes[:5] == b"%PDF-"
     text = ""
 

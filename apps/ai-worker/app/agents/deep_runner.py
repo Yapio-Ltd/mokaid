@@ -378,18 +378,23 @@ class _Engine:
                 "post_social", {"network": network, "content": content}
             )
 
-        async def analyze_file(file_url: str, question: str = "") -> Any:
+        async def analyze_file(file_url: str = "", question: str = "") -> Any:
             """Analyzes any attached file (image, document) with AI vision —
-            describe, explain, extract information."""
+            describe, explain, extract information. Pass the attached file's
+            download_url as file_url when known; if omitted, the most recent
+            attached file is used automatically."""
             return await engine._run_tool(
                 "analyze_file", {"file_url": file_url, "question": question}
             )
 
         async def transform_image(
-            file_url: str, instruction: str, original_filename: str = ""
+            instruction: str, file_url: str = "", original_filename: str = ""
         ) -> Any:
             """Modifies an image (colors, filters, resize, creative edits).
-            The transformed image is saved as a deliverable automatically."""
+            Pass the attached file's download_url as file_url (and its name as
+            original_filename). If file_url is omitted, the most recent attached
+            image is used automatically. The transformed image is saved as a
+            deliverable automatically."""
             return await engine._run_tool(
                 "transform_image",
                 {
@@ -399,15 +404,17 @@ class _Engine:
                 },
             )
 
-        async def transcribe_audio(file_url: str, original_filename: str = "") -> Any:
-            """Transcribes an audio/video file to text (Whisper)."""
+        async def transcribe_audio(file_url: str = "", original_filename: str = "") -> Any:
+            """Transcribes an audio/video file to text (Whisper). Pass the
+            attached file's download_url as file_url when known."""
             return await engine._run_tool(
                 "transcribe_audio",
                 {"file_url": file_url, "original_filename": original_filename},
             )
 
-        async def extract_document_text(file_url: str, original_filename: str = "") -> Any:
-            """Extracts the text of a PDF or document file."""
+        async def extract_document_text(file_url: str = "", original_filename: str = "") -> Any:
+            """Extracts the text of a PDF or document file. Pass the attached
+            file's download_url as file_url when known."""
             return await engine._run_tool(
                 "extract_document_text",
                 {"file_url": file_url, "original_filename": original_filename},
