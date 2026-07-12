@@ -16,15 +16,19 @@ defmodule Mokaid.Notifications do
           limit: ^limit
       )
 
-    agents_by_task = agents_by_task_id(workspace_id, notifications)
+    task_meta = task_meta_by_id(workspace_id, notifications)
 
     Enum.map(notifications, fn n ->
-      agent =
+      meta =
         if n.resource_type == "task" and is_binary(n.resource_id) do
-          Map.get(agents_by_task, n.resource_id)
+          Map.get(task_meta, n.resource_id)
         end
 
-      %{n | agent: agent}
+      %{
+        n
+        | agent: meta && meta.agent,
+          resource_status: meta && meta.status
+      }
     end)
   end
 
@@ -161,9 +165,9 @@ defmodule Mokaid.Notifications do
 
   ## ---------- Private ----------
 
-  defp agents_by_task_id(_workspace_id, []), do: %{}
+  defp task_meta_by_id(_workspace_id, []), do: %{}
 
-  defp agents_by_task_id(workspace_id, notifications) do
+  defp task_meta_by_id(workspace_id, notifications) do
     task_ids =
       notifications
       |> Enum.filter(&(&1.resource_type == "task" and is_binary(&1.resource_id)))
@@ -175,9 +179,9 @@ defmodule Mokaid.Notifications do
     else
       Repo.all(
         from t in Mokaid.Tasks.Task,
-          join: a in assoc(t, :assigned_agent),
+          left_join: a in assoc(t, :assigned_agent),
           where: t.workspace_id == ^workspace_id and t.id in ^task_ids,
-          select: {t.id, a}
+          select: {t.id, %{status: t.status, agent: a}}
       )
       |> Map.new()
     end

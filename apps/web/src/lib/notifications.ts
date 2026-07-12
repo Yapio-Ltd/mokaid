@@ -45,7 +45,9 @@ export function humanizeErrorMessage(raw: string | null | undefined): string {
 
 export type NotificationTone = "success" | "error" | "warning" | "info";
 
-export function notificationTone(kind: string): NotificationTone {
+export function notificationTone(kind: string, resourceStatus?: string | null): NotificationTone {
+  if (resourceStatus === "completed") return "success";
+  if (resourceStatus === "canceled") return "info";
   if (kind === "ai_run_completed") return "warning";
   if (kind === "ai_run_failed" || kind.includes("failed") || kind.includes("rejected")) {
     return "error";
@@ -60,20 +62,40 @@ export function formatNotificationTitle(n: AppNotification): {
 } {
   const title = n.title ?? "";
   const colon = title.indexOf(": ");
+  const headline =
+    colon > 0 && colon < 40 ? title.slice(colon + 2).trim() || title : title || "Notification";
+
+  if (n.resource_status === "completed" && actionKind(n.kind)) {
+    return { eyebrow: "Approved", headline };
+  }
+  if (n.resource_status === "canceled" && actionKind(n.kind)) {
+    return { eyebrow: "Canceled", headline };
+  }
+  if (n.resource_status === "in_progress" && n.kind === "ai_run_completed") {
+    return { eyebrow: "Revisions requested", headline };
+  }
+
   if (colon > 0 && colon < 40) {
     return {
       eyebrow: polishEyebrow(title.slice(0, colon), n.kind),
-      headline: title.slice(colon + 2).trim() || title,
+      headline,
     };
   }
 
   return {
     eyebrow: polishEyebrow(defaultEyebrow(n.kind), n.kind),
-    headline: title || "Notification",
+    headline,
   };
 }
 
 export function formatNotificationBody(n: AppNotification): string | null {
+  if (n.resource_status === "completed" && actionKind(n.kind)) {
+    return "This task was approved.";
+  }
+  if (n.resource_status === "in_progress" && n.kind === "ai_run_completed") {
+    return "Sent back for revisions.";
+  }
+
   if (!n.body?.trim()) return null;
 
   // Failed AI runs historically stored raw SDK errors — always humanize those.
@@ -96,10 +118,25 @@ export function formatNotificationBody(n: AppNotification): string | null {
 
 export function notificationCta(n: AppNotification): string | null {
   if (n.resource_type !== "task") return null;
+  if (n.resource_status === "completed") return "View task";
+  if (n.resource_status === "canceled") return "View task";
   if (n.kind === "ai_run_failed") return "Voir conversation";
   if (n.kind === "approval_requested") return "Approve";
   if (n.kind === "ai_run_completed") return "Approve";
   return "Open";
+}
+
+/** True when this notification originally asked for a review/approval decision. */
+export function notificationNeedsAction(n: AppNotification): boolean {
+  if (n.resource_type !== "task") return false;
+  if (!actionKind(n.kind)) return false;
+  if (n.resource_status === "completed" || n.resource_status === "canceled") return false;
+  if (n.kind === "ai_run_completed" && n.resource_status === "in_progress") return false;
+  return true;
+}
+
+function actionKind(kind: string): boolean {
+  return kind === "ai_run_completed" || kind === "approval_requested";
 }
 
 function polishEyebrow(label: string, kind: string): string {

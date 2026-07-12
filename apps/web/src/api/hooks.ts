@@ -178,7 +178,10 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, ...body }: Partial<Task> & { id: string }) =>
       apiFetch<Envelope<Task>>(`/api/tasks/${id}`, { method: "PATCH", body }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 }
 

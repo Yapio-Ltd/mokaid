@@ -588,6 +588,7 @@ defmodule MokaidWeb.JSON do
       body: notification.body,
       resource_type: notification.resource_type,
       resource_id: notification.resource_id,
+      resource_status: Map.get(notification, :resource_status),
       read_at: notification.read_at,
       inserted_at: notification.inserted_at,
       agent: notification_agent(Map.get(notification, :agent))

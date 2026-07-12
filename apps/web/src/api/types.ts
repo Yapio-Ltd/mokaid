@@ -615,6 +615,8 @@ export interface AppNotification {
   body: string | null;
   resource_type: string | null;
   resource_id: string | null;
+  /** Live status of the linked task (e.g. completed), when available. */
+  resource_status?: string | null;
   read_at: string | null;
   inserted_at: string;
   /** Agent linked to the task resource, when available. */

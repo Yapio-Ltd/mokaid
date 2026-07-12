@@ -16,6 +16,7 @@ import {
   formatNotificationBody,
   formatNotificationTitle,
   notificationCta,
+  notificationNeedsAction,
   notificationTone,
 } from "@/lib/notifications";
 import { disconnect } from "@/realtime/phoenix-client";
@@ -62,7 +63,7 @@ export function Topbar() {
 
   const openNotification = (n: AppNotification) => {
     if (n.resource_type === "task" && n.resource_id) {
-      if (n.kind === "ai_run_completed" || n.kind === "approval_requested") {
+      if (notificationNeedsAction(n)) {
         useReviewQueueStore.getState().enqueue(
           {
             taskId: n.resource_id,
@@ -249,7 +250,7 @@ function NotificationRow({
   notification: AppNotification;
   onOpen: () => void;
 }) {
-  const tone = notificationTone(n.kind);
+  const tone = notificationTone(n.kind, n.resource_status);
   const { eyebrow, headline } = formatNotificationTitle(n);
   const body = formatNotificationBody(n);
   const cta = notificationCta(n);
@@ -260,7 +261,7 @@ function NotificationRow({
       onSelect={onOpen}
       className={cn(
         "cursor-pointer rounded-lg px-2.5 py-2.5 outline-none data-[highlighted]:bg-surface-hover",
-        !unread && "opacity-60",
+        unread && "bg-primary-muted/15",
       )}
     >
       <div className="flex gap-2.5">

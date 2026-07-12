@@ -61,4 +61,21 @@ describe("notification helpers", () => {
       notificationCta({ ...base, kind: "ai_run_completed", title: "Ready for review: X" }),
     ).toBe("Approve");
   });
+
+  it("reflects resolved task status on completed reviews", () => {
+    const approved: AppNotification = {
+      ...base,
+      kind: "ai_run_completed",
+      title: "Ready for review: Qui a signer",
+      resource_type: "task",
+      resource_status: "completed",
+    };
+    expect(notificationTone(approved.kind, approved.resource_status)).toBe("success");
+    expect(formatNotificationTitle(approved)).toEqual({
+      eyebrow: "Approved",
+      headline: "Qui a signer",
+    });
+    expect(notificationCta(approved)).toBe("View task");
+    expect(formatNotificationBody(approved)).toBe("This task was approved.");
+  });
 });

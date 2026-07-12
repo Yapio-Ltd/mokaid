@@ -4,6 +4,7 @@ import { useApproveTaskAction, useTask, useUpdateTask } from "@/api/hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { FormattedText } from "@/components/ui/formatted-text";
 import {
   useReviewQueueStore,
   type ReviewKind,
@@ -222,9 +223,10 @@ export function ReviewGateModal() {
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
               Agent output
             </p>
-            <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-text">
-              {task.latest_run.output.summary}
-            </p>
+            <FormattedText
+              text={task.latest_run.output.summary}
+              className="text-[12px] leading-relaxed text-text"
+            />
           </div>
         )}
 
