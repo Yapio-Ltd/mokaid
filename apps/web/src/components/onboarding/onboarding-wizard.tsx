@@ -50,9 +50,14 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import { ApiError, fetchWorkspaceLogoBlob } from "@/api/client";
 import { IntegrationLogo } from "@/components/integrations/integration-logo";
-import { PlanPicker } from "@/components/billing/plan-picker";
+import { PlanPicker, BillingCycleToggle, type BillingCycle } from "@/components/billing/plan-picker";
 import { cn } from "@/lib/cn";
-import { consumeOnboardingRestoreStep, navigateOauthPopup, openOauthPopup } from "@/lib/oauth-callback";
+import {
+  consumeOnboardingRestoreStep,
+  navigateOauthPopup,
+  openOauthPopup,
+  setOauthReturn,
+} from "@/lib/oauth-callback";
 import { useOauthPopupListener } from "@/lib/use-oauth-popup-listener";
 import { toast } from "@/stores/toast-store";
 
@@ -272,6 +277,24 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
   const slackOauthStart = useSlackOauthStart();
 
   const [step, setStep] = useState(() => consumeOnboardingRestoreStep() ?? 0);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+
+  // Back from a PayMe checkout started inside the wizard: the restore-step
+  // mechanism already re-opened us at the right step — confirm the payment.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") === "done") {
+      setStep(6);
+      toast({
+        tone: "success",
+        title: "Payment received",
+        description: "Your plan is being activated — welcome aboard!",
+        duration: 8000,
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Workspace step
   const [companyName, setCompanyName] = useState("");
@@ -326,8 +349,11 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
       return;
     }
     // Paid plan → PayMe checkout (redirects; in dev it activates directly).
+    // Before redirecting, remember to reopen the wizard on the next step so
+    // the user lands back exactly where they left off.
+    setOauthReturn("/dashboard", 6);
     planCheckout.mutate(
-      { plan_key: planKey },
+      { plan_key: planKey, billing_cycle: billingCycle, return_path: "/dashboard?payment=done" },
       {
         onSuccess: (result) => {
           if (result.data.activated) {
@@ -938,11 +964,16 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
                 </p>
               </div>
 
+              <div className="flex justify-center">
+                <BillingCycleToggle cycle={billingCycle} onChange={setBillingCycle} />
+              </div>
+
               <PlanPicker
                 plans={onboardingPlans}
                 currentKey={currentPlanKey}
                 pendingKey={planCheckout.isPending ? planCheckout.variables?.plan_key : undefined}
                 onChoose={choosePlan}
+                cycle={billingCycle}
                 compact
               />
 

@@ -52,7 +52,7 @@ export function AgentMcpMatrix({ agentId }: { agentId: string }) {
           >
             <div className="flex min-w-0 items-center gap-2.5">
               <McpLogo
-                slug={installation.logo_slug}
+                logoUrl={installation.logo_url}
                 name={installation.server_name}
                 category={installation.category}
                 size="sm"

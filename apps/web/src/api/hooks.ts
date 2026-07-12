@@ -4,6 +4,7 @@ import type {
   Agent,
   AgentChatMessage,
   AgentChatSummary,
+  AgentProgression,
   AgentCounts,
   AnalyticsOverview,
   AppNotification,
@@ -60,6 +61,15 @@ export function useAgent(id: string | null) {
     queryKey: [...key, "detail", id],
     enabled: id != null,
     queryFn: () => apiFetch<Envelope<Agent>>(`/api/agents/${id}`),
+  });
+}
+
+export function useAgentProgression(id: string | null) {
+  const key = useWorkspaceKey("agents");
+  return useQuery({
+    queryKey: [...key, "progression", id],
+    enabled: id != null,
+    queryFn: () => apiFetch<Envelope<AgentProgression>>(`/api/agents/${id}/progression`),
   });
 }
 
@@ -916,7 +926,7 @@ export function useCreditPacks() {
 export function usePlanCheckout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { plan_key: string; billing_cycle?: string }) =>
+    mutationFn: (body: { plan_key: string; billing_cycle?: string; return_path?: string }) =>
       apiFetch<Envelope<CheckoutResult>>("/api/billing/checkout", { method: "POST", body }),
     onSuccess: (result) => {
       if (result.data.sale_url) {
@@ -932,7 +942,7 @@ export function usePlanCheckout() {
 export function useCreditsCheckout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { pack_key: string }) =>
+    mutationFn: (body: { pack_key: string; return_path?: string }) =>
       apiFetch<Envelope<CheckoutResult>>("/api/billing/credits/checkout", {
         method: "POST",
         body,

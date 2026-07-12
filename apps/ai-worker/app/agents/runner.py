@@ -1,9 +1,13 @@
 """Agent run orchestration.
 
-Executes a task as a sequence of planned steps (LLM planner when an OpenAI
-key is configured, deterministic plans otherwise). Each step may invoke a
-tool; HIGH/CRITICAL-risk tools pause the run in `waiting_for_approval` until
-the resume endpoint is called with a human decision. Run state is kept
+With an LLM key configured, missions run on the deep-agent engine
+(`app.agents.deep_runner`, built on LangChain's deepagents harness):
+planning todos, virtual filesystem, sub-agents, colleague consultation.
+Offline (dev/tests) the legacy deterministic plan-then-execute loop keeps
+the full run/approve/resume lifecycle exercisable.
+
+HIGH/CRITICAL-risk tools pause the run in `waiting_for_approval` until the
+resume endpoint is called with a human decision. Run state is kept
 in-memory per worker instance (production: externalize to Redis/DB
 checkpointer via LangGraph's persistence layer).
 """
@@ -14,6 +18,7 @@ import re
 
 import structlog
 
+from app.agents import deep_runner
 from app.agents.acknowledge import post_acknowledgement
 from app.agents.planner import plan_steps
 from app.clients.phoenix import PhoenixClient
@@ -82,6 +87,11 @@ async def execute_run(request: RunRequest, phoenix: PhoenixClient | None = None)
     # and we don't want a second conversation living in the task menu.
     if not request.input.get("chat_task"):
         await post_acknowledgement(request, phoenix, ctx.usage, mcp_tools)
+
+    # Deep-agent engine (LangChain deepagents): the default whenever an LLM
+    # key is configured. The legacy loop below remains the offline path.
+    if deep_runner.is_available():
+        return await _execute_deep(request, state, ctx, phoenix, toolbox, mcp_tools)
 
     try:
         for step in await plan_steps(request, ctx.usage, mcp_tools):
@@ -184,6 +194,68 @@ async def execute_run(request: RunRequest, phoenix: PhoenixClient | None = None)
         state.error = str(exc)
         await phoenix.fail_run(request.run_id, state.error)
         log.error("run_failed", run_id=request.run_id, error=state.error)
+
+    return state
+
+
+async def _execute_deep(
+    request: RunRequest,
+    state: RunState,
+    ctx: RunContext,
+    phoenix: PhoenixClient,
+    toolbox: McpToolbox,
+    mcp_tools: list,
+) -> RunState:
+    """Runs the mission on the deepagents engine and reports the outcome."""
+    try:
+        output = await deep_runner.execute(
+            request, ctx, state, phoenix, toolbox, mcp_tools, _wait_for_decision
+        )
+
+        # Legacy artifact extraction still applies: draft_document /
+        # generate_report / transform_image tool outputs become Drive files.
+        extra_artifacts = await _save_artifacts(request, state, phoenix)
+        artifacts = list(dict.fromkeys([*output.get("artifacts", []), *extra_artifacts]))
+        output["artifacts"] = artifacts
+
+        executed = [c for c in state.tool_calls if c.approved is not False]
+        errors = [
+            c for c in executed if isinstance(c.output, dict) and c.output.get("error")
+        ]
+        if errors and not artifacts and not output.get("summary"):
+            summary = "; ".join(str(c.output.get("error"))[:200] for c in errors[:3])
+            await _post_failure_comment(request, phoenix, ctx.usage, errors)
+            state.status = RunStatus.FAILED
+            state.error = summary
+            await phoenix.fail_run(request.run_id, summary)
+            log.info("deep_run_failed_no_deliverable", run_id=request.run_id)
+            return state
+
+        state.status = RunStatus.COMPLETED
+        state.output = output
+        await phoenix.complete_run(
+            request.run_id,
+            output,
+            token_usage=ctx.usage.as_dict(),
+            cost_cents=ctx.usage.cost_cents,
+        )
+        log.info(
+            "deep_run_completed",
+            run_id=request.run_id,
+            artifacts=len(artifacts),
+            consultations=len(output.get("consultations", [])),
+            tokens=ctx.usage.as_dict()["total_tokens"],
+            cost_cents=ctx.usage.cost_cents,
+        )
+    except asyncio.CancelledError:
+        state.status = RunStatus.CANCELED
+        await phoenix.update_run_status(request.run_id, state.status.value)
+        raise
+    except Exception as exc:  # noqa: BLE001 — report any failure to the API
+        state.status = RunStatus.FAILED
+        state.error = str(exc)
+        await phoenix.fail_run(request.run_id, state.error)
+        log.error("deep_run_failed", run_id=request.run_id, error=state.error)
 
     return state
 

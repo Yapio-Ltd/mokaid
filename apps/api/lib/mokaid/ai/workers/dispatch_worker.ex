@@ -55,6 +55,8 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
             )
           end
 
+        agent = run.agent_id && Agents.get_agent(run.workspace_id, run.agent_id)
+
         payload = %{
           run_id: run.id,
           workspace_id: run.workspace_id,
@@ -67,7 +69,10 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
           task_due_at: task && task.due_at,
           input: run.input,
           attached_files: attached_files,
-          mcp_servers: mcp_servers
+          mcp_servers: mcp_servers,
+          # Persona for the deep agent + colleagues it may consult.
+          agent: agent_persona(agent),
+          colleagues: colleagues(run.workspace_id, run.agent_id)
         }
 
         result = dispatch(config[:dispatch], payload, config)
@@ -80,6 +85,46 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
         result
     end
   end
+
+  defp agent_persona(nil), do: %{}
+
+  defp agent_persona(agent) do
+    %{
+      display_name: agent.display_name,
+      role_title: agent.role_title,
+      department: agent.department,
+      skills: skill_names(agent.skills)
+    }
+  end
+
+  # Other AI employees of the workspace (excluding the running one) that the
+  # deep agent may consult; the manager, when set, is listed first.
+  defp colleagues(workspace_id, agent_id) do
+    workspace_id
+    |> Agents.list_agents(%{"kind" => "ai"})
+    |> Enum.reject(&(&1.id == agent_id or not &1.ai_enabled))
+    |> Enum.sort_by(&if(&1.manager_agent_id == nil, do: 0, else: 1))
+    |> Enum.take(8)
+    |> Enum.map(fn colleague ->
+      %{
+        id: colleague.id,
+        name: colleague.display_name,
+        role_title: colleague.role_title,
+        department: colleague.department,
+        skills: skill_names(colleague.skills)
+      }
+    end)
+  end
+
+  defp skill_names(skills) when is_list(skills) do
+    Enum.map(skills, fn
+      %{"name" => name} -> name
+      skill when is_binary(skill) -> skill
+      other -> inspect(other)
+    end)
+  end
+
+  defp skill_names(_), do: []
 
   defp dispatch(:http, payload, config) do
     case Req.post(

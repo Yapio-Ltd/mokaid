@@ -4,8 +4,9 @@ defmodule Mokaid.MCP.Catalog do
 
   `server_url` is set for providers with a known hosted (remote) MCP server;
   the rest are connectable through an API key or a custom MCP server URL.
-  `logo_slug` targets Simple Icons (cdn.simpleicons.org); the frontend falls
-  back to colored initials when a brand has no icon.
+  `logo_slug` maps to an official full-color brand logo bundled under
+  `priv/integration-logos/` and served from `/logos/mcp/<slug>.<ext>`;
+  the frontend falls back to colored initials when a brand has no icon.
   """
 
   # {key, name, category, description, logo_slug, featured, auth_kind, server_url}
@@ -196,6 +197,8 @@ defmodule Mokaid.MCP.Catalog do
      "https://mcp.canva.com/mcp"},
     {"adobe_express", "Adobe Express", "design",
      "Quick designs and templates with Adobe Express.", "adobe", false, "oauth2", nil},
+    {"lovable", "Lovable", "design", "Generate and edit full-stack apps from prompts in Lovable.",
+     "lovable", false, "api_key", nil},
 
     # ---------- Documentation ----------
     {"readme", "ReadMe", "docs", "Manage API documentation hubs on ReadMe.", "readme", false,

@@ -44,6 +44,16 @@ class AttachedFile(BaseModel):
     source: str | None = None
 
 
+class Colleague(BaseModel):
+    """Another AI agent of the workspace the running agent may consult."""
+
+    id: str
+    name: str
+    role_title: str | None = None
+    department: str | None = None
+    skills: list[str] = Field(default_factory=list)
+
+
 class RunRequest(BaseModel):
     run_id: str
     workspace_id: str
@@ -57,6 +67,11 @@ class RunRequest(BaseModel):
     input: dict[str, Any] = Field(default_factory=dict)
     attached_files: list[AttachedFile] = Field(default_factory=list)
     mcp_servers: list[McpServerGrant] = Field(default_factory=list)
+    # Persona of the assigned agent (display_name, role_title, department,
+    # skills) — lets the deep agent speak and work in character.
+    agent: dict[str, Any] = Field(default_factory=dict)
+    # Team mates available for consult_colleague.
+    colleagues: list[Colleague] = Field(default_factory=list)
 
 
 class ResumeRequest(BaseModel):

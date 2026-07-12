@@ -90,6 +90,13 @@ defmodule Mokaid.AI do
             agent_name: agent && agent.display_name
           })
 
+          # The agent's acknowledgement comment is coming — show it "typing"
+          # in the thread immediately, before the worker round-trip.
+          Realtime.broadcast_workspace(workspace_id, "task.agent_typing", %{
+            task_id: run.task_id,
+            agent_id: agent_id
+          })
+
           %{run_id: run.id, workspace_id: workspace_id}
           |> Mokaid.AI.Workers.DispatchWorker.new()
           |> Oban.insert()
@@ -223,6 +230,17 @@ defmodule Mokaid.AI do
   def handle_progress(run_id, attrs) do
     with %{} = run <- Tasks.get_run(run_id),
          {:ok, updated_run} <- Tasks.update_run_progress(run, attrs) do
+      # Deep-agent plan update (todo checklist) — broadcast so the task panel
+      # and chat can render live mission progress.
+      if is_list(attrs["steps"]) do
+        Realtime.broadcast_workspace(run.workspace_id, "task.plan_updated", %{
+          task_id: run.task_id,
+          run_id: run.id,
+          agent_id: run.agent_id,
+          steps: attrs["steps"]
+        })
+      end
+
       # Sync task status when the worker signals it has actually started running.
       if attrs["status"] == "running" do
         task = Tasks.get_task(run.workspace_id, run.task_id)
@@ -381,8 +399,17 @@ defmodule Mokaid.AI do
 
             agent ->
               Agents.change_status(agent, "idle", current_task_id: nil, reason: "run_completed")
+
               # Skill learning — fire-and-forget (does not block the response).
-              SkillLearning.record_mission(agent, task, output || %{})
+              agent =
+                case SkillLearning.record_mission(agent, task, output || %{}) do
+                  {:ok, updated} -> updated
+                  _ -> agent
+                end
+
+              # XP / levels: every mission makes the employee grow (broadcasts
+              # agent.level_up when a threshold is crossed).
+              Mokaid.Agents.Progression.record_completion(agent, output || %{}, token_usage)
           end
         end
 
@@ -422,10 +449,11 @@ defmodule Mokaid.AI do
     end
   end
 
-  # Delivers a chat-launched task's result back into the agent's chat thread.
-  # No-op for tasks that didn't originate from chat.
+  # Delivers the mission's result into the agent's chat thread — for every
+  # mission run by an AI agent, not just chat-born ones: the user always gets
+  # the deliverables where they talk to their employee, plus the task Output.
   defp maybe_deliver_to_chat(run, task, output) do
-    chat_agent_id = get_in(task.metadata || %{}, ["chat_agent_id"])
+    chat_agent_id = get_in(task.metadata || %{}, ["chat_agent_id"]) || run.agent_id
 
     if is_binary(chat_agent_id) do
       outputs = chat_output_attachments(run.workspace_id, task.id)

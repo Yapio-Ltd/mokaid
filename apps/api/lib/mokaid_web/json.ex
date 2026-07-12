@@ -58,6 +58,11 @@ defmodule MokaidWeb.JSON do
       capabilities: agent.capabilities,
       current_task_id: agent.current_task_id,
       performance_score: agent.performance_score && Decimal.to_float(agent.performance_score),
+      # Gamified progression (XP ring around the avatar, level badge).
+      level: agent.level || 1,
+      xp: agent.xp || 0,
+      xp_for_next_level: agent.xp_for_next_level || 100,
+      missions_completed: agent.missions_completed || 0,
       linked_user_id: agent.linked_user_id,
       linked_member_id: agent.linked_member_id,
       linked_user_name: linked_user && linked_user.full_name,
@@ -149,12 +154,21 @@ defmodule MokaidWeb.JSON do
       status: run.status,
       error: run.error,
       output: run.output,
+      # Deep-agent live plan: [%{"content" => ..., "status" => ...}]
+      plan: plan_steps(run.steps),
       token_usage: run.token_usage,
       started_at: run.started_at,
       completed_at: run.completed_at,
       inserted_at: run.inserted_at
     }
   end
+
+  # Only expose todo-shaped steps (the legacy engine stored raw tool traces).
+  defp plan_steps(steps) when is_list(steps) do
+    Enum.filter(steps, &(is_map(&1) and is_binary(&1["content"])))
+  end
+
+  defp plan_steps(_), do: []
 
   def subtask(subtask) do
     %{
@@ -437,6 +451,7 @@ defmodule MokaidWeb.JSON do
       category: server.category,
       description: server.description,
       logo_slug: server.logo_slug,
+      logo_url: mcp_logo_url(server),
       featured: server.featured,
       auth_kind: server.auth_kind,
       transport: server.transport,
@@ -444,6 +459,18 @@ defmodule MokaidWeb.JSON do
       docs_url: server.docs_url
     }
   end
+
+  defp mcp_logo_url(%{logo_storage_key: key, key: server_key} = server)
+       when is_binary(key) and key != "" do
+    version =
+      server.updated_at
+      |> DateTime.to_unix()
+      |> Integer.to_string()
+
+    "/api/mcp/logos/#{server_key}?v=#{version}"
+  end
+
+  defp mcp_logo_url(_), do: nil
 
   def mcp_installation(installation) do
     server = loaded(installation.server)
@@ -455,6 +482,7 @@ defmodule MokaidWeb.JSON do
       server_name: server && server.name,
       category: server && server.category,
       logo_slug: server && server.logo_slug,
+      logo_url: server && mcp_logo_url(server),
       auth_kind: server && server.auth_kind,
       status: installation.status,
       connected_account: installation.connected_account,
@@ -476,7 +504,8 @@ defmodule MokaidWeb.JSON do
       granted: grant.granted,
       server_key: server && server.key,
       server_name: server && server.name,
-      logo_slug: server && server.logo_slug
+      logo_slug: server && server.logo_slug,
+      logo_url: server && mcp_logo_url(server)
     }
   end
 

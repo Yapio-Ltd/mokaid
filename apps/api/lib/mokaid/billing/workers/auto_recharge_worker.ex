@@ -52,19 +52,42 @@ defmodule Mokaid.Billing.Workers.AutoRechargeWorker do
            amount_cents: pack.price_cents,
            description: "Mokaid — auto-recharge #{pack.credits} AI credits"
          }) do
-      {:ok, _sale} ->
+      {:ok, sale} ->
         Credits.add_purchased(workspace_id, pack.credits,
           kind: "auto_recharge",
           description: "Auto-recharge: #{pack.credits} credits",
           cost_cents: pack.price_cents
         )
 
+        # Every real charge leaves a paid invoice so accounting stays complete.
+        Billing.create_settled_invoice(workspace_id, %{
+          "kind" => "credits",
+          "amount_cents" => pack.price_cents,
+          "external_payment_id" => sale["payme_sale_id"],
+          "line_items" => [
+            %{
+              "description" => "Auto-recharge — #{pack.credits} AI credits",
+              "amount_cents" => pack.price_cents,
+              "credits" => pack.credits
+            }
+          ]
+        })
+
         Logger.info("auto_recharge_ok workspace=#{workspace_id} credits=#{pack.credits}")
         :ok
 
       {:error, reason} ->
         Logger.warning("auto_recharge_failed workspace=#{workspace_id} reason=#{inspect(reason)}")
+
         # Don't retry-storm on a declined card — surface it and stop.
+        Mokaid.Notifications.notify_roles(
+          workspace_id,
+          ["Owner", "Admin"],
+          "billing_auto_recharge_failed",
+          "Auto-recharge failed — your card was declined",
+          body: "Update your payment method from the Billing page to keep your AI employees running."
+        )
+
         :ok
     end
   end

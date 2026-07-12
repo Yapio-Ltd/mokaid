@@ -12,6 +12,7 @@ Model routing keeps quality high and unit costs low:
 
 import json
 import re
+from collections.abc import AsyncIterator
 from typing import Any, Literal
 
 import structlog
@@ -220,6 +221,54 @@ async def chat(
     if usage and response.usage:
         usage.add(model, response.usage.prompt_tokens, response.usage.completion_tokens)
     return response.choices[0].message.content or ""
+
+
+async def chat_stream(
+    system: str,
+    user: str,
+    usage: UsageTracker | None = None,
+    max_tokens: int = 1500,
+    quality: Quality = "fast",
+) -> AsyncIterator[str]:
+    """Single-turn chat completion, streamed as text deltas. Used for chat
+    replies so the UI can render tokens as they are produced."""
+    if _use_anthropic():
+        model = _anthropic_model(quality)
+        async with _get_anthropic().messages.stream(
+            model=model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        ) as stream:
+            async for delta in stream.text_stream:
+                if delta:
+                    yield delta
+            response = await stream.get_final_message()
+        if usage:
+            usage.add(model, response.usage.input_tokens, response.usage.output_tokens)
+        return
+
+    model = get_settings().openai_model
+    prompt_tokens = 0
+    completion_tokens = 0
+    stream = await _get_client().chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        max_tokens=max_tokens,
+        stream=True,
+        stream_options={"include_usage": True},
+    )
+    async for chunk in stream:
+        if chunk.usage is not None:
+            prompt_tokens = chunk.usage.prompt_tokens
+            completion_tokens = chunk.usage.completion_tokens
+        if chunk.choices and chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
+    if usage:
+        usage.add(model, prompt_tokens, completion_tokens)
 
 
 async def chat_json(

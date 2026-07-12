@@ -41,7 +41,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
-      <TaskDetailPanel taskId={selectedTaskId} onClose={() => selectTask(null)} />
+      <TaskDetailPanel taskId={selectedTaskId} onClose={() => selectTask(null)} overlay />
       <FloatingChatDock />
       <OnboardingGate />
       <OnboardingChecklist />

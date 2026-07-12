@@ -1,9 +1,12 @@
 import { useMemo, useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { MessageSquarePlus, Volume2, VolumeX } from "lucide-react";
 import type { Agent, AgentChatSummary } from "@/api/types";
 import { useAgentChats, useAgents } from "@/api/hooks";
 import { Avatar } from "@/components/ui/avatar";
+import { AgentLevelRing } from "@/components/agents/agent-level-ring";
 import { ChatWindow } from "./chat-window";
+import { FadeSlide } from "@/components/ui/motion";
 import { useChatStore } from "@/stores/chat-store";
 import { cn } from "@/lib/cn";
 
@@ -43,7 +46,19 @@ function ChatHead({
               : "ring-border-strong group-hover:ring-primary",
         )}
       >
-        <Avatar name={agent.display_name} size="md" isAi={agent.kind === "ai"} />
+        {agent.kind === "ai" ? (
+          <AgentLevelRing
+            level={agent.level}
+            xp={agent.xp}
+            xpForNext={agent.xp_for_next_level}
+            size="md"
+            showBadge={false}
+          >
+            <Avatar name={agent.display_name} size="md" isAi />
+          </AgentLevelRing>
+        ) : (
+          <Avatar name={agent.display_name} size="md" isAi={false} />
+        )}
       </span>
 
       {/* Busy = visibly at work: pulsing ring on top of the avatar. */}
@@ -113,10 +128,16 @@ export function FloatingChatDock() {
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex items-end gap-3">
       {/* Open chat windows, oldest on the left. */}
-      {openChatIds.map((agentId) => {
-        const agent = agentById.get(agentId);
-        return agent ? <ChatWindow key={agentId} agent={agent} /> : null;
-      })}
+      <AnimatePresence>
+        {openChatIds.map((agentId) => {
+          const agent = agentById.get(agentId);
+          return agent ? (
+            <FadeSlide key={agentId} y={12}>
+              <ChatWindow agent={agent} />
+            </FadeSlide>
+          ) : null;
+        })}
+      </AnimatePresence>
 
       {/* Chat heads column */}
       <div className="pointer-events-auto relative flex flex-col items-center gap-3">

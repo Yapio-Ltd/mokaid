@@ -12,6 +12,47 @@ const tagline: Record<string, string> = {
   enterprise: "Custom for your organization",
 };
 
+export type BillingCycle = "monthly" | "yearly";
+
+/** Monthly/yearly switch — yearly bills 10 months for 12 ("2 months free"). */
+export function BillingCycleToggle({
+  cycle,
+  onChange,
+}: {
+  cycle: BillingCycle;
+  onChange: (cycle: BillingCycle) => void;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-1 rounded-full border border-border bg-surface-raised p-1 text-xs font-semibold">
+      {(["monthly", "yearly"] as const).map((option) => (
+        <button
+          key={option}
+          type="button"
+          onClick={() => onChange(option)}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-colors",
+            cycle === option
+              ? "bg-primary text-white shadow-sm"
+              : "text-text-muted hover:text-text",
+          )}
+        >
+          {option === "monthly" ? "Monthly" : "Yearly"}
+          {option === "yearly" && (
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                cycle === "yearly" ? "bg-white/20 text-white" : "bg-success/15 text-success",
+              )}
+            >
+              2 months free
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
  * The real plan catalog as selectable cards — used both in onboarding and the
  * "Manage plan" dialog. Highlights the monthly AI-credit grant (the metered
@@ -23,12 +64,14 @@ export function PlanPicker({
   pendingKey,
   onChoose,
   compact = false,
+  cycle = "monthly",
 }: {
   plans: BillingPlanSummary[];
   currentKey?: string | null;
   pendingKey?: string | null;
   onChoose: (planKey: string) => void;
   compact?: boolean;
+  cycle?: BillingCycle;
 }) {
   return (
     <div className={cn("grid gap-3", compact ? "sm:grid-cols-2 lg:grid-cols-5" : "sm:grid-cols-2 lg:grid-cols-3")}>
@@ -66,6 +109,14 @@ export function PlanPicker({
                 "Custom"
               ) : plan.price_cents_monthly === 0 ? (
                 "Free"
+              ) : cycle === "yearly" ? (
+                <>
+                  {formatCents(Math.round(plan.price_cents_yearly / 12))}
+                  <span className="text-[11px] font-normal text-text-muted"> /mo</span>
+                  <span className="block text-[10px] font-normal text-text-muted">
+                    {formatCents(plan.price_cents_yearly)} billed yearly
+                  </span>
+                </>
               ) : (
                 <>
                   {formatCents(plan.price_cents_monthly)}

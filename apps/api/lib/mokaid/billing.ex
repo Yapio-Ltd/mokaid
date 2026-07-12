@@ -3,8 +3,14 @@ defmodule Mokaid.Billing do
 
   import Ecto.Query
 
-  alias Mokaid.Billing.{BillingPlan, Invoice, Subscription, UsageEvent}
+  require Logger
+
+  alias Mokaid.Billing.{BillingPlan, Credits, Invoice, PayMe, Subscription, UsageEvent}
   alias Mokaid.Repo
+
+  # Renewals are retried once a day, at most this many times, before the
+  # workspace is downgraded to Free (dunning).
+  @max_renewal_failures 3
 
   def get_subscription(workspace_id) do
     Repo.one(
@@ -67,22 +73,186 @@ defmodule Mokaid.Billing do
 
   defp switch_subscription(subscription, plan, billing_cycle) do
     monthly = plan_monthly_credits(plan)
+    now = DateTime.utc_now()
+    cycle = billing_cycle || subscription.billing_cycle || "monthly"
+    period_days = if cycle == "yearly", do: 365, else: 30
 
-    # Switching plan refreshes the monthly grant to the new plan's amount.
+    # Switching plan refreshes the monthly grant to the new plan's amount and
+    # starts a fresh billing period (a switch happens right after a payment).
     # Purchased balance (credits_balance) is untouched — packs never expire.
     subscription
     |> Ecto.Changeset.change(
       plan_id: plan.id,
-      billing_cycle: billing_cycle || subscription.billing_cycle,
+      status: "active",
+      billing_cycle: cycle,
+      current_period_start: now,
+      current_period_end: DateTime.add(now, period_days, :day),
       monthly_credits: monthly,
       included_credits_remaining: max(monthly, 0),
-      credits_period_start: DateTime.utc_now()
+      credits_period_start: now,
+      renewal_failures: 0
     )
     |> Repo.update()
     |> case do
       {:ok, updated} -> {:ok, Repo.preload(updated, :plan, force: true)}
       error -> error
     end
+  end
+
+  @doc "The price (in cents) a plan bills for one period of the given cycle."
+  def plan_amount_for_cycle(%BillingPlan{} = plan, "yearly"), do: plan.price_cents_yearly
+  def plan_amount_for_cycle(%BillingPlan{} = plan, _cycle), do: plan.price_cents_monthly
+
+  ## ---------- Recurring renewal ----------
+
+  @doc """
+  Renews a subscription whose period has ended: charges the stored payment
+  method for paid plans (creating a paid invoice), rolls the billing period
+  and refreshes the monthly credit grant. Free plans (and dev environments
+  without PayMe) roll over without a charge.
+
+  On payment failure the subscription goes `past_due` and admins are
+  notified; after #{@max_renewal_failures} consecutive failures the
+  workspace is downgraded to Free.
+  """
+  def renew_subscription(%Subscription{} = subscription) do
+    subscription = Repo.preload(subscription, :plan)
+    plan = subscription.plan
+    cycle = subscription.billing_cycle || "monthly"
+    amount = if plan, do: plan_amount_for_cycle(plan, cycle), else: 0
+
+    cond do
+      amount <= 0 or not PayMe.enabled?() ->
+        roll_period(subscription)
+
+      subscription.external_customer_id in [nil, ""] ->
+        renewal_failure(subscription, :no_payment_method)
+
+      true ->
+        charge_renewal(subscription, plan, cycle, amount)
+    end
+  end
+
+  defp charge_renewal(subscription, plan, cycle, amount) do
+    case PayMe.charge_buyer(%{
+           buyer_key: subscription.external_customer_id,
+           amount_cents: amount,
+           description: "Mokaid #{plan.name} plan renewal (#{cycle})"
+         }) do
+      {:ok, sale} ->
+        create_settled_invoice(subscription.workspace_id, %{
+          "kind" => "subscription",
+          "amount_cents" => amount,
+          "external_payment_id" => sale["payme_sale_id"],
+          "line_items" => [
+            %{
+              "description" => "#{plan.name} plan renewal — #{cycle}",
+              "amount_cents" => amount,
+              "plan_key" => plan.key,
+              "billing_cycle" => cycle
+            }
+          ]
+        })
+
+        {:ok, renewed} = roll_period(subscription)
+
+        Mokaid.Notifications.notify_roles(
+          subscription.workspace_id,
+          ["Owner", "Admin"],
+          "billing_renewed",
+          "Your #{plan.name} plan was renewed"
+        )
+
+        {:ok, renewed}
+
+      {:error, reason} ->
+        Logger.warning(
+          "subscription_renewal_charge_failed workspace=#{subscription.workspace_id} reason=#{inspect(reason)}"
+        )
+
+        renewal_failure(subscription, reason)
+    end
+  end
+
+  defp roll_period(subscription) do
+    now = DateTime.utc_now()
+    period_days = if subscription.billing_cycle == "yearly", do: 365, else: 30
+
+    {:ok, updated} =
+      subscription
+      |> Ecto.Changeset.change(
+        status: "active",
+        current_period_start: now,
+        current_period_end: DateTime.add(now, period_days, :day),
+        renewal_failures: 0,
+        last_renewal_attempt_at: now
+      )
+      |> Repo.update()
+
+    {:ok, updated} = Credits.grant_monthly(updated)
+
+    Mokaid.Realtime.broadcast_workspace(subscription.workspace_id, "billing.updated", %{
+      subscription_id: subscription.id
+    })
+
+    {:ok, updated}
+  end
+
+  defp renewal_failure(subscription, reason) do
+    failures = (subscription.renewal_failures || 0) + 1
+
+    {:ok, updated} =
+      subscription
+      |> Ecto.Changeset.change(
+        status: "past_due",
+        renewal_failures: failures,
+        last_renewal_attempt_at: DateTime.utc_now()
+      )
+      |> Repo.update()
+
+    if failures >= @max_renewal_failures do
+      Logger.warning(
+        "subscription_downgraded_after_dunning workspace=#{subscription.workspace_id}"
+      )
+
+      Mokaid.Notifications.notify_roles(
+        subscription.workspace_id,
+        ["Owner", "Admin"],
+        "billing_downgraded",
+        "Payment failed #{failures} times — your workspace was moved to the Free plan",
+        body: "Update your payment method from the Billing page to restore your plan."
+      )
+
+      change_plan(subscription.workspace_id, "free")
+    else
+      Mokaid.Notifications.notify_roles(
+        subscription.workspace_id,
+        ["Owner", "Admin"],
+        "billing_payment_failed",
+        "We couldn't renew your plan (attempt #{failures}/#{@max_renewal_failures})",
+        body:
+          "Reason: #{inspect(reason)}. We'll retry tomorrow — you can also update your payment method from the Billing page."
+      )
+
+      Mokaid.Realtime.broadcast_workspace(subscription.workspace_id, "billing.updated", %{
+        subscription_id: subscription.id
+      })
+
+      {:ok, updated}
+    end
+  end
+
+  @doc "Subscriptions whose billing period has ended and are due for renewal."
+  def list_subscriptions_due_for_renewal(now \\ DateTime.utc_now()) do
+    retry_cutoff = DateTime.add(now, -20, :hour)
+
+    Repo.all(
+      from s in Subscription,
+        where: s.status in ["active", "past_due"],
+        where: not is_nil(s.current_period_end) and s.current_period_end <= ^now,
+        where: is_nil(s.last_renewal_attempt_at) or s.last_renewal_attempt_at < ^retry_cutoff,
+        preload: [:plan]
+    )
   end
 
   # Monthly credit grant lives in the plan's limits map (-1 = unlimited).
@@ -232,6 +402,43 @@ defmodule Mokaid.Billing do
     invoice
     |> Ecto.Changeset.change(external_payment_id: external_payment_id)
     |> Repo.update()
+  end
+
+  @doc """
+  Records an already-settled payment (renewals, auto-recharge) as a paid
+  invoice, so every charge stays traceable in the invoice history.
+  """
+  def create_settled_invoice(workspace_id, attrs) do
+    now = DateTime.utc_now()
+
+    %Invoice{}
+    |> Invoice.changeset(
+      Map.merge(attrs, %{
+        "workspace_id" => workspace_id,
+        "number" => generate_invoice_number(),
+        "status" => "paid",
+        "issued_at" => now,
+        "paid_at" => now
+      })
+    )
+    |> Repo.insert()
+  end
+
+  @doc """
+  Expires pending invoices whose hosted checkout was abandoned. A pending
+  invoice older than `hours` (default 24) can no longer be settled by the
+  webhook and is marked `expired`.
+  """
+  def expire_stale_pending_invoices(hours \\ 24) do
+    cutoff = DateTime.add(DateTime.utc_now(), -hours, :hour)
+
+    {count, _} =
+      Repo.update_all(
+        from(i in Invoice, where: i.status == "pending" and i.issued_at < ^cutoff),
+        set: [status: "expired", updated_at: DateTime.utc_now()]
+      )
+
+    count
   end
 
   @doc """

@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Check, Coins, CreditCard, Download, RefreshCw, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Coins,
+  CreditCard,
+  Download,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -25,6 +33,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import {
+  BillingCycleToggle,
+  PlanPicker,
+  type BillingCycle,
+} from "@/components/billing/plan-picker";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { toast } from "@/stores/toast-store";
@@ -61,14 +74,6 @@ function downloadInvoice(invoice: Invoice, workspaceName: string) {
   }
 }
 
-const planTagline: Record<string, string> = {
-  free: "Try your first AI employee",
-  starter: "For solo builders",
-  professional: "For growing teams",
-  business: "For companies at scale",
-  enterprise: "Custom for your organization",
-};
-
 export function BillingPage() {
   const { data: overviewData, isLoading } = useBillingOverview();
   const { data: invoicesData } = useInvoices();
@@ -79,18 +84,15 @@ export function BillingPage() {
   const autoRecharge = useUpdateAutoRecharge();
   const queryClient = useQueryClient();
   const [showManagePlan, setShowManagePlan] = useState(false);
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
 
-  // Back from the PayMe hosted page: refresh billing and confirm.
+  // Back from the PayMe hosted page: refresh billing and celebrate.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("payment") === "done") {
       queryClient.invalidateQueries({ queryKey: ["billing"] });
-      toast({
-        tone: "success",
-        title: "Payment received",
-        description: "Your plan or credits will be active within a few seconds.",
-        duration: 8000,
-      });
+      setShowPaymentSuccess(true);
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [queryClient]);
@@ -122,7 +124,7 @@ export function BillingPage() {
       return;
     }
     planCheckout.mutate(
-      { plan_key: planKey },
+      { plan_key: planKey, billing_cycle: billingCycle },
       {
         onSuccess: (result) => {
           if (result.data.activated) {
@@ -138,6 +140,8 @@ export function BillingPage() {
     );
   };
 
+  const isPastDue = subscription?.status === "past_due";
+
   return (
     <div className="space-y-5">
       <div>
@@ -145,11 +149,36 @@ export function BillingPage() {
         <p className="text-xs text-text-muted">Plan, AI credits, usage and invoices</p>
       </div>
 
+      {/* Dunning banner: a renewal charge failed — let the user fix it now. */}
+      {isPastDue && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" />
+            <div>
+              <p className="text-xs font-semibold text-text">
+                We couldn't renew your {plan?.name ?? ""} plan
+              </p>
+              <p className="text-[11px] text-text-muted">
+                Your card was declined. Pay now to keep your AI employees working — after 3
+                failed attempts your workspace moves to the Free plan.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            loading={planCheckout.isPending}
+            onClick={() => plan && buyPlan(plan.key)}
+          >
+            Pay now
+          </Button>
+        </div>
+      )}
+
       <div className="grid gap-5 xl:grid-cols-3">
         <Card className="xl:col-span-1">
           <CardHeader>
             <CardTitle>Current Plan</CardTitle>
-            <Badge tone="success" dot>
+            <Badge tone={isPastDue ? "warning" : "success"} dot>
               {subscription?.status ?? "free"}
             </Badge>
           </CardHeader>
@@ -496,54 +525,45 @@ export function BillingPage() {
         description="Hire more AI employees as your team grows — upgrade or downgrade anytime."
         className="w-[880px] max-w-[95vw]"
       >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {(plansData?.data ?? []).map((p) => {
-            const isCurrent = p.key === plan?.key;
-            const isEnterprise = p.key === "enterprise";
-            return (
-              <div
-                key={p.key}
-                className={cn(
-                  "flex flex-col rounded-lg border p-4",
-                  isCurrent ? "border-primary/50 bg-primary-muted/20" : "border-border",
-                  p.key === "professional" && !isCurrent && "border-primary/30",
-                )}
-              >
-                <p className="text-sm font-bold text-text">{p.name}</p>
-                <p className="text-[10px] text-text-muted">{planTagline[p.key] ?? ""}</p>
-                <p className="mt-2 text-lg font-bold text-text">
-                  {isEnterprise ? (
-                    "Custom"
-                  ) : (
-                    <>
-                      {formatCents(p.price_cents_monthly)}
-                      <span className="text-[11px] font-normal text-text-muted"> /mo</span>
-                    </>
-                  )}
-                </p>
-                <ul className="mt-3 flex-1 space-y-1.5">
-                  {p.features.slice(0, 5).map((f) => (
-                    <li key={f} className="flex items-start gap-1.5 text-[11px] text-text-secondary">
-                      <Check size={11} className="mt-0.5 shrink-0 text-success" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  size="sm"
-                  variant={isCurrent ? "secondary" : "primary"}
-                  disabled={isCurrent}
-                  loading={
-                    planCheckout.isPending && planCheckout.variables?.plan_key === p.key
-                  }
-                  className="mt-4 w-full"
-                  onClick={() => buyPlan(p.key)}
-                >
-                  {isCurrent ? "Current plan" : isEnterprise ? "Contact sales" : "Choose"}
-                </Button>
-              </div>
-            );
-          })}
+        <div className="space-y-4">
+          <div className="flex justify-center">
+            <BillingCycleToggle cycle={billingCycle} onChange={setBillingCycle} />
+          </div>
+          <PlanPicker
+            plans={plansData?.data ?? []}
+            currentKey={plan?.key}
+            pendingKey={planCheckout.isPending ? planCheckout.variables?.plan_key : undefined}
+            onChoose={buyPlan}
+            cycle={billingCycle}
+            compact
+          />
+        </div>
+      </Dialog>
+
+      {/* Celebration modal shown when the user comes back from a paid checkout. */}
+      <Dialog
+        open={showPaymentSuccess}
+        onOpenChange={setShowPaymentSuccess}
+        title=""
+        className="w-[420px] max-w-[92vw]"
+      >
+        <div className="flex flex-col items-center gap-3 py-4 text-center">
+          <span className="relative flex h-16 w-16 items-center justify-center">
+            <span className="absolute inset-0 animate-ping rounded-full bg-success/20" />
+            <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-success/15">
+              <CheckCircle2 size={30} className="text-success" />
+            </span>
+          </span>
+          <div>
+            <h2 className="text-lg font-bold text-text">Payment successful</h2>
+            <p className="mt-1 text-xs leading-relaxed text-text-muted">
+              Thank you! Your plan or credits are being activated — this usually takes a few
+              seconds. Your AI team is ready to work.
+            </p>
+          </div>
+          <Button size="sm" className="mt-1 w-40" onClick={() => setShowPaymentSuccess(false)}>
+            Let's go
+          </Button>
         </div>
       </Dialog>
     </div>

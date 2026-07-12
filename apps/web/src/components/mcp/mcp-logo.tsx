@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 
 const categoryColors: Record<string, string> = {
@@ -23,29 +23,33 @@ export function categoryColor(category: string): string {
 }
 
 export function McpLogo({
-  slug,
+  logoUrl,
   name,
   category,
   size = "md",
 }: {
-  slug: string | null;
+  logoUrl: string | null;
   name: string;
   category: string;
   size?: "sm" | "md" | "lg";
 }) {
   const [failed, setFailed] = useState(false);
   const sizeClass = size === "sm" ? "h-8 w-8" : size === "lg" ? "h-12 w-12" : "h-10 w-10";
-  const imgClass = size === "sm" ? "h-4 w-4" : size === "lg" ? "h-6 w-6" : "h-5 w-5";
+  const imgClass = size === "sm" ? "h-6 w-6" : size === "lg" ? "h-9 w-9" : "h-7 w-7";
   const color = categoryColor(category);
 
-  const initials = name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+  const initials = useMemo(
+    () =>
+      name
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase(),
+    [name],
+  );
 
-  if (!slug || failed) {
+  if (!logoUrl || failed) {
     return (
       <span
         className={cn(
@@ -60,17 +64,11 @@ export function McpLogo({
   }
 
   return (
-    <span
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-md border border-border",
-        sizeClass,
-      )}
-      style={{ backgroundColor: `${color}26` }}
-    >
+    <span className={cn("flex shrink-0 items-center justify-center", sizeClass)}>
       <img
-        src={`/logos/mcp/${slug}.svg`}
+        src={logoUrl}
         alt={name}
-        className={imgClass}
+        className={cn(imgClass, "object-contain")}
         onError={() => setFailed(true)}
       />
     </span>

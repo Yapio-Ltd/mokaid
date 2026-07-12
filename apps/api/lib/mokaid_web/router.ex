@@ -26,6 +26,7 @@ defmodule MokaidWeb.Router do
 
     get "/health", HealthController, :show
     get "/integrations/logos/:key", IntegrationController, :logo
+    get "/mcp/logos/:key", MCPController, :logo
 
     post "/auth/login", AuthController, :login
     post "/auth/register", AuthController, :register
@@ -57,6 +58,7 @@ defmodule MokaidWeb.Router do
     post "/agents/:id/unlink-user", AgentController, :unlink_user
     post "/agents/:id/assign-task", AgentController, :assign_task
     post "/agents/:id/files", AgentController, :upload_files
+    get "/agents/:id/progression", AgentController, :progression
 
     get "/agent-chats", AgentChatController, :index
     get "/agents/:agent_id/chat", AgentChatController, :show
@@ -158,6 +160,8 @@ defmodule MokaidWeb.Router do
     post "/tasks/:id/subtasks", WorkerResourceController, :create_subtasks
     post "/tasks/:id/comment", WorkerResourceController, :create_comment
     post "/agents/:id/chat-message", WorkerResourceController, :agent_chat_message
+    post "/agents/:id/chat-stream", WorkerResourceController, :agent_chat_stream
+    post "/agents/:id/memory", WorkerResourceController, :agent_memory
     post "/tasks/:id/output", WorkerResourceController, :save_output
   end
 end

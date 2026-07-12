@@ -30,6 +30,14 @@ defmodule MokaidWeb.AgentController do
     end
   end
 
+  @doc "Progression tab: level, XP bar, mission count, recent mission memories."
+  def progression(conn, %{"id" => id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "agents.view"),
+         %{} = agent <- Agents.get_agent(workspace_id(conn), id) do
+      json(conn, %{data: Mokaid.Agents.Progression.snapshot(agent)})
+    end
+  end
+
   def update(conn, %{"id" => id} = params) do
     with :ok <- Permissions.authorize(current_member(conn), "agents.update"),
          %{} = agent <- Agents.get_agent(workspace_id(conn), id),

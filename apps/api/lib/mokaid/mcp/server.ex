@@ -17,6 +17,7 @@ defmodule Mokaid.MCP.Server do
     field :category, :string
     field :description, :string
     field :logo_slug, :string
+    field :logo_storage_key, :string
     field :featured, :boolean, default: false
     field :auth_kind, :string, default: "api_key"
     field :transport, :string, default: "http"
@@ -38,6 +39,7 @@ defmodule Mokaid.MCP.Server do
       :category,
       :description,
       :logo_slug,
+      :logo_storage_key,
       :featured,
       :auth_kind,
       :transport,

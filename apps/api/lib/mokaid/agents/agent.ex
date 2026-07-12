@@ -30,6 +30,11 @@ defmodule Mokaid.Agents.Agent do
     field :capabilities, :map, default: %{}
     field :current_task_id, :binary_id
     field :performance_score, :decimal
+    # Gamified progression: missions earn XP; levels unlock as XP accumulates.
+    field :level, :integer, default: 1
+    field :xp, :integer, default: 0
+    field :xp_for_next_level, :integer, default: 100
+    field :missions_completed, :integer, default: 0
     field :access_scope, :map, default: %{}
     field :last_active_at, :utc_datetime_usec
     field :archived_at, :utc_datetime_usec
@@ -65,6 +70,10 @@ defmodule Mokaid.Agents.Agent do
       :capabilities,
       :current_task_id,
       :performance_score,
+      :level,
+      :xp,
+      :xp_for_next_level,
+      :missions_completed,
       :access_scope,
       :created_by_member_id,
       :last_active_at

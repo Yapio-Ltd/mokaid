@@ -88,11 +88,31 @@ defmodule MokaidWeb.BillingController do
     end
   end
 
+  # Direct plan switching is only allowed for free plans (downgrades) — any
+  # paid plan must go through the hosted checkout so the payment actually
+  # happens. Without a configured PayMe seller (local dev) everything stays
+  # switchable so the flow remains testable.
   def change_plan(conn, %{"plan_key" => plan_key} = params) do
+    cycle = if params["billing_cycle"] == "yearly", do: "yearly", else: "monthly"
+
     with :ok <- Permissions.authorize(current_member(conn), "billing.manage"),
-         {:ok, subscription} <-
-           Billing.change_plan(workspace_id(conn), plan_key, params["billing_cycle"]) do
-      json(conn, %{data: subscription_json(subscription)})
+         %{} = plan <- Billing.get_plan_by_key(plan_key) do
+      amount = if cycle == "yearly", do: plan.price_cents_yearly, else: plan.price_cents_monthly
+
+      if amount > 0 and PayMe.enabled?() do
+        conn
+        |> put_status(:payment_required)
+        |> json(%{
+          error: %{
+            code: "payment_required",
+            message: "Paid plans must be activated through checkout."
+          }
+        })
+      else
+        with {:ok, subscription} <- Billing.change_plan(workspace_id(conn), plan.key, cycle) do
+          json(conn, %{data: subscription_json(subscription)})
+        end
+      end
     end
   end
 
@@ -136,6 +156,7 @@ defmodule MokaidWeb.BillingController do
             "kind" => "subscription",
             "amount_cents" => amount,
             "description" => "Mokaid #{plan.name} plan (#{cycle})",
+            "return_path" => params["return_path"],
             "line_items" => [
               %{
                 "description" => "#{plan.name} plan — #{cycle}",
@@ -150,7 +171,7 @@ defmodule MokaidWeb.BillingController do
   end
 
   # Opens a PayMe hosted checkout for an AI credits pack.
-  def credits_checkout(conn, %{"pack_key" => pack_key}) do
+  def credits_checkout(conn, %{"pack_key" => pack_key} = params) do
     with :ok <- Permissions.authorize(current_member(conn), "billing.manage"),
          %{} = pack <- Billing.get_credit_pack(pack_key) do
       if PayMe.enabled?() do
@@ -158,6 +179,7 @@ defmodule MokaidWeb.BillingController do
           "kind" => "credits",
           "amount_cents" => pack.price_cents,
           "description" => "Mokaid — #{pack.credits} AI credits",
+          "return_path" => params["return_path"],
           "line_items" => [
             %{
               "description" => "#{pack.credits} AI credits",
@@ -191,6 +213,7 @@ defmodule MokaidWeb.BillingController do
              amount_cents: attrs["amount_cents"],
              description: attrs["description"],
              transaction_id: invoice.id,
+             return_path: safe_return_path(attrs["return_path"]),
              buyer_email: user && user.email,
              buyer_name: user && user.full_name
            }) do
@@ -198,6 +221,12 @@ defmodule MokaidWeb.BillingController do
       json(conn, %{data: %{sale_url: sale.sale_url, invoice_id: invoice.id}})
     end
   end
+
+  # Only allow app-local return paths — never absolute or protocol-relative
+  # URLs (open redirect).
+  defp safe_return_path("//" <> _), do: nil
+  defp safe_return_path("/" <> _ = path), do: path
+  defp safe_return_path(_), do: nil
 
   defp subscription_json(nil), do: nil
 

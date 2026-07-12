@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { Loader2, Minus, Paperclip, Send, Upload, X } from "lucide-react";
 import type { Agent } from "@/api/types";
 import {
@@ -8,7 +9,10 @@ import {
   useUploadDriveFile,
 } from "@/api/hooks";
 import { Avatar } from "@/components/ui/avatar";
+import { AgentLevelRing } from "@/components/agents/agent-level-ring";
 import { ChatAttachmentView } from "./chat-attachment";
+import { FadeSlide } from "@/components/ui/motion";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useChatStore } from "@/stores/chat-store";
 import { playSound } from "@/lib/sounds";
 import { toast } from "@/stores/toast-store";
@@ -47,6 +51,7 @@ export function ChatWindow({ agent }: { agent: Agent }) {
   const toggleMinimize = useChatStore((s) => s.toggleMinimize);
   const minimized = useChatStore((s) => s.minimizedIds.includes(agent.id));
   const typing = useChatStore((s) => s.typingAgentIds.includes(agent.id));
+  const streamedReply = useChatStore((s) => s.streamingDrafts[agent.id]?.text ?? "");
 
   const { data } = useAgentChatMessages(agent.id);
   const messages = useMemo(() => data?.data ?? [], [data]);
@@ -71,10 +76,10 @@ export function ChatWindow({ agent }: { agent: Agent }) {
     if (!minimized && lastMessageId) markReadMutate(agent.id);
   }, [agent.id, lastMessageId, minimized, markReadMutate]);
 
-  // Pin the scroll to the latest message / typing indicator.
+  // Pin the scroll to the latest message / typing indicator / live draft.
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [lastMessageId, typing, minimized, pending.length]);
+  }, [lastMessageId, typing, minimized, pending.length, streamedReply]);
 
   const uploadFiles = async (files: File[]) => {
     if (files.length === 0) return;
@@ -104,6 +109,9 @@ export function ChatWindow({ agent }: { agent: Agent }) {
     setDraft("");
     setPending([]);
     playSound("sent");
+    // Optimistic typing: the agent appears to compose the instant the message
+    // leaves — the server broadcast then keeps (or clears) the indicator.
+    if (agent.kind === "ai") useChatStore.getState().setAgentTyping(agent.id);
     send.mutate(driveIds.length > 0 ? { body, drive_item_ids: driveIds } : body);
     inputRef.current?.focus();
   };
@@ -160,7 +168,19 @@ export function ChatWindow({ agent }: { agent: Agent }) {
         className="flex w-full items-center gap-2.5 border-b border-border bg-surface-raised px-3 py-2 text-left transition-colors hover:bg-surface-hover"
       >
         <span className="relative">
-          <Avatar name={agent.display_name} size="sm" isAi={agent.kind === "ai"} />
+          {agent.kind === "ai" ? (
+            <AgentLevelRing
+              level={agent.level}
+              xp={agent.xp}
+              xpForNext={agent.xp_for_next_level}
+              size="sm"
+              showBadge={false}
+            >
+              <Avatar name={agent.display_name} size="sm" isAi />
+            </AgentLevelRing>
+          ) : (
+            <Avatar name={agent.display_name} size="sm" isAi={false} />
+          )}
           <span
             className={cn(
               "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-surface-raised",
@@ -169,9 +189,23 @@ export function ChatWindow({ agent }: { agent: Agent }) {
           />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-text">
-            {agent.display_name}
-          </span>
+          <Tooltip
+            content={
+              agent.skills?.length ? (
+                <span>
+                  <span className="font-semibold">Skills</span>
+                  <br />
+                  {agent.skills.map((s) => s.name).join(" · ")}
+                </span>
+              ) : (
+                agent.role_title ?? "AI teammate"
+              )
+            }
+          >
+            <span className="block truncate text-sm font-semibold text-text">
+              {agent.display_name}
+            </span>
+          </Tooltip>
           <span className="block truncate text-[11px] text-text-muted">
             {busy ? "Working on a task…" : agent.role_title ?? "AI teammate"}
           </span>
@@ -213,43 +247,59 @@ export function ChatWindow({ agent }: { agent: Agent }) {
               </div>
             )}
 
-            {messages.map((message) => {
-              const isAgent = message.author_kind === "agent";
-              return (
-                <div
-                  key={message.id}
-                  className={cn("flex items-end gap-2", !isAgent && "justify-end")}
-                >
-                  {isAgent && (
-                    <Avatar name={agent.display_name} size="xs" isAi={agent.kind === "ai"} />
-                  )}
-                  <div
-                    className={cn(
-                      "max-w-[78%] rounded-2xl px-3 py-2 text-[13px] leading-snug",
-                      isAgent
-                        ? "rounded-bl-sm bg-surface-raised text-text"
-                        : "rounded-br-sm bg-primary text-white",
-                    )}
-                    title={
-                      isAgent
-                        ? formatTime(message.inserted_at)
-                        : `${message.author_name ?? "You"} · ${formatTime(message.inserted_at)}`
-                    }
+            <AnimatePresence initial={false}>
+              {messages.map((message) => {
+                const isAgent = message.author_kind === "agent";
+                return (
+                  <FadeSlide
+                    key={message.id}
+                    className={cn("flex items-end gap-2", !isAgent && "justify-end")}
                   >
-                    {message.body && <p className="whitespace-pre-wrap">{message.body}</p>}
-                    {message.attachments.map((att) => (
-                      <ChatAttachmentView
-                        key={att.drive_item_id}
-                        attachment={att}
-                        tone={isAgent ? "agent" : "member"}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                    {isAgent && (
+                      <Avatar name={agent.display_name} size="xs" isAi={agent.kind === "ai"} />
+                    )}
+                    <div
+                      className={cn(
+                        "max-w-[78%] rounded-2xl px-3 py-2 text-[13px] leading-snug",
+                        isAgent
+                          ? "rounded-bl-sm bg-surface-raised text-text"
+                          : "rounded-br-sm bg-primary text-white",
+                      )}
+                      title={
+                        isAgent
+                          ? formatTime(message.inserted_at)
+                          : `${message.author_name ?? "You"} · ${formatTime(message.inserted_at)}`
+                      }
+                    >
+                      {message.body && <p className="whitespace-pre-wrap">{message.body}</p>}
+                      {message.attachments.map((att) => (
+                        <ChatAttachmentView
+                          key={att.drive_item_id}
+                          attachment={att}
+                          tone={isAgent ? "agent" : "member"}
+                        />
+                      ))}
+                    </div>
+                  </FadeSlide>
+                );
+              })}
+            </AnimatePresence>
 
-            {typing && (
+            {/* Live streamed draft (typewriter): the reply grows token by
+                token, then the persisted message replaces it. */}
+            {streamedReply && (
+              <div className="flex items-end gap-2">
+                <Avatar name={agent.display_name} size="xs" isAi={agent.kind === "ai"} />
+                <div className="max-w-[78%] rounded-2xl rounded-bl-sm bg-surface-raised px-3 py-2 text-[13px] leading-snug text-text">
+                  <p className="whitespace-pre-wrap">
+                    {streamedReply}
+                    <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-pulse bg-text-muted align-middle" />
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {typing && !streamedReply && (
               <div className="flex items-end gap-2">
                 <Avatar name={agent.display_name} size="xs" isAi={agent.kind === "ai"} />
                 <div className="rounded-2xl rounded-bl-sm bg-surface-raised px-3 py-2.5">

@@ -302,6 +302,12 @@ defmodule Mokaid.Tasks do
       # rest). Agent-authored comments never trigger replies (no loops).
       if match?(%Mokaid.Members.Member{}, actor) and task.assigned_agent_id != nil and
            active_runs_for_task(task.workspace_id, task.id) == [] do
+        # Typing indicator in the thread right away, before the LLM round-trip.
+        Realtime.broadcast_workspace(task.workspace_id, "task.agent_typing", %{
+          task_id: task.id,
+          agent_id: task.assigned_agent_id
+        })
+
         %{workspace_id: task.workspace_id, task_id: task.id}
         |> Mokaid.AI.Workers.ConverseWorker.new()
         |> Oban.insert()

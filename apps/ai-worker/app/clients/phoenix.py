@@ -59,6 +59,14 @@ class PhoenixClient:
             {"status": status, **(extra or {})},
         )
 
+    async def update_run_plan(self, run_id: str, todos: list[dict[str, Any]]) -> None:
+        """Pushes the deep agent's live todo plan so the UI can render a
+        real-time checklist (stored on the run's `steps` field)."""
+        await self._post(
+            f"/api/worker/runs/{run_id}/status",
+            {"status": "running", "steps": todos},
+        )
+
     async def request_approval(
         self,
         run_id: str,
@@ -181,6 +189,26 @@ class PhoenixClient:
         )
         return result is not None
 
+    async def stream_agent_chat_chunk(
+        self,
+        workspace_id: str,
+        agent_id: str,
+        stream_id: str,
+        chunk: str,
+        done: bool = False,
+    ) -> None:
+        """Relays a live delta of the agent's in-progress DM reply. Phoenix
+        broadcasts `agent_chat.chunk` so the dock renders a typewriter draft."""
+        await self._post(
+            f"/api/worker/agents/{agent_id}/chat-stream",
+            {
+                "workspace_id": workspace_id,
+                "stream_id": stream_id,
+                "chunk": chunk,
+                "done": done,
+            },
+        )
+
     async def create_subtasks(
         self, workspace_id: str, task_id: str, subtasks: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
@@ -189,6 +217,21 @@ class PhoenixClient:
             {"workspace_id": workspace_id, "subtasks": subtasks},
         )
         return (result or {}).get("data", [])
+
+    async def save_agent_memory(
+        self,
+        workspace_id: str,
+        agent_id: str,
+        title: str,
+        content: str,
+    ) -> bool:
+        """Stores a mission memory as agent-scoped knowledge (vectorized by
+        the Phoenix ingestion pipeline) — the agent literally learns."""
+        result = await self._post(
+            f"/api/worker/agents/{agent_id}/memory",
+            {"workspace_id": workspace_id, "title": title, "content": content},
+        )
+        return result is not None
 
     async def save_task_output(
         self,

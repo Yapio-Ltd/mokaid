@@ -6,8 +6,10 @@ import {
   ChevronRight,
   Circle,
   Clock,
+  Copy,
   Download,
   FileText,
+  FolderInput,
   Image as ImageIcon,
   Loader2,
   Music,
@@ -39,7 +41,12 @@ import {
   useToggleSubtask,
   useUpdateTask,
 } from "@/api/hooks";
+import { SaveToDriveModal } from "@/components/modals/save-to-drive-modal";
 import { DetailPanel } from "@/components/ui/detail-panel";
+import { toast } from "@/stores/toast-store";
+import { motion } from "framer-motion";
+import { useMissionPlanStore, type MissionPlanStep } from "@/stores/mission-plan-store";
+import { useTaskTypingStore } from "@/stores/task-typing-store";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -86,6 +93,52 @@ function producedDocs(toolCalls: TaskRunToolCall[]): ProducedDoc[] {
   });
 }
 
+/** Live deep-agent checklist: todos tick off in real time as the agent works. */
+function MissionPlan({ steps, working }: { steps: MissionPlanStep[]; working: boolean }) {
+  const done = steps.filter((s) => s.status === "completed").length;
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-raised/60 px-4 py-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+          <Sparkles size={11} className="text-primary-light" />
+          Mission plan
+        </span>
+        <span className="text-[10px] tabular-nums text-text-muted">
+          {done}/{steps.length}
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {steps.map((step, index) => (
+          <motion.li
+            key={`${index}-${step.content}`}
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2, delay: index * 0.03 }}
+            className={cn(
+              "flex items-start gap-2 text-[12px] leading-snug transition-colors duration-300",
+              step.status === "completed"
+                ? "text-text-muted line-through decoration-text-muted/40"
+                : step.status === "in_progress"
+                  ? "font-medium text-text"
+                  : "text-text-secondary",
+            )}
+          >
+            {step.status === "completed" ? (
+              <CheckCircle2 size={13} className="mt-0.5 shrink-0 text-success" />
+            ) : step.status === "in_progress" && working ? (
+              <Loader2 size={13} className="mt-0.5 shrink-0 animate-spin text-info" />
+            ) : (
+              <Circle size={13} className="mt-0.5 shrink-0 text-text-muted/50" />
+            )}
+            {step.content}
+          </motion.li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function Section({
   title,
   count,
@@ -130,6 +183,7 @@ function Section({
 function FileRow({ file }: { file: TaskAttachment }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const isImage = file.mime_type?.startsWith("image/") ?? false;
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
@@ -219,17 +273,37 @@ function FileRow({ file }: { file: TaskAttachment }) {
         ) : error ? (
           <AlertTriangle size={13} className="shrink-0 text-danger" />
         ) : (
-          <button
-            type="button"
-            onClick={download}
-            aria-label={`Download ${file.name}`}
-            title="Download"
-            className="shrink-0 rounded-md p-1.5 text-text-muted transition-colors hover:bg-surface-raised hover:text-text mk-focus-ring"
-          >
-            <Download size={13} />
-          </button>
+          <span className="flex shrink-0 items-center gap-0.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSaveOpen(true);
+              }}
+              aria-label={`Save ${file.name} to Drive`}
+              title="Save to Drive folder"
+              className="rounded-md p-1.5 text-text-muted transition-colors hover:bg-surface-raised hover:text-text mk-focus-ring"
+            >
+              <FolderInput size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={download}
+              aria-label={`Download ${file.name}`}
+              title="Download locally"
+              className="rounded-md p-1.5 text-text-muted transition-colors hover:bg-surface-raised hover:text-text mk-focus-ring"
+            >
+              <Download size={13} />
+            </button>
+          </span>
         )}
       </div>
+      <SaveToDriveModal
+        open={saveOpen}
+        onOpenChange={setSaveOpen}
+        itemIds={[file.id]}
+        itemLabel={file.name}
+      />
       {isImage && blobUrl && (
         <button
           type="button"
@@ -268,9 +342,11 @@ function MetaRow({
 export function TaskDetailPanel({
   taskId,
   onClose,
+  overlay = false,
 }: {
   taskId: string | null;
   onClose: () => void;
+  overlay?: boolean;
 }) {
   const [comment, setComment] = useState("");
   const [expandedDoc, setExpandedDoc] = useState<number | null>(0);
@@ -312,6 +388,9 @@ export function TaskDetailPanel({
   const inputs = task?.attachments.filter((f) => f.source === "input") ?? [];
   const run = task?.latest_run ?? null;
   const docs = useMemo(() => producedDocs(run?.output?.tool_calls ?? []), [run]);
+  // Live plan (streamed via channel) wins over the last persisted snapshot.
+  const livePlan = useMissionPlanStore((s) => (taskId ? s.plans[taskId] : undefined));
+  const plan = livePlan ?? run?.plan ?? [];
   const pendingApproval = task?.pending_approval ?? null;
   const waitingApproval = run?.status === "waiting_for_approval" || pendingApproval != null;
   const agentWorking =
@@ -363,8 +442,17 @@ export function TaskDetailPanel({
     !waitingApproval &&
     !["completed", "canceled"].includes(task.status);
 
+  const agentTyping = useTaskTypingStore((s) =>
+    taskId != null && s.typingTaskIds.includes(taskId),
+  );
+
   const submitComment = () => {
     if (!task || !comment.trim()) return;
+    // Optimistic typing indicator: the agent "starts typing" the instant the
+    // message leaves, without waiting for the broadcast round-trip.
+    if (task.assigned_agent_id && !agentWorking) {
+      useTaskTypingStore.getState().setTyping(task.id);
+    }
     createComment.mutate(
       { taskId: task.id, body: comment.trim() },
       { onSuccess: () => setComment("") },
@@ -377,7 +465,7 @@ export function TaskDetailPanel({
   };
 
   return (
-    <DetailPanel open={taskId != null} onClose={onClose} title="Task Details">
+    <DetailPanel open={taskId != null} onClose={onClose} title="Task Details" overlay={overlay}>
       {isLoading && (
         <div className="flex items-center justify-center py-16 text-text-muted">
           <Loader2 size={18} className="animate-spin" />
@@ -426,6 +514,11 @@ export function TaskDetailPanel({
                 <Square size={11} /> Stop
               </Button>
             </div>
+          )}
+
+          {/* Live mission checklist (deep-agent todos, streamed in realtime). */}
+          {plan.length > 0 && (agentWorking || waitingApproval || run?.status === "completed") && (
+            <MissionPlan steps={plan} working={agentWorking} />
           )}
 
           {/* Idle to_do task with an AI agent: one click to launch. */}
@@ -684,9 +777,23 @@ export function TaskDetailPanel({
                       </span>
                     </button>
                     {expandedDoc === i && (
-                      <pre className="max-h-48 overflow-y-auto bg-bg-deep/50 px-3.5 py-3 font-sans text-[11px] leading-relaxed text-text-secondary">
-                        {doc.content}
-                      </pre>
+                      <div className="border-t border-border/50 bg-bg-deep/50 px-3.5 py-3">
+                        <div className="mb-2 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void navigator.clipboard.writeText(doc.content);
+                              toast({ tone: "success", title: "Copied", description: doc.title });
+                            }}
+                            className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+                          >
+                            <Copy size={11} /> Copy
+                          </button>
+                        </div>
+                        <pre className="max-h-48 overflow-y-auto font-sans text-[11px] leading-relaxed text-text-secondary">
+                          {doc.content}
+                        </pre>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -803,6 +910,23 @@ export function TaskDetailPanel({
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {agentTyping && (
+              <div className="mb-3 flex items-end gap-2">
+                <Avatar name={task.assigned_agent_name ?? "Agent"} size="xs" isAi />
+                <div className="rounded-2xl rounded-tl-sm bg-surface-raised/80 px-3 py-2.5">
+                  <span className="inline-flex items-center gap-1 px-1" aria-label="typing">
+                    {[0, 1, 2].map((i) => (
+                      <span
+                        key={i}
+                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-muted"
+                        style={{ animationDelay: `${i * 150}ms` }}
+                      />
+                    ))}
+                  </span>
+                </div>
               </div>
             )}
 

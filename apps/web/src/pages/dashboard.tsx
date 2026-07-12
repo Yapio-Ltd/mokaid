@@ -4,6 +4,7 @@ import { useAgents, useTasks, useWorkspace } from "@/api/hooks";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
+import { AgentLevelRing } from "@/components/agents/agent-level-ring";
 import { AgentStatusBadge, TaskStatusBadge } from "@/components/ui/status";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -203,12 +204,28 @@ export function DashboardPage() {
                       onClick={() => selectAgent(agent.id)}
                       className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-surface-hover mk-focus-ring"
                     >
-                      <Avatar
-                        name={agent.display_name}
-                        size="sm"
-                        isAi={agent.kind === "ai"}
-                        color={agent.avatar_config?.primary_color}
-                      />
+                      {agent.kind === "ai" ? (
+                        <AgentLevelRing
+                          level={agent.level}
+                          xp={agent.xp}
+                          xpForNext={agent.xp_for_next_level}
+                          size="sm"
+                        >
+                          <Avatar
+                            name={agent.display_name}
+                            size="sm"
+                            isAi
+                            color={agent.avatar_config?.primary_color}
+                          />
+                        </AgentLevelRing>
+                      ) : (
+                        <Avatar
+                          name={agent.display_name}
+                          size="sm"
+                          isAi={false}
+                          color={agent.avatar_config?.primary_color}
+                        />
+                      )}
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-xs font-semibold text-text">
                           {agent.display_name}

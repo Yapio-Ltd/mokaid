@@ -24,6 +24,8 @@ defmodule Mokaid.Billing.Subscription do
     field :auto_recharge_enabled, :boolean, default: false
     field :auto_recharge_pack_key, :string
     field :auto_recharge_threshold, :integer, default: 0
+    field :renewal_failures, :integer, default: 0
+    field :last_renewal_attempt_at, :utc_datetime_usec
 
     timestamps()
   end
@@ -44,7 +46,9 @@ defmodule Mokaid.Billing.Subscription do
       :credits_period_start,
       :auto_recharge_enabled,
       :auto_recharge_pack_key,
-      :auto_recharge_threshold
+      :auto_recharge_threshold,
+      :renewal_failures,
+      :last_renewal_attempt_at
     ])
     |> validate_required([:workspace_id])
     |> unique_constraint(:workspace_id)

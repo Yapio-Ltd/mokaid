@@ -11,9 +11,16 @@ import {
   X,
 } from "lucide-react";
 import type { Agent } from "@/api/types";
-import { useTasks, useUpdateAgent, useUploadAgentFiles, useDeleteAgent } from "@/api/hooks";
+import {
+  useAgentProgression,
+  useTasks,
+  useUpdateAgent,
+  useUploadAgentFiles,
+  useDeleteAgent,
+} from "@/api/hooks";
 import { DetailPanel } from "@/components/ui/detail-panel";
 import { Avatar } from "@/components/ui/avatar";
+import { AgentLevelRing } from "@/components/agents/agent-level-ring";
 import { AgentStatusBadge, TaskStatusBadge } from "@/components/ui/status";
 
 const AgentHeadPreview3D = lazy(() =>
@@ -206,6 +213,84 @@ function FileDropZone({
   );
 }
 
+/** "Level" tab: XP bar, mission count and the agent's freshest memories —
+ *  the employee's career sheet, video-game style. */
+function ProgressionTab({ agent }: { agent: Agent }) {
+  const { data } = useAgentProgression(agent.id);
+  const progression = data?.data;
+
+  const level = progression?.level ?? agent.level;
+  const xp = progression?.xp ?? agent.xp;
+  const xpForNext = progression?.xp_for_next_level ?? agent.xp_for_next_level;
+  const missions = progression?.missions_completed ?? agent.missions_completed;
+  const pct = xpForNext > 0 ? Math.round((xp / xpForNext) * 100) : 0;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-4 rounded-xl bg-surface-raised/60 p-4">
+        <AgentLevelRing level={level} xp={xp} xpForNext={xpForNext} size="lg">
+          <Avatar
+            name={agent.display_name}
+            size="lg"
+            isAi
+            color={agent.avatar_config?.primary_color}
+          />
+        </AgentLevelRing>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-text">Level {level}</p>
+          <div className="mt-1.5">
+            <ProgressBar value={pct} />
+          </div>
+          <p className="mt-1 text-[11px] text-text-muted">
+            {xp} / {xpForNext} XP to level {level + 1}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl bg-surface-raised/60 p-4 text-center">
+          <p className="text-xl font-bold text-text">{missions}</p>
+          <p className="mt-0.5 text-[11px] text-text-muted">Missions completed</p>
+        </div>
+        <div className="rounded-xl bg-surface-raised/60 p-4 text-center">
+          <p className="text-xl font-bold capitalize text-text">
+            {progression?.specialty ?? "—"}
+          </p>
+          <p className="mt-0.5 text-[11px] text-text-muted">Specialty</p>
+        </div>
+      </div>
+
+      {progression && progression.recent_memories.length > 0 && (
+        <div>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+            Recent mission memories
+          </p>
+          <div className="space-y-1.5">
+            {progression.recent_memories.map((memory) => (
+              <div
+                key={memory.id}
+                className="flex items-center gap-2 rounded-lg bg-surface-raised/40 px-3 py-2"
+              >
+                <Sparkles size={11} className="shrink-0 text-primary-light" />
+                <span className="min-w-0 flex-1 truncate text-[11px] text-text">
+                  {memory.title}
+                </span>
+                <span className="shrink-0 text-[10px] text-text-muted">
+                  {formatRelative(memory.inserted_at)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] leading-relaxed text-text-muted">
+            Every mission enriches this agent's vectorized knowledge — it gets
+            genuinely better at what you ask it most.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between py-1.5">
@@ -255,24 +340,32 @@ export function AgentProfilePanel({
         <div className="flex flex-col gap-0">
           {/* Header */}
           <div className="flex flex-col items-center gap-3 px-6 pb-5 pt-4">
-            <div className="h-20 w-20 overflow-hidden rounded-full border border-border-strong bg-surface-raised">
-              <Suspense
-                fallback={
-                  <Avatar
+            <AgentLevelRing
+              level={agent.level}
+              xp={agent.xp}
+              xpForNext={agent.xp_for_next_level}
+              size="xl"
+              showBadge={agent.kind === "ai"}
+            >
+              <div className="h-20 w-20 overflow-hidden rounded-full border border-border-strong bg-surface-raised">
+                <Suspense
+                  fallback={
+                    <Avatar
+                      name={agent.display_name}
+                      size="xl"
+                      isAi={agent.kind === "ai"}
+                      color={agent.avatar_config?.primary_color}
+                    />
+                  }
+                >
+                  <AgentHeadPreview3D
                     name={agent.display_name}
-                    size="xl"
-                    isAi={agent.kind === "ai"}
-                    color={agent.avatar_config?.primary_color}
+                    color={agent.avatar_config?.primary_color ?? (agent.kind === "ai" ? "#5936d1" : "#472aa8")}
+                    size={80}
                   />
-                }
-              >
-                <AgentHeadPreview3D
-                  name={agent.display_name}
-                  color={agent.avatar_config?.primary_color ?? (agent.kind === "ai" ? "#5936d1" : "#472aa8")}
-                  size={80}
-                />
-              </Suspense>
-            </div>
+                </Suspense>
+              </div>
+            </AgentLevelRing>
 
             <div className="flex flex-col items-center gap-1">
               <EditableName value={agent.display_name} onSave={handleRename} />
@@ -330,6 +423,11 @@ export function AgentProfilePanel({
               <Tabs.Trigger value="tools" className={tabClass}>
                 Tools
               </Tabs.Trigger>
+              {agent.kind === "ai" && (
+                <Tabs.Trigger value="progression" className={tabClass}>
+                  Level
+                </Tabs.Trigger>
+              )}
             </Tabs.List>
 
             <Tabs.Content value="overview" className="space-y-5 px-5 py-4">
@@ -471,6 +569,12 @@ export function AgentProfilePanel({
             <Tabs.Content value="tools" className="px-5 py-4">
               <AgentMcpMatrix agentId={agent.id} />
             </Tabs.Content>
+
+            {agent.kind === "ai" && (
+              <Tabs.Content value="progression" className="px-5 py-4">
+                <ProgressionTab agent={agent} />
+              </Tabs.Content>
+            )}
           </Tabs.Root>
 
           {/* Delete action */}

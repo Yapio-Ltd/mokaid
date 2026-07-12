@@ -6,6 +6,8 @@ import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "@/stores/toast-store";
 import { useUiStore } from "@/stores/ui-store";
 import { useChatStore } from "@/stores/chat-store";
+import { useMissionPlanStore, type MissionPlanStep } from "@/stores/mission-plan-store";
+import { useTaskTypingStore } from "@/stores/task-typing-store";
 import { playSound } from "@/lib/sounds";
 import { joinChannel, onSocketOpen } from "./phoenix-client";
 
@@ -153,6 +155,18 @@ function maybeToast(event: string, payload: EventPayload): void {
       toast({ tone: "success", title: "Task completed", description: `“${title}”`, taskId });
       return;
     }
+    case "agent.level_up": {
+      const agentName = str(payload, "agent_name") ?? "Your agent";
+      const level = typeof payload.level === "number" ? payload.level : undefined;
+      playSound("task-done");
+      toast({
+        tone: "success",
+        title: `${agentName} leveled up!`,
+        description: level ? `Now level ${level} — its expertise keeps growing.` : undefined,
+        duration: 6000,
+      });
+      return;
+    }
     default:
   }
 }
@@ -182,6 +196,7 @@ export function useWorkspaceChannel(): void {
       ["agent.updated", [["agents"]]],
       ["agent.status_changed", [["agents"], ["dashboard"]]],
       ["agent.linked_user_changed", [["agents"], ["members"]]],
+      ["agent.level_up", [["agents"]]],
       ["task.created", [["tasks"], ["dashboard"]]],
       ["task.updated", [["tasks"]]],
       ["task.status_changed", [["tasks"], ["dashboard"], ["analytics"]]],
@@ -222,7 +237,22 @@ export function useWorkspaceChannel(): void {
 
       if (message.author_kind === "agent") {
         useChatStore.getState().clearAgentTyping(agentId);
+        // The persisted message replaces the streamed draft, if any.
+        useChatStore.getState().clearStreamingDraft(agentId);
         playSound("message");
+      }
+    });
+
+    // Token-by-token reply stream: grow the agent's draft bubble live. The
+    // final `agent_chat.message` broadcast swaps the draft for the real thing.
+    const chatChunkRef = channel.on("agent_chat.chunk", (payload: EventPayload) => {
+      const agentId = str(payload ?? {}, "agent_id");
+      const streamId = str(payload ?? {}, "stream_id");
+      if (!agentId || !streamId) return;
+      const chunk = typeof payload.chunk === "string" ? payload.chunk : "";
+      if (chunk) {
+        useChatStore.getState().clearAgentTyping(agentId);
+        useChatStore.getState().appendStreamChunk(agentId, streamId, chunk);
       }
     });
 
@@ -237,6 +267,28 @@ export function useWorkspaceChannel(): void {
     const typingRef = channel.on("agent_chat.typing", (payload: EventPayload) => {
       const agentId = str(payload ?? {}, "agent_id");
       if (agentId) useChatStore.getState().setAgentTyping(agentId);
+    });
+
+    // Task-thread typing: the agent starts "typing" the moment the reply job
+    // is queued; its comment landing (task.comment_added) clears it.
+    const taskTypingRef = channel.on("task.agent_typing", (payload: EventPayload) => {
+      const taskId = str(payload ?? {}, "task_id");
+      if (taskId) useTaskTypingStore.getState().setTyping(taskId);
+    });
+
+    const commentRef = channel.on("task.comment_added", (payload: EventPayload) => {
+      const taskId = str(payload ?? {}, "task_id");
+      if (taskId) useTaskTypingStore.getState().clearTyping(taskId);
+    });
+
+    // Deep-agent live plan: patch the mission checklist store directly so the
+    // task panel ticks todos in real time without a refetch.
+    const planRef = channel.on("task.plan_updated", (payload: EventPayload) => {
+      const taskId = str(payload ?? {}, "task_id");
+      const steps = (payload as { steps?: MissionPlanStep[] }).steps;
+      if (taskId && Array.isArray(steps)) {
+        useMissionPlanStore.getState().setPlan(taskId, steps);
+      }
     });
 
     // Catch-up on reconnect: any event broadcast while the socket was down
@@ -261,8 +313,12 @@ export function useWorkspaceChannel(): void {
       // closed for real at logout via phoenix-client `disconnect()`.
       bindings.forEach(([event], index) => channel.off(event, refs[index]));
       channel.off("agent_chat.message", chatMsgRef);
+      channel.off("agent_chat.chunk", chatChunkRef);
       channel.off("credits.updated", creditsRef);
       channel.off("agent_chat.typing", typingRef);
+      channel.off("task.agent_typing", taskTypingRef);
+      channel.off("task.comment_added", commentRef);
+      channel.off("task.plan_updated", planRef);
     };
   }, [workspaceId, token, queryClient]);
 }

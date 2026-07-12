@@ -65,4 +65,23 @@ defmodule MokaidWeb.MCPController do
       json(conn, %{data: Serializer.mcp_grant(grant)})
     end
   end
+
+  @doc """
+  Serves the official MCP server logo from S3. Public catalog asset (no auth).
+  """
+  def logo(conn, %{"key" => key}) do
+    with %{} = server <- MCP.get_server_by_key(key),
+         sk when is_binary(sk) and sk != "" <- server.logo_storage_key,
+         {:ok, body, content_type} <- Mokaid.Storage.get_object(sk) do
+      conn
+      |> put_resp_content_type(content_type)
+      |> put_resp_header("cache-control", "public, max-age=3600, must-revalidate")
+      |> send_resp(200, body)
+    else
+      _ ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: %{code: "not_found", message: "Logo not found"}})
+    end
+  end
 end

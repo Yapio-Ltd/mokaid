@@ -10,6 +10,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AgentProfilePanel } from "@/components/agents/agent-profile-panel";
+import { AgentLevelRing } from "@/components/agents/agent-level-ring";
 import { NewAgentModal } from "@/components/modals/new-agent-modal";
 import { cn } from "@/lib/cn";
 import { formatRelative } from "@/lib/format";
@@ -152,12 +153,28 @@ export function AgentsPage() {
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <Avatar
-                          name={agent.display_name}
-                          size="sm"
-                          isAi={agent.kind === "ai"}
-                          color={agent.avatar_config?.primary_color}
-                        />
+                        {agent.kind === "ai" ? (
+                          <AgentLevelRing
+                            level={agent.level}
+                            xp={agent.xp}
+                            xpForNext={agent.xp_for_next_level}
+                            size="sm"
+                          >
+                            <Avatar
+                              name={agent.display_name}
+                              size="sm"
+                              isAi
+                              color={agent.avatar_config?.primary_color}
+                            />
+                          </AgentLevelRing>
+                        ) : (
+                          <Avatar
+                            name={agent.display_name}
+                            size="sm"
+                            isAi={false}
+                            color={agent.avatar_config?.primary_color}
+                          />
+                        )}
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-text">{agent.display_name}</p>
                           <p className="truncate text-[11px] text-text-muted">

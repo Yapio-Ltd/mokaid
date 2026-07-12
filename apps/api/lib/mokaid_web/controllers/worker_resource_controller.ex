@@ -145,6 +145,22 @@ defmodule MokaidWeb.WorkerResourceController do
     end
   end
 
+  @doc """
+  Relays a live text delta of the agent's in-progress chat reply. Nothing is
+  persisted here — the UI renders the growing draft (typewriter effect) and
+  the complete message arrives separately via `agent_chat_message`.
+  """
+  def agent_chat_stream(conn, %{"id" => id, "workspace_id" => workspace_id} = params) do
+    Mokaid.Realtime.broadcast_workspace(workspace_id, "agent_chat.chunk", %{
+      agent_id: id,
+      stream_id: params["stream_id"],
+      chunk: params["chunk"] || "",
+      done: params["done"] == true
+    })
+
+    json(conn, %{data: %{ok: true}})
+  end
+
   # The worker asks us to start a task from a text-only chat request it judged
   # actionable. The member who initiated the thread is the task creator.
   defp maybe_start_chat_task(workspace_id, agent, %{"start_task" => true} = params) do
@@ -161,6 +177,40 @@ defmodule MokaidWeb.WorkerResourceController do
   end
 
   defp maybe_start_chat_task(_workspace_id, _agent, _params), do: :ok
+
+  @doc """
+  Stores a mission memory as agent-scoped knowledge. The ingestion pipeline
+  vectorizes it, so the agent's future retrievals include what it learned —
+  its expertise literally grows with every mission.
+  """
+  def agent_memory(
+        conn,
+        %{"id" => id, "workspace_id" => workspace_id, "title" => title, "content" => content}
+      )
+      when is_binary(content) and content != "" do
+    with %{} = agent <- Agents.get_agent(workspace_id, id),
+         {:ok, item} <-
+           Mokaid.Knowledge.create_item(workspace_id, %{
+             "title" => title || "Mission memory",
+             "type" => "note",
+             "body" => content,
+             "agent_id" => agent.id,
+             "status" => "published",
+             "tags" => ["mission-memory"]
+           }) do
+      conn
+      |> put_status(:created)
+      |> json(%{data: %{id: item.id, agent_id: agent.id}})
+    else
+      nil ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: %{code: "not_found", message: "agent not found"}})
+
+      error ->
+        error
+    end
+  end
 
   @doc """
   Saves a file produced by an agent (draft, report, transformed asset…) into

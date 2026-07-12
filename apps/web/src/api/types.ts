@@ -51,12 +51,27 @@ export interface Agent {
   capabilities: AgentCapabilities | null;
   current_task_id: string | null;
   performance_score: number | null;
+  /** Gamified progression: XP ring around the avatar, level badge. */
+  level: number;
+  xp: number;
+  xp_for_next_level: number;
+  missions_completed: number;
   linked_user_id: string | null;
   linked_member_id: string | null;
   linked_user_name: string | null;
   linked_user_email: string | null;
   last_active_at: string | null;
   inserted_at: string;
+}
+
+export interface AgentProgression {
+  level: number;
+  xp: number;
+  xp_for_next_level: number;
+  missions_completed: number;
+  performance_score: number | null;
+  specialty: string | null;
+  recent_memories: Array<{ id: string; title: string; inserted_at: string }>;
 }
 
 export interface AgentCounts {
@@ -111,7 +126,11 @@ export interface TaskRun {
     steps?: number;
     tool_calls?: TaskRunToolCall[];
     artifacts?: string[];
+    summary?: string;
+    consultations?: Array<{ colleague: string; question: string }>;
   } | null;
+  /** Deep-agent live plan (todo checklist), streamed while the run works. */
+  plan?: Array<{ content: string; status: string }>;
   token_usage: Record<string, number> | null;
   started_at: string | null;
   completed_at: string | null;
@@ -333,6 +352,7 @@ export interface McpServer {
   category: string;
   description: string | null;
   logo_slug: string | null;
+  logo_url: string | null;
   featured: boolean;
   auth_kind: "oauth2" | "api_key" | "none" | "custom";
   transport: string;
@@ -347,6 +367,7 @@ export interface McpInstallation {
   server_name: string;
   category: string;
   logo_slug: string | null;
+  logo_url: string | null;
   auth_kind: string;
   status: "pending" | "connected" | "error" | "disconnected";
   connected_account: string | null;
@@ -364,6 +385,7 @@ export interface McpGrant {
   server_key: string;
   server_name: string;
   logo_slug: string | null;
+  logo_url: string | null;
 }
 
 export interface BillingOverview {
