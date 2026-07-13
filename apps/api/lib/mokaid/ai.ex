@@ -437,7 +437,12 @@ defmodule Mokaid.AI do
         run_id: run.id,
         status: "completed",
         title: task && task.title,
-        agent_id: run.agent_id
+        agent_id: run.agent_id,
+        agent_name:
+          case run.agent_id && Agents.get_agent(run.workspace_id, run.agent_id) do
+            %{display_name: name} -> name
+            _ -> nil
+          end
       })
 
       # This agent is free again — pull its next queued mission.
@@ -453,27 +458,47 @@ defmodule Mokaid.AI do
   # Delivers the mission's result into the agent's chat thread — for every
   # mission run by an AI agent, not just chat-born ones: the user always gets
   # the deliverables where they talk to their employee, plus the task Output.
+  # Always posts a completion message for chat-born tasks, even without files,
+  # so the dock always shows a reply + badge in realtime.
   defp maybe_deliver_to_chat(run, task, output) do
     chat_agent_id = get_in(task.metadata || %{}, ["chat_agent_id"]) || run.agent_id
+    from_chat? = is_binary(get_in(task.metadata || %{}, ["chat_agent_id"]))
 
     if is_binary(chat_agent_id) do
       {task, conversation_id} = ensure_task_conversation(task, chat_agent_id)
       outputs = chat_output_attachments(run.workspace_id, task.id)
 
-      # Never claim "Done" when there is nothing to open — that was the main
-      # UX lie when the agent asked a question and the run still completed.
-      if outputs == [] do
-        require Logger
-        Logger.info("chat_delivery_skipped_no_outputs task=#{task.id}")
-      else
-        body = chat_delivery_message(task, outputs)
+      cond do
+        outputs != [] ->
+          body = chat_delivery_message(task, outputs)
 
-        Mokaid.AgentChat.deliver_task_output(run.workspace_id, chat_agent_id, body, outputs,
-          task_id: task.id,
-          conversation_id: conversation_id
-        )
+          Mokaid.AgentChat.deliver_task_output(run.workspace_id, chat_agent_id, body, outputs,
+            task_id: task.id,
+            conversation_id: conversation_id
+          )
 
-        deliver_output_summary(run.workspace_id, chat_agent_id, output, conversation_id, task.id)
+          deliver_output_summary(
+            run.workspace_id,
+            chat_agent_id,
+            output,
+            conversation_id,
+            task.id
+          )
+
+        from_chat? ->
+          # Chat-launched task with no file artifacts — still acknowledge in-thread.
+          body = chat_completion_ack(task, output)
+
+          if is_binary(body) and String.trim(body) != "" do
+            Mokaid.AgentChat.post_agent_message(run.workspace_id, chat_agent_id, body,
+              task_id: task.id,
+              conversation_id: conversation_id
+            )
+          end
+
+        true ->
+          require Logger
+          Logger.info("chat_delivery_skipped_no_outputs task=#{task.id}")
       end
     end
 
@@ -484,6 +509,22 @@ defmodule Mokaid.AI do
       require Logger
       Logger.warning("chat_delivery_failed: #{inspect(error)}")
       :ok
+  end
+
+  defp chat_completion_ack(task, output) do
+    summary = (output || %{})["summary"] || (output || %{})["headline"]
+    instruction = get_in(task.metadata || %{}, ["instruction"]) || task.title || ""
+
+    cond do
+      is_binary(summary) and String.trim(summary) != "" and String.length(summary) < 500 ->
+        String.trim(summary)
+
+      looks_french?(instruction) ->
+        "Voilà, j'ai terminé « #{task.title} ». Dis-moi si tu veux que j'ajuste quoi que ce soit !"
+
+      true ->
+        "Done with “#{task.title}”. Let me know if you want me to adjust anything!"
+    end
   end
 
   defp ensure_task_conversation(task, agent_id) do

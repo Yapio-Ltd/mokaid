@@ -28,7 +28,9 @@ defmodule Mokaid.AI.Workers.AgentChatWorker do
     if agent == nil or stale_trigger?(workspace_id, agent_id, args["message_id"]) do
       :ok
     else
-      attachments = args["attachments"] || []
+      # Enrich drive attachments with a short-lived download URL so the worker
+      # can read PDF/DOCX/images inline (questions) without starting a task.
+      attachments = enrich_attachments(workspace_id, args["attachments"] || [])
 
       payload = %{
         type: "agent_chat",
@@ -88,6 +90,49 @@ defmodule Mokaid.AI.Workers.AgentChatWorker do
 
     latest_id != message_id
   end
+
+  # Reuses Dispatcher.attached_files so chat gets the same download_url format
+  # as missions — the Python direct_chat agent can then extract / vision-read.
+  defp enrich_attachments(workspace_id, attachments) when is_list(attachments) do
+    ids =
+      attachments
+      |> Enum.map(fn
+        %{"drive_item_id" => id} when is_binary(id) -> id
+        %{drive_item_id: id} when is_binary(id) -> id
+        _ -> nil
+      end)
+      |> Enum.filter(&is_binary/1)
+
+    files_by_id =
+      workspace_id
+      |> Mokaid.AI.Dispatcher.attached_files(ids)
+      |> Map.new(fn f -> {f.id, f} end)
+
+    Enum.map(attachments, fn entry ->
+      id = entry["drive_item_id"] || entry[:drive_item_id]
+      file = is_binary(id) && Map.get(files_by_id, id)
+
+      base = %{
+        "drive_item_id" => id,
+        "name" => entry["name"] || entry[:name],
+        "mime_type" => entry["mime_type"] || entry[:mime_type],
+        "size_bytes" => entry["size_bytes"] || entry[:size_bytes]
+      }
+
+      if file do
+        Map.merge(base, %{
+          "name" => file.name || base["name"],
+          "mime_type" => file.mime_type || base["mime_type"],
+          "size_bytes" => file.size_bytes || base["size_bytes"],
+          "download_url" => file.download_url
+        })
+      else
+        base
+      end
+    end)
+  end
+
+  defp enrich_attachments(_workspace_id, _), do: []
 
   defp conversation(workspace_id, agent_id) do
     messages =

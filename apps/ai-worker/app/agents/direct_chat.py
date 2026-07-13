@@ -219,6 +219,87 @@ def _format_attachments(attachments: list[dict[str, Any]]) -> str:
     return "Attached files: " + ", ".join(names)
 
 
+_PREVIEW_CHARS = 12_000
+_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
+
+
+async def _download_bytes(url: str) -> bytes:
+    import httpx
+
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
+        return resp.content
+
+
+async def _load_attachment_previews(attachments: list[dict[str, Any]]) -> str:
+    """Downloads each attachment and returns a bounded text preview the LLM
+    can reason over inline (questions like "who signed this?"). Images go
+    through vision; documents through extractors. Failures are soft."""
+    if not attachments:
+        return ""
+
+    from app.memory import extractors
+
+    parts: list[str] = []
+    for att in attachments[:4]:
+        if not isinstance(att, dict):
+            continue
+        name = att.get("name") or "file"
+        url = (att.get("download_url") or "").strip()
+        mime = (att.get("mime_type") or "").lower()
+        ext = ("." + name.rsplit(".", 1)[-1].lower()) if "." in name else ""
+
+        if not url:
+            parts.append(f"### {name}\n(no download URL available)")
+            continue
+
+        try:
+            data = await _download_bytes(url)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("direct_chat_attachment_download_failed", name=name, error=str(exc))
+            parts.append(f"### {name}\n(could not download: {exc})")
+            continue
+
+        if mime.startswith("image/") or ext in _IMAGE_EXTS:
+            try:
+                description = await llm.vision(
+                    system=(
+                        "Describe this image thoroughly for a colleague who cannot "
+                        "see it. Extract any visible text, signatures, names, dates, "
+                        "and key visual details. Reply in the language of any text "
+                        "you find on the image, otherwise English."
+                    ),
+                    user_text=f"Analyze the attached image «{name}».",
+                    image_url=url,
+                    max_tokens=1000,
+                )
+                parts.append(f"### {name} (image)\n{(description or '(empty)').strip()}")
+            except Exception as exc:  # noqa: BLE001
+                log.warning("direct_chat_vision_failed", name=name, error=str(exc))
+                parts.append(f"### {name}\n(vision analysis failed)")
+            continue
+
+        if extractors.is_extractable(name, mime):
+            result = extractors.extract_bytes(data, filename=name, mime_type=mime)
+            if result and result.text.strip():
+                preview = result.text.strip()[:_PREVIEW_CHARS]
+                truncated = "…" if len(result.text) > _PREVIEW_CHARS else ""
+                parts.append(f"### {name} ({result.format})\n{preview}{truncated}")
+            else:
+                parts.append(f"### {name}\n(no extractable text)")
+            continue
+
+        parts.append(f"### {name}\n(unsupported format for inline reading)")
+
+    if not parts:
+        return ""
+    return (
+        "Attached file contents (use these to answer the teammate's question "
+        "directly — do not ask which document they mean):\n\n" + "\n\n".join(parts)
+    )
+
+
 async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -> bool:
     """Streams the agent's DM reply (and possibly starts a task) via Phoenix."""
     if not llm.is_configured():
@@ -237,7 +318,14 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
     latest = _latest_teammate_message(conversation)
 
     file_context = _format_attachments(attachments)
-    decide_thread = f"{thread}\n{file_context}" if file_context else thread
+    # Bound content preview so questions about a PDF/image can be answered
+    # inline without spinning up a task.
+    file_preview = await _load_attachment_previews(attachments) if attachments else ""
+    decide_thread = thread
+    if file_context:
+        decide_thread = f"{decide_thread}\n{file_context}"
+    if file_preview:
+        decide_thread = f"{decide_thread}\n\n{file_preview}"
 
     decision = await _decide(decide_thread, latest)
     start_task = decision["kind"] == "task"
@@ -253,8 +341,10 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
         )
     else:
         intent_block = (
-            "This is a conversational message. Answer it directly. Do not start "
-            "a task or invent deliverables."
+            "This is a conversational message. Answer it directly using any "
+            "attached file contents provided in the user message. Do not start "
+            "a task or invent deliverables. Do not ask which document they mean "
+            "when an attachment is already provided."
         )
 
     system = _REPLY_SYSTEM.format(
@@ -272,12 +362,16 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
     agent_id = payload["agent_id"]
     stream_id = uuid.uuid4().hex
 
+    user_prompt = (
+        "DM thread (most recent last — 'you' lines are your own previous "
+        f"messages; reply to the last teammate message):\n{thread}"
+    )
+    if file_preview:
+        user_prompt = f"{user_prompt}\n\n{file_preview}"
+
     text = await _stream_reply(
         system=system,
-        user=(
-            "DM thread (most recent last — 'you' lines are your own previous "
-            f"messages; reply to the last teammate message):\n{thread}"
-        ),
+        user=user_prompt,
         phoenix=phoenix,
         workspace_id=workspace_id,
         agent_id=agent_id,

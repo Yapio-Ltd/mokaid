@@ -392,12 +392,12 @@ async def chat_json(
     max_tokens: int = 1500,
     quality: Quality = "fast",
 ) -> dict[str, Any]:
-    """Chat completion constrained to a JSON object response."""
-    if quality == "fast" and _use_deepseek():
-        return await _openai_compat_json(
-            _get_deepseek(), _deepseek_model(quality), system, user, usage, max_tokens
-        )
+    """Chat completion constrained to a JSON object response.
 
+    Always uses Anthropic/OpenAI — DeepSeek rejects response_format /
+    structured output, so routing "fast" there breaks decision points
+    (chat vs task, dispatcher, image planning, memory consolidation).
+    """
     if _use_anthropic():
         content = await _anthropic_chat(
             system + "\n\nRespond with a single valid JSON object and nothing else.",
@@ -424,20 +424,14 @@ async def chat_structured(
     """Strongly-typed structured output (Pydantic) via LangChain's
     `with_structured_output` — provider-enforced tool calling instead of
     parsing JSON out of free text. Raises when parsing fails so callers can
-    fall back explicitly."""
+    fall back explicitly.
+
+    Anthropic/OpenAI only — DeepSeek does not support the response_format
+    used by with_structured_output.
+    """
     settings = get_settings()
 
-    if quality == "fast" and _use_deepseek():
-        from langchain_openai import ChatOpenAI
-
-        model_name = _deepseek_model(quality)
-        model = ChatOpenAI(
-            model=model_name,
-            api_key=settings.deepseek_api_key,
-            base_url=settings.deepseek_base_url,
-            use_responses_api=False,
-        )
-    elif _use_anthropic():
+    if _use_anthropic():
         from langchain_anthropic import ChatAnthropic
 
         model_name = _anthropic_model(quality)

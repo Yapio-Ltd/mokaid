@@ -123,8 +123,14 @@ async def analyze_file(params: dict[str, Any], ctx: RunContext) -> Any:
     if not file_url:
         return {"analysis": "", "error": "No file URL provided. Ensure a file is attached to the task."}
 
-    if not llm.is_configured():
-        return {"analysis": "(offline mode — cannot analyze file)", "note": "offline fallback"}
+    from app.config import get_settings
+
+    if not get_settings().openai_api_key:
+        return {
+            "analysis": "",
+            "error": "OpenAI API key required for vision analysis.",
+            "note": "offline fallback",
+        }
 
     analysis = await llm.vision(
         system="You are a helpful assistant. Analyze the provided file/image and answer the user's question thoroughly. Reply in the same language as the question.",
@@ -150,7 +156,13 @@ async def transform_image(params: dict[str, Any], ctx: RunContext) -> Any:
     if not file_url:
         return {"error": "No image URL provided. Ensure an image file is attached to the task."}
 
-    if not llm.is_configured():
+    # Image edit/generate stays on OpenAI (DALL·E / gpt-image) — DeepSeek and
+    # Anthropic do not provide an images API. Check the OpenAI key specifically
+    # rather than llm.is_configured(), which is true when only text providers
+    # are set.
+    from app.config import get_settings
+
+    if not get_settings().openai_api_key:
         return {"error": "OpenAI API key required for image processing.", "note": "offline fallback"}
 
     try:
@@ -360,7 +372,9 @@ async def transcribe_audio(params: dict[str, Any], ctx: RunContext) -> Any:
     if not file_url:
         return {"error": "No audio file URL provided."}
 
-    if not llm.is_configured():
+    from app.config import get_settings
+
+    if not get_settings().openai_api_key:
         return {"transcript": "", "error": "OpenAI API key required.", "note": "offline fallback"}
 
     try:

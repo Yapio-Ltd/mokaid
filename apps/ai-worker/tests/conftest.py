@@ -10,6 +10,7 @@ def offline_llm(monkeypatch):
     """Tests never call an LLM provider: force the no-key fallback paths."""
     monkeypatch.setenv("OPENAI_API_KEY", "")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()

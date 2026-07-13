@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
-import type { Agent, AgentChatMessage, BillingOverview, Envelope } from "@/api/types";
+import type { Agent, AgentChatMessage, AgentChatSummary, BillingOverview, Envelope } from "@/api/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "@/stores/toast-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -40,7 +40,36 @@ function insertChatMessage(
     queryClient.invalidateQueries({ queryKey: ["agent-chat", workspaceId, agentId] });
   }
 
+  // Optimistic unread badge: bump instantly for agent replies when the
+  // dock window isn't open — don't wait for the agent-chats refetch.
+  const chatOpen = useChatStore.getState().openChatIds.includes(agentId);
+  if (message.author_kind === "agent" && !chatOpen) {
+    bumpUnreadCount(queryClient, workspaceId, agentId);
+  }
+
   queryClient.invalidateQueries({ queryKey: ["agent-chats"] });
+}
+
+/** Instant unread badge on the floating dock without waiting for refetch. */
+function bumpUnreadCount(
+  queryClient: QueryClient,
+  workspaceId: string,
+  agentId: string,
+): void {
+  queryClient.setQueriesData<Envelope<AgentChatSummary[]>>(
+    { queryKey: ["agent-chats", workspaceId] },
+    (prev) => {
+      if (!prev?.data) return prev;
+      const exists = prev.data.some((s) => s.agent_id === agentId);
+      if (!exists) return prev;
+      return {
+        ...prev,
+        data: prev.data.map((s) =>
+          s.agent_id === agentId ? { ...s, unread_count: (s.unread_count || 0) + 1 } : s,
+        ),
+      };
+    },
+  );
 }
 
 /** Patches the live AI-credit balance in the billing overview cache. */
@@ -155,7 +184,8 @@ function maybeToast(event: string, payload: EventPayload): void {
       const status = str(payload, "status");
       if (status === "completed") {
         if (taskId) useUiStore.getState().flashTask(taskId);
-        playSound("attention");
+        const agentName = str(payload, "agent_name") ?? "Your agent";
+        playSound("task-done");
         if (taskId) {
           useReviewQueueStore.getState().enqueue(
             {
@@ -168,11 +198,11 @@ function maybeToast(event: string, payload: EventPayload): void {
           );
         }
         toast({
-          tone: "warning",
-          title: "Validation required",
-          description: `"${title}": approve or revise the agent's output.`,
+          tone: "success",
+          title: `${agentName} finished`,
+          description: `"${title}": review the output and approve or request changes.`,
           taskId,
-          duration: 12000,
+          duration: 10000,
         });
       } else if (status === "failed") {
         if (taskId) useUiStore.getState().flashTask(taskId);
@@ -214,7 +244,28 @@ function maybeToast(event: string, payload: EventPayload): void {
     }
     case "task.completed": {
       if (!title) return;
+      playSound("task-done");
       toast({ tone: "success", title: "Task completed", description: `“${title}”`, taskId });
+      return;
+    }
+    case "notification.created": {
+      const notifTitle = str(payload, "title") ?? "New notification";
+      const kind = str(payload, "kind");
+      // Skip kinds already toasted via task lifecycle to avoid doubles.
+      if (
+        kind === "ai_run_completed" ||
+        kind === "ai_run_failed" ||
+        kind === "approval_requested"
+      ) {
+        return;
+      }
+      playSound("attention");
+      toast({
+        tone: "info",
+        title: notifTitle,
+        description: kind ? kind.replace(/_/g, " ") : undefined,
+        duration: 6000,
+      });
       return;
     }
     case "agent.level_up": {
@@ -240,6 +291,7 @@ function maybeToast(event: string, payload: EventPayload): void {
 export function useWorkspaceChannel(): void {
   const workspaceId = useAuthStore((s) => s.workspaceId);
   const token = useAuthStore((s) => s.token);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -248,6 +300,10 @@ export function useWorkspaceChannel(): void {
     const topic = `workspace:${workspaceId}`;
     const channel = joinChannel(topic);
     if (!channel) return;
+
+    // Personal notifications topic — badge on the topbar bell + toast.
+    // Backend broadcasts notification.created here, NOT on workspace:*.
+    const notifChannel = userId ? joinChannel(`notifications:${userId}`) : null;
 
     const invalidate = (keys: string[][]) => {
       keys.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
@@ -379,6 +435,13 @@ export function useWorkspaceChannel(): void {
       }
     });
 
+    // Personal notifications: badge + toast. Must live on notifications:{userId}
+    // — never arrives on the workspace channel.
+    const notifRef = notifChannel?.on("notification.created", (payload: EventPayload) => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      maybeToast("notification.created", payload ?? {});
+    });
+
     // Catch-up on reconnect: any event broadcast while the socket was down
     // (server restart, laptop sleep, network blip) was lost — refetch the
     // realtime-backed data so the UI never sits on a stale pipeline.
@@ -416,6 +479,9 @@ export function useWorkspaceChannel(): void {
       channel.off("task.agent_typing", taskTypingRef);
       channel.off("task.comment_added", commentRef);
       channel.off("task.plan_updated", planRef);
+      if (notifChannel && notifRef != null) {
+        notifChannel.off("notification.created", notifRef);
+      }
     };
-  }, [workspaceId, token, queryClient]);
+  }, [workspaceId, token, userId, queryClient]);
 }

@@ -86,7 +86,8 @@ export function toVisualState(
   if (extra?.waiting_approval) return "requesting_approval";
   switch (status) {
     case "busy":
-      return "typing";
+      // At the desk executing a run — "working", not mere typing.
+      return extra?.has_task ? "working" : "typing";
     case "active":
       // At the desk when on a task; free to roam the office otherwise.
       return extra?.has_task ? "working" : "idle";

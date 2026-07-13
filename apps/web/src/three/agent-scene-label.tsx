@@ -14,7 +14,7 @@ const stateText: Partial<Record<SceneAgent["visualState"], string>> = {
 
 const stateColor: Partial<Record<SceneAgent["visualState"], string>> = {
   typing: "var(--mk-success)",
-  working: "var(--mk-success)",
+  working: "var(--mk-warning)",
   waiting: "var(--mk-warning)",
   idle: "var(--mk-info)",
   walking: "var(--mk-info)",
@@ -48,9 +48,9 @@ export const AgentSceneLabel = forwardRef<
         selected ? "border-primary/40 shadow-glow" : "border-border-strong",
       )}
     >
-      {/* Status dot, pulses while the agent is typing */}
+      {/* Status dot, pulses while the agent is typing or working */}
       <span className="relative flex h-2 w-2 shrink-0">
-        {agent.visualState === "typing" && (
+        {(agent.visualState === "typing" || agent.visualState === "working") && (
           <span
             className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
             style={{ backgroundColor: dotColor }}
