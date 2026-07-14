@@ -1,18 +1,12 @@
 import { useMemo, useState } from "react";
-import * as Tabs from "@radix-ui/react-tabs";
-import { Check, Mail, Plus, Users, X } from "lucide-react";
+import { Mail, Plus, Trash2, Users } from "lucide-react";
 import {
   useAgents,
-  useCreateLeaveRequest,
+  useCancelInvite,
   useInviteMember,
-  useLeaveRequests,
   useMembers,
-  useReviewLeaveRequest,
+  useRemoveMember,
 } from "@/api/hooks";
-import { Dialog } from "@/components/ui/dialog";
-import { Field } from "@/components/ui/field";
-import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { AgentProfilePanel } from "@/components/agents/agent-profile-panel";
 import { MemberDetailPanel } from "@/components/members/member-detail-panel";
 import { StatusAvatar } from "@/components/ui/avatar";
@@ -21,65 +15,31 @@ import { Button } from "@/components/ui/button";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/cn";
-import { formatDate, formatRelative } from "@/lib/format";
-
-const tabClass =
-  "rounded-md px-4 py-2 text-xs font-medium text-text-muted transition-colors data-[state=active]:bg-surface-raised data-[state=active]:text-text";
-
-const leaveTypeLabel: Record<string, string> = {
-  vacation: "Vacation",
-  sick_leave: "Sick leave",
-  remote_work: "Remote work",
-  other: "Other",
-};
-
-const leaveStatusTone: Record<string, "warning" | "success" | "danger" | "muted"> = {
-  pending: "warning",
-  approved: "success",
-  rejected: "danger",
-  canceled: "muted",
-};
+import { formatDate } from "@/lib/format";
+import { toast } from "@/stores/toast-store";
+import { useAuthStore } from "@/stores/auth-store";
 
 export function MembersPage() {
   const { data: membersData, isLoading } = useMembers();
   const { data: agentsData } = useAgents();
-  const { data: leaveData } = useLeaveRequests();
   const inviteMember = useInviteMember();
-  const reviewLeave = useReviewLeaveRequest();
-  const createLeave = useCreateLeaveRequest();
+  const removeMember = useRemoveMember();
+  const cancelInvite = useCancelInvite();
+
+  const workspaceId = useAuthStore((s) => s.workspaceId);
+  const workspaces = useAuthStore((s) => s.workspaces);
+  const currentUser = useAuthStore((s) => s.user);
+  const roleName =
+    workspaces.find((w) => w.id === workspaceId)?.role_name ?? "Member";
+  const canRemove = roleName === "Owner" || roleName === "Admin";
+
   const [inviteEmail, setInviteEmail] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
-  const [showLeaveModal, setShowLeaveModal] = useState(false);
-  const [leaveType, setLeaveType] = useState("vacation");
-  const [leaveStart, setLeaveStart] = useState("");
-  const [leaveEnd, setLeaveEnd] = useState("");
-  const [leaveReason, setLeaveReason] = useState("");
-
-  const submitLeaveRequest = () => {
-    if (!leaveStart || !leaveEnd) return;
-    createLeave.mutate(
-      {
-        type: leaveType,
-        start_at: new Date(leaveStart).toISOString(),
-        end_at: new Date(leaveEnd).toISOString(),
-        reason: leaveReason.trim() || undefined,
-      },
-      {
-        onSuccess: () => {
-          setShowLeaveModal(false);
-          setLeaveStart("");
-          setLeaveEnd("");
-          setLeaveReason("");
-        },
-      },
-    );
-  };
 
   const members = membersData?.data ?? [];
   const agents = agentsData?.data ?? [];
   const invites = membersData?.meta.pending_invites ?? [];
-  const leaveRequests = leaveData?.data ?? [];
 
   const selectedMember = useMemo(
     () => members.find((m) => m.id === selectedMemberId) ?? null,
@@ -96,66 +56,88 @@ export function MembersPage() {
     }
   };
 
+  const handleRemoveMember = (memberId: string, label: string) => {
+    if (!window.confirm(`Remove ${label} from this workspace?`)) return;
+    removeMember.mutate(memberId, {
+      onSuccess: () => {
+        if (selectedMemberId === memberId) setSelectedMemberId(null);
+        toast({ tone: "success", title: "Member removed", description: `${label} can no longer access this workspace.` });
+      },
+      onError: () =>
+        toast({
+          tone: "error",
+          title: "Could not remove member",
+          description: "You may not have permission, or this is the last owner.",
+        }),
+    });
+  };
+
+  const handleCancelInvite = (inviteId: string, email: string) => {
+    if (!window.confirm(`Cancel the invitation to ${email}?`)) return;
+    cancelInvite.mutate(inviteId, {
+      onSuccess: () =>
+        toast({ tone: "success", title: "Invitation canceled", description: email }),
+      onError: () =>
+        toast({
+          tone: "error",
+          title: "Could not cancel invitation",
+          description: "Check your permissions and try again.",
+        }),
+    });
+  };
+
   return (
     <div className="flex h-full gap-5">
       <div className="min-w-0 flex-1 space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-text">Members</h1>
-          <p className="text-xs text-text-muted">
-            {members.length} members · {invites.length} pending invites
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-text">Members</h1>
+            <p className="text-xs text-text-muted">
+              {members.length} members · {invites.length} pending invites
+              {workspaces.find((w) => w.id === workspaceId)?.name
+                ? ` · ${workspaces.find((w) => w.id === workspaceId)?.name}`
+                : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendInvite()}
+              placeholder="colleague@company.com"
+              className="mk-input h-9 w-56"
+            />
+            <Button size="sm" onClick={sendInvite} loading={inviteMember.isPending}>
+              <Plus size={13} /> Invite
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="email"
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendInvite()}
-            placeholder="colleague@company.com"
-            className="mk-input h-9 w-56"
-          />
-          <Button size="sm" onClick={sendInvite} loading={inviteMember.isPending}>
-            <Plus size={13} /> Invite
-          </Button>
-        </div>
-      </div>
 
-      <Tabs.Root defaultValue="members">
-        <Tabs.List className="flex gap-1">
-          <Tabs.Trigger value="members" className={tabClass}>
-            Members
-          </Tabs.Trigger>
-          <Tabs.Trigger value="timeoff" className={tabClass}>
-            Time Off & Requests
-            {leaveRequests.some((r) => r.status === "pending") && (
-              <span className="ml-1.5 rounded-full bg-warning-muted px-1.5 text-[10px] font-bold text-warning">
-                {leaveRequests.filter((r) => r.status === "pending").length}
-              </span>
-            )}
-          </Tabs.Trigger>
-        </Tabs.List>
+        {isLoading ? (
+          <SkeletonRows rows={6} />
+        ) : members.length === 0 && invites.length === 0 ? (
+          <EmptyState icon={<Users size={24} />} title="No members yet" />
+        ) : (
+          <div className="overflow-hidden rounded-lg bg-surface">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-wide text-text-muted">
+                  <th className="px-5 py-3 font-medium">Member</th>
+                  <th className="px-3 py-3 font-medium">Role</th>
+                  <th className="px-3 py-3 font-medium">Team</th>
+                  <th className="px-3 py-3 font-medium">Linked Agent</th>
+                  <th className="px-3 py-3 font-medium">Status</th>
+                  <th className="px-3 py-3 font-medium">Joined</th>
+                  {canRemove && <th className="px-5 py-3 font-medium text-right">Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((member) => {
+                  const isSelf = currentUser?.id === member.user_id;
+                  const label = member.full_name || member.email || "this member";
 
-        <Tabs.Content value="members" className="pt-4">
-          {isLoading ? (
-            <SkeletonRows rows={6} />
-          ) : members.length === 0 ? (
-            <EmptyState icon={<Users size={24} />} title="No members yet" />
-          ) : (
-            <div className="overflow-hidden rounded-lg bg-surface">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="text-[11px] uppercase tracking-wide text-text-muted">
-                    <th className="px-5 py-3 font-medium">Member</th>
-                    <th className="px-3 py-3 font-medium">Role</th>
-                    <th className="px-3 py-3 font-medium">Team</th>
-                    <th className="px-3 py-3 font-medium">Linked Agent</th>
-                    <th className="px-3 py-3 font-medium">Status</th>
-                    <th className="px-5 py-3 font-medium">Joined</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {members.map((member) => (
+                  return (
                     <tr
                       key={member.id}
                       onClick={() => {
@@ -164,7 +146,9 @@ export function MembersPage() {
                       }}
                       className={cn(
                         "cursor-pointer transition-colors hover:bg-surface-hover",
-                        selectedMemberId === member.id && !selectedAgentId && "bg-primary-muted/40",
+                        selectedMemberId === member.id &&
+                          !selectedAgentId &&
+                          "bg-primary-muted/40",
                       )}
                     >
                       <td className="px-5 py-3">
@@ -211,89 +195,70 @@ export function MembersPage() {
                           {member.status}
                         </Badge>
                       </td>
-                      <td className="px-5 py-3 text-text-muted">{formatDate(member.joined_at)}</td>
+                      <td className="px-3 py-3 text-text-muted">{formatDate(member.joined_at)}</td>
+                      {canRemove && (
+                        <td className="px-5 py-3 text-right">
+                          {!isSelf && (
+                            <button
+                              type="button"
+                              title="Remove member"
+                              aria-label={`Remove ${label}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveMember(member.id, label);
+                              }}
+                              disabled={removeMember.isPending}
+                              className="inline-flex rounded-md p-1.5 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger mk-focus-ring"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
-                  ))}
-                  {invites.map((invite) => (
-                    <tr key={invite.id} className="bg-bg-deep/40">
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-border-strong text-text-muted">
-                            <Mail size={13} />
-                          </span>
-                          <p className="text-text-secondary">{invite.email}</p>
-                        </div>
+                  );
+                })}
+                {invites.map((invite) => (
+                  <tr key={invite.id} className="bg-bg-deep/40">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-border-strong text-text-muted">
+                          <Mail size={13} />
+                        </span>
+                        <p className="text-text-secondary">{invite.email}</p>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <Badge tone="warning">Invitation pending</Badge>
+                    </td>
+                    <td className="px-3 py-3 text-text-muted">·</td>
+                    <td className="px-3 py-3 text-text-muted">·</td>
+                    <td className="px-3 py-3">
+                      <Badge tone="muted">pending</Badge>
+                    </td>
+                    <td className="px-3 py-3 text-text-muted">
+                      Expires {formatDate(invite.expires_at)}
+                    </td>
+                    {canRemove && (
+                      <td className="px-5 py-3 text-right">
+                        <button
+                          type="button"
+                          title="Cancel invitation"
+                          aria-label={`Cancel invitation to ${invite.email}`}
+                          onClick={() => handleCancelInvite(invite.id, invite.email)}
+                          disabled={cancelInvite.isPending}
+                          className="inline-flex rounded-md p-1.5 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger mk-focus-ring"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </td>
-                      <td className="px-3 py-3" colSpan={3}>
-                        <Badge tone="warning">Invitation pending</Badge>
-                      </td>
-                      <td className="px-3 py-3 text-text-muted" colSpan={2}>
-                        Expires {formatDate(invite.expires_at)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Tabs.Content>
-
-        <Tabs.Content value="timeoff" className="space-y-3 pt-4">
-          <div className="flex justify-end">
-            <Button size="sm" variant="secondary" onClick={() => setShowLeaveModal(true)}>
-              <Plus size={13} /> Request Time Off
-            </Button>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          {leaveRequests.length === 0 ? (
-            <EmptyState
-              icon={<Users size={24} />}
-              title="No time off requests"
-              description="Requests from members and their linked agents will appear here."
-            />
-          ) : (
-            leaveRequests.map((request) => (
-              <div key={request.id} className="flex items-center gap-4 rounded-lg bg-surface p-4">
-                <StatusAvatar name={request.member_name} size="md" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-text">
-                    {request.member_name}
-                    <span className="ml-2 font-normal text-text-muted">
-                      {leaveTypeLabel[request.type] ?? request.type}
-                    </span>
-                  </p>
-                  <p className="text-[11px] text-text-muted">
-                    {formatDate(request.start_at)} → {formatDate(request.end_at)}
-                    {request.reason && ` · ${request.reason}`}
-                  </p>
-                  <p className="text-[10px] text-text-muted">
-                    Requested {formatRelative(request.inserted_at)}
-                    {request.reviewed_by_name && ` · reviewed by ${request.reviewed_by_name}`}
-                  </p>
-                </div>
-                <Badge tone={leaveStatusTone[request.status] ?? "default"}>{request.status}</Badge>
-                {request.status === "pending" && (
-                  <div className="flex gap-1.5">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => reviewLeave.mutate({ id: request.id, decision: "approve" })}
-                    >
-                      <Check size={13} /> Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => reviewLeave.mutate({ id: request.id, decision: "reject" })}
-                    >
-                      <X size={13} /> Reject
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </Tabs.Content>
-      </Tabs.Root>
+        )}
       </div>
 
       {selectedAgent ? (
@@ -306,70 +271,17 @@ export function MembersPage() {
             setSelectedMemberId(null);
             setSelectedAgentId(agentId);
           }}
+          canRemove={canRemove && currentUser?.id !== selectedMember?.user_id}
+          onRemove={() => {
+            if (!selectedMember) return;
+            handleRemoveMember(
+              selectedMember.id,
+              selectedMember.full_name || selectedMember.email || "this member",
+            );
+          }}
+          removing={removeMember.isPending}
         />
       )}
-
-      <Dialog
-        open={showLeaveModal}
-        onOpenChange={setShowLeaveModal}
-        title="Request Time Off"
-        footer={
-          <>
-            <Button variant="ghost" size="sm" onClick={() => setShowLeaveModal(false)}>
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              loading={createLeave.isPending}
-              disabled={!leaveStart || !leaveEnd}
-              onClick={submitLeaveRequest}
-            >
-              Submit Request
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <Field label="Type">
-            <Select
-              value={leaveType}
-              onValueChange={setLeaveType}
-              options={[
-                { value: "vacation", label: "Vacation" },
-                { value: "sick_leave", label: "Sick leave" },
-                { value: "remote_work", label: "Remote work" },
-                { value: "other", label: "Other" },
-              ]}
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="From" required>
-              <input
-                type="date"
-                className="mk-input"
-                value={leaveStart}
-                onChange={(e) => setLeaveStart(e.target.value)}
-              />
-            </Field>
-            <Field label="To" required>
-              <input
-                type="date"
-                className="mk-input"
-                value={leaveEnd}
-                onChange={(e) => setLeaveEnd(e.target.value)}
-              />
-            </Field>
-          </div>
-          <Field label="Reason">
-            <Textarea
-              className="min-h-[64px]"
-              placeholder="Optional note for your manager…"
-              value={leaveReason}
-              onChange={(e) => setLeaveReason(e.target.value)}
-            />
-          </Field>
-        </div>
-      </Dialog>
     </div>
   );
 }

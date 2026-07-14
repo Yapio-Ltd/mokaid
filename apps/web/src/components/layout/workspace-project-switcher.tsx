@@ -76,7 +76,13 @@ export function WorkspaceProjectSwitcher() {
     setSaving(true);
     try {
       const { data } = await createWorkspace.mutateAsync({ name });
-      addWorkspace({ id: data.id, name: data.name, slug: data.slug, logo_url: data.logo_url });
+      addWorkspace({
+        id: data.id,
+        name: data.name,
+        slug: data.slug,
+        logo_url: data.logo_url,
+        role_name: "Owner",
+      });
       selectWorkspace(data.id);
       queryClient.clear();
       setDialog(null);

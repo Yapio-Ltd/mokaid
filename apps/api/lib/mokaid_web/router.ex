@@ -99,7 +99,9 @@ defmodule MokaidWeb.Router do
 
     get "/members", MemberController, :index
     post "/members/invite", MemberController, :invite
+    delete "/members/invites/:id", MemberController, :cancel_invite
     patch "/members/:id", MemberController, :update
+    delete "/members/:id", MemberController, :delete
     post "/members/:id/link-agent", MemberController, :link_agent
 
     get "/leave-requests", LeaveRequestController, :index

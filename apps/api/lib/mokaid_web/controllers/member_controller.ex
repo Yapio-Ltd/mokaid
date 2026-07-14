@@ -56,6 +56,36 @@ defmodule MokaidWeb.MemberController do
     end
   end
 
+  def delete(conn, %{"id" => id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "members.remove"),
+         %{} = member <- Members.get_member(workspace_id(conn), id),
+         {:ok, _removed} <- Members.remove_member(current_member(conn), member) do
+      email =
+        case member.user do
+          %{email: email} -> email
+          _ -> nil
+        end
+
+      Audit.log(workspace_id(conn), current_member(conn), "member.removed", "member", id, %{
+        email: email
+      })
+
+      json(conn, %{ok: true})
+    end
+  end
+
+  def cancel_invite(conn, %{"id" => id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "members.remove"),
+         %{} = invite <- Members.get_invite(workspace_id(conn), id),
+         {:ok, _} <- Members.cancel_invite(invite) do
+      Audit.log(workspace_id(conn), current_member(conn), "member.invite_canceled", "invite", id, %{
+        email: invite.email
+      })
+
+      json(conn, %{ok: true})
+    end
+  end
+
   def link_agent(conn, %{"id" => id, "agent_id" => agent_id}) do
     with :ok <- Permissions.authorize(current_member(conn), "agents.link_user"),
          %{} = member <- Members.get_member(workspace_id(conn), id),

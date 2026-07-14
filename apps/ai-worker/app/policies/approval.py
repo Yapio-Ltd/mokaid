@@ -12,6 +12,7 @@ from app.schemas import RiskLevel
 TOOL_RISK: dict[str, RiskLevel] = {
     # Read-only / internal
     "search_knowledge": RiskLevel.LOW,
+    "web_search": RiskLevel.LOW,
     "read_file": RiskLevel.LOW,
     "list_tasks": RiskLevel.LOW,
     # Content generation (internal artifacts)

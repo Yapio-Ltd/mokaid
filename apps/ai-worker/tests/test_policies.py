@@ -4,6 +4,8 @@ from app.schemas import RiskLevel
 
 def test_read_only_tools_do_not_require_approval():
     assert not requires_approval("search_knowledge")
+    assert not requires_approval("web_search")
+    assert risk_for_tool("web_search") == RiskLevel.LOW
     assert not requires_approval("summarize")
 
 

@@ -86,6 +86,39 @@ defmodule Mokaid.Projects do
     |> Repo.update()
   end
 
+  @doc """
+  Permanently deletes a project and every task linked to it.
+  Active AI runs on those tasks are canceled first so agents are released.
+  """
+  def delete_project(%Project{} = project) do
+    Repo.transaction(fn ->
+      tasks =
+        Repo.all(
+          from t in Mokaid.Tasks.Task,
+            where: t.project_id == ^project.id
+        )
+
+      Enum.each(tasks, fn task ->
+        case Mokaid.Tasks.delete_task(task) do
+          {:ok, _} -> :ok
+          {:error, reason} -> Repo.rollback(reason)
+        end
+      end)
+
+      case Repo.delete(project) do
+        {:ok, deleted} ->
+          Realtime.broadcast_workspace(project.workspace_id, "project.deleted", %{
+            project_id: deleted.id
+          })
+
+          deleted
+
+        {:error, changeset} ->
+          Repo.rollback(changeset)
+      end
+    end)
+  end
+
   def add_agent(%Project{} = project, agent_id) do
     %ProjectAgent{}
     |> ProjectAgent.changeset(%{

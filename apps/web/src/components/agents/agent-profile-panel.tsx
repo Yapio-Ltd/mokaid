@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import {
   Check,
@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { AgentMcpMatrix } from "@/components/mcp/agent-mcp-matrix";
 import { formatRelative } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { toast } from "@/stores/toast-store";
 import { useUiStore } from "@/stores/ui-store";
 
 const tabClass =
@@ -34,13 +35,19 @@ const tabClass =
 function EditableName({
   value,
   onSave,
+  saving,
 }: {
   value: string;
   onSave: (name: string) => void;
+  saving?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing) setDraft(value);
+  }, [value, editing]);
 
   const startEditing = () => {
     setDraft(value);
@@ -50,7 +57,12 @@ function EditableName({
 
   const save = () => {
     const trimmed = draft.trim();
-    if (trimmed && trimmed !== value) onSave(trimmed);
+    if (!trimmed) {
+      setDraft(value);
+      setEditing(false);
+      return;
+    }
+    if (trimmed !== value) onSave(trimmed);
     setEditing(false);
   };
 
@@ -61,21 +73,39 @@ function EditableName({
 
   if (editing) {
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="flex w-full max-w-[260px] items-center gap-1.5">
         <input
           ref={inputRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onBlur={save}
           onKeyDown={(e) => {
-            if (e.key === "Enter") save();
+            if (e.key === "Enter") {
+              e.preventDefault();
+              (e.target as HTMLInputElement).blur();
+            }
             if (e.key === "Escape") cancel();
           }}
-          className="min-w-0 flex-1 rounded-md border border-primary/50 bg-surface-raised px-2 py-1 text-sm font-bold text-text outline-none focus:border-primary"
+          disabled={saving}
+          aria-label="Agent name"
+          className="min-w-0 flex-1 rounded-md border border-primary/50 bg-surface-raised px-2 py-1 text-center text-sm font-bold text-text outline-none focus:border-primary"
         />
-        <button onClick={save} className="rounded p-1 text-success hover:bg-surface-hover">
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={save}
+          className="rounded p-1 text-success hover:bg-surface-hover"
+          aria-label="Save name"
+        >
           <Check size={14} />
         </button>
-        <button onClick={cancel} className="rounded p-1 text-text-muted hover:bg-surface-hover">
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={cancel}
+          className="rounded p-1 text-text-muted hover:bg-surface-hover"
+          aria-label="Cancel rename"
+        >
           <X size={14} />
         </button>
       </div>
@@ -84,13 +114,16 @@ function EditableName({
 
   return (
     <button
+      type="button"
       onClick={startEditing}
-      className="group flex items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors hover:bg-surface-hover"
+      title="Rename agent"
+      aria-label={`Rename ${value}`}
+      className="group flex items-center gap-1.5 rounded-md px-1.5 py-0.5 transition-colors hover:bg-surface-hover"
     >
       <span className="text-base font-bold text-text">{value}</span>
       <Pencil
         size={12}
-        className="text-text-muted opacity-0 transition-opacity group-hover:opacity-100"
+        className="shrink-0 text-text-muted transition-colors group-hover:text-primary-light"
       />
     </button>
   );
@@ -301,6 +334,7 @@ export function AgentProfilePanel({
   const updateAgent = useUpdateAgent();
   const deleteAgent = useDeleteAgent();
   const selectTask = useUiStore((s) => s.selectTask);
+  const [nameDraft, setNameDraft] = useState(agent?.display_name ?? "");
   const agentTasks = agent
     ? (tasksData?.data ?? []).filter((t) => t.assigned_agent_id === agent.id)
     : [];
@@ -308,13 +342,39 @@ export function AgentProfilePanel({
     agentTasks.find((t) => t.id === agent?.current_task_id) ??
     agentTasks.find((t) => t.status === "in_progress");
 
+  useEffect(() => {
+    setNameDraft(agent?.display_name ?? "");
+  }, [agent?.id, agent?.display_name]);
+
   const handleRename = useCallback(
     (name: string) => {
       if (!agent) return;
-      updateAgent.mutate({ id: agent.id, display_name: name });
+      updateAgent.mutate(
+        { id: agent.id, display_name: name },
+        {
+          onError: () => {
+            setNameDraft(agent.display_name);
+            toast({
+              tone: "error",
+              title: "Could not rename agent",
+              description: "Check your permissions and try again.",
+            });
+          },
+        },
+      );
     },
     [agent, updateAgent],
   );
+
+  const saveNameDraft = useCallback(() => {
+    if (!agent) return;
+    const trimmed = nameDraft.trim();
+    if (!trimmed) {
+      setNameDraft(agent.display_name);
+      return;
+    }
+    if (trimmed !== agent.display_name) handleRename(trimmed);
+  }, [agent, handleRename, nameDraft]);
 
   const handleDelete = useCallback(() => {
     if (!agent) return;
@@ -331,7 +391,11 @@ export function AgentProfilePanel({
             <AgentAvatar agent={agent} size="xl" showBadge={agent.kind === "ai"} />
 
             <div className="flex flex-col items-center gap-1">
-              <EditableName value={agent.display_name} onSave={handleRename} />
+              <EditableName
+                value={agent.display_name}
+                onSave={handleRename}
+                saving={updateAgent.isPending}
+              />
               <p className="text-xs text-text-muted">{agent.role_title ?? "Agent"}</p>
             </div>
 
@@ -394,6 +458,24 @@ export function AgentProfilePanel({
             </Tabs.List>
 
             <Tabs.Content value="overview" className="space-y-5 px-5 py-4">
+              <label className="block space-y-1.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                  Name
+                </span>
+                <input
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  onBlur={saveNameDraft}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  }}
+                  disabled={updateAgent.isPending}
+                  placeholder="Agent name"
+                  className="mk-input h-9"
+                  aria-label="Agent name"
+                />
+              </label>
+
               {currentTask && (
                 <div>
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">

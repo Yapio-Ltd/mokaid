@@ -5,11 +5,10 @@ import type { Project, ProjectActivity } from "@/api/types";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
-import { DetailPanel } from "@/components/ui/detail-panel";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PriorityBadge } from "@/components/ui/status";
 import { NewProjectModal } from "@/components/modals/new-project-modal";
+import { ProjectDetailPanel } from "@/components/projects/project-detail-panel";
 import { getProjectCover } from "@/lib/project-covers";
 import { cn } from "@/lib/cn";
 import { formatDate, formatRelative } from "@/lib/format";
@@ -163,85 +162,7 @@ export function ProjectsPage() {
         )}
       </div>
 
-      <DetailPanel open={selected != null} onClose={() => setSelectedId(null)} title="Project Details">
-        {selected && (
-          <div className="space-y-6 px-5 py-4">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                {(() => {
-                  const { Icon } = getProjectCover(selected.cover_kind);
-                  return <Icon size={14} className="text-text-muted" strokeWidth={1.5} />;
-                })()}
-                <StatusLabel status={selected.status} />
-                <PriorityBadge priority={selected.priority} />
-              </div>
-              <h3 className="text-sm font-medium text-text">{selected.name}</h3>
-              {selected.description && (
-                <p className="mt-1.5 text-xs leading-relaxed text-text-secondary">
-                  {selected.description}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <div className="mb-2 flex justify-between text-[11px] text-text-muted">
-                <span>Progress</span>
-                <span className="tabular-nums text-text">{selected.progress_percent}%</span>
-              </div>
-              <ProgressBar value={selected.progress_percent} tone="primary" size="xs" />
-            </div>
-
-            <div className="flex gap-6 text-xs">
-              <div>
-                <p className="text-lg font-medium tabular-nums text-text">{selected.task_count}</p>
-                <p className="text-[10px] text-text-muted">Tasks</p>
-              </div>
-              <div>
-                <p className="text-lg font-medium tabular-nums text-text">{selected.completed_task_count}</p>
-                <p className="text-[10px] text-text-muted">Done</p>
-              </div>
-              <div>
-                <p className="text-lg font-medium tabular-nums text-text">{selected.agent_ids.length}</p>
-                <p className="text-[10px] text-text-muted">Agents</p>
-              </div>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between gap-4">
-                <span className="text-text-muted">Owner</span>
-                <span className="text-text">{selected.owner_name ?? "None"}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-text-muted">Start</span>
-                <span className="tabular-nums text-text">{formatDate(selected.start_at)}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-text-muted">Due</span>
-                <span className="tabular-nums text-text">{formatDate(selected.due_at)}</span>
-              </div>
-            </div>
-
-            {selected.members.length > 0 && (
-              <div>
-                <p className="mb-2.5 text-[10px] font-medium uppercase tracking-wider text-text-muted">
-                  Team
-                </p>
-                <div className="space-y-2">
-                  {selected.members.map((member) => (
-                    <div key={member.member_id} className="flex items-center gap-2.5">
-                      <Avatar name={member.full_name} size="sm" />
-                      <div className="min-w-0">
-                        <p className="truncate text-xs text-text">{member.full_name}</p>
-                        <p className="text-[10px] capitalize text-text-muted">{member.role}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </DetailPanel>
+      <ProjectDetailPanel project={selected} onClose={() => setSelectedId(null)} />
       <NewProjectModal
         open={showNewProject}
         onOpenChange={setShowNewProject}

@@ -14,6 +14,21 @@ import { joinChannel, onSocketOpen } from "./phoenix-client";
 
 type EventPayload = Record<string, unknown>;
 
+/** Suppress duplicate approval toasts for the same request (double broadcast / retries). */
+const recentApprovalToasts = new Map<string, number>();
+const APPROVAL_TOAST_TTL_MS = 30_000;
+
+function shouldToastApproval(approvalRequestId: string | undefined): boolean {
+  if (!approvalRequestId) return true;
+  const now = Date.now();
+  for (const [id, at] of recentApprovalToasts) {
+    if (now - at > APPROVAL_TOAST_TTL_MS) recentApprovalToasts.delete(id);
+  }
+  if (recentApprovalToasts.has(approvalRequestId)) return false;
+  recentApprovalToasts.set(approvalRequestId, now);
+  return true;
+}
+
 /** Inserts a chat message into the cached thread + summary — no refetch. */
 function insertChatMessage(
   queryClient: QueryClient,
@@ -220,27 +235,30 @@ function maybeToast(event: string, payload: EventPayload): void {
     }
     case "task.approval_required": {
       playSound("attention");
+      const approvalRequestId = str(payload, "approval_request_id");
       if (taskId) {
         useReviewQueueStore.getState().enqueue(
           {
             taskId,
             kind: "tool_approval",
             title: title ?? "Task",
-            approvalRequestId: str(payload, "approval_request_id"),
+            approvalRequestId,
             agentName: str(payload, "agent_name"),
           },
           { open: true },
         );
       }
-      toast({
-        tone: "warning",
-        title: "Approval needed",
-        description: title
-          ? `"${title}": the agent is waiting for your go-ahead.`
-          : "An agent is waiting for your go-ahead.",
-        taskId,
-        duration: 12000,
-      });
+      if (shouldToastApproval(approvalRequestId)) {
+        toast({
+          tone: "warning",
+          title: "Approval needed",
+          description: title
+            ? `"${title}": the agent is waiting for your go-ahead.`
+            : "An agent is waiting for your go-ahead.",
+          taskId,
+          duration: 12000,
+        });
+      }
       return;
     }
     case "task.completed": {
@@ -327,6 +345,7 @@ export function useWorkspaceChannel(): void {
       ["task.comment_added", [["tasks"]]],
       ["project.created", [["projects"]]],
       ["project.updated", [["projects"]]],
+      ["project.deleted", [["projects"], ["tasks"], ["dashboard"]]],
       ["knowledge.uploaded", [["knowledge"]]],
       ["knowledge.indexed", [["knowledge"]]],
       ["calendar.event_created", [["calendar"]]],

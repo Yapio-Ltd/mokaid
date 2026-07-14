@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, Link2 } from "lucide-react";
+import { Bot, Link2, Trash2 } from "lucide-react";
 import type { Member } from "@/api/types";
 import { useAgents, useLinkMemberAgent, useUpdateMember } from "@/api/hooks";
 import { DetailPanel } from "@/components/ui/detail-panel";
@@ -12,10 +12,16 @@ export function MemberDetailPanel({
   member,
   onClose,
   onViewAgent,
+  canRemove = false,
+  onRemove,
+  removing = false,
 }: {
   member: Member | null;
   onClose: () => void;
   onViewAgent: (agentId: string) => void;
+  canRemove?: boolean;
+  onRemove?: () => void;
+  removing?: boolean;
 }) {
   const [title, setTitle] = useState("");
   const updateMember = useUpdateMember();
@@ -156,20 +162,17 @@ export function MemberDetailPanel({
             )}
           </div>
 
-          {Object.keys(member.leave_balances).length > 0 && (
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                Leave balances
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(member.leave_balances).map(([type, days]) => (
-                  <div key={type} className="rounded-lg bg-surface-raised px-3 py-2 text-center">
-                    <p className="text-sm font-bold text-text">{days}</p>
-                    <p className="text-[10px] capitalize text-text-muted">{type.replace("_", " ")}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {canRemove && onRemove && (
+            <Button
+              variant="danger"
+              size="sm"
+              className="w-full"
+              loading={removing}
+              onClick={onRemove}
+            >
+              <Trash2 size={13} />
+              Remove from workspace
+            </Button>
           )}
         </div>
       )}

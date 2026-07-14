@@ -124,6 +124,75 @@ defmodule Mokaid.Members do
     |> Repo.update()
   end
 
+  @doc """
+  Removes a member from this workspace (any status). Soft-marks them as
+  `removed` so they no longer appear in the workspace roster. Linked agents
+  are unlinked. The acting member cannot remove themselves, nor the last Owner.
+  """
+  def remove_member(%Member{} = actor, %Member{} = member) do
+    cond do
+      actor.id == member.id ->
+        {:error, :cannot_remove_self}
+
+      owner_role?(member) and not owner_role?(actor) ->
+        {:error, :cannot_remove_owner}
+
+      owner_role?(member) and count_active_owners(member.workspace_id) <= 1 ->
+        {:error, :cannot_remove_last_owner}
+
+      true ->
+        Repo.transaction(fn ->
+          unlink_member_agent!(member)
+
+          case member
+               |> Ecto.Changeset.change(status: "removed")
+               |> Repo.update() do
+            {:ok, updated} -> updated
+            {:error, changeset} -> Repo.rollback(changeset)
+          end
+        end)
+    end
+  end
+
+  defp owner_role?(%Member{role: %{name: "Owner"}}), do: true
+  defp owner_role?(%Member{role: %Ecto.Association.NotLoaded{}} = member) do
+    member = Repo.preload(member, :role)
+    owner_role?(member)
+  end
+  defp owner_role?(_), do: false
+
+  defp count_active_owners(workspace_id) do
+    Repo.aggregate(
+      from(m in Member,
+        join: r in assoc(m, :role),
+        where:
+          m.workspace_id == ^workspace_id and m.status == "active" and r.name == "Owner"
+      ),
+      :count
+    )
+  end
+
+  defp unlink_member_agent!(%Member{} = member) do
+    member = Repo.preload(member, :linked_agent)
+
+    case member.linked_agent do
+      %Mokaid.Agents.Agent{} = agent ->
+        attrs =
+          if agent.kind == "human_linked" do
+            [linked_user_id: nil, linked_member_id: nil, kind: "ai"]
+          else
+            [linked_user_id: nil, linked_member_id: nil]
+          end
+
+        agent
+        |> Ecto.Changeset.change(attrs)
+        |> Repo.update!()
+
+      _ ->
+        :ok
+    end
+  end
+
   def touch_member_activity(%Member{} = member) do
     member
     |> Ecto.Changeset.change(last_active_at: DateTime.utc_now())
@@ -133,10 +202,18 @@ defmodule Mokaid.Members do
   ## ---------- Invites ----------
 
   def create_invite(workspace_id, attrs, invited_by) do
+    role_id =
+      attrs["role_id"] ||
+        case get_role_by_name(workspace_id, "Member") do
+          %{id: id} -> id
+          _ -> nil
+        end
+
     %MemberInvite{}
     |> MemberInvite.changeset(
       Map.merge(attrs, %{
         "workspace_id" => workspace_id,
+        "role_id" => role_id,
         "invited_by_member_id" => invited_by && invited_by.id
       })
     )
@@ -149,6 +226,19 @@ defmodule Mokaid.Members do
         where: i.workspace_id == ^workspace_id and i.status == "pending",
         order_by: [desc: i.inserted_at]
     )
+  end
+
+  def get_invite(workspace_id, id) do
+    Repo.one(
+      from i in MemberInvite,
+        where: i.workspace_id == ^workspace_id and i.id == ^id
+    )
+  end
+
+  def cancel_invite(%MemberInvite{} = invite) do
+    invite
+    |> Ecto.Changeset.change(status: "canceled")
+    |> Repo.update()
   end
 
   ## ---------- Teams ----------

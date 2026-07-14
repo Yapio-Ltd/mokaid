@@ -392,26 +392,16 @@ defmodule Mokaid.Tasks do
   ## ---------- Approvals ----------
 
   def create_approval_request(%TaskExecutionRun{} = run, attrs) do
-    result =
-      %TaskApprovalRequest{}
-      |> TaskApprovalRequest.changeset(
-        Map.merge(attrs, %{
-          "workspace_id" => run.workspace_id,
-          "task_id" => run.task_id,
-          "run_id" => run.id,
-          "agent_id" => run.agent_id
-        })
-      )
-      |> Repo.insert()
-
-    with {:ok, request} <- result do
-      Realtime.broadcast_workspace(run.workspace_id, "task.approval_required", %{
-        task_id: run.task_id,
-        approval_request_id: request.id
+    %TaskApprovalRequest{}
+    |> TaskApprovalRequest.changeset(
+      Map.merge(attrs, %{
+        "workspace_id" => run.workspace_id,
+        "task_id" => run.task_id,
+        "run_id" => run.id,
+        "agent_id" => run.agent_id
       })
-
-      {:ok, request}
-    end
+    )
+    |> Repo.insert()
   end
 
   def get_approval_request(workspace_id, id) do

@@ -45,7 +45,7 @@ defmodule MokaidWeb.ProjectController do
   def delete(conn, %{"id" => id}) do
     with :ok <- Permissions.authorize(current_member(conn), "projects.delete"),
          %{} = project <- Projects.get_project(workspace_id(conn), id),
-         {:ok, _} <- Projects.archive_project(project) do
+         {:ok, _} <- Projects.delete_project(project) do
       json(conn, %{ok: true})
     end
   end
