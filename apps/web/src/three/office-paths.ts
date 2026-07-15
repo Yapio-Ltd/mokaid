@@ -1,24 +1,31 @@
 /**
- * Pre-traced patrol paths for the office scene.
- *
- * Waypoints are hand-placed in walkable aisles, avoiding:
- * - Desk pods (front-left ≈ -6,-5.5 / front-right ≈ 6,-5.5 / back-center ≈ 0,2)
- * - Glass meeting room (back-right corner, ≈ 9.5,7.5)
- * - Lounge sofa (back-left corner, ≈ -9.5,7.5)
- * - Foosball table (front-center, ≈ 0,-8.7)
- * - Walls (|x|>12.3, |z|>10.3)
- *
- * The full layout (desks + zones + these paths) is collision-validated by
- * scratchpad/layout_v3.mjs.
+ * Patrol / idle helpers built on office-navdata.
+ * Desk slots and POIs live in office-navdata.ts (single source of truth).
  */
 
 import { Vector3 } from "@babylonjs/core";
+import {
+  OFFICE_DESK_SLOTS,
+  OFFICE_NAV_NODES,
+  findPath,
+  type NavPoint,
+  type SecondaryActivity,
+} from "./office-navdata";
+
+export { OFFICE_DESK_SLOTS };
+
+export type IdleActivity =
+  | "coffee"
+  | "scrolling"
+  | "stretch"
+  | "look"
+  | "playing"
+  | "sitting";
 
 export interface PathWaypoint {
   x: number;
   z: number;
-  /** Optional pause activity at this stop. */
-  activity?: "coffee" | "scrolling" | "stretch" | "look";
+  activity?: IdleActivity;
 }
 
 export interface OfficePath {
@@ -27,104 +34,62 @@ export interface OfficePath {
   loop: boolean;
 }
 
-/** All patrol routes — agents only move along these polylines. */
+/** Patrol loops derived from the nav graph perimeter / aisles. */
 export const OFFICE_PATHS: OfficePath[] = [
   {
-    // Big loop hugging the walls, dipping between the front pods and back pod.
     id: "perimeter",
     loop: true,
     waypoints: [
-      { x: -11.5, z: -8.5 },
-      { x: -11.5, z: 0 },
-      { x: -11.5, z: 4.5 },
-      { x: -5, z: 4.5 },
-      { x: -2, z: -1.5 },
-      { x: 2, z: -1.5 },
-      { x: 5, z: 4.5 },
-      { x: 11.5, z: 4.5 },
-      { x: 11.5, z: 0 },
-      { x: 11.5, z: -8.5 },
-      { x: 8, z: -8.5 },
-      { x: 2.5, z: -8.5 },
-      { x: -2.5, z: -8.5 },
-      { x: -8, z: -8.5 },
-      { x: -11.5, z: -8.5 },
+      { x: -5.6, z: -5.2 },
+      { x: -0.5, z: -5.2 },
+      { x: 5.4, z: -5.2 },
+      { x: 5.5, z: -0.4 },
+      { x: 4.6, z: 2.6 },
+      { x: -1.0, z: 3.4 },
+      { x: -5.4, z: 3.2 },
+      { x: -5.6, z: -0.8 },
     ],
   },
   {
-    // Straight aisle between the front pods (z≈-5.5) and back pod (z≈2).
     id: "mid-aisle",
     loop: true,
     waypoints: [
-      { x: -11, z: -1.5 },
-      { x: -6, z: -1.5 },
-      { x: 0, z: -1.5 },
-      { x: 6, z: -1.5 },
-      { x: 11, z: -1.5 },
-      { x: 6, z: -1.5 },
-      { x: -6, z: -1.5 },
+      { x: -5.6, z: -0.8 },
+      { x: -3.0, z: -1.6 },
+      { x: 0.4, z: -1.8 },
+      { x: 3.5, z: -1.4 },
+      { x: 5.5, z: -0.4 },
+      { x: 3.5, z: -1.4 },
+      { x: -3.0, z: -1.6 },
     ],
   },
   {
-    // Aisle behind the back-center pod, along the two annex zones.
     id: "back-aisle",
     loop: true,
     waypoints: [
-      { x: -6, z: 5.5 },
-      { x: 0, z: 5.5 },
-      { x: 6, z: 5.5 },
-      { x: 6, z: 4.5 },
-      { x: -6, z: 4.5 },
-      { x: -6, z: 5.5 },
-    ],
-  },
-  {
-    id: "lounge-approach",
-    loop: false,
-    waypoints: [
-      { x: -6, z: 4.5 },
-      { x: -8, z: 5.5 },
-      { x: -9.5, z: 5.2, activity: "stretch" },
-      { x: -8, z: 5.5 },
-      { x: -6, z: 4.5, activity: "look" },
-    ],
-  },
-  {
-    id: "meeting-approach",
-    loop: false,
-    waypoints: [
-      { x: 6, z: 4.5 },
-      { x: 8, z: 5.5 },
-      { x: 9.5, z: 5.2, activity: "coffee" },
-      { x: 8, z: 5.5 },
-      { x: 6, z: 4.5, activity: "look" },
-    ],
-  },
-  {
-    id: "foosball-approach",
-    loop: false,
-    waypoints: [
-      { x: -2.5, z: -8.5 },
-      { x: -1.5, z: -7, activity: "look" },
-      { x: 1.5, z: -7 },
-      { x: 2.5, z: -8.5 },
-      { x: -2.5, z: -8.5 },
+      { x: -5.4, z: 3.2 },
+      { x: -1.0, z: 3.4 },
+      { x: 2.2, z: 3.4 },
+      { x: 4.6, z: 2.6 },
+      { x: 2.2, z: 3.4 },
+      { x: -5.4, z: 3.2 },
     ],
   },
 ];
-
-export type IdleActivity = "coffee" | "scrolling" | "stretch" | "look";
 
 export function pathToVectors(path: OfficePath): Vector3[] {
   return path.waypoints.map((wp) => new Vector3(wp.x, 0, wp.z));
 }
 
-/** Pick the path whose first waypoint is closest to the agent. */
-export function pickPathNear(x: number, z: number, excludeId?: string): OfficePath {
-  let best = OFFICE_PATHS[0];
+export function pickPathNear(
+  x: number,
+  z: number,
+  excludeId?: string,
+  paths: OfficePath[] = OFFICE_PATHS,
+): OfficePath {
+  let best = paths[0];
   let bestDist = Infinity;
-
-  for (const path of OFFICE_PATHS) {
+  for (const path of paths) {
     if (path.id === excludeId) continue;
     const wp = path.waypoints[0];
     const d = (wp.x - x) ** 2 + (wp.z - z) ** 2;
@@ -136,7 +101,6 @@ export function pickPathNear(x: number, z: number, excludeId?: string): OfficePa
   return best;
 }
 
-/** Index of the nearest waypoint on a given path. */
 export function nearestWaypointIndex(path: OfficePath, x: number, z: number): number {
   let best = 0;
   let bestDist = Infinity;
@@ -148,4 +112,40 @@ export function nearestWaypointIndex(path: OfficePath, x: number, z: number): nu
     }
   });
   return best;
+}
+
+/** Build a path object from an A* polyline (non-looping). */
+export function pathFromPoints(id: string, points: NavPoint[]): OfficePath {
+  return {
+    id,
+    loop: false,
+    waypoints: points.map((p) => ({ x: p.x, z: p.z })),
+  };
+}
+
+export function routeTo(x: number, z: number, target: NavPoint): OfficePath {
+  return pathFromPoints(`route-${Date.now()}`, findPath({ x, z }, target));
+}
+
+export function allNavNodeIds(): string[] {
+  return OFFICE_NAV_NODES.map((n) => n.id);
+}
+
+export function idleToSecondary(activity: IdleActivity): SecondaryActivity {
+  switch (activity) {
+    case "coffee":
+      return "preparing_coffee";
+    case "playing":
+      return "playing_foosball";
+    case "sitting":
+      return "sitting_sofa";
+    case "scrolling":
+      return "scrolling";
+    case "stretch":
+      return "stretching";
+    case "look":
+      return "looking_around";
+    default:
+      return null;
+  }
 }

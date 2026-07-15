@@ -59,6 +59,13 @@ export interface Agent {
   xp: number;
   xp_for_next_level: number;
   missions_completed: number;
+  /** Unique desk 0..8 in the 3D office (null only for archived / overflow). */
+  seat_index: number | null;
+  office_activity: string | null;
+  office_poi_id: string | null;
+  office_slot_id: string | null;
+  office_activity_phase: string | null;
+  office_activity_ends_at: string | null;
   linked_user_id: string | null;
   linked_member_id: string | null;
   linked_user_name: string | null;

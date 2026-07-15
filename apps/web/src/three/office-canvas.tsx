@@ -22,6 +22,7 @@ import { AgentStatusBadge } from "@/components/ui/status";
 import { Avatar } from "@/components/ui/avatar";
 import { DropDispatchModal } from "@/components/modals/drop-dispatch-modal";
 import { DEFAULT_AVATAR_CDN_PATH } from "./agent-model";
+import { MAX_OFFICE_SEATS, type SecondaryActivity } from "./office-navdata";
 
 interface BubblePosition {
   x: number;
@@ -29,28 +30,41 @@ interface BubblePosition {
   visible: boolean;
 }
 
-const MAX_OFFICE_SEATS = 9;
+function toSecondaryActivity(raw: string | null | undefined): SecondaryActivity {
+  if (!raw) return null;
+  const allowed: SecondaryActivity[] = [
+    "walking",
+    "preparing_coffee",
+    "playing_foosball",
+    "sitting_sofa",
+    "scrolling",
+    "stretching",
+    "looking_around",
+  ];
+  return (allowed.includes(raw as SecondaryActivity) ? raw : null) as SecondaryActivity;
+}
 
 function toSceneAgents(
   agents: Agent[],
   typingIds: string[],
   assetCdnById: Map<string, string>,
+  localActivities: Map<string, SecondaryActivity>,
 ): SceneAgent[] {
   const typing = new Set(typingIds);
   return agents
-    .filter((a) => a.status !== "archived")
-    .slice(0, MAX_OFFICE_SEATS)
-    .map((agent, index) => {
-      // An agent composing a chat reply visibly types at its desk, whatever
-      // its task status is.
+    .filter((a) => a.status !== "archived" && a.seat_index != null && a.seat_index >= 0 && a.seat_index < MAX_OFFICE_SEATS)
+    .map((agent) => {
       const isTyping = typing.has(agent.id);
       const avatarCdnPath =
         agent.avatar_cdn_path ||
         (agent.avatar_asset_id && assetCdnById.get(agent.avatar_asset_id)) ||
         DEFAULT_AVATAR_CDN_PATH;
-      // AI staff are always present; only human-linked agents can be offline.
       const presence =
         agent.kind === "human_linked" ? agent.presence_status : ("online" as const);
+      const serverActivity = toSecondaryActivity(agent.office_activity);
+      const local = localActivities.get(agent.id) ?? null;
+      const secondaryActivity =
+        local === "walking" ? "walking" : (serverActivity ?? local);
       return {
         id: agent.id,
         name: agent.display_name,
@@ -63,13 +77,17 @@ function toSceneAgents(
               has_task: Boolean(agent.current_task_id),
             }),
         color: agent.avatar_config?.primary_color ?? "#7c5cff",
-        seatIndex: agent.avatar_config?.seat_index ?? index,
+        seatIndex: agent.seat_index as number,
         currentTaskTitle: isTyping
           ? "typing a message…"
           : agent.current_task_id
             ? "Working on task"
             : null,
         avatarCdnPath,
+        secondaryActivity,
+        officePoiId: agent.office_poi_id,
+        officeSlotId: agent.office_slot_id,
+        officeActivityPhase: agent.office_activity_phase,
       };
     });
 }
@@ -193,6 +211,11 @@ export function OfficeCanvas({
   const sceneRef = useRef<OfficeScene | null>(null);
   const labelRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [webglFailed, setWebglFailed] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [officeReady, setOfficeReady] = useState(false);
+  const [localActivities, setLocalActivities] = useState<Map<string, SecondaryActivity>>(
+    () => new Map(),
+  );
 
   const fps = useSceneStore((s) => s.fps);
   const setFps = useSceneStore((s) => s.setFps);
@@ -207,8 +230,8 @@ export function OfficeCanvas({
     return map;
   }, [characterAssets]);
   const sceneAgents = useMemo(
-    () => toSceneAgents(agents, typingAgentIds, assetCdnById),
-    [agents, typingAgentIds, assetCdnById],
+    () => toSceneAgents(agents, typingAgentIds, assetCdnById, localActivities),
+    [agents, typingAgentIds, assetCdnById, localActivities],
   );
   const disable3d = env.VITE_DISABLE_3D || webglFailed;
 
@@ -217,9 +240,23 @@ export function OfficeCanvas({
     else labelRefs.current.delete(agentId);
   }, []);
 
+  const onAgentActivity = useCallback((agentId: string, activity: SecondaryActivity) => {
+    setLocalActivities((prev) => {
+      const cur = prev.get(agentId) ?? null;
+      if (cur === activity) return prev;
+      const next = new Map(prev);
+      if (activity == null) next.delete(agentId);
+      else next.set(agentId, activity);
+      return next;
+    });
+  }, []);
+
   // Create the scene once; never re-create on React re-renders.
   useEffect(() => {
     if (disable3d || !canvasRef.current || sceneRef.current) return;
+
+    setLoadProgress(0);
+    setOfficeReady(false);
 
     try {
       sceneRef.current = new OfficeScene(canvasRef.current, {
@@ -228,6 +265,9 @@ export function OfficeCanvas({
         onBubblePositions: (positions: Map<string, BubblePosition>) => {
           applyLabelPositions(labelRefs.current, positions);
         },
+        onLoadProgress: (progress) => setLoadProgress(progress),
+        onOfficeReady: (ok) => setOfficeReady(ok),
+        onAgentActivity,
       });
     } catch (error) {
       console.warn("[3d] WebGL initialization failed, using fallback", error);
@@ -260,6 +300,8 @@ export function OfficeCanvas({
     (a) => !["away", "offline"].includes(a.visualState),
   );
 
+  const showLoading = !officeReady && loadProgress < 1;
+
   return (
     <OfficeDropzone>
       <div className="relative h-full w-full overflow-hidden">
@@ -276,14 +318,23 @@ export function OfficeCanvas({
           />
         ))}
 
+        {showLoading && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-bg-deep/70 backdrop-blur-sm">
+            <div className="h-1.5 w-48 overflow-hidden rounded-full bg-surface-overlay">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-200"
+                style={{ width: `${Math.round(loadProgress * 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-text-muted">
+              Loading office… {Math.round(loadProgress * 100)}%
+            </p>
+          </div>
+        )}
+
         {/* FPS monitor */}
         <div className="absolute bottom-3 right-3 rounded-md border border-border bg-surface-overlay/80 px-2 py-1 text-[10px] font-mono text-text-muted backdrop-blur">
           {fps} FPS
-        </div>
-
-        {/* Temporary assets notice */}
-        <div className="absolute bottom-3 left-3 rounded-md border border-border bg-surface-overlay/80 px-2 py-1 text-[10px] text-text-muted backdrop-blur">
-          Preview office, final 3D assets coming soon
         </div>
       </div>
     </OfficeDropzone>

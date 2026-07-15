@@ -3,29 +3,34 @@
  *
  * The 3D world is fully decoupled from React: it is created once, receives
  * agent updates through `updateAgents`, and reports interactions through
- * callbacks. Avatars load from the asset_3d catalog (male/female GLBs);
- * furniture remains procedural until environment assets ship.
+ * callbacks. The office environment loads from a hashed GLB; avatars load
+ * from the asset_3d catalog (male/female GLBs).
  */
 
 import {
-  ArcRotateCamera,
   Color3,
   Color4,
-  DirectionalLight,
+  DefaultRenderingPipeline,
   Engine,
+  FreeCamera,
   HemisphericLight,
+  ImageProcessingConfiguration,
   Matrix,
   Mesh,
   MeshBuilder,
+  PointLight,
   PointerEventTypes,
   Scene,
+  SceneLoader,
   ShadowGenerator,
+  SpotLight,
   StandardMaterial,
   TransformNode,
   Vector3,
 } from "@babylonjs/core";
-import type { AbstractMesh, AnimationGroup } from "@babylonjs/core";
+import type { AbstractMesh, AnimationGroup, Light } from "@babylonjs/core";
 import { PBRMaterial } from "@babylonjs/core";
+import "@babylonjs/loaders/glTF";
 import { statusColors } from "@mokaid/design-tokens";
 import {
   applyTint,
@@ -40,36 +45,57 @@ import {
   type AgentAnimName,
   type AgentModelTemplate,
 } from "./agent-model";
+import { resolveOfficeGlbUrl } from "./office-asset";
+import {
+  ENERGY_TO_INTENSITY_AREA,
+  ENERGY_TO_INTENSITY_POINT,
+  OFFICE_BLOOM,
+  OFFICE_CAMERA,
+  OFFICE_LIGHTS,
+  type OfficeLightDef,
+} from "./office-lighting";
 import {
   nearestWaypointIndex,
+  OFFICE_DESK_SLOTS,
+  OFFICE_PATHS,
   pickPathNear,
   type IdleActivity,
   type OfficePath,
 } from "./office-paths";
+import {
+  AGENT_RADIUS,
+  findPath,
+  floorYAt,
+  MAX_OFFICE_SEATS,
+  poiById,
+  type SecondaryActivity,
+} from "./office-navdata";
 import type { SceneAgent, SceneCallbacks } from "./types";
 
-/**
- * Desk pods: 3 rows of 3 desks. Two pods across the front, one across the
- * back-center, all axis-aligned and generously spaced so the aisles between
- * them stay wide and readable. Layout validated (no desk/zone/path overlap)
- * — see scratchpad/layout_v3.mjs.
- */
-interface DeskPod {
-  cx: number;
-  cz: number;
+type IdleBehavior = "patrol" | IdleActivity | "poi";
+
+interface OfficeCamOverride {
+  px: number;
+  py: number;
+  pz: number;
+  tx: number;
+  ty: number;
+  tz: number;
+  fov?: number;
+  dist?: number;
 }
 
-const DESK_POD_SPACING = 3.4;
-const DESK_PODS: DeskPod[] = [
-  { cx: -6, cz: -5.5 }, // front-left
-  { cx: 6, cz: -5.5 },  // front-right
-  { cx: 0, cz: 2 },     // back-center
-];
+/** Dev-only camera override: `?officeCam=px,py,pz,tx,ty,tz[,fov[,dist]]` (raw GLB coords). */
+function readOfficeCamOverride(): OfficeCamOverride | null {
+  if (typeof window === "undefined") return null;
+  const raw = new URLSearchParams(window.location.search).get("officeCam");
+  if (!raw) return null;
+  const p = raw.split(",").map(Number);
+  if (p.length < 6 || p.some((v) => Number.isNaN(v))) return null;
+  return { px: p[0], py: p[1], pz: p[2], tx: p[3], ty: p[4], tz: p[5], fov: p[6], dist: p[7] };
+}
 
-/** Desk x-offsets within a pod (3 desks side by side). */
-const POD_DESK_OFFSETS = [-DESK_POD_SPACING, 0, DESK_POD_SPACING];
-
-type IdleBehavior = "patrol" | IdleActivity;
+type RenderQuality = "high" | "medium" | "low";
 
 interface AvatarNode {
   root: TransformNode;
@@ -91,6 +117,9 @@ interface AvatarNode {
   facing: number;
   avatarUrl: string;
   footOffset: number;
+  /** Last secondary activity reported to React. */
+  reportedActivity: SecondaryActivity;
+  routeBusy: boolean;
 }
 
 export class OfficeScene {
@@ -100,6 +129,8 @@ export class OfficeScene {
   private deskSlots: Vector3[] = [];
   private materials = new Map<string, StandardMaterial>();
   private shadowGenerator: ShadowGenerator | null = null;
+  private pipeline: DefaultRenderingPipeline | null = null;
+  private sceneLights: Light[] = [];
   private fpsTimer = 0;
   private disposed = false;
   private resizeObserver: ResizeObserver | null = null;
@@ -107,6 +138,14 @@ export class OfficeScene {
   private templates = new Map<string, AgentModelTemplate>();
   private templateLoads = new Map<string, Promise<AgentModelTemplate>>();
   private lastAgents: SceneAgent[] = [];
+  private officeReady = false;
+  /** Patrol paths in the centered world frame (offset from raw GLB coords). */
+  private paths: OfficePath[] = OFFICE_PATHS;
+  private camera: FreeCamera | null = null;
+  /** AABB centering offsets applied when the GLB loads. */
+  private centerOffset = { x: 0, y: 0, z: 0 };
+  private renderQuality: RenderQuality = "high";
+  private lowFpsFrames = 0;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -120,22 +159,23 @@ export class OfficeScene {
     });
 
     this.scene = new Scene(this.engine);
-    this.scene.clearColor = Color4.FromHexString("#0b0b10ff");
+    this.scene.clearColor = Color4.FromHexString("#050507ff");
+    this.scene.ambientColor = new Color3(0.02, 0.02, 0.04);
 
+    this.setupImageProcessing();
     this.setupCamera();
-    this.setupLights();
-    this.buildOffice();
+    this.setupAmbientLight();
+    this.setupBloomPipeline();
     this.setupPicking();
 
-    // Prefetch the default male avatar so the office populates quickly.
-    void this.ensureTemplate(DEFAULT_AVATAR_CDN_PATH).then(() => {
-      if (this.disposed) return;
-      this.lastAgents.forEach((agent, index) => {
-        if (!this.avatars.has(agent.id)) {
-          void this.createAvatar(agent, agent.seatIndex >= 0 ? agent.seatIndex : index);
-        }
-      });
-    });
+    // Placeholder slots; replaced with centered coords after the GLB loads.
+    this.deskSlots = OFFICE_DESK_SLOTS.map((s) => new Vector3(s.x, 0, s.z));
+
+    void this.loadOfficeEnvironment();
+
+    // Prefetch the default male avatar so the office populates quickly once
+    // the environment finishes centering desk slots.
+    void this.ensureTemplate(DEFAULT_AVATAR_CDN_PATH);
 
     this.engine.runRenderLoop(() => {
       if (this.disposed) return;
@@ -143,6 +183,7 @@ export class OfficeScene {
       this.animate();
       this.scene.render();
       this.reportOverlay();
+      this.adaptQuality();
     });
 
     // Only resize the render buffer — never reframe the camera. The office
@@ -179,59 +220,198 @@ export class OfficeScene {
 
   /* ---------- setup ---------- */
 
+  /** Camera distance multiplier vs the calibrated OFFICE_CAMERA position. */
+  private static readonly CAMERA_DISTANCE_SCALE = 1;
+
   /**
-   * Fixed camera framing. Radius is chosen large enough that the whole office
-   * (23 × 19 footprint) stays visible even when the right side panel narrows
-   * the canvas — the view is intentionally STATIC and never reframes on
-   * resize, so opening/closing panels doesn't move the office.
+   * Per-material emissive intensities. Emission maps are baked in the GLB;
+   * these values control how hard they drive the bloom threshold.
    */
-  // Radius 24 keeps the 23×19 footprint fully visible from the widest normal
-  // canvas down to a narrow one (side panel open, aspect ~1.2) — verified in
-  // scratchpad/framing3.mjs. It never reframes on resize.
-  private static readonly CAMERA_RADIUS = 24;
-  private static readonly CAMERA_FOV = 0.8; // vertical FOV, radians
+  private static readonly EMISSIVE_BY_MATERIAL: Record<string, number> = {
+    base: 5.0,
+    "Solo items": 6.0,
+    "dividing wall N": 5.0,
+    additional: 5.5,
+    Monitor: 2.2,
+    "Monitor ": 2.2,
+    "Lap Top": 2.4,
+    Candles: 4.5,
+    "Table Light": 4.5,
+    Sofa: 3.5,
+  };
+  private static readonly EMISSIVE_DEFAULT = 3.0;
 
-  private setupCamera() {
-    const camera = new ArcRotateCamera(
-      "camera",
-      -Math.PI / 3.2,
-      Math.PI / 4.6,
-      OfficeScene.CAMERA_RADIUS,
-      new Vector3(0, 0, 0),
-      this.scene,
-    );
-    camera.attachControl(this.canvas, true);
-    camera.fov = OfficeScene.CAMERA_FOV;
-
-    // Everything locked to the initial values — no orbit, pan, or zoom.
-    camera.lowerRadiusLimit = OfficeScene.CAMERA_RADIUS;
-    camera.upperRadiusLimit = OfficeScene.CAMERA_RADIUS;
-    camera.lowerAlphaLimit = camera.alpha;
-    camera.upperAlphaLimit = camera.alpha;
-    camera.lowerBetaLimit = camera.beta;
-    camera.upperBetaLimit = camera.beta;
-    camera.panningSensibility = 0;
-
-    // Remove wheel and drag/pinch input entirely so the view can't be
-    // zoomed, orbited, or panned — angular sensibility 0 on drag also
-    // causes division by zero and corrupts the camera (blank scene until
-    // refresh), so dropping the input outright avoids that too.
-    camera.inputs.removeByType("ArcRotateCameraMouseWheelInput");
-    camera.inputs.removeByType("ArcRotateCameraPointersInput");
+  private setupImageProcessing() {
+    // Tone mapping / vignette are owned by DefaultRenderingPipeline once created;
+    // configure the scene defaults here as a fallback before the pipeline attaches.
+    const ip = this.scene.imageProcessingConfiguration;
+    ip.toneMappingEnabled = true;
+    ip.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
+    ip.exposure = 1.05;
+    ip.contrast = 1.12;
+    ip.vignetteEnabled = true;
+    ip.vignetteWeight = 1.4;
+    ip.vignetteColor = new Color4(0, 0, 0, 1);
+    ip.vignetteStretch = 0.2;
   }
 
-  private setupLights() {
-    const hemi = new HemisphericLight("hemi", new Vector3(0, 1, 0), this.scene);
-    hemi.intensity = 0.65;
-    hemi.groundColor = Color3.FromHexString("#1c1c26");
+  private setupCamera() {
+    // Camera starts at raw GLB coords; reframed after environment centering.
+    const cam = new FreeCamera("office-cam", Vector3.Zero(), this.scene);
+    cam.fov = OFFICE_CAMERA.fovVertical;
+    cam.minZ = OFFICE_CAMERA.near;
+    cam.maxZ = OFFICE_CAMERA.far;
+    cam.inertia = 0;
+    cam.speed = 0;
+    cam.inputs.clear();
+    this.camera = cam;
+    this.scene.activeCamera = cam;
+    this.applyCameraPlacement(0, 0, 0);
 
-    const dir = new DirectionalLight("dir", new Vector3(-0.4, -1, -0.3), this.scene);
-    dir.position = new Vector3(12, 18, 10);
-    dir.intensity = 0.7;
+    (window as unknown as { __officeCam?: typeof OFFICE_CAMERA }).__officeCam = OFFICE_CAMERA;
+  }
 
-    this.shadowGenerator = new ShadowGenerator(1024, dir);
-    this.shadowGenerator.usePercentageCloserFiltering = true;
-    this.shadowGenerator.setDarkness(0.55);
+  /**
+   * Place the camera from the Blender viewport data, pulled toward the target
+   * so the office fills the frame like the reference render. Supports a dev
+   * override `?officeCam=px,py,pz,tx,ty,tz[,fov]` in raw GLB coords.
+   */
+  private applyCameraPlacement(centerX: number, minY: number, centerZ: number) {
+    if (!this.camera) return;
+
+    const override = readOfficeCamOverride();
+    const raw = override ?? {
+      px: OFFICE_CAMERA.position.x,
+      py: OFFICE_CAMERA.position.y,
+      pz: OFFICE_CAMERA.position.z,
+      tx: OFFICE_CAMERA.target.x,
+      ty: OFFICE_CAMERA.target.y,
+      tz: OFFICE_CAMERA.target.z,
+      fov: OFFICE_CAMERA.fovVertical,
+      dist: OfficeScene.CAMERA_DISTANCE_SCALE,
+    };
+
+    const target = new Vector3(raw.tx - centerX, raw.ty - minY, raw.tz - centerZ);
+    const pos = new Vector3(raw.px - centerX, raw.py - minY, raw.pz - centerZ);
+    // Pull along the view axis (dist < 1 moves closer, keeps orientation).
+    const scaled = target.add(pos.subtract(target).scale(raw.dist ?? 1));
+
+    this.camera.position.copyFrom(scaled);
+    this.camera.setTarget(target);
+    if (raw.fov) this.camera.fov = raw.fov;
+  }
+
+  /** Very low ambient so PBR doesn't go pure black where lights don't reach. */
+  private setupAmbientLight() {
+    // Emulates the GI bounce the Cycles render gets from the neon strips.
+    const hemi = new HemisphericLight("hemi-ambient", new Vector3(0, 1, 0), this.scene);
+    hemi.intensity = 1.05;
+    hemi.diffuse = Color3.FromHexString("#8f7fc4");
+    hemi.groundColor = Color3.FromHexString("#453563");
+    hemi.specular = Color3.Black();
+    this.sceneLights.push(hemi);
+  }
+
+  private setupBloomPipeline() {
+    if (!this.camera) return;
+    const pipeline = new DefaultRenderingPipeline("office-pp", true, this.scene, [this.camera]);
+    pipeline.bloomEnabled = true;
+    pipeline.bloomThreshold = OFFICE_BLOOM.threshold;
+    pipeline.bloomWeight = OFFICE_BLOOM.weight;
+    pipeline.bloomKernel = OFFICE_BLOOM.kernel;
+    pipeline.bloomScale = OFFICE_BLOOM.scale;
+
+    pipeline.imageProcessingEnabled = true;
+    pipeline.imageProcessing.toneMappingEnabled = true;
+    pipeline.imageProcessing.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
+    pipeline.imageProcessing.exposure = 1.3;
+    pipeline.imageProcessing.contrast = 1.08;
+    pipeline.imageProcessing.vignetteEnabled = true;
+    pipeline.imageProcessing.vignetteWeight = 1.4;
+    pipeline.imageProcessing.vignetteColor = new Color4(0, 0, 0, 1);
+    pipeline.fxaaEnabled = true;
+
+    this.pipeline = pipeline;
+  }
+
+  /**
+   * Recreate Blender point + area lights after the environment is centered.
+   * AREA lights become overhead SpotLights (Babylon has no native area light).
+   */
+  private recreateBlenderLights(centerX: number, minY: number, centerZ: number) {
+    // Dispose previous point/spot lights (keep ambient hemi).
+    for (const light of this.sceneLights) {
+      if (light.name !== "hemi-ambient") light.dispose();
+    }
+    this.sceneLights = this.sceneLights.filter((l) => l.name === "hemi-ambient");
+    this.shadowGenerator?.dispose();
+    this.shadowGenerator = null;
+
+    let primaryShadow: ShadowGenerator | null = null;
+
+    for (const def of OFFICE_LIGHTS) {
+      const light = this.createLightFromDef(def, centerX, minY, centerZ);
+      if (!light) continue;
+      this.sceneLights.push(light);
+
+      // Use the brightest point light for soft shadows (cheap single generator).
+      if (!primaryShadow && light instanceof PointLight && def.energy >= 46) {
+        primaryShadow = new ShadowGenerator(1024, light);
+        primaryShadow.usePercentageCloserFiltering = true;
+        primaryShadow.setDarkness(0.65);
+      }
+    }
+    this.shadowGenerator = primaryShadow;
+  }
+
+  private createLightFromDef(
+    def: OfficeLightDef,
+    centerX: number,
+    minY: number,
+    centerZ: number,
+  ): Light | null {
+    const pos = new Vector3(
+      def.position.x - centerX,
+      def.position.y - minY,
+      def.position.z - centerZ,
+    );
+    const color = new Color3(def.color.r, def.color.g, def.color.b);
+
+    if (def.type === "POINT") {
+      const light = new PointLight(`blend-${def.name}`, pos, this.scene);
+      light.diffuse = color;
+      light.specular = color.scale(0.4);
+      light.intensity = def.energy * ENERGY_TO_INTENSITY_POINT;
+      light.range = 7;
+      light.falloffType = PointLight.FALLOFF_STANDARD;
+      return light;
+    }
+
+    if (def.type === "AREA") {
+      // Approximate downward area panels with a wide spot from above.
+      const n = def.normal ?? { x: 0, y: -1, z: 0 };
+      const direction = new Vector3(n.x, n.y, n.z);
+      const light = new SpotLight(
+        `blend-${def.name}`,
+        pos,
+        direction,
+        Math.PI / 1.5,
+        1.1,
+        this.scene,
+      );
+      light.diffuse = color;
+      light.specular = color.scale(0.25);
+      light.intensity = def.energy * ENERGY_TO_INTENSITY_AREA;
+      light.range = 12;
+      return light;
+    }
+
+    return null;
+  }
+
+  /** Shift FreeCamera from raw GLB coords into the centered world frame. */
+  private reframeCamera(centerX: number, minY: number, centerZ: number) {
+    this.applyCameraPlacement(centerX, minY, centerZ);
   }
 
   private material(key: string, hex: string, emissive = 0): StandardMaterial {
@@ -249,195 +429,112 @@ export class OfficeScene {
     return mat;
   }
 
-  /* ---------- procedural office (temporary assets) ---------- */
+  /* ---------- environment GLB ---------- */
 
-  private buildOffice() {
-    // Floor
-    const floor = MeshBuilder.CreateBox("floor", { width: 26, depth: 22, height: 0.4 }, this.scene);
-    floor.position.y = -0.2;
-    floor.material = this.material("floor", "#17171f");
-    floor.receiveShadows = true;
+  private async loadOfficeEnvironment() {
+    const url = resolveOfficeGlbUrl();
+    this.callbacks.onLoadProgress?.(0);
 
-    const rug = MeshBuilder.CreateBox("rug", { width: 21, depth: 17, height: 0.05 }, this.scene);
-    rug.position.y = 0.03;
-    rug.material = this.material("rug", "#1d1a2e");
-    rug.receiveShadows = true;
+    try {
+      const result = await SceneLoader.ImportMeshAsync(
+        "",
+        url,
+        "",
+        this.scene,
+        (event) => {
+          if (!event.lengthComputable || event.total === 0) return;
+          this.callbacks.onLoadProgress?.(Math.min(1, event.loaded / event.total));
+        },
+      );
 
-    // Back walls (low, isometric style)
-    const wallMat = this.material("wall", "#12121a");
-    const wallA = MeshBuilder.CreateBox("wallA", { width: 26, depth: 0.3, height: 3.4 }, this.scene);
-    wallA.position.set(0, 1.7, -11);
-    wallA.material = wallMat;
-    const wallB = MeshBuilder.CreateBox("wallB", { width: 0.3, depth: 22, height: 3.4 }, this.scene);
-    wallB.position.set(-13, 1.7, 0);
-    wallB.material = wallMat;
+      if (this.disposed) return;
 
-    // Window strip on back wall
-    const windowStrip = MeshBuilder.CreateBox("window", { width: 18, depth: 0.1, height: 1.4 }, this.scene);
-    windowStrip.position.set(0, 2, -10.8);
-    const windowMat = this.material("window", "#2b2450", 0.35);
-    windowMat.alpha = 0.9;
-    windowStrip.material = windowMat;
+      const root = new TransformNode("office-environment", this.scene);
 
-    // Desk pods: 3 rows of 3, axis-aligned, wide aisles between them.
-    let slot = 0;
-    for (const pod of DESK_PODS) {
-      for (const dx of POD_DESK_OFFSETS) {
-        const x = pod.cx + dx;
-        const z = pod.cz;
-        this.buildDesk(x, z, slot);
-        // Seat sits in front of the desk (chair is at +Z in desk-local space).
-        this.deskSlots.push(new Vector3(x, 0, z + 1.15));
-        slot += 1;
+      // glTF loader parents content under __root__; re-parent top-level nodes
+      // so we can center/scale the whole office as one unit.
+      const topLevel = [
+        ...result.meshes.filter((m) => !m.parent),
+        ...result.transformNodes.filter((t) => !t.parent),
+      ];
+      for (const node of topLevel) {
+        node.parent = root;
       }
+
+      for (const mesh of result.meshes) {
+        mesh.isPickable = false;
+        mesh.receiveShadows = true;
+        this.toneDownEmissive(mesh);
+        if (mesh instanceof Mesh) {
+          this.shadowGenerator?.addShadowCaster(mesh);
+        }
+      }
+
+      // Center footprint on XZ and plant the floor at y=0.
+      root.computeWorldMatrix(true);
+      const bi = root.getHierarchyBoundingVectors(true);
+      const centerX = (bi.min.x + bi.max.x) / 2;
+      const centerZ = (bi.min.z + bi.max.z) / 2;
+      const minY = bi.min.y;
+      root.position.set(-centerX, -minY, -centerZ);
+      root.computeWorldMatrix(true);
+      this.centerOffset = { x: centerX, y: minY, z: centerZ };
+
+      this.recreateBlenderLights(centerX, minY, centerZ);
+      this.reframeCamera(centerX, minY, centerZ);
+
+      // Desk slots + patrol paths are authored in raw GLB space; apply centering.
+      this.deskSlots = OFFICE_DESK_SLOTS.map(
+        (s) => new Vector3(s.x - centerX, 0, s.z - centerZ),
+      );
+      this.paths = OFFICE_PATHS.map((path) => ({
+        ...path,
+        waypoints: path.waypoints.map((wp) => ({
+          ...wp,
+          x: wp.x - centerX,
+          z: wp.z - centerZ,
+        })),
+      }));
+
+      this.officeReady = true;
+      this.callbacks.onLoadProgress?.(1);
+      this.callbacks.onOfficeReady?.(true);
+
+      // Spawn any agents that arrived before the office finished loading.
+      this.lastAgents.forEach((agent, index) => {
+        if (!this.avatars.has(agent.id)) {
+          void this.createAvatar(agent, agent.seatIndex >= 0 ? agent.seatIndex : index);
+        }
+      });
+    } catch (err) {
+      console.warn("[OfficeScene] failed to load office environment GLB", err);
+      this.callbacks.onLoadProgress?.(1);
+      this.callbacks.onOfficeReady?.(false);
     }
+  }
 
-    // Plants: 4 corners + accents in the open aisles.
-    for (const [x, z] of [
-      [-11.5, -9.5],
-      [11.5, -9.5],
-      [-11.5, 9.5],
-      [11.5, 9.5],
-      [-11, 0],
-      [11, 0],
-    ] as const) {
-      this.buildPlant(x, z);
+  /** Apply per-material emissive caps so floor neon does not wash out bloom. */
+  private toneDownEmissive(mesh: AbstractMesh) {
+    const apply = (mat: unknown) => {
+      if (!(mat instanceof PBRMaterial)) return;
+      // Babylon defaults to 4 lights per material; the office has ~18.
+      mat.maxSimultaneousLights = 24;
+      const rawName = mat.name ?? "";
+      const name = rawName.replace(/\s+$/, "").replace(/\.\d+$/, "");
+      const target =
+        OfficeScene.EMISSIVE_BY_MATERIAL[name] ??
+        OfficeScene.EMISSIVE_BY_MATERIAL[rawName] ??
+        OfficeScene.EMISSIVE_DEFAULT;
+      mat.emissiveIntensity = target;
+    };
+
+    const mat = mesh.material;
+    if (!mat) return;
+    if ("subMaterials" in mat && Array.isArray((mat as { subMaterials: unknown[] }).subMaterials)) {
+      for (const sub of (mat as { subMaterials: unknown[] }).subMaterials) apply(sub);
+    } else {
+      apply(mat);
     }
-
-    this.buildMeetingRoom();
-    this.buildLounge();
-    this.buildFoosball();
-  }
-
-  /** Glass-walled meeting room in the back-right corner. */
-  private buildMeetingRoom() {
-    const cx = 9.5;
-    const cz = 7.5;
-    const glassMat = this.material("glass", "#5a4fb8", 0.15);
-    glassMat.alpha = 0.25;
-
-    // Two inner glass walls (the room's back/right sides are the room walls).
-    const wallNorth = MeshBuilder.CreateBox("meeting-wall-north", { width: 7, depth: 0.12, height: 2.6 }, this.scene);
-    wallNorth.position.set(cx, 1.3, cz - 3.3);
-    wallNorth.material = glassMat;
-
-    const wallWest = MeshBuilder.CreateBox("meeting-wall-west", { width: 0.12, depth: 6.6, height: 2.6 }, this.scene);
-    wallWest.position.set(cx - 3.5, 1.3, cz);
-    wallWest.material = glassMat;
-
-    const table = MeshBuilder.CreateBox("meeting-table", { width: 3, depth: 1.4, height: 0.1 }, this.scene);
-    table.position.set(cx, 0.85, cz);
-    table.material = this.material("tabletop", "#2a2a38");
-    const tableLeg = MeshBuilder.CreateBox("meeting-leg", { width: 0.12, depth: 1.2, height: 0.85 }, this.scene);
-    tableLeg.position.set(cx, 0.42, cz);
-    tableLeg.material = this.material("leg", "#3a3a4c");
-
-    const screen = MeshBuilder.CreateBox("meeting-screen", { width: 2.2, depth: 0.08, height: 1.3 }, this.scene);
-    screen.position.set(cx, 2, cz + 3.2);
-    screen.material = this.material("screen", "#7c5cff", 0.4);
-  }
-
-  /** Lounge corner with a sofa, back-left. */
-  private buildLounge() {
-    const cx = -9.5;
-    const cz = 7.5;
-
-    const sofaBase = MeshBuilder.CreateBox("sofa-base", { width: 3.6, depth: 1.3, height: 0.55 }, this.scene);
-    sofaBase.position.set(cx, 0.3, cz);
-    sofaBase.material = this.material("sofa", "#2e2a44");
-    this.shadowGenerator?.addShadowCaster(sofaBase);
-
-    const sofaBack = MeshBuilder.CreateBox("sofa-back", { width: 3.6, depth: 0.3, height: 1 }, this.scene);
-    sofaBack.position.set(cx, 0.75, cz + 0.5);
-    sofaBack.material = this.material("sofa", "#2e2a44");
-
-    const table = MeshBuilder.CreateCylinder("lounge-table", { diameter: 1.1, height: 0.1 }, this.scene);
-    table.position.set(cx, 0.35, cz - 1.4);
-    table.material = this.material("tabletop", "#2a2a38");
-  }
-
-  /** Foosball table in the open front-center area — a shared perk. */
-  private buildFoosball() {
-    const cx = 0;
-    const cz = -8.7;
-
-    const top = MeshBuilder.CreateBox("foosball-top", { width: 2.6, depth: 1.3, height: 0.12 }, this.scene);
-    top.position.set(cx, 0.85, cz);
-    top.material = this.material("foosball-top", "#1f6b45");
-    this.shadowGenerator?.addShadowCaster(top);
-
-    for (const [lx, lz] of [
-      [-1.15, -0.5],
-      [1.15, -0.5],
-      [-1.15, 0.5],
-      [1.15, 0.5],
-    ] as const) {
-      const leg = MeshBuilder.CreateBox("foosball-leg", { width: 0.1, depth: 0.1, height: 0.85 }, this.scene);
-      leg.position.set(cx + lx, 0.42, cz + lz);
-      leg.material = this.material("leg", "#3a3a4c");
-    }
-
-    const rail = MeshBuilder.CreateBox("foosball-rail", { width: 2.6, depth: 0.06, height: 0.06 }, this.scene);
-    rail.position.set(cx, 0.94, cz);
-    rail.material = this.material("leg", "#c9c9d4");
-  }
-
-  private buildDesk(x: number, z: number, index: number, rotationY = 0) {
-    const group = new TransformNode(`desk-${index}`, this.scene);
-    group.position.set(x, 0, z);
-    group.rotation.y = rotationY;
-
-    const top = MeshBuilder.CreateBox(`desk-top-${index}`, { width: 3, depth: 1.4, height: 0.12 }, this.scene);
-    top.position.y = 1;
-    top.parent = group;
-    top.material = this.material("desktop", "#26263a");
-    this.shadowGenerator?.addShadowCaster(top);
-
-    for (const [lx, lz] of [
-      [-1.35, -0.55],
-      [1.35, -0.55],
-      [-1.35, 0.55],
-      [1.35, 0.55],
-    ] as const) {
-      const leg = MeshBuilder.CreateBox(`desk-leg-${index}-${lx}-${lz}`, { width: 0.1, depth: 0.1, height: 1 }, this.scene);
-      leg.position.set(lx, 0.5, lz);
-      leg.parent = group;
-      leg.material = this.material("leg", "#3a3a4c");
-    }
-
-    // Monitor
-    const screen = MeshBuilder.CreateBox(`monitor-${index}`, { width: 1.1, depth: 0.06, height: 0.65 }, this.scene);
-    screen.position.set(0, 1.55, -0.35);
-    screen.parent = group;
-    screen.material = this.material("screen", "#7c5cff", 0.4);
-
-    const stand = MeshBuilder.CreateBox(`monitor-stand-${index}`, { width: 0.12, depth: 0.12, height: 0.35 }, this.scene);
-    stand.position.set(0, 1.2, -0.35);
-    stand.parent = group;
-    stand.material = this.material("leg", "#3a3a4c");
-
-    // Chair
-    const seat = MeshBuilder.CreateBox(`chair-seat-${index}`, { width: 0.9, depth: 0.9, height: 0.12 }, this.scene);
-    seat.position.set(0, 0.55, 1.15);
-    seat.parent = group;
-    seat.material = this.material("chair", "#332f4a");
-
-    const back = MeshBuilder.CreateBox(`chair-back-${index}`, { width: 0.9, depth: 0.1, height: 0.9 }, this.scene);
-    back.position.set(0, 1.05, 1.58);
-    back.parent = group;
-    back.material = this.material("chair", "#332f4a");
-  }
-
-  private buildPlant(x: number, z: number) {
-    const pot = MeshBuilder.CreateCylinder(`pot-${x}-${z}`, { diameterTop: 0.7, diameterBottom: 0.5, height: 0.6 }, this.scene);
-    pot.position.set(x, 0.3, z);
-    pot.material = this.material("pot", "#3f3358");
-
-    const leaves = MeshBuilder.CreateSphere(`leaves-${x}-${z}`, { diameter: 1.3, segments: 8 }, this.scene);
-    leaves.position.set(x, 1.2, z);
-    leaves.scaling.y = 1.4;
-    leaves.material = this.material("leaves", "#2f7d5a");
-    this.shadowGenerator?.addShadowCaster(leaves);
   }
 
   /* ---------- avatars ---------- */
@@ -470,21 +567,29 @@ export class OfficeScene {
         if (colorChanged) applyTint(existing.meshes, agent.color);
         if (wasIdle && !nowIdle) {
           existing.root.position.copyFrom(existing.homePos);
-          groundAgent(existing.root, existing.footOffset);
+          this.plantFeet(existing);
           existing.idleBehavior = "patrol";
+          existing.routeBusy = false;
+          this.reportActivity(existing, null);
           playAgentAnimation(existing, "idle");
         } else if (!wasIdle && nowIdle) {
           existing.idleBehavior = "patrol";
           existing.behaviorEnd = 0;
-          existing.activePath = pickPathNear(existing.root.position.x, existing.root.position.z);
+          existing.activePath = pickPathNear(
+            existing.root.position.x,
+            existing.root.position.z,
+            undefined,
+            this.paths,
+          );
           existing.pathIndex = nearestWaypointIndex(
             existing.activePath,
             existing.root.position.x,
             existing.root.position.z,
           );
         }
+        this.syncServerActivity(existing);
         this.applyStatusVisual(existing);
-      } else {
+      } else if (this.officeReady) {
         void this.createAvatar(agent, agent.seatIndex >= 0 ? agent.seatIndex : index);
       }
     });
@@ -501,6 +606,10 @@ export class OfficeScene {
 
   private async createAvatar(agent: SceneAgent, seatIndex: number) {
     if (this.disposed || this.avatars.has(agent.id)) return;
+    if (seatIndex < 0 || seatIndex >= MAX_OFFICE_SEATS || seatIndex >= this.deskSlots.length) {
+      console.warn("[OfficeScene] invalid seat_index", agent.id, seatIndex);
+      return;
+    }
 
     let template: AgentModelTemplate;
     try {
@@ -511,7 +620,7 @@ export class OfficeScene {
     }
     if (this.disposed || this.avatars.has(agent.id)) return;
 
-    const slot = this.deskSlots[seatIndex % this.deskSlots.length] ?? Vector3.Zero();
+    const slot = this.deskSlots[seatIndex] ?? Vector3.Zero();
     const avatarUrl = this.agentAvatarUrl(agent);
 
     const spawned = spawnAgentModel(template, this.scene, agent.id, agent.color);
@@ -537,7 +646,7 @@ export class OfficeScene {
       spawned.meshes.push(body);
     }
 
-    const path = pickPathNear(slot.x, slot.z);
+    const path = pickPathNear(slot.x, slot.z, undefined, this.paths);
     const pathIndex = nearestWaypointIndex(path, slot.x, slot.z);
 
     const ring = MeshBuilder.CreateTorus(
@@ -569,13 +678,17 @@ export class OfficeScene {
       facing: root.rotation.y,
       avatarUrl,
       footOffset: template.footOffset,
+      reportedActivity: null,
+      routeBusy: false,
     };
 
     this.avatars.set(agent.id, avatar);
+    this.plantFeet(avatar);
     for (const mesh of spawned.meshes) {
       this.shadowGenerator?.addShadowCaster(mesh);
     }
     playAgentAnimation(avatar, "idle");
+    this.syncServerActivity(avatar);
     this.applyStatusVisual(avatar);
   }
 
@@ -614,52 +727,90 @@ export class OfficeScene {
       const { root } = avatar;
 
       // Keep feet planted; celebrating bounce is in the clip (root.x translation).
+      this.plantFeet(avatar);
       if (state === "away" || state === "offline") {
-        root.position.y = avatar.baseY;
+        avatar.root.position.y = avatar.baseY;
       }
 
       avatar.facing = root.rotation.y;
+      this.reportActivity(avatar, null);
     }
   }
 
-  /** Follow pre-traced paths; pause at waypoints for idle activities. */
+  /** Follow pre-traced paths; pause at waypoints; honor server POI assignments. */
   private animateIdle(avatar: AvatarNode, t: number, dt: number) {
-    const { root, phase } = avatar;
+    const { root } = avatar;
+
+    if (avatar.agent.secondaryActivity && avatar.agent.officePoiId && !avatar.routeBusy) {
+      if (avatar.idleBehavior !== "poi") {
+        this.beginPoiRoute(avatar);
+      }
+    }
+
+    if (avatar.idleBehavior === "poi") {
+      this.animatePoi(avatar, t, dt);
+      return;
+    }
 
     if (avatar.idleBehavior !== "patrol") {
       playAgentAnimation(avatar, "idle");
+      this.plantFeet(avatar);
       if (t >= avatar.behaviorEnd) {
         avatar.idleBehavior = "patrol";
+        this.reportActivity(avatar, null);
         return;
       }
-      this.playIdleActivity(avatar, t, phase);
+      this.playIdleActivity(avatar, t);
       return;
     }
 
     const wp = avatar.activePath.waypoints[avatar.pathIndex];
     if (!wp) {
-      avatar.activePath = pickPathNear(root.position.x, root.position.z, avatar.activePath.id);
+      avatar.activePath = pickPathNear(root.position.x, root.position.z, avatar.activePath.id, this.paths);
       avatar.pathIndex = 0;
       return;
     }
 
     const target = new Vector3(wp.x, root.position.y, wp.z);
-    const arrived = this.walkToward(avatar, target, 1.4, dt);
+    const arrived = this.walkToward(avatar, target, 1.35, dt);
+    this.reportActivity(avatar, arrived ? null : "walking");
 
     if (arrived) {
       playAgentAnimation(avatar, "idle");
+      this.plantFeet(avatar);
 
       if (wp.activity) {
         avatar.idleBehavior = wp.activity;
         avatar.behaviorEnd = t + 4 + Math.random() * 5;
+        this.reportActivity(
+          avatar,
+          wp.activity === "coffee"
+            ? "preparing_coffee"
+            : wp.activity === "playing"
+              ? "playing_foosball"
+              : wp.activity === "sitting"
+                ? "sitting_sofa"
+                : wp.activity === "scrolling"
+                  ? "scrolling"
+                  : wp.activity === "stretch"
+                    ? "stretching"
+                    : "looking_around",
+        );
         return;
       }
 
-      // Brief random pause (~25 %) at ordinary waypoints.
-      if (Math.random() < 0.25) {
+      if (Math.random() < 0.2) {
         const pauses: IdleActivity[] = ["look", "scrolling", "stretch"];
         avatar.idleBehavior = pauses[Math.floor(Math.random() * pauses.length)];
         avatar.behaviorEnd = t + 3 + Math.random() * 4;
+        this.reportActivity(
+          avatar,
+          avatar.idleBehavior === "scrolling"
+            ? "scrolling"
+            : avatar.idleBehavior === "stretch"
+              ? "stretching"
+              : "looking_around",
+        );
         return;
       }
 
@@ -668,34 +819,136 @@ export class OfficeScene {
         if (avatar.activePath.loop) {
           avatar.pathIndex = 0;
         } else {
-          avatar.activePath = pickPathNear(root.position.x, root.position.z, avatar.activePath.id);
+          avatar.activePath = pickPathNear(root.position.x, root.position.z, avatar.activePath.id, this.paths);
           avatar.pathIndex = 0;
         }
       }
     }
   }
 
-  private playIdleActivity(avatar: AvatarNode, t: number, phase: number) {
-    const { root } = avatar;
+  private syncServerActivity(avatar: AvatarNode) {
+    const agent = avatar.agent;
+    if (!isIdleVisual(agent.visualState)) return;
+    if (agent.officePoiId && agent.officeSlotId && agent.secondaryActivity) {
+      if (avatar.idleBehavior !== "poi" && !avatar.routeBusy) {
+        this.beginPoiRoute(avatar);
+      }
+    } else if (avatar.idleBehavior === "poi" && !agent.officePoiId) {
+      avatar.idleBehavior = "patrol";
+      avatar.routeBusy = false;
+      this.reportActivity(avatar, null);
+      this.returnHome(avatar);
+    }
+  }
+
+  private beginPoiRoute(avatar: AvatarNode) {
+    const poi = poiById(avatar.agent.officePoiId ?? "");
+    const slot = poi?.slots.find((s) => s.id === avatar.agent.officeSlotId);
+    if (!poi || !slot) return;
+
+    const target = this.toCentered(slot.position.x, slot.position.z);
+    const pathPts = findPath(
+      { x: avatar.root.position.x + this.centerOffset.x, z: avatar.root.position.z + this.centerOffset.z },
+      { x: slot.position.x, z: slot.position.z },
+    ).map((p) => ({ x: p.x - this.centerOffset.x, z: p.z - this.centerOffset.z }));
+
+    avatar.activePath = {
+      id: `poi-${poi.id}-${slot.id}`,
+      loop: false,
+      waypoints: pathPts.length ? pathPts : [{ x: target.x, z: target.z }],
+    };
+    avatar.pathIndex = 0;
+    avatar.idleBehavior = "poi";
+    avatar.routeBusy = true;
+    avatar.behaviorEnd = 0;
+  }
+
+  private animatePoi(avatar: AvatarNode, t: number, dt: number) {
+    const poi = poiById(avatar.agent.officePoiId ?? "");
+    const slot = poi?.slots.find((s) => s.id === avatar.agent.officeSlotId);
+    if (!poi || !slot) {
+      avatar.idleBehavior = "patrol";
+      avatar.routeBusy = false;
+      return;
+    }
+
+    const wp = avatar.activePath.waypoints[avatar.pathIndex];
+    if (wp && avatar.routeBusy) {
+      const target = new Vector3(wp.x, avatar.root.position.y, wp.z);
+      const arrived = this.walkToward(avatar, target, 1.4, dt);
+      this.reportActivity(avatar, "walking");
+      if (arrived) {
+        avatar.pathIndex += 1;
+        if (avatar.pathIndex >= avatar.activePath.waypoints.length) {
+          avatar.routeBusy = false;
+          const dest = this.toCentered(slot.position.x, slot.position.z);
+          avatar.root.position.x = dest.x;
+          avatar.root.position.z = dest.z;
+          avatar.facing = slot.facing;
+          avatar.root.rotation.y = slot.facing;
+          this.plantFeet(avatar);
+          playAgentAnimation(avatar, "idle");
+          this.reportActivity(avatar, slot.animation);
+        }
+      }
+      return;
+    }
+
+    // Active at POI — procedural pose until status clears.
+    playAgentAnimation(avatar, "idle");
+    this.reportActivity(avatar, slot.animation);
+    if (slot.animation === "sitting_sofa") {
+      avatar.root.position.y = avatar.footOffset + floorYAt(0, 0) - 0.18;
+      avatar.root.rotation.y = slot.facing;
+    } else if (slot.animation === "playing_foosball") {
+      avatar.root.rotation.y = slot.facing + Math.sin(t * 3 + avatar.phase) * 0.15;
+      this.plantFeet(avatar);
+    } else if (slot.animation === "preparing_coffee") {
+      avatar.root.rotation.y = slot.facing;
+      avatar.root.position.y = avatar.footOffset + Math.sin((t + avatar.phase) * 2) * 0.01;
+    } else {
+      this.plantFeet(avatar);
+    }
+    avatar.facing = avatar.root.rotation.y;
+  }
+
+  private returnHome(avatar: AvatarNode) {
+    const pathPts = findPath(
+      { x: avatar.root.position.x + this.centerOffset.x, z: avatar.root.position.z + this.centerOffset.z },
+      { x: avatar.homePos.x + this.centerOffset.x, z: avatar.homePos.z + this.centerOffset.z },
+    ).map((p) => ({ x: p.x - this.centerOffset.x, z: p.z - this.centerOffset.z }));
+    avatar.activePath = { id: `home-${avatar.agent.id}`, loop: false, waypoints: pathPts };
+    avatar.pathIndex = 0;
+    avatar.idleBehavior = "patrol";
+  }
+
+  private toCentered(x: number, z: number) {
+    return { x: x - this.centerOffset.x, z: z - this.centerOffset.z };
+  }
+
+  private playIdleActivity(avatar: AvatarNode, t: number) {
+    const { root, phase } = avatar;
     switch (avatar.idleBehavior) {
       case "coffee":
         root.rotation.y = Math.PI * 0.2;
-        root.position.y = avatar.baseY + Math.sin((t + phase) * 2) * 0.01;
+        root.position.y = avatar.footOffset + Math.sin((t + phase) * 2) * 0.01;
         break;
       case "scrolling":
         root.rotation.y = Math.sin((t + phase) * 0.25) * 0.2;
+        this.plantFeet(avatar);
         break;
       case "stretch":
         root.rotation.y = Math.sin((t + phase) * 0.4) * 0.1;
-        root.position.y = avatar.baseY + Math.sin((t + phase) * 1.5) * 0.02;
+        root.position.y = avatar.footOffset + Math.sin((t + phase) * 1.5) * 0.02;
         break;
       case "look":
         root.rotation.y = Math.sin((t + phase) * 0.5) * 0.8;
+        this.plantFeet(avatar);
         break;
       default:
+        this.plantFeet(avatar);
         break;
     }
-
     avatar.facing = root.rotation.y;
   }
 
@@ -703,26 +956,42 @@ export class OfficeScene {
   private static readonly TURN_SPEED = Math.PI * 2.2;
   /** Must be facing within this tolerance before advancing position. */
   private static readonly FACING_TOLERANCE = 0.08;
+  private static readonly SEPARATION = AGENT_RADIUS * 2.05;
 
   private walkToward(avatar: AvatarNode, target: Vector3, speed: number, dt: number): boolean {
     const pos = avatar.root.position;
-    const dx = target.x - pos.x;
-    const dz = target.z - pos.z;
-    const dist = Math.sqrt(dx * dx + dz * dz);
+    let dx = target.x - pos.x;
+    let dz = target.z - pos.z;
 
-    if (dist < 0.25) {
+    // Separation from other agents.
+    for (const other of this.avatars.values()) {
+      if (other === avatar) continue;
+      const ox = pos.x - other.root.position.x;
+      const oz = pos.z - other.root.position.z;
+      const d2 = ox * ox + oz * oz;
+      const minD = OfficeScene.SEPARATION;
+      if (d2 > 1e-6 && d2 < minD * minD) {
+        const d = Math.sqrt(d2);
+        const push = ((minD - d) / d) * 0.55;
+        dx += ox * push;
+        dz += oz * push;
+      }
+    }
+
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist < 0.22) {
       pos.x = target.x;
       pos.z = target.z;
+      this.plantFeet(avatar);
       playAgentAnimation(avatar, "idle");
       return true;
     }
 
     const heading = Math.atan2(dx, dz);
     const turned = this.turnToward(avatar, heading, dt);
-
     if (!turned) {
-      // Still pivoting on the spot — face the target before moving.
       playAgentAnimation(avatar, "idle");
+      this.plantFeet(avatar);
       return false;
     }
 
@@ -730,7 +999,25 @@ export class OfficeScene {
     const step = Math.min(speed * dt, dist);
     pos.x += (dx / dist) * step;
     pos.z += (dz / dist) * step;
+    this.plantFeet(avatar);
     return false;
+  }
+
+  /** Plant feet exactly on the floor surface using footOffset + nav floor height. */
+  private plantFeet(avatar: AvatarNode) {
+    const y = floorYAt(avatar.root.position.x, avatar.root.position.z) + avatar.footOffset;
+    avatar.root.position.y = y;
+    avatar.baseY = y;
+  }
+
+  private reportActivity(avatar: AvatarNode, activity: SecondaryActivity) {
+    if (avatar.reportedActivity === activity) return;
+    // Prefer server-driven labels when present.
+    if (avatar.agent.secondaryActivity && activity !== "walking" && activity != null) {
+      // still update walking vs active distinctions through callback for local-only agents
+    }
+    avatar.reportedActivity = activity;
+    this.callbacks.onAgentActivity?.(avatar.agent.id, activity);
   }
 
   /** Smoothly rotate the avatar toward `heading`. Returns true once aligned. */
@@ -749,6 +1036,33 @@ export class OfficeScene {
 
     avatar.root.rotation.y = avatar.facing;
     return Math.abs(delta) <= OfficeScene.FACING_TOLERANCE;
+  }
+
+  /** Drop bloom / shadows when FPS stays low to keep the office responsive. */
+  private adaptQuality() {
+    const fps = this.engine.getFps();
+    if (fps > 0 && fps < 40) this.lowFpsFrames += 1;
+    else this.lowFpsFrames = Math.max(0, this.lowFpsFrames - 2);
+
+    let next: RenderQuality = this.renderQuality;
+    if (this.lowFpsFrames > 90) next = "low";
+    else if (this.lowFpsFrames > 45) next = "medium";
+    else if (fps > 55 && this.lowFpsFrames === 0) next = "high";
+    if (next === this.renderQuality || !this.pipeline) return;
+    this.renderQuality = next;
+
+    if (next === "high") {
+      this.pipeline.bloomEnabled = true;
+      this.pipeline.bloomWeight = OFFICE_BLOOM.weight;
+      this.engine.setHardwareScalingLevel(1);
+    } else if (next === "medium") {
+      this.pipeline.bloomEnabled = true;
+      this.pipeline.bloomWeight = OFFICE_BLOOM.weight * 0.65;
+      this.engine.setHardwareScalingLevel(1.25);
+    } else {
+      this.pipeline.bloomEnabled = false;
+      this.engine.setHardwareScalingLevel(1.6);
+    }
   }
 
   /* ---------- picking ---------- */
@@ -823,6 +1137,10 @@ export class OfficeScene {
     this.disposed = true;
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    this.pipeline?.dispose();
+    this.pipeline = null;
+    for (const light of this.sceneLights) light.dispose();
+    this.sceneLights = [];
     this.engine.stopRenderLoop();
     this.scene.dispose();
     this.engine.dispose();

@@ -464,7 +464,7 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
       status: "idle",
       presence_status: "online",
       skills: [],
-      avatar_config: { primary_color: agentColor, seat_index: 0 },
+      avatar_config: { primary_color: agentColor },
     });
     setAgentCreated(true);
     setTimeout(() => setStep(4), 700);

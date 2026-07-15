@@ -43,6 +43,8 @@ defmodule MokaidWeb.FallbackController do
     call(conn, {:error, :not_found})
   end
 
+  defp humanize(:office_full), do: "All 9 office desks are occupied"
+
   defp humanize(reason) do
     reason |> to_string() |> String.replace("_", " ") |> String.capitalize()
   end

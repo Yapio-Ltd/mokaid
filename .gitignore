@@ -61,6 +61,11 @@ htmlcov/
 .postgres-data/
 .clickhouse-data/
 
+# Huge source 3D assets (never commit — use optimized hashed public assets)
+/office.blend
+/office.glb
+scratchpad/
+
 # Raw Meshy source dumps (bake locally — too large for git)
 assets/raw/corporate/
 assets/raw/feminine/

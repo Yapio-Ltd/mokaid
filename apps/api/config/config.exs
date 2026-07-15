@@ -30,7 +30,8 @@ config :mokaid, Oban,
        {"0 * * * *", Mokaid.Billing.Workers.SubscriptionRenewalWorker},
        {"30 3 * * *", Mokaid.Billing.Workers.InvoiceCleanupWorker},
        {"*/15 * * * *", Mokaid.Tasks.Workers.OverdueTaskWorker},
-       {"*/5 * * * *", Mokaid.Tasks.Workers.StaleRunWorker}
+       {"*/5 * * * *", Mokaid.Tasks.Workers.StaleRunWorker},
+       {"* * * * *", Mokaid.Office.Workers.ActivitySchedulerWorker}
      ]}
   ]
 

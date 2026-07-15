@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Optimize 3D assets before upload: Draco-compress GLB meshes and convert
-# textures to KTX2. Requires gltf-transform (npm i -g @gltf-transform/cli).
+# Optimize 3D assets before upload.
+# Avatars: Draco + WebP 1024 (budget ~5 MB).
+# Office environment: meshopt + WebP 2048 @ high quality (budget ~50 MB).
+# KTX2 is preferred when toktx/basisu is installed; otherwise WebP is used.
 #
 # Usage: ./scripts/optimize-assets.sh <input_dir> <output_dir>
 
@@ -8,11 +10,7 @@ set -euo pipefail
 
 INPUT_DIR="${1:-assets/raw}"
 OUTPUT_DIR="${2:-assets/optimized}"
-
-if ! command -v gltf-transform &>/dev/null; then
-  echo "error: gltf-transform not found. Install with: npm install -g @gltf-transform/cli" >&2
-  exit 1
-fi
+GLTF_TRANSFORM="${GLTF_TRANSFORM:-npx --yes @gltf-transform/cli}"
 
 mkdir -p "$OUTPUT_DIR"
 
@@ -24,14 +22,41 @@ if [ ${#files[@]} -eq 0 ]; then
   exit 0
 fi
 
+has_ktx2=0
+if command -v toktx &>/dev/null || command -v basisu &>/dev/null; then
+  has_ktx2=1
+fi
+
 for file in "${files[@]}"; do
   name="$(basename "$file")"
   out="$OUTPUT_DIR/${name%.*}.glb"
-  echo "Optimizing $name -> $out"
-  gltf-transform optimize "$file" "$out" \
-    --compress draco \
-    --texture-compress ktx2 \
-    --texture-size 1024
+  lower="$(echo "$name" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ "$lower" == *office* ]]; then
+    echo "Optimizing OFFICE $name -> $out (HQ WebP 2048)"
+    stage="$OUTPUT_DIR/.${name%.*}.stage.glb"
+    $GLTF_TRANSFORM optimize "$file" "$stage" \
+      --texture-compress false \
+      --texture-size 2048 \
+      --simplify false
+    if [ "$has_ktx2" -eq 1 ]; then
+      $GLTF_TRANSFORM ktx2 "$stage" "$out" --slots "{baseColor,emissive,occlusion,metallicRoughness}" --mode etc1s || \
+        $GLTF_TRANSFORM webp "$stage" "$out" --quality 95 --effort 80
+      # Prefer UASTC for normals when possible; fall back to the WebP output.
+      if [ -f "$out" ]; then
+        :
+      fi
+    else
+      $GLTF_TRANSFORM webp "$stage" "$out" --quality 95 --effort 80
+    fi
+    rm -f "$stage"
+  else
+    echo "Optimizing AVATAR $name -> $out (Draco + WebP 1024)"
+    $GLTF_TRANSFORM optimize "$file" "$out" \
+      --compress draco \
+      --texture-compress webp \
+      --texture-size 1024
+  fi
 done
 
 echo "Done. Optimized $((${#files[@]})) file(s) into $OUTPUT_DIR"

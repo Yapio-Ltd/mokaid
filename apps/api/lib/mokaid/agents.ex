@@ -32,6 +32,8 @@ defmodule Mokaid.Agents do
   defp maybe_filter(query, _field, ""), do: query
   defp maybe_filter(query, field, value), do: where(query, [a], field(a, ^field) == ^value)
 
+  @max_office_seats 9
+
   def create_agent(workspace_id, attrs, created_by \\ nil) do
     attrs =
       if blank?(attrs["avatar_asset_id"]) do
@@ -44,21 +46,58 @@ defmodule Mokaid.Agents do
       end
 
     result =
-      %Agent{}
-      |> Agent.changeset(
-        Map.merge(
-          %{"presence_status" => "online"},
-          Map.merge(attrs, %{
-            "workspace_id" => workspace_id,
-            "created_by_member_id" => created_by && created_by.id
-          })
-        )
-      )
-      |> Repo.insert()
+      Repo.transaction(fn ->
+        case next_free_seat(workspace_id) do
+          {:error, :office_full} ->
+            Repo.rollback(:office_full)
 
-    with {:ok, agent} <- result do
-      Realtime.broadcast_workspace(workspace_id, "agent.created", %{agent_id: agent.id})
-      {:ok, agent}
+          {:ok, seat} ->
+            case %Agent{}
+                 |> Agent.changeset(
+                   Map.merge(
+                     %{"presence_status" => "online", "seat_index" => seat},
+                     Map.merge(attrs, %{
+                       "workspace_id" => workspace_id,
+                       "created_by_member_id" => created_by && created_by.id
+                     })
+                   )
+                 )
+                 |> Repo.insert() do
+              {:ok, agent} -> agent
+              {:error, changeset} -> Repo.rollback(changeset)
+            end
+        end
+      end)
+
+    case result do
+      {:ok, agent} ->
+        Realtime.broadcast_workspace(workspace_id, "agent.created", %{agent_id: agent.id})
+        {:ok, agent}
+
+      {:error, :office_full} ->
+        {:error, :office_full}
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
+  end
+
+  @doc "First free desk index 0..8 for the workspace, or :office_full."
+  def next_free_seat(workspace_id) do
+    # Serialize seat picks per workspace (empty table does not lock any agent rows).
+    Repo.query!("SELECT pg_advisory_xact_lock(hashtext($1::text))", [to_string(workspace_id)])
+
+    taken =
+      from(a in Agent,
+        where: a.workspace_id == ^workspace_id and is_nil(a.archived_at) and not is_nil(a.seat_index),
+        select: a.seat_index
+      )
+      |> Repo.all()
+      |> MapSet.new()
+
+    case Enum.find(0..(@max_office_seats - 1), &(not MapSet.member?(taken, &1))) do
+      nil -> {:error, :office_full}
+      seat -> {:ok, seat}
     end
   end
 
@@ -67,6 +106,9 @@ defmodule Mokaid.Agents do
   defp blank?(_), do: false
 
   def update_agent(%Agent{} = agent, attrs) do
+    # Seat assignment is owned by create/archive — strip from generic PATCH.
+    attrs = Map.drop(attrs, ["seat_index", :seat_index])
+
     result =
       agent
       |> Agent.changeset(Map.put(attrs, "workspace_id", agent.workspace_id))
@@ -79,9 +121,58 @@ defmodule Mokaid.Agents do
   end
 
   def archive_agent(%Agent{} = agent) do
-    agent
-    |> Ecto.Changeset.change(archived_at: DateTime.utc_now(), status: "archived")
-    |> Repo.update()
+    result =
+      agent
+      |> Ecto.Changeset.change(
+        archived_at: DateTime.utc_now(),
+        status: "archived",
+        seat_index: nil,
+        office_activity: nil,
+        office_poi_id: nil,
+        office_slot_id: nil,
+        office_activity_phase: nil,
+        office_activity_ends_at: nil
+      )
+      |> Repo.update()
+
+    with {:ok, updated} <- result do
+      Realtime.broadcast_workspace(agent.workspace_id, "agent.updated", %{agent_id: updated.id})
+      {:ok, updated}
+    end
+  end
+
+  @doc "Set or clear a synchronized office POI activity for an idle agent."
+  def set_office_activity(%Agent{} = agent, attrs) when is_map(attrs) do
+    result =
+      agent
+      |> Agent.office_activity_changeset(attrs)
+      |> Repo.update()
+
+    with {:ok, updated} <- result do
+      broadcast_office_activity(updated)
+      {:ok, updated}
+    end
+  end
+
+  def clear_office_activity(%Agent{} = agent) do
+    set_office_activity(agent, %{
+      "office_activity" => nil,
+      "office_poi_id" => nil,
+      "office_slot_id" => nil,
+      "office_activity_phase" => nil,
+      "office_activity_ends_at" => nil
+    })
+  end
+
+  defp broadcast_office_activity(agent) do
+    Realtime.broadcast_workspace(agent.workspace_id, "agent.office_activity", %{
+      agent_id: agent.id,
+      office_activity: agent.office_activity,
+      office_poi_id: agent.office_poi_id,
+      office_slot_id: agent.office_slot_id,
+      office_activity_phase: agent.office_activity_phase,
+      office_activity_ends_at: agent.office_activity_ends_at
+    })
   end
 
   @doc "Transitions an agent's status, records the event, broadcasts realtime update."
@@ -96,6 +187,24 @@ defmodule Mokaid.Agents do
             "last_active_at" => DateTime.utc_now()
           })
           |> Repo.update()
+
+        updated =
+          if new_status in ["busy", "blocked", "archived", "offline"] do
+            {:ok, cleared} =
+              updated
+              |> Agent.office_activity_changeset(%{
+                "office_activity" => nil,
+                "office_poi_id" => nil,
+                "office_slot_id" => nil,
+                "office_activity_phase" => nil,
+                "office_activity_ends_at" => nil
+              })
+              |> Repo.update()
+
+            cleared
+          else
+            updated
+          end
 
         %AgentStatusEvent{}
         |> AgentStatusEvent.changeset(%{
@@ -117,7 +226,11 @@ defmodule Mokaid.Agents do
         agent_id: agent.id,
         status: new_status,
         presence_status: public_presence(updated),
-        current_task_id: updated.current_task_id
+        current_task_id: updated.current_task_id,
+        office_activity: updated.office_activity,
+        office_poi_id: updated.office_poi_id,
+        office_slot_id: updated.office_slot_id,
+        office_activity_phase: updated.office_activity_phase
       })
 
       {:ok, updated}

@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { cn } from "@/lib/cn";
 import type { SceneAgent } from "./types";
+import { secondaryActivityLabel } from "./office-navdata";
 
 const stateText: Partial<Record<SceneAgent["visualState"], string>> = {
   typing: "typing…",
@@ -35,6 +36,11 @@ export const AgentSceneLabel = forwardRef<
   }
 >(function AgentSceneLabel({ agent, selected, onClick }, ref) {
   const dotColor = stateColor[agent.visualState] ?? "var(--mk-success)";
+  const primary = stateText[agent.visualState] ?? agent.visualState;
+  const secondary =
+    agent.visualState === "idle" || agent.visualState === "walking"
+      ? secondaryActivityLabel(agent.secondaryActivity ?? null)
+      : null;
 
   return (
     <button
@@ -48,7 +54,6 @@ export const AgentSceneLabel = forwardRef<
         selected ? "border-primary/40 shadow-glow" : "border-border-strong",
       )}
     >
-      {/* Status dot, pulses while the agent is typing or working */}
       <span className="relative flex h-2 w-2 shrink-0">
         {(agent.visualState === "typing" || agent.visualState === "working") && (
           <span
@@ -64,19 +69,18 @@ export const AgentSceneLabel = forwardRef<
 
       <span className="flex flex-col items-start leading-none">
         <span className="text-[10px] font-semibold text-text">{agent.name.split(" ")[0]}</span>
-        <span className="mt-0.5 text-[9px] font-medium text-text-muted">
-          {stateText[agent.visualState] ?? agent.visualState}
-        </span>
+        <span className="mt-0.5 text-[9px] font-medium text-text-muted">{primary}</span>
+        {secondary && (
+          <span className="mt-0.5 text-[8px] font-medium text-primary-light">{secondary}</span>
+        )}
       </span>
 
-      {/* Accent bar tinted with the agent's avatar color */}
       <span
         aria-hidden
         className="absolute inset-y-1.5 left-0 w-[2px] rounded-full opacity-80"
         style={{ backgroundColor: agent.color }}
       />
 
-      {/* Tail pointing down at the agent */}
       <span
         aria-hidden
         className={cn(

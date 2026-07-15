@@ -17,6 +17,27 @@ defmodule Mokaid.AgentsTest do
       assert agent.kind == "ai"
       assert agent.linked_user_id == nil
       assert agent.slug =~ "data-analyst"
+      assert agent.seat_index == 0
+    end
+
+    test "assigns unique seats and blocks the tenth agent" do
+      {workspace, _owner} = workspace_fixture()
+
+      for i <- 0..8 do
+        assert {:ok, agent} =
+                 Agents.create_agent(workspace.id, %{
+                   "kind" => "ai",
+                   "display_name" => "Bot #{i}"
+                 })
+
+        assert agent.seat_index == i
+      end
+
+      assert {:error, :office_full} =
+               Agents.create_agent(workspace.id, %{
+                 "kind" => "ai",
+                 "display_name" => "Overflow"
+               })
     end
 
     test "rejects a human_linked agent without a linked user" do
@@ -42,6 +63,21 @@ defmodule Mokaid.AgentsTest do
                })
 
       assert %{linked_user_id: _} = errors_on(changeset)
+    end
+
+    test "archive frees the seat for reuse" do
+      {workspace, _owner} = workspace_fixture()
+
+      {:ok, first} =
+        Agents.create_agent(workspace.id, %{"kind" => "ai", "display_name" => "One"})
+
+      assert first.seat_index == 0
+      assert {:ok, _} = Agents.archive_agent(first)
+
+      {:ok, again} =
+        Agents.create_agent(workspace.id, %{"kind" => "ai", "display_name" => "Two"})
+
+      assert again.seat_index == 0
     end
   end
 

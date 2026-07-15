@@ -141,6 +141,69 @@ function patchAgentStatus(
             payload.current_task_id === null
               ? null
               : (str(payload, "current_task_id") ?? agent.current_task_id),
+          office_activity:
+            payload.office_activity === null
+              ? null
+              : (str(payload, "office_activity") ?? agent.office_activity),
+          office_poi_id:
+            payload.office_poi_id === null
+              ? null
+              : (str(payload, "office_poi_id") ?? agent.office_poi_id),
+          office_slot_id:
+            payload.office_slot_id === null
+              ? null
+              : (str(payload, "office_slot_id") ?? agent.office_slot_id),
+          office_activity_phase:
+            payload.office_activity_phase === null
+              ? null
+              : (str(payload, "office_activity_phase") ?? agent.office_activity_phase),
+        }
+      : agent;
+
+  queryClient.setQueriesData<{ data: Agent[] | Agent }>(
+    { queryKey: ["agents", workspaceId] },
+    (previous) => {
+      if (!previous) return previous;
+      return {
+        ...previous,
+        data: Array.isArray(previous.data) ? previous.data.map(patch) : patch(previous.data),
+      };
+    },
+  );
+}
+
+function patchOfficeActivity(
+  queryClient: QueryClient,
+  workspaceId: string,
+  payload: EventPayload,
+): void {
+  const agentId = str(payload, "agent_id");
+  if (!agentId) return;
+
+  const patch = (agent: Agent): Agent =>
+    agent.id === agentId
+      ? {
+          ...agent,
+          office_activity:
+            payload.office_activity === null
+              ? null
+              : (str(payload, "office_activity") ?? agent.office_activity),
+          office_poi_id:
+            payload.office_poi_id === null
+              ? null
+              : (str(payload, "office_poi_id") ?? agent.office_poi_id),
+          office_slot_id:
+            payload.office_slot_id === null
+              ? null
+              : (str(payload, "office_slot_id") ?? agent.office_slot_id),
+          office_activity_phase:
+            payload.office_activity_phase === null
+              ? null
+              : (str(payload, "office_activity_phase") ?? agent.office_activity_phase),
+          office_activity_ends_at:
+            payload.office_activity_ends_at === null
+              ? null
+              : (str(payload, "office_activity_ends_at") ?? agent.office_activity_ends_at),
         }
       : agent;
 
@@ -426,6 +489,10 @@ export function useWorkspaceChannel(): void {
       patchAgentStatus(queryClient, workspaceId, payload);
     });
 
+    const officeActivityRef = channel.on("agent.office_activity", (payload: EventPayload) => {
+      patchOfficeActivity(queryClient, workspaceId, payload);
+    });
+
     // Typing indicator on: broadcast when a member message is queued for an
     // AI reply (kept out of `bindings` — no queries to invalidate).
     const typingRef = channel.on("agent_chat.typing", (payload: EventPayload) => {
@@ -495,6 +562,7 @@ export function useWorkspaceChannel(): void {
       channel.off("agent_chat.chunk", chatChunkRef);
       channel.off("credits.updated", creditsRef);
       channel.off("agent.status_changed", agentStatusRef);
+      channel.off("agent.office_activity", officeActivityRef);
       channel.off("agent_chat.typing", typingRef);
       channel.off("task.agent_typing", taskTypingRef);
       channel.off("task.comment_added", commentRef);
