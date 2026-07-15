@@ -1,14 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   Check,
   CheckCircle2,
-  File as FileIcon,
-  FileArchive,
-  FileCode,
-  FileSpreadsheet,
-  FileText,
-  Image as ImageIcon,
   Loader2,
   Plug,
   Sparkles,
@@ -32,26 +26,9 @@ import { useActiveProjectId, useProjectStore } from "@/stores/project-store";
 import { useUiStore } from "@/stores/ui-store";
 import { cn } from "@/lib/cn";
 import { parserForFile } from "@/lib/file-parsers";
+import { fileIcon, formatFileSize } from "@/lib/file-ui";
 
-type Step = "describe" | "recommend" | "done";
-
-function fileIcon(file: File) {
-  const type = file.type;
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-  if (type.startsWith("image/")) return ImageIcon;
-  if (["csv", "xlsx", "xls"].includes(ext)) return FileSpreadsheet;
-  if (["zip", "tar", "gz", "rar"].includes(ext)) return FileArchive;
-  if (["js", "ts", "tsx", "py", "ex", "rb", "go", "json", "html", "css"].includes(ext))
-    return FileCode;
-  if (type.startsWith("text/") || ["pdf", "doc", "docx", "md"].includes(ext)) return FileText;
-  return FileIcon;
-}
-
-function formatSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+type Step = "describe" | "recommend" | "done" | "analyzing";
 
 function ConfidenceBar({ value }: { value: number }) {
   return (
@@ -134,10 +111,16 @@ export function DropDispatchModal({
   open,
   onOpenChange,
   files,
+  initialInstruction = "",
+  autoAnalyze = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   files: File[];
+  /** Prefill the instruction textarea (e.g. from the dashboard Ask bar). */
+  initialInstruction?: string;
+  /** Skip the describe step and run analysis as soon as the modal opens. */
+  autoAnalyze?: boolean;
 }) {
   const navigate = useNavigate();
   const { data: agentsData } = useAgents();
@@ -173,29 +156,19 @@ export function DropDispatchModal({
   const agents = useMemo(() => agentsData?.data ?? [], [agentsData]);
   const agentById = useMemo(() => new Map(agents.map((a) => [a.id, a])), [agents]);
 
-  // Fresh drop = fresh flow.
-  useEffect(() => {
-    if (open) {
-      setStep("describe");
-      setInstruction("");
-      setUploaded([]);
-      setAnalysis(null);
-      setSelection(null);
-      setGrantIds(new Set());
-      setMcpKeys({});
-      setConnectedNow({});
-      setError(null);
-      setResult(null);
-    }
-  }, [open]);
+  // Guard so we only auto-analyze once per open cycle.
+  const autoStarted = useRef(false);
 
-  const busy = uploadFile.isPending || analyze.isPending;
+  const busy = uploadFile.isPending || analyze.isPending || step === "analyzing";
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = useCallback(async (instructionOverride?: string, options?: { fresh?: boolean }) => {
+    const text = instructionOverride ?? instruction;
     setError(null);
+    setStep("analyzing");
     try {
       // Upload once; re-analyzing after edits reuses the same drive items.
-      let items = uploaded;
+      // `fresh` clears any leftovers from a previous open cycle (Ask bar / drop).
+      let items = options?.fresh ? [] : uploaded;
       if (items.length === 0 && files.length > 0) {
         items = await Promise.all(files.map((file) => uploadFile.mutateAsync({ file, parentId: null }).then((r) => r.data)));
         setUploaded(items);
@@ -208,7 +181,7 @@ export function DropDispatchModal({
         size_bytes: item.size_bytes,
       }));
 
-      const response = await analyze.mutateAsync({ instruction, files: filesPayload });
+      const response = await analyze.mutateAsync({ instruction: text, files: filesPayload });
       const data = response.data;
       setAnalysis(data);
 
@@ -228,8 +201,35 @@ export function DropDispatchModal({
       setStep("recommend");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis failed, please retry.");
+      setStep("describe");
     }
-  };
+  }, [instruction, uploaded, files, uploadFile, analyze]);
+
+  // Fresh open = fresh flow. Prefill + optionally auto-analyze.
+  useEffect(() => {
+    if (!open) {
+      autoStarted.current = false;
+      return;
+    }
+
+    setUploaded([]);
+    setAnalysis(null);
+    setSelection(null);
+    setGrantIds(new Set());
+    setMcpKeys({});
+    setConnectedNow({});
+    setError(null);
+    setResult(null);
+    setInstruction(initialInstruction);
+
+    if (autoAnalyze && (initialInstruction.trim() || files.length > 0) && !autoStarted.current) {
+      autoStarted.current = true;
+      setStep("analyzing");
+      void handleAnalyze(initialInstruction, { fresh: true });
+    } else {
+      setStep("describe");
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- reset only on open/close
 
   const handleConnectMcp = async (serverKey: string) => {
     const key = mcpKeys[serverKey]?.trim();
@@ -286,17 +286,25 @@ export function DropDispatchModal({
       onOpenChange={onOpenChange}
       title={
         step === "describe"
-          ? "What should we do with these files?"
-          : step === "recommend"
-            ? "Smart assignment"
-            : "Task dispatched"
+          ? files.length > 0
+            ? "What should we do with these files?"
+            : "What should we do?"
+          : step === "analyzing"
+            ? "Analyzing request"
+            : step === "recommend"
+              ? "Smart assignment"
+              : "Task dispatched"
       }
       description={
         step === "describe"
           ? "Describe what you need. The dispatcher will route it to the right agent."
-          : step === "recommend"
-            ? "Review the recommendation, then launch."
-            : undefined
+          : step === "analyzing"
+            ? files.length > 0
+              ? "Uploading attachments and finding the best agent…"
+              : "Finding the best agent for your request…"
+            : step === "recommend"
+              ? "Review the recommendation, then launch."
+              : undefined
       }
       className="w-[540px]"
       footer={
@@ -305,11 +313,15 @@ export function DropDispatchModal({
             <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button size="sm" loading={busy} disabled={!instruction.trim() && files.length === 0} onClick={handleAnalyze}>
+            <Button size="sm" loading={busy} disabled={!instruction.trim() && files.length === 0} onClick={() => void handleAnalyze()}>
               <Sparkles size={13} />
               Analyze request
             </Button>
           </>
+        ) : step === "analyzing" ? (
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
         ) : step === "recommend" ? (
           <>
             <Button variant="ghost" size="sm" onClick={() => setStep("describe")}>
@@ -327,7 +339,7 @@ export function DropDispatchModal({
         )
       }
     >
-      {step === "describe" && (
+      {(step === "describe" || step === "analyzing") && (
         <div className="space-y-4">
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -348,7 +360,7 @@ export function DropDispatchModal({
                   >
                     <Icon size={14} className="text-primary-light" />
                     <span className="max-w-[160px] truncate text-[11px] font-medium text-text">{file.name}</span>
-                    <span className="text-[10px] text-text-muted">{formatSize(file.size)}</span>
+                    <span className="text-[10px] text-text-muted">{formatFileSize(file.size)}</span>
                     <span
                       className={cn(
                         "flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
@@ -367,13 +379,15 @@ export function DropDispatchModal({
               })}
             </div>
           )}
-          <Textarea
-            autoFocus
-            placeholder="e.g. Turn these mockups into a landing page brief, extract the key numbers from this spreadsheet…"
-            value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
-            className="min-h-[110px]"
-          />
+          {step === "describe" && (
+            <Textarea
+              autoFocus
+              placeholder="e.g. Turn these mockups into a landing page brief, extract the key numbers from this spreadsheet…"
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              className="min-h-[110px]"
+            />
+          )}
           {error && <p className="text-[11px] text-danger">{error}</p>}
           {busy && (
             <p className="flex items-center gap-2 text-[11px] text-text-muted">

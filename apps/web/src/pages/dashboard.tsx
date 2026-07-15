@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { AgentStatusBadge, TaskStatusBadge } from "@/components/ui/status";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AskBar } from "@/components/dashboard/ask-bar";
 import { useUiStore } from "@/stores/ui-store";
 import { AgentProfilePanel } from "@/components/agents/agent-profile-panel";
 import { formatRelative } from "@/lib/format";
@@ -64,33 +65,8 @@ export function DashboardPage() {
   return (
     <div className="relative h-full">
       <div className="min-w-0 space-y-5">
-        {/* KPI row */}
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <KpiCard
-            label="Total Agents"
-            value={counts?.total ?? "·"}
-            icon={<Bot size={20} />}
-            tone="primary"
-          />
-          <KpiCard
-            label="Active Now"
-            value={counts?.active ?? "·"}
-            icon={<Users size={20} />}
-            tone="success"
-          />
-          <KpiCard
-            label="Tasks in Progress"
-            value={tasksData?.meta.counts?.in_progress ?? "·"}
-            icon={<ClipboardList size={20} />}
-            tone="info"
-          />
-          <KpiCard
-            label="Completed Today"
-            value={tasksData?.meta.completed_today ?? "·"}
-            icon={<CheckCircle2 size={20} />}
-            tone="warning"
-          />
-        </div>
+        {/* Command bar — dispatches to the best agent (same flow as office drop) */}
+        <AskBar />
 
         {/* 3D office (toggleable from Workspace Settings) */}
         {show3dOffice && (
@@ -106,6 +82,34 @@ export function DashboardPage() {
             </div>
           </Card>
         )}
+
+        {/* KPI row */}
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <KpiCard
+            label="Total Agents"
+            value={counts?.total ?? "·"}
+            icon={<Bot size={18} strokeWidth={1.75} />}
+            tone="primary"
+          />
+          <KpiCard
+            label="Active Now"
+            value={counts?.active ?? "·"}
+            icon={<Users size={18} strokeWidth={1.75} />}
+            tone="success"
+          />
+          <KpiCard
+            label="Tasks in Progress"
+            value={tasksData?.meta.counts?.in_progress ?? "·"}
+            icon={<ClipboardList size={18} strokeWidth={1.75} />}
+            tone="info"
+          />
+          <KpiCard
+            label="Completed Today"
+            value={tasksData?.meta.completed_today ?? "·"}
+            icon={<CheckCircle2 size={18} strokeWidth={1.75} />}
+            tone="warning"
+          />
+        </div>
 
         {/* Worker-down warning banner */}
         {workerDownWarning && (
