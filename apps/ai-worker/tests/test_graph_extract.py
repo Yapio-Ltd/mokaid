@@ -1,7 +1,8 @@
 """Tests for offline knowledge-graph extraction."""
 
-from app.memory.graph_extract import extract_graph
 import pytest
+
+from app.memory.graph_extract import extract_graph
 
 
 @pytest.mark.asyncio

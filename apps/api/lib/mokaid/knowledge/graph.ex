@@ -212,10 +212,20 @@ defmodule Mokaid.Knowledge.Graph do
 
     cond do
       is_nil(from_node) or is_nil(to_node) ->
-        %{path: [], hops: 0, from: from_node && node_json(from_node), to: to_node && node_json(to_node)}
+        %{
+          path: [],
+          hops: 0,
+          from: from_node && node_json(from_node),
+          to: to_node && node_json(to_node)
+        }
 
       from_node.id == to_node.id ->
-        %{path: [node_json(from_node)], hops: 0, from: node_json(from_node), to: node_json(to_node)}
+        %{
+          path: [node_json(from_node)],
+          hops: 0,
+          from: node_json(from_node),
+          to: node_json(to_node)
+        }
 
       true ->
         case bfs_path(workspace_id, from_node.id, to_node.id) do
@@ -229,7 +239,13 @@ defmodule Mokaid.Knowledge.Graph do
               |> Map.new(&{&1.id, &1})
 
             path = Enum.map(ids, &node_json(Map.get(nodes, &1)))
-            %{path: path, hops: max(length(ids) - 1, 0), from: node_json(from_node), to: node_json(to_node)}
+
+            %{
+              path: path,
+              hops: max(length(ids) - 1, 0),
+              from: node_json(from_node),
+              to: node_json(to_node)
+            }
         end
     end
   end
@@ -376,10 +392,16 @@ defmodule Mokaid.Knowledge.Graph do
     do: where(query, [c], is_nil(c.project_id) and is_nil(c.agent_id))
 
   defp maybe_community_scope(query, project_id, nil) when not is_nil(project_id),
-    do: where(query, [c], c.project_id == ^project_id or (is_nil(c.project_id) and is_nil(c.agent_id)))
+    do:
+      where(
+        query,
+        [c],
+        c.project_id == ^project_id or (is_nil(c.project_id) and is_nil(c.agent_id))
+      )
 
   defp maybe_community_scope(query, nil, agent_id) when not is_nil(agent_id),
-    do: where(query, [c], c.agent_id == ^agent_id or (is_nil(c.project_id) and is_nil(c.agent_id)))
+    do:
+      where(query, [c], c.agent_id == ^agent_id or (is_nil(c.project_id) and is_nil(c.agent_id)))
 
   defp maybe_community_scope(query, project_id, agent_id),
     do:
@@ -535,7 +557,10 @@ defmodule Mokaid.Knowledge.Graph do
       end
 
     communities =
-      from(c in KnowledgeCommunity, where: c.workspace_id == ^workspace_id, order_by: [desc: c.god_score])
+      from(c in KnowledgeCommunity,
+        where: c.workspace_id == ^workspace_id,
+        order_by: [desc: c.god_score]
+      )
       |> maybe_community_scope(project_id, agent_id)
       |> Repo.all()
 
@@ -654,7 +679,12 @@ defmodule Mokaid.Knowledge.Graph do
         |> Map.update(t, [s], &[s | &1])
       end)
 
-    bfs_loop(adjacency, :queue.from_list([{start_id, [start_id]}]), MapSet.new([start_id]), goal_id)
+    bfs_loop(
+      adjacency,
+      :queue.from_list([{start_id, [start_id]}]),
+      MapSet.new([start_id]),
+      goal_id
+    )
   end
 
   defp bfs_loop(adj, queue, seen, goal) do
@@ -754,10 +784,15 @@ defmodule Mokaid.Knowledge.Graph do
   defp normalize_kind(_), do: "concept"
 
   defp normalize_confidence(c) when c in ["EXTRACTED", "INFERRED", "AMBIGUOUS"], do: c
-  defp normalize_confidence(c) when is_binary(c), do: String.upcase(c) |> then(fn
-    x when x in ["EXTRACTED", "INFERRED", "AMBIGUOUS"] -> x
-    _ -> "INFERRED"
-  end)
+
+  defp normalize_confidence(c) when is_binary(c),
+    do:
+      String.upcase(c)
+      |> then(fn
+        x when x in ["EXTRACTED", "INFERRED", "AMBIGUOUS"] -> x
+        _ -> "INFERRED"
+      end)
+
   defp normalize_confidence(_), do: "INFERRED"
 
   defp slugify(text) do

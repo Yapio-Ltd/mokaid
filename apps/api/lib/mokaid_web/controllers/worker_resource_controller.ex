@@ -43,7 +43,10 @@ defmodule MokaidWeb.WorkerResourceController do
   defp presence(value) when is_binary(value) and value != "", do: value
   defp presence(_), do: nil
 
-  def knowledge_chunks(conn, %{"id" => id, "workspace_id" => workspace_id, "chunks" => chunks} = params) do
+  def knowledge_chunks(
+        conn,
+        %{"id" => id, "workspace_id" => workspace_id, "chunks" => chunks} = params
+      ) do
     with %{} = item <- Knowledge.get_item(workspace_id, id) do
       entries =
         Enum.map(chunks, fn chunk ->
