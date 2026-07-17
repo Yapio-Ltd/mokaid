@@ -297,8 +297,7 @@ def _domain_expertise_block(agent: dict) -> str:
     if not index and not brief and tier != "specialist":
         return ""
 
-    lines = ["
-## Domain expertise"]
+    lines = ["\n## Domain expertise"]
     if archetype:
         lines.append(f"Specialist pack: {archetype} (tier={tier or 'specialist'}).")
     if brief:
@@ -319,8 +318,7 @@ def _domain_expertise_block(agent: dict) -> str:
     lines.append(
         "Always start non-trivial missions with `search_knowledge` over your agent knowledge."
     )
-    return "
-".join(lines)
+    return "\n".join(lines)
 
 
 def _system_prompt(request: RunRequest) -> str:
@@ -962,20 +960,12 @@ class _Engine:
                         for h in hits[:6]:
                             title = h.get("title") or "note"
                             content = (h.get("content") or "")[:700]
-                            snippets.append(f"### {title}
-{content}")
+                            snippets.append(f"### {title}\n{content}")
                         instruction = (
                             instruction
-                            + "
-
-## Retrieved domain knowledge (already searched)
-"
-                            + "
-
-".join(snippets)
-                            + "
-
-Use this context; call `search_knowledge` / "
+                            + "\n\n## Retrieved domain knowledge (already searched)\n"
+                            + "\n\n".join(snippets)
+                            + "\n\nUse this context; call `search_knowledge` / "
                             + "`load_domain_skill` again if you need more."
                         )
             except Exception:

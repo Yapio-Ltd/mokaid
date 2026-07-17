@@ -62,8 +62,8 @@ defmodule Mokaid.AI.DispatcherTest do
                })
 
       assert analysis.recommendation.mode == "custom_agent"
-      assert analysis.recommendation.custom_agent.display_name == "Data Analyst"
-      assert analysis.recommendation.custom_agent.archetype_key == "data_analyst"
+      assert analysis.recommendation.custom_agent.display_name == "Data Scientist"
+      assert analysis.recommendation.custom_agent.archetype_key == "data_scientist"
     end
 
     test "detects urgency and derives a bounded title" do
