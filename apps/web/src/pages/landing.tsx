@@ -18,6 +18,7 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+import UnicornScene from "unicornstudio-react";
 import { cn } from "@/lib/cn";
 import { useSmoothScroll } from "@/lib/use-smooth-scroll";
 import { useAuthStore } from "@/stores/auth-store";
@@ -378,12 +379,20 @@ export function LandingPage() {
           </div>
         </header>
 
-        <div
-          className="pointer-events-none absolute inset-0"
-          aria-hidden
-        >
-          <div className="absolute -top-48 left-1/2 h-[560px] w-[880px] -translate-x-1/2 rounded-full bg-primary/15 blur-[140px]" />
-          <div className="absolute bottom-0 left-[8%] h-72 w-72 rounded-full bg-info/10 blur-[120px]" />
+        {/* Unicorn Studio interactive scene as hero background */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          <UnicornScene
+            projectId="AqbBSp10zZBUTiJZy0Ko"
+            width="100%"
+            height="100%"
+            scale={1}
+            dpi={1.5}
+            production
+            lazyLoad={false}
+            ariaLabel=""
+            className="h-full w-full"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-bg-deep/40 via-transparent to-bg-deep" />
         </div>
 
         <div className="relative mx-auto max-w-4xl text-center">

@@ -50,12 +50,6 @@ Or run everything in Docker:
 make dev
 ```
 
-### Demo credentials (seeded)
-
-| User | Email | Password | Role |
-|---|---|---|---|
-| Tom Jami | tom@mokaid.dev | mokaid-dev-1234 | Owner |
-
 ## Architecture
 
 - **Frontend** — React/Vite SPA with an isolated Babylon.js 3D layer (procedural placeholder office & avatars until production GLB assets arrive). TanStack Router/Query, Zustand, Tailwind, Radix UI.

@@ -2,13 +2,9 @@
 # Run with: mix run priv/repo/seeds.exs
 
 alias Mokaid.{
-  Accounts,
   Billing,
-  Drive,
-  Knowledge,
   Members,
-  Repo,
-  Workspaces
+  Repo
 }
 
 alias Mokaid.Integrations.IntegrationProvider
@@ -21,74 +17,6 @@ Members.seed_global_permissions()
 Mokaid.MCP.seed_catalog()
 Mokaid.Assets3d.seed_catalog()
 Billing.seed_plans()
-
-## ---------- Users ----------
-
-tom =
-  case Accounts.get_user_by_email("tom@mokaid.dev") do
-    nil ->
-      {:ok, user} =
-        Accounts.register_user(%{
-          email: "tom@mokaid.dev",
-          full_name: "Tom Jami",
-          password: "mokaid-dev-1234"
-        })
-
-      user
-
-    user ->
-      user
-  end
-
-## ---------- Workspace ----------
-
-workspace =
-  case Repo.get_by(Mokaid.Workspaces.Workspace, slug: "mokaid-demo") do
-    nil ->
-      {:ok, ws} =
-        Workspaces.create_workspace(
-          %{
-            "name" => "mokaid Demo",
-            "slug" => "mokaid-demo",
-            "description" => "AI Workforce OS workspace",
-            "industry" => "Technology",
-            "timezone" => "Europe/Paris"
-          },
-          tom
-        )
-
-      ws
-
-    ws ->
-      ws
-  end
-
-ws_id = workspace.id
-tom_member = Members.get_member_for_user(ws_id, tom.id)
-
-## ---------- Drive base folders ----------
-
-Drive.ensure_system_folder(ws_id, "Shared")
-Drive.ensure_system_folder(ws_id, "Uploads")
-Drive.ensure_system_folder(ws_id, "Agents")
-
-## ---------- Knowledge categories ----------
-
-category_specs = [
-  {"Company", "#7c5cff"},
-  {"Products", "#34d399"},
-  {"Processes", "#60a5fa"},
-  {"Marketing", "#f472b6"},
-  {"Sales", "#fbbf24"},
-  {"HR", "#22d3ee"},
-  {"Legal", "#f87171"},
-  {"Finance", "#a3e635"},
-  {"Technical", "#8f72ff"}
-]
-
-for {name, color} <- category_specs do
-  Knowledge.create_category(ws_id, %{"name" => name, "color" => color})
-end
 
 ## ---------- Integrations ----------
 
@@ -140,32 +68,5 @@ end
 
 Mokaid.Integrations.LogoAssets.seed_all()
 
-## ---------- Billing ----------
-
-case Billing.get_subscription(ws_id) do
-  %{plan: %{key: "professional"}} = sub ->
-    {:ok, sub}
-
-  _ ->
-    Billing.change_plan(ws_id, "professional", "yearly")
-end
-|> case do
-  {:ok, sub} ->
-    sub
-    |> Ecto.Changeset.change(
-      payment_method:
-        Map.merge(sub.payment_method || %{}, %{
-          "brand" => "visa",
-          "last4" => "4242",
-          "exp" => "04/28"
-        })
-    )
-    |> Repo.update!()
-
-  _ ->
-    :ok
-end
-
-Logger.info("Seed complete: workspace=#{ws_id}")
-Logger.info("Login: tom@mokaid.dev / mokaid-dev-1234")
-Logger.info("Workspace is empty — create agents, projects and tasks from the UI.")
+Logger.info("Seed complete: base catalog data only, no user accounts.")
+Logger.info("Create your account and workspace from the signup page.")

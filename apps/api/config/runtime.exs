@@ -146,7 +146,8 @@ end
 
 # Dev/docker: honour AI_WORKER_URL so the API container can reach the
 # ai-worker service (http://ai-worker:8100) instead of localhost.
-if config_env() != :prod do
+# Never override test.exs — tests force dispatch: :none.
+if config_env() == :dev do
   if worker_url = System.get_env("AI_WORKER_URL") do
     config :mokaid, :ai_worker,
       dispatch: :http,

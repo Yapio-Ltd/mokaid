@@ -137,15 +137,21 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
   defp skill_names(_), do: []
 
   defp dispatch(:http, payload, config) do
-    case Req.post(
-           url: "#{config[:url]}/runs",
-           json: payload,
-           headers: [{"authorization", "Bearer #{config[:token]}"}],
-           retry: false
-         ) do
-      {:ok, %{status: status}} when status in 200..299 -> :ok
-      {:ok, %{status: status}} -> {:error, "worker returned #{status}"}
-      {:error, reason} -> {:error, inspect(reason)}
+    url = config[:url]
+
+    if blank?(url) or not String.contains?(to_string(url), "://") do
+      {:error, "ai_worker_url_missing"}
+    else
+      case Req.post(
+             url: "#{url}/runs",
+             json: payload,
+             headers: [{"authorization", "Bearer #{config[:token]}"}],
+             retry: false
+           ) do
+        {:ok, %{status: status}} when status in 200..299 -> :ok
+        {:ok, %{status: status}} -> {:error, "worker returned #{status}"}
+        {:error, reason} -> {:error, inspect(reason)}
+      end
     end
   end
 
@@ -161,6 +167,11 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
       {:error, reason} -> {:error, inspect(reason)}
     end
   end
+
+  defp blank?(nil), do: true
+  defp blank?(""), do: true
+  defp blank?(value) when is_binary(value), do: String.trim(value) == ""
+  defp blank?(_), do: false
 
   defp cleanup_failed_run(run, error_message) do
     Tasks.update_run_progress(run, %{"status" => "failed", "error" => error_message})

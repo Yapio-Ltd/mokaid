@@ -1100,9 +1100,9 @@
     "semantic_hash": "8d569680fbb8f913e3af9e750b0b3abc"
   },
   "apps/api/priv/repo/seeds.exs": {
-    "mtime": 1784156376.5721416,
-    "ast_hash": "1b0d88bc12be40b863330f2bc65278f1",
-    "semantic_hash": "1b0d88bc12be40b863330f2bc65278f1"
+    "mtime": 1784305076.1628945,
+    "ast_hash": "7eb0870d99ccef9ed13b10269cca86d1",
+    "semantic_hash": ""
   },
   "apps/api/test/mokaid/agent_chat_test.exs": {
     "mtime": 1783986648.4641342,
@@ -1630,9 +1630,9 @@
     "semantic_hash": "8af3e9e858ba8c1a0844cf4a82105fc8"
   },
   "apps/web/src/pages/login.tsx": {
-    "mtime": 1783246238.9975343,
-    "ast_hash": "1a828a893f45296f21834b0f986f8b9d",
-    "semantic_hash": "1a828a893f45296f21834b0f986f8b9d"
+    "mtime": 1784305029.6140618,
+    "ast_hash": "c35ab3dca731f57b2198acd788149105",
+    "semantic_hash": ""
   },
   "apps/web/src/pages/mcp-hub.tsx": {
     "mtime": 1783458789.7979765,
@@ -1935,8 +1935,8 @@
     "semantic_hash": "9b1241a9fb0a0e0725c08aa054753499"
   },
   "infra/terraform/modules/rds-postgres/main.tf": {
-    "mtime": 1784299922.36463,
-    "ast_hash": "17531d699a9790c502420bca032c1bda",
+    "mtime": 1784304961.0868497,
+    "ast_hash": "22c3e487e30aaecf8b192cec2fdeb379",
     "semantic_hash": ""
   },
   "infra/terraform/modules/s3-bucket/main.tf": {
@@ -1950,8 +1950,8 @@
     "semantic_hash": "5ead73ace41d0d7bac66f28005a54a8c"
   },
   "infra/terraform/modules/stack/main.tf": {
-    "mtime": 1784300018.8754861,
-    "ast_hash": "1d2c645712628b9f6e85d26bef48fb50",
+    "mtime": 1784304980.9819605,
+    "ast_hash": "a91c617b8bcc21dd6c524c45ab33e801",
     "semantic_hash": ""
   },
   "infra/terraform/modules/vpc/main.tf": {
@@ -2170,8 +2170,8 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1784301341.200175,
-    "ast_hash": "ac88632cdb9c8e3bf45f074a31492dfd",
+    "mtime": 1784305105.8963642,
+    "ast_hash": "e93bd04f442ec0ca19dd8770b2140e60",
     "semantic_hash": ""
   },
   "apps/ai-worker/requirements.txt": {
@@ -2240,8 +2240,8 @@
     "semantic_hash": ""
   },
   "docs/DEPLOYMENT.md": {
-    "mtime": 1784299893.963056,
-    "ast_hash": "d73b732aba019bbec95e3b78421e3675",
+    "mtime": 1784305085.626951,
+    "ast_hash": "20298dccf89ae9f8e332252bba03a6b9",
     "semantic_hash": ""
   },
   "docs/PERFORMANCE.md": {
@@ -3305,8 +3305,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/environments/prod/main.tf": {
-    "mtime": 1784299842.985138,
-    "ast_hash": "bb5e74e26c35462672ceebbd12bbcc50",
+    "mtime": 1784304785.9607327,
+    "ast_hash": "12bb20ef5146e8d578add6c04aaf76b9",
     "semantic_hash": ""
   },
   "scripts/copy-stack-secrets.sh": {

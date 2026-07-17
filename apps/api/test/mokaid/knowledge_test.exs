@@ -1,5 +1,7 @@
 defmodule Mokaid.KnowledgeTest do
-  use Mokaid.DataCase, async: true
+  # async: false — some tests mutate Application env (:ai_worker) and must not
+  # race with other suites that dispatch Oban jobs inline.
+  use Mokaid.DataCase, async: false
 
   alias Mokaid.Knowledge
 

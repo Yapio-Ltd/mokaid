@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import gsap from "gsap";
-import { ArrowLeft, Bot, CheckCircle2, Palette, Search, Sparkles } from "lucide-react";
+import { ArrowLeft, Bot, CheckCircle2, Palette, Search } from "lucide-react";
 import { apiFetch } from "@/api/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ export function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "tom@mokaid.dev", password: "" },
+    defaultValues: { email: "", password: "" },
   });
 
   useLayoutEffect(() => {
@@ -278,13 +278,6 @@ export function LoginPage() {
               Create your workspace
             </Link>
           </p>
-
-          <div className="mt-6 rounded-md border border-border bg-surface px-4 py-3">
-            <p className="flex items-center gap-2 text-[11px] text-text-muted">
-              <Sparkles size={12} className="text-primary-light" />
-              Demo access: tom@mokaid.dev / mokaid-dev-1234
-            </p>
-          </div>
 
           <p className="mt-6 flex items-center justify-center gap-1.5 text-[11px] text-text-muted lg:justify-start">
             <Bot size={12} />

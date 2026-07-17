@@ -10,9 +10,6 @@ make api.dev      # Phoenix on :4000
 make ai.dev       # FastAPI on :8000
 make web.dev      # Vite on :3000
 ```
-
-Demo login: `tom@mokaid.dev` / `mokaid-dev-1234` (seeded).
-
 ## AWS deployment (prod)
 
 ### 0. Prerequisites (once)
