@@ -1,5 +1,5 @@
 # Regional WAFv2 ACL attached to the ALB.
-# Default Block + geo Allow for the listed ISO country codes.
+# Default Block (custom branded HTML) + geo Allow for listed countries.
 
 variable "name" {
   type = string
@@ -20,13 +20,29 @@ variable "tags" {
   default = {}
 }
 
+locals {
+  # WAF custom response body max is 4 KiB — keep the minified HTML under that.
+  geo_unavailable_html = file("${path.module}/geo-unavailable.min.html")
+}
+
 resource "aws_wafv2_web_acl" "this" {
   name        = var.name
   description = "Allow traffic only from: ${join(", ", var.allowed_country_codes)}"
   scope       = "REGIONAL"
 
+  custom_response_body {
+    key          = "geo-unavailable"
+    content      = local.geo_unavailable_html
+    content_type = "TEXT_HTML"
+  }
+
   default_action {
-    block {}
+    block {
+      custom_response {
+        response_code            = 403
+        custom_response_body_key = "geo-unavailable"
+      }
+    }
   }
 
   rule {
@@ -57,6 +73,13 @@ resource "aws_wafv2_web_acl" "this" {
   }
 
   tags = var.tags
+
+  lifecycle {
+    precondition {
+      condition     = length(local.geo_unavailable_html) <= 4096
+      error_message = "geo-unavailable.min.html must be ≤ 4096 bytes (WAF custom response body limit)."
+    }
+  }
 }
 
 resource "aws_wafv2_web_acl_association" "alb" {
