@@ -94,52 +94,42 @@ defmodule Mokaid.Knowledge.Workers.IngestionWorker do
   defp dispatch(:none, _payload, _config, _item), do: {:cancel, :ai_worker_disabled}
 
   defp dispatch(:sqs, payload, config, item) do
-    queue_url = config[:sqs_queue_url]
+    case Mokaid.AI.WorkerClient.post("/ingest", Map.put(payload, :type, "ingest"),
+           config: config,
+           receive_timeout: 120_000
+         ) do
+      :ok ->
+        :ok
 
-    if blank?(queue_url) do
-      Knowledge.mark_failed(item, "AI worker SQS queue URL is not configured")
-      {:cancel, :sqs_not_configured}
-    else
-      queue_url
-      |> ExAws.SQS.send_message(Jason.encode!(Map.put(payload, :type, "ingest")))
-      |> ExAws.request()
-      |> case do
-        {:ok, _} -> :ok
-        {:error, reason} -> {:error, inspect(reason)}
-      end
+      {:error, :sqs_not_configured} ->
+        Knowledge.mark_failed(item, "AI worker SQS queue URL is not configured")
+        {:cancel, :sqs_not_configured}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
   defp dispatch(:http, payload, config, item) do
-    url = config[:url]
+    case Mokaid.AI.WorkerClient.post("/ingest", payload,
+           config: config,
+           receive_timeout: 120_000
+         ) do
+      :ok ->
+        :ok
 
-    if blank?(url) or not String.contains?(to_string(url), "://") do
-      Knowledge.mark_failed(item, "AI worker URL is not configured")
-      {:cancel, :ai_worker_url_missing}
-    else
-      case Req.post(
-             url: "#{url}/ingest",
-             json: payload,
-             headers: [{"authorization", "Bearer #{config[:token]}"}],
-             receive_timeout: 120_000,
-             retry: false
-           ) do
-        {:ok, %{status: status}} when status in 200..299 ->
-          :ok
+      {:error, :ai_worker_url_missing} ->
+        Knowledge.mark_failed(item, "AI worker URL is not configured")
+        {:cancel, :ai_worker_url_missing}
 
-        {:ok, %{status: status}} ->
-          {:error, "ai worker returned #{status}"}
-
-        {:error, reason} ->
-          {:error, inspect(reason)}
-      end
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  # Unknown dispatch values fall back to HTTP (legacy).
-  defp dispatch(_other, payload, config, item), do: dispatch(:http, payload, config, item)
-
-  defp blank?(nil), do: true
-  defp blank?(""), do: true
-  defp blank?(_), do: false
+  # Never fall back unknown modes to HTTP with a nil URL (CI flake source).
+  defp dispatch(_other, _payload, _config, item) do
+    Knowledge.mark_failed(item, "AI worker dispatch mode is not configured")
+    {:cancel, :unsupported_dispatch}
+  end
 end

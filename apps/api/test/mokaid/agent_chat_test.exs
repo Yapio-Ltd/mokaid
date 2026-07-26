@@ -1,5 +1,8 @@
 defmodule Mokaid.AgentChatTest do
-  use Mokaid.DataCase, async: true
+  # async: false — start/resume chat tasks insert Oban jobs that read the
+  # global :ai_worker Application env (see WorkerClient). Keep this suite
+  # sequential so a temporary :http override in another module cannot race.
+  use Mokaid.DataCase, async: false
 
   import Mokaid.Fixtures
 

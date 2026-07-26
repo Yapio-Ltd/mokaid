@@ -150,20 +150,15 @@ defmodule Mokaid.AI do
   defp worker_cancel(run_id) do
     config = Application.fetch_env!(:mokaid, :ai_worker)
 
-    case config[:dispatch] do
-      :sqs ->
-        config[:sqs_queue_url]
-        |> ExAws.SQS.send_message(Jason.encode!(%{type: "cancel", run_id: run_id}))
-        |> ExAws.request()
-
-      _http ->
-        Req.post(
-          url: "#{config[:url]}/runs/#{run_id}/cancel",
-          json: %{},
-          headers: [{"authorization", "Bearer #{config[:token]}"}],
-          retry: false
-        )
-    end
+    # Soft: cancel is best-effort; never raise on missing URL / :none.
+    # SQS consumers key off type/run_id; HTTP uses the path.
+    _ =
+      Mokaid.AI.WorkerClient.post(
+        "/runs/#{run_id}/cancel",
+        %{type: "cancel", run_id: run_id},
+        config: config,
+        soft: true
+      )
 
     :ok
   end
@@ -744,29 +739,12 @@ defmodule Mokaid.AI do
   """
   def resume_after_approval(run_id, decision) do
     config = Application.fetch_env!(:mokaid, :ai_worker)
-    body = %{run_id: run_id, decision: decision}
+    body = %{run_id: run_id, decision: decision, type: "resume"}
 
     result =
-      case config[:dispatch] do
-        :sqs ->
-          config[:sqs_queue_url]
-          |> ExAws.SQS.send_message(Jason.encode!(Map.put(body, :type, "resume")))
-          |> ExAws.request()
-          |> case do
-            {:ok, _} -> :ok
-            _ -> :error
-          end
-
-        _http ->
-          case Req.post(
-                 url: "#{config[:url]}/runs/#{run_id}/resume",
-                 json: body,
-                 headers: [{"authorization", "Bearer #{config[:token]}"}],
-                 retry: false
-               ) do
-            {:ok, %{status: status}} when status in 200..299 -> :ok
-            _ -> :error
-          end
+      case Mokaid.AI.WorkerClient.post("/runs/#{run_id}/resume", body, config: config) do
+        :ok -> :ok
+        {:error, _} -> :error
       end
 
     if result == :error, do: recover_lost_run(run_id, decision)

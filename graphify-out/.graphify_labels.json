@@ -2828,8 +2828,10 @@
   "2826": "Keyboard Controls",
   "2827": "_render-idle-preview.py",
   "2828": "Cost Optimization for Observability",
-  "2832": "@radix-ui/react-dropdown-menu",
-  "2833": "@radix-ui/react-progress",
-  "2834": "@radix-ui/react-select",
+  "2829": "Collections",
+  "2830": "scene-store.ts",
+  "2831": "label-overlay.ts",
+  "2832": "eslint",
+  "2833": "@types/react-dom",
   "2838": "9. Git Status/Diff Output"
 }

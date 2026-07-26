@@ -3,7 +3,11 @@ name: CI
 on:
   push:
     branches: [main, prod]
+    paths-ignore:
+      - "graphify-out/**"
   pull_request:
+    paths-ignore:
+      - "graphify-out/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,6 +30,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck --workspace=apps/web
+
+      - name: Lint
+        run: npm run lint --workspace=apps/web
 
       - name: Test
         run: npm run test --workspace=apps/web -- --run

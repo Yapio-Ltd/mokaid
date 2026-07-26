@@ -1620,8 +1620,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/pages/landing.tsx": {
-    "mtime": 1784418193.1280158,
-    "ast_hash": "c33ee301aae411e25a4b0b65fdb4bb9c",
+    "mtime": 1784418312.5797112,
+    "ast_hash": "1581034cfbd89a1d037e0db0fd91679a",
     "semantic_hash": ""
   },
   "apps/web/src/pages/linear-callback.tsx": {
@@ -1630,8 +1630,8 @@
     "semantic_hash": "8af3e9e858ba8c1a0844cf4a82105fc8"
   },
   "apps/web/src/pages/login.tsx": {
-    "mtime": 1784417547.7617815,
-    "ast_hash": "fb977182182a9768e059a9c2d17ccd18",
+    "mtime": 1784418503.1793907,
+    "ast_hash": "5391a331a4cf929108912d656ed97de1",
     "semantic_hash": ""
   },
   "apps/web/src/pages/mcp-hub.tsx": {
@@ -13135,8 +13135,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/landing/office-tour.tsx": {
-    "mtime": 1784418195.8710246,
-    "ast_hash": "f256f6f768b96bad90898ea768517219",
+    "mtime": 1784418418.403291,
+    "ast_hash": "52f1394ca15f0b78347933534dc56388",
     "semantic_hash": ""
   },
   "scripts/bake-avatar-research.py": {
@@ -13145,8 +13145,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/landing/agent-tour.tsx": {
-    "mtime": 1784418195.872933,
-    "ast_hash": "3a254a6f3832896154d2d8d7c92f11dd",
+    "mtime": 1784418418.4019797,
+    "ast_hash": "f16e9f54db8f120af9de4e3b56414649",
     "semantic_hash": ""
   },
   "scripts/bake-avatar-developer.py": {

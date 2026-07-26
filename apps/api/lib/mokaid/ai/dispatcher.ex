@@ -170,7 +170,7 @@ defmodule Mokaid.AI.Dispatcher do
   defp worker_analyze(instruction, files, roster, installations, servers) do
     config = Application.fetch_env!(:mokaid, :ai_worker)
 
-    if config[:dispatch] == :http and is_binary(config[:url]) do
+    if config[:dispatch] == :http and Mokaid.AI.WorkerClient.absolute_url?(config[:url]) do
       payload = %{
         instruction: instruction,
         files: files,
@@ -193,7 +193,7 @@ defmodule Mokaid.AI.Dispatcher do
       }
 
       case Req.post(
-             url: "#{config[:url]}/dispatch/analyze",
+             url: "#{String.trim_trailing(config[:url], "/")}/dispatch/analyze",
              json: payload,
              headers: [{"authorization", "Bearer #{config[:token]}"}],
              receive_timeout: 30_000,

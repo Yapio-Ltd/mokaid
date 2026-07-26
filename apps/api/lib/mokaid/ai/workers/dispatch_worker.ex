@@ -75,7 +75,12 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
           colleagues: colleagues(run.workspace_id, run.agent_id)
         }
 
-        result = dispatch(config[:dispatch], payload, config)
+        result =
+          case Mokaid.AI.WorkerClient.post("/runs", payload, config: config) do
+            :ok -> :ok
+            {:error, :ai_worker_url_missing} -> {:error, "ai_worker_url_missing"}
+            {:error, reason} -> {:error, reason}
+          end
 
         # On the final attempt clean up the run and unblock the agent.
         if result != :ok and attempt >= max_attempts do
@@ -135,43 +140,6 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
   end
 
   defp skill_names(_), do: []
-
-  defp dispatch(:http, payload, config) do
-    url = config[:url]
-
-    if blank?(url) or not String.contains?(to_string(url), "://") do
-      {:error, "ai_worker_url_missing"}
-    else
-      case Req.post(
-             url: "#{url}/runs",
-             json: payload,
-             headers: [{"authorization", "Bearer #{config[:token]}"}],
-             retry: false
-           ) do
-        {:ok, %{status: status}} when status in 200..299 -> :ok
-        {:ok, %{status: status}} -> {:error, "worker returned #{status}"}
-        {:error, reason} -> {:error, inspect(reason)}
-      end
-    end
-  end
-
-  # Test/offline environments: the run is recorded but nothing is dispatched.
-  defp dispatch(:none, _payload, _config), do: :ok
-
-  defp dispatch(:sqs, payload, config) do
-    config[:sqs_queue_url]
-    |> ExAws.SQS.send_message(Jason.encode!(payload))
-    |> ExAws.request()
-    |> case do
-      {:ok, _} -> :ok
-      {:error, reason} -> {:error, inspect(reason)}
-    end
-  end
-
-  defp blank?(nil), do: true
-  defp blank?(""), do: true
-  defp blank?(value) when is_binary(value), do: String.trim(value) == ""
-  defp blank?(_), do: false
 
   defp cleanup_failed_run(run, error_message) do
     Tasks.update_run_progress(run, %{"status" => "failed", "error" => error_message})

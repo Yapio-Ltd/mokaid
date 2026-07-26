@@ -92,7 +92,7 @@ ai.test: ## Run AI worker tests
 	cd apps/ai-worker && .venv/bin/pytest
 
 ai.lint: ## Lint AI worker
-	cd apps/ai-worker && .venv/bin/ruff check app
+	cd apps/ai-worker && .venv/bin/ruff check app tests
 
 ## ---------- 3D assets ----------
 

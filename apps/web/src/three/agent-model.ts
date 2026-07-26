@@ -234,7 +234,7 @@ export function spawnAgentModel(
 function normalizeAnimName(name: string): AgentVisualState | null {
   const lower = name.toLowerCase().trim();
   // Strip Babylon prefixes like "agent-uuid-idle"
-  const parts = lower.split(/[\/_\-\s]+/);
+  const parts = lower.split(/[/_\-\s]+/);
   for (let i = parts.length - 1; i >= 0; i--) {
     const part = parts[i];
     if (part in CLIP_ALIASES) return CLIP_ALIASES[part];

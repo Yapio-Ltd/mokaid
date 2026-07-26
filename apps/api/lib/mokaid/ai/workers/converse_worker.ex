@@ -36,27 +36,12 @@ defmodule Mokaid.AI.Workers.ConverseWorker do
           conversation: AI.default_input(task)["conversation"]
         }
 
-        case config[:dispatch] do
-          :sqs ->
-            config[:sqs_queue_url]
-            |> ExAws.SQS.send_message(Jason.encode!(Map.put(payload, :type, "converse")))
-            |> ExAws.request()
-
-            :ok
-
-          _http ->
-            case Req.post(
-                   url: "#{config[:url]}/converse",
-                   json: payload,
-                   headers: [{"authorization", "Bearer #{config[:token]}"}],
-                   receive_timeout: 30_000,
-                   retry: false
-                 ) do
-              {:ok, %{status: status}} when status in 200..299 -> :ok
-              # The reply is a nicety — never crash/retry loops over it.
-              _ -> :ok
-            end
-        end
+        Mokaid.AI.WorkerClient.post(
+          "/converse",
+          Map.put(payload, :type, "converse"),
+          config: config,
+          soft: true
+        )
     end
   end
 end

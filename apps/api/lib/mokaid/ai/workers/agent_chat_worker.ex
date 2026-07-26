@@ -50,27 +50,10 @@ defmodule Mokaid.AI.Workers.AgentChatWorker do
         conversation: conversation(workspace_id, agent.id)
       }
 
-      case config[:dispatch] do
-        :sqs ->
-          config[:sqs_queue_url]
-          |> ExAws.SQS.send_message(Jason.encode!(payload))
-          |> ExAws.request()
-
-          :ok
-
-        _http ->
-          case Req.post(
-                 url: "#{config[:url]}/agent-chat",
-                 json: payload,
-                 headers: [{"authorization", "Bearer #{config[:token]}"}],
-                 receive_timeout: 30_000,
-                 retry: false
-               ) do
-            {:ok, %{status: status}} when status in 200..299 -> :ok
-            # The reply is a nicety — never crash/retry loops over it.
-            _ -> :ok
-          end
-      end
+      # Soft: chat replies are a nicety — never crash/retry on dispatch gaps.
+      # Explicit `:none` / missing URL must not fall through to Req (raises
+      # ArgumentError on relative URLs like "/agent-chat").
+      Mokaid.AI.WorkerClient.post("/agent-chat", payload, config: config, soft: true)
     end
   end
 
