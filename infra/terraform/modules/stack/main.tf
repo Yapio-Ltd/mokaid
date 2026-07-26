@@ -103,6 +103,12 @@ variable "alb_certificate_arn" {
   default = ""
 }
 
+variable "waf_allowed_country_codes" {
+  description = "ISO 3166-1 alpha-2 countries allowed by the ALB WAF (default Block)"
+  type        = list(string)
+  default     = ["IL", "FR"]
+}
+
 variable "cloudfront_certificate_arn" {
   type    = string
   default = ""
@@ -200,6 +206,16 @@ module "alb" {
   public_subnet_ids = module.vpc.public_subnet_ids
   certificate_arn   = var.alb_certificate_arn
   tags              = local.tags
+}
+
+module "waf" {
+  source = "../waf"
+
+  # Keep the existing ACL name so terraform can manage the live resource.
+  name                  = "allow-israel-only"
+  alb_arn               = module.alb.alb_arn
+  allowed_country_codes = var.waf_allowed_country_codes
+  tags                  = local.tags
 }
 
 # ---------- Registries (managed in bootstrap; shared across environments) ----------

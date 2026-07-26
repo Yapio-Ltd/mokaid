@@ -94,8 +94,9 @@ module "stack" {
   db_deletion_protection = true
   db_snapshot_identifier = var.db_snapshot_identifier
 
-  app_domain          = var.app_domain
-  alb_certificate_arn = var.alb_certificate_arn
+  app_domain                = var.app_domain
+  alb_certificate_arn       = var.alb_certificate_arn
+  waf_allowed_country_codes = ["IL", "FR"]
 
   auth_mode     = "dev_fallback"
   payme_sandbox = true
