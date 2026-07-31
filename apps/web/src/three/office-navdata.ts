@@ -414,10 +414,11 @@ export function resolveCollision(
   }
 
   const candidate = { x, z };
-  if (!pointHitsObstacle(candidate) && !hitsInflated(x, z, pad, obstacles)) {
+  if (!pointHitsObstacle(candidate) && isWalkable(candidate)) {
     return candidate;
   }
-  // Pinch between adjacent inflated AABBs — snap to nearest free cell.
+  // Pinch between adjacent inflated AABBs, or slide outside the footprint —
+  // snap to nearest free cell.
   const free = nearestFreeCell(candidate, 24);
   return free ? pointOf(free.i, free.j) : candidate;
 }

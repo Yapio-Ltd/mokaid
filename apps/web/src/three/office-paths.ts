@@ -2,12 +2,14 @@
  * Patrol / idle helpers built on office-navdata.
  * Patrol loops are routed through the occupancy-grid pathfinder so every
  * segment is guaranteed obstacle-free (chairs, lamps, walls, planters…).
+ * Desk↔POI routes are precomputed at module load for O(1) lookup at runtime.
  */
 
 import { Vector3 } from "@babylonjs/core";
 import {
   OFFICE_DESK_SLOTS,
   OFFICE_NAV_NODES,
+  OFFICE_POIS,
   findPath,
   type NavPoint,
   type SecondaryActivity,
@@ -54,32 +56,78 @@ function chain(ids: string[]): PathWaypoint[] {
   return out;
 }
 
-/** Patrol loops derived from the aisle anchors (obstacle-free by build). */
+function loopPath(id: string, ids: string[]): OfficePath {
+  return { id, loop: true, waypoints: chain(ids) };
+}
+
+/**
+ * Exclusive patrol lanes (one per desk seat + extras). Agents are assigned by
+ * seatIndex % length so they rarely share the same loop head-on.
+ */
 export const OFFICE_PATHS: OfficePath[] = [
-  {
-    id: "perimeter",
-    loop: true,
-    waypoints: chain([
-      "nw", "n_lounge", "n_mid", "n_sofa", "ne", "e_door", "se",
-      "s_coffee", "s_mid", "sw", "w_aisle", "nw",
-    ]),
-  },
-  {
-    id: "mid-aisle",
-    loop: true,
-    waypoints: chain([
-      "w_aisle", "mid_w", "mid_c", "mid_e", "e_door", "mid_e", "mid_c", "mid_w", "w_aisle",
-    ]),
-  },
-  {
-    id: "back-aisle",
-    loop: true,
-    waypoints: chain(["sw", "s_mid", "s_coffee", "se", "s_coffee", "s_mid", "sw"]),
-  },
+  loopPath("perimeter-cw", [
+    "nw", "n_lounge", "n_mid", "n_sofa", "ne", "e_door", "se",
+    "s_coffee", "s_mid", "sw", "w_aisle", "nw",
+  ]),
+  loopPath("perimeter-ccw", [
+    "nw", "w_aisle", "sw", "s_mid", "s_coffee", "se", "e_door",
+    "ne", "n_sofa", "n_mid", "n_lounge", "nw",
+  ]),
+  loopPath("mid-aisle", [
+    "w_aisle", "mid_w", "mid_c", "mid_e", "e_door", "mid_e", "mid_c", "mid_w", "w_aisle",
+  ]),
+  loopPath("mid-aisle-rev", [
+    "e_door", "mid_e", "mid_c", "mid_w", "w_aisle", "mid_w", "mid_c", "mid_e", "e_door",
+  ]),
+  loopPath("back-aisle", ["sw", "s_mid", "s_coffee", "se", "s_coffee", "s_mid", "sw"]),
+  loopPath("north-aisle", [
+    "nw", "n_lounge", "n_mid", "n_sofa", "ne", "n_sofa", "n_mid", "n_lounge", "nw",
+  ]),
+  loopPath("west-loop", [
+    "nw", "w_aisle", "sw", "s_mid", "mid_w", "w_aisle", "nw",
+  ]),
+  loopPath("center-loop", [
+    "mid_w", "mid_c", "mid_e", "se", "s_coffee", "s_mid", "mid_w",
+  ]),
+  loopPath("east-loop", [
+    "e_door", "ne", "n_sofa", "sofa_appr", "mid_e", "e_door",
+  ]),
+  loopPath("foosball-circuit", [
+    "s_coffee", "foosball_s", "s_mid", "mid_c", "mid_e", "se", "s_coffee",
+  ]),
+  loopPath("coffee-sofa", [
+    "coffee", "n_mid", "n_sofa", "sofa_appr", "n_lounge", "coffee",
+  ]),
+  loopPath("cross-office", [
+    "sw", "mid_w", "mid_c", "n_mid", "n_sofa", "mid_e", "se", "s_mid", "sw",
+  ]),
 ];
 
 export function pathToVectors(path: OfficePath): Vector3[] {
   return path.waypoints.map((wp) => new Vector3(wp.x, 0, wp.z));
+}
+
+/** Dedicated patrol lane for a desk seat (staggered assignment). */
+export function pathForSeat(seatIndex: number, paths: OfficePath[] = OFFICE_PATHS): OfficePath {
+  if (paths.length === 0) throw new Error("no patrol paths");
+  const idx = ((seatIndex % paths.length) + paths.length) % paths.length;
+  return paths[idx];
+}
+
+/**
+ * Start index on a loop: nearest waypoint, then seat-based stagger so agents
+ * on the same lane don't clump.
+ */
+export function staggeredWaypointIndex(
+  path: OfficePath,
+  x: number,
+  z: number,
+  seatIndex: number,
+): number {
+  const nearest = nearestWaypointIndex(path, x, z);
+  if (path.waypoints.length === 0) return 0;
+  const stride = Math.max(1, Math.floor(path.waypoints.length / Math.max(3, OFFICE_PATHS.length)));
+  return (nearest + seatIndex * stride) % path.waypoints.length;
 }
 
 export function pickPathNear(
@@ -145,4 +193,92 @@ export function activityToSecondary(activity?: IdleActivity): SecondaryActivity 
     default:
       return null;
   }
+}
+
+/* ---------- Precomputed desk ↔ POI routes ---------- */
+
+export interface CachedRoute {
+  points: NavPoint[];
+  allowGoalInObstacle: boolean;
+}
+
+function routeKey(deskIndex: number, slotId: string): string {
+  return `${deskIndex}->${slotId}`;
+}
+
+function homeKey(slotId: string, deskIndex: number): string {
+  return `${slotId}->desk${deskIndex}`;
+}
+
+function buildRouteCache(): {
+  toPoi: Map<string, CachedRoute>;
+  toDesk: Map<string, CachedRoute>;
+} {
+  const toPoi = new Map<string, CachedRoute>();
+  const toDesk = new Map<string, CachedRoute>();
+  for (let d = 0; d < OFFICE_DESK_SLOTS.length; d++) {
+    const desk = OFFICE_DESK_SLOTS[d];
+    for (const poi of OFFICE_POIS) {
+      for (const slot of poi.slots) {
+        const allow = slot.animation === "sitting_sofa";
+        const outbound = findPath(desk, slot.position, { allowGoalInObstacle: allow });
+        toPoi.set(routeKey(d, slot.id), { points: outbound, allowGoalInObstacle: allow });
+        const inbound = findPath(slot.position, desk, { allowGoalInObstacle: true });
+        toDesk.set(homeKey(slot.id, d), { points: inbound, allowGoalInObstacle: true });
+      }
+    }
+  }
+  return { toPoi, toDesk };
+}
+
+const ROUTE_CACHE = buildRouteCache();
+
+/** Precomputed desk → POI slot polyline (raw GLB space), or null on miss. */
+export function cachedDeskToPoi(deskIndex: number, slotId: string): CachedRoute | null {
+  return ROUTE_CACHE.toPoi.get(routeKey(deskIndex, slotId)) ?? null;
+}
+
+/** Precomputed POI slot → desk polyline (raw GLB space), or null on miss. */
+export function cachedPoiToDesk(slotId: string, deskIndex: number): CachedRoute | null {
+  return ROUTE_CACHE.toDesk.get(homeKey(slotId, deskIndex)) ?? null;
+}
+
+/**
+ * Best-effort route from an arbitrary raw-space point to a POI slot.
+ * Prefers the cached desk→slot path when the agent is near that desk;
+ * otherwise falls back to live findPath.
+ */
+export function routeToPoiSlot(
+  from: NavPoint,
+  deskIndex: number,
+  slotId: string,
+  slotPos: NavPoint,
+  allowGoalInObstacle: boolean,
+): NavPoint[] {
+  const cached = cachedDeskToPoi(deskIndex, slotId);
+  if (cached && cached.points.length > 1) {
+    const desk = OFFICE_DESK_SLOTS[deskIndex];
+    if (desk && Math.hypot(from.x - desk.x, from.z - desk.z) < 1.2) {
+      return cached.points;
+    }
+  }
+  return findPath(from, slotPos, { allowGoalInObstacle });
+}
+
+export function routeToDesk(
+  from: NavPoint,
+  deskIndex: number,
+  deskPos: NavPoint,
+  fromSlotId?: string | null,
+): NavPoint[] {
+  if (fromSlotId) {
+    const cached = cachedPoiToDesk(fromSlotId, deskIndex);
+    if (cached && cached.points.length > 1) {
+      const slot = OFFICE_POIS.flatMap((p) => p.slots).find((s) => s.id === fromSlotId);
+      if (slot && Math.hypot(from.x - slot.position.x, from.z - slot.position.z) < 1.2) {
+        return cached.points;
+      }
+    }
+  }
+  return findPath(from, deskPos, { allowGoalInObstacle: true });
 }

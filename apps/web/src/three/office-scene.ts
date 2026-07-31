@@ -56,10 +56,12 @@ import {
   type OfficeLightDef,
 } from "./office-lighting";
 import {
-  nearestWaypointIndex,
   OFFICE_DESK_SLOTS,
   OFFICE_PATHS,
-  pickPathNear,
+  pathForSeat,
+  routeToDesk,
+  routeToPoiSlot,
+  staggeredWaypointIndex,
   type IdleActivity,
   type OfficePath,
 } from "./office-paths";
@@ -67,7 +69,9 @@ import {
   AGENT_RADIUS,
   findPath,
   floorYAt,
+  isWalkable,
   MAX_OFFICE_SEATS,
+  NAV_CLEARANCE,
   poiById,
   pointHitsObstacle,
   resolveCollision,
@@ -129,6 +133,12 @@ interface AvatarNode {
   /** Last secondary activity reported to React. */
   reportedActivity: SecondaryActivity;
   routeBusy: boolean;
+  /** Desk seat index used for exclusive patrol lane assignment. */
+  seatIndex: number;
+  /** Seconds spent making little progress toward the current waypoint. */
+  stuckTimer: number;
+  /** Last progress distance sample for stuck detection. */
+  lastProgressDist: number;
 }
 
 export class OfficeScene {
@@ -744,6 +754,7 @@ export class OfficeScene {
         const nowIdle = isIdleVisual(agent.visualState);
         const colorChanged = existing.agent.color !== agent.color;
         existing.agent = agent;
+        if (agent.seatIndex >= 0) existing.seatIndex = agent.seatIndex;
         if (colorChanged) applyTint(existing.meshes, agent.color);
         if (wasIdle && !nowIdle) {
           existing.root.position.copyFrom(existing.homePos);
@@ -754,17 +765,8 @@ export class OfficeScene {
         } else if (!wasIdle && nowIdle) {
           existing.idleBehavior = "patrol";
           existing.behaviorEnd = 0;
-          existing.activePath = pickPathNear(
-            existing.root.position.x,
-            existing.root.position.z,
-            undefined,
-            this.paths,
-          );
-          existing.pathIndex = nearestWaypointIndex(
-            existing.activePath,
-            existing.root.position.x,
-            existing.root.position.z,
-          );
+          existing.stuckTimer = 0;
+          this.assignPatrolLane(existing);
         }
         this.syncServerActivity(existing);
         this.applyStatusVisual(existing);
@@ -827,8 +829,8 @@ export class OfficeScene {
       spawned.meshes.push(body);
     }
 
-    const path = pickPathNear(slot.x, slot.z, undefined, this.paths);
-    const pathIndex = nearestWaypointIndex(path, slot.x, slot.z);
+    const path = pathForSeat(seatIndex, this.paths);
+    const pathIndex = staggeredWaypointIndex(path, slot.x, slot.z, seatIndex);
 
     const ring = MeshBuilder.CreateTorus(
       `avatar-ring-${agent.id}`,
@@ -864,6 +866,9 @@ export class OfficeScene {
       deskSeatHeight: desk?.seatHeight ?? 0.5,
       reportedActivity: null,
       routeBusy: false,
+      seatIndex,
+      stuckTimer: 0,
+      lastProgressDist: Infinity,
     };
 
     this.avatars.set(agent.id, avatar);
@@ -950,8 +955,7 @@ export class OfficeScene {
 
     const wp = avatar.activePath.waypoints[avatar.pathIndex];
     if (!wp) {
-      avatar.activePath = pickPathNear(root.position.x, root.position.z, avatar.activePath.id, this.paths);
-      avatar.pathIndex = 0;
+      this.assignPatrolLane(avatar);
       return;
     }
 
@@ -962,6 +966,7 @@ export class OfficeScene {
     if (arrived) {
       playAgentAnimation(avatar, "idle");
       this.plantFeet(avatar);
+      avatar.stuckTimer = 0;
 
       if (wp.activity) {
         avatar.idleBehavior = wp.activity;
@@ -1000,14 +1005,28 @@ export class OfficeScene {
 
       avatar.pathIndex += 1;
       if (avatar.pathIndex >= avatar.activePath.waypoints.length) {
+        // Stay on the exclusive lane; only rotate start if the loop ends.
         if (avatar.activePath.loop) {
           avatar.pathIndex = 0;
         } else {
-          avatar.activePath = pickPathNear(root.position.x, root.position.z, avatar.activePath.id, this.paths);
-          avatar.pathIndex = 0;
+          this.assignPatrolLane(avatar);
         }
       }
     }
+  }
+
+  /** Assign (or re-assign) the seat-exclusive patrol loop. */
+  private assignPatrolLane(avatar: AvatarNode) {
+    const path = pathForSeat(avatar.seatIndex, this.paths);
+    avatar.activePath = path;
+    avatar.pathIndex = staggeredWaypointIndex(
+      path,
+      avatar.root.position.x,
+      avatar.root.position.z,
+      avatar.seatIndex,
+    );
+    avatar.stuckTimer = 0;
+    avatar.lastProgressDist = Infinity;
   }
 
   /** Last POI slot this avatar committed to (re-route when server reassigns). */
@@ -1058,10 +1077,16 @@ export class OfficeScene {
 
     // Sofa slots sit inside the sofa AABB; foosball / coffee slots are walkable.
     const allowSit = slot.animation === "sitting_sofa";
-    const pathPts = findPath(
-      { x: avatar.root.position.x + this.centerOffset.x, z: avatar.root.position.z + this.centerOffset.z },
+    const fromRaw = {
+      x: avatar.root.position.x + this.centerOffset.x,
+      z: avatar.root.position.z + this.centerOffset.z,
+    };
+    const pathPts = routeToPoiSlot(
+      fromRaw,
+      avatar.seatIndex,
+      slot.id,
       { x: slot.position.x, z: slot.position.z },
-      { allowGoalInObstacle: allowSit },
+      allowSit,
     ).map((p) => ({ x: p.x - this.centerOffset.x, z: p.z - this.centerOffset.z }));
 
     avatar.activePath = {
@@ -1073,6 +1098,8 @@ export class OfficeScene {
     avatar.idleBehavior = "poi";
     avatar.routeBusy = true;
     avatar.behaviorEnd = 0;
+    avatar.stuckTimer = 0;
+    avatar.lastProgressDist = Infinity;
   }
 
   private animatePoi(avatar: AvatarNode, t: number, dt: number) {
@@ -1170,14 +1197,25 @@ export class OfficeScene {
     this.plantFeet(avatar);
     playAgentAnimation(avatar, "walking");
     // Desk seats live inside desk furniture AABBs — allow the final snap.
-    const pathPts = findPath(
-      { x: avatar.root.position.x + this.centerOffset.x, z: avatar.root.position.z + this.centerOffset.z },
-      { x: avatar.homePos.x + this.centerOffset.x, z: avatar.homePos.z + this.centerOffset.z },
-      { allowGoalInObstacle: true },
+    const fromRaw = {
+      x: avatar.root.position.x + this.centerOffset.x,
+      z: avatar.root.position.z + this.centerOffset.z,
+    };
+    const deskRaw = {
+      x: avatar.homePos.x + this.centerOffset.x,
+      z: avatar.homePos.z + this.centerOffset.z,
+    };
+    const pathPts = routeToDesk(
+      fromRaw,
+      avatar.seatIndex,
+      deskRaw,
+      avatar.agent.officeSlotId,
     ).map((p) => ({ x: p.x - this.centerOffset.x, z: p.z - this.centerOffset.z }));
     avatar.activePath = { id: `home-${avatar.agent.id}`, loop: false, waypoints: pathPts };
     avatar.pathIndex = 0;
     avatar.idleBehavior = "patrol";
+    avatar.stuckTimer = 0;
+    avatar.lastProgressDist = Infinity;
   }
 
   private toCentered(x: number, z: number) {
@@ -1215,13 +1253,23 @@ export class OfficeScene {
   /** Must be facing within this tolerance before advancing position. */
   private static readonly FACING_TOLERANCE = 0.08;
   private static readonly SEPARATION = AGENT_RADIUS * 2.05;
+  private static readonly STUCK_SECONDS = 1.5;
 
   private walkToward(avatar: AvatarNode, target: Vector3, speed: number, dt: number): boolean {
     const pos = avatar.root.position;
     let dx = target.x - pos.x;
     let dz = target.z - pos.z;
 
-    // Separation from other agents.
+    const rawTarget = {
+      x: target.x + this.centerOffset.x,
+      z: target.z + this.centerOffset.z,
+    };
+    const goalIsSit = pointHitsObstacle(rawTarget);
+
+    // Separation from other agents — only if the steered point stays walkable
+    // (or we are intentionally entering a sit target).
+    let sepDx = 0;
+    let sepDz = 0;
     for (const other of this.avatars.values()) {
       if (other === avatar) continue;
       const ox = pos.x - other.root.position.x;
@@ -1231,18 +1279,57 @@ export class OfficeScene {
       if (d2 > 1e-6 && d2 < minD * minD) {
         const d = Math.sqrt(d2);
         const push = ((minD - d) / d) * 0.55;
-        dx += ox * push;
-        dz += oz * push;
+        sepDx += ox * push;
+        sepDz += oz * push;
+      }
+    }
+    if (sepDx !== 0 || sepDz !== 0) {
+      const trialRaw = {
+        x: pos.x + dx + sepDx + this.centerOffset.x,
+        z: pos.z + dz + sepDz + this.centerOffset.z,
+      };
+      if (goalIsSit || isWalkable(trialRaw)) {
+        dx += sepDx;
+        dz += sepDz;
       }
     }
 
     const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist < 1e-6) {
+      if (goalIsSit || isWalkable(rawTarget)) {
+        pos.x = target.x;
+        pos.z = target.z;
+        this.plantFeet(avatar);
+        avatar.stuckTimer = 0;
+        return true;
+      }
+      return false;
+    }
+
     if (dist < 0.22) {
-      pos.x = target.x;
-      pos.z = target.z;
-      this.plantFeet(avatar);
-      playAgentAnimation(avatar, "idle");
-      return true;
+      // Snap only onto walkable waypoints or intentional sit targets.
+      if (goalIsSit || isWalkable(rawTarget)) {
+        pos.x = target.x;
+        pos.z = target.z;
+        this.plantFeet(avatar);
+        playAgentAnimation(avatar, "idle");
+        avatar.stuckTimer = 0;
+        avatar.lastProgressDist = Infinity;
+        return true;
+      }
+    }
+
+    // Stuck detection → one-shot repath around other agents.
+    if (dist < avatar.lastProgressDist - 0.02) {
+      avatar.stuckTimer = 0;
+      avatar.lastProgressDist = dist;
+    } else {
+      avatar.stuckTimer += dt;
+      if (avatar.stuckTimer >= OfficeScene.STUCK_SECONDS) {
+        avatar.stuckTimer = 0;
+        avatar.lastProgressDist = Infinity;
+        this.repathAroundAgents(avatar, rawTarget, goalIsSit);
+      }
     }
 
     const heading = Math.atan2(dx, dz);
@@ -1259,24 +1346,52 @@ export class OfficeScene {
     const step = Math.min(speed * dt, dist);
     const nextX = pos.x + (dx / dist) * step;
     const nextZ = pos.z + (dz / dist) * step;
-    const rawTarget = {
-      x: target.x + this.centerOffset.x,
-      z: target.z + this.centerOffset.z,
-    };
     // Final sit snap targets live inside the sofa AABB — don't push out of them.
-    if (pointHitsObstacle(rawTarget)) {
+    if (goalIsSit) {
       pos.x = nextX;
       pos.z = nextZ;
     } else {
-      const raw = resolveCollision({
-        x: nextX + this.centerOffset.x,
-        z: nextZ + this.centerOffset.z,
-      });
+      const raw = resolveCollision(
+        {
+          x: nextX + this.centerOffset.x,
+          z: nextZ + this.centerOffset.z,
+        },
+        undefined,
+        NAV_CLEARANCE,
+      );
       pos.x = raw.x - this.centerOffset.x;
       pos.z = raw.z - this.centerOffset.z;
     }
     this.plantFeet(avatar);
     return false;
+  }
+
+  /**
+   * Rebuild the remainder of the active path with temporary blocks around
+   * nearby agents so a stuck avatar can slip past.
+   */
+  private repathAroundAgents(
+    avatar: AvatarNode,
+    goalRaw: { x: number; z: number },
+    allowGoalInObstacle: boolean,
+  ) {
+    const fromRaw = {
+      x: avatar.root.position.x + this.centerOffset.x,
+      z: avatar.root.position.z + this.centerOffset.z,
+    };
+    // Live A* already avoids furniture; other agents are soft — just recompute
+    // a fresh path to the same goal (clears bad intermediate waypoints).
+    const pts = findPath(fromRaw, goalRaw, { allowGoalInObstacle }).map((p) => ({
+      x: p.x - this.centerOffset.x,
+      z: p.z - this.centerOffset.z,
+    }));
+    if (pts.length < 2) return;
+    const remaining = avatar.activePath.waypoints.slice(avatar.pathIndex + 1);
+    avatar.activePath = {
+      ...avatar.activePath,
+      waypoints: [...pts, ...remaining],
+    };
+    avatar.pathIndex = 0;
   }
 
   /** Plant feet exactly on the floor surface using footOffset + nav floor height. */

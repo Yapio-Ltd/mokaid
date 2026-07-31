@@ -5,8 +5,11 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  AGENT_RADIUS,
   findPath,
   isWalkable,
+  NAV_CLEARANCE,
+  NAV_OBSTACLES,
   OFFICE_DESK_SLOTS,
   OFFICE_NAV_NODES,
   OFFICE_OBSTACLES,
@@ -15,7 +18,12 @@ import {
   resolveCollision,
   segmentIsWalkable,
 } from "./office-navdata";
-import { OFFICE_PATHS } from "./office-paths";
+import {
+  cachedDeskToPoi,
+  cachedPoiToDesk,
+  OFFICE_PATHS,
+  pathForSeat,
+} from "./office-paths";
 
 /** Every consecutive pair of a polyline must be clear of obstacles. */
 function pathIsClear(pts: { x: number; z: number }[], skipLastLeg = false): boolean {
@@ -27,6 +35,11 @@ function pathIsClear(pts: { x: number; z: number }[], skipLastLeg = false): bool
 }
 
 describe("office-navdata", () => {
+  it("aligns planning clearance with agent body radius", () => {
+    expect(NAV_CLEARANCE).toBe(AGENT_RADIUS);
+    expect(NAV_OBSTACLES.length).toBeGreaterThan(40);
+  });
+
   it("exposes nine unique desk seats", () => {
     expect(OFFICE_DESK_SLOTS).toHaveLength(9);
     const keys = new Set(OFFICE_DESK_SLOTS.map((s) => `${s.x.toFixed(3)},${s.z.toFixed(3)}`));
@@ -104,15 +117,48 @@ describe("office-navdata", () => {
     expect(segmentIsWalkable(foos.slots[0].position, foos.slots[1].position)).toBe(false);
   });
 
-  it("keeps every patrol loop segment obstacle-free", () => {
+  it("exposes at least nine exclusive patrol loops", () => {
+    expect(OFFICE_PATHS.length).toBeGreaterThanOrEqual(9);
+    const ids = new Set(OFFICE_PATHS.map((p) => p.id));
+    expect(ids.size).toBe(OFFICE_PATHS.length);
+    for (let i = 0; i < 9; i++) {
+      expect(pathForSeat(i).id).toBe(OFFICE_PATHS[i % OFFICE_PATHS.length].id);
+    }
+  });
+
+  it("keeps every patrol waypoint and segment obstacle-free", () => {
     for (const path of OFFICE_PATHS) {
       expect(path.waypoints.length).toBeGreaterThan(2);
+      for (const wp of path.waypoints) {
+        expect(isWalkable(wp), `${path.id} waypoint blocked`).toBe(true);
+      }
       const pts = path.loop ? [...path.waypoints, path.waypoints[0]] : path.waypoints;
       for (let i = 0; i < pts.length - 1; i++) {
         expect(
           segmentIsWalkable(pts[i], pts[i + 1]),
           `${path.id} leg ${i} crosses furniture`,
         ).toBe(true);
+      }
+    }
+  });
+
+  it("precomputes clear desk↔POI routes for every seat and slot", () => {
+    for (let d = 0; d < OFFICE_DESK_SLOTS.length; d++) {
+      for (const poi of OFFICE_POIS) {
+        for (const slot of poi.slots) {
+          const outbound = cachedDeskToPoi(d, slot.id);
+          expect(outbound, `missing cache desk ${d} -> ${slot.id}`).toBeTruthy();
+          expect(outbound!.points.length).toBeGreaterThan(1);
+          expect(pathIsClear(outbound!.points.slice(1), outbound!.allowGoalInObstacle)).toBe(true);
+
+          const inbound = cachedPoiToDesk(slot.id, d);
+          expect(inbound, `missing cache ${slot.id} -> desk ${d}`).toBeTruthy();
+          expect(inbound!.points.length).toBeGreaterThan(1);
+          // Leaving a sofa seat starts inside furniture; desk snap may end inside.
+          const fromSit = slot.animation === "sitting_sofa";
+          const inner = fromSit ? inbound!.points.slice(1) : inbound!.points;
+          expect(pathIsClear(inner, true)).toBe(true);
+        }
       }
     }
   });
@@ -125,15 +171,17 @@ describe("office-navdata", () => {
     expect(pathIsClear(path)).toBe(true);
   });
 
-  it("resolveCollision slides a point out of any obstacle", () => {
+  it("resolveCollision slides a point out of any obstacle (raw + clearance)", () => {
     for (const probe of [
-      { x: 5.7, z: 3.9 },   // meeting table
-      { x: 1.8, z: 4.7 },   // foosball table
-      { x: -5.0, z: 0.7 },  // desk0
+      { x: 5.7, z: 3.9 }, // meeting table
+      { x: 1.8, z: 4.7 }, // foosball table
+      { x: -5.0, z: 0.7 }, // desk0
       { x: 1.79, z: -6.0 }, // sofa
     ]) {
       expect(pointHitsObstacle(probe)).toBe(true);
-      expect(pointHitsObstacle(resolveCollision(probe))).toBe(false);
+      const out = resolveCollision(probe);
+      expect(pointHitsObstacle(out)).toBe(false);
+      expect(isWalkable(out), `resolved ${JSON.stringify(probe)} not walkable`).toBe(true);
     }
   });
 

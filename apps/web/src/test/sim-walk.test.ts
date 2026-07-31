@@ -6,11 +6,14 @@
 import { describe, expect, it } from "vitest";
 import {
   findPath,
+  isWalkable,
+  NAV_CLEARANCE,
   OFFICE_DESK_SLOTS,
   OFFICE_POIS,
   pointHitsObstacle,
   resolveCollision,
 } from "../three/office-navdata";
+import { OFFICE_PATHS } from "../three/office-paths";
 
 function simulate(path: { x: number; z: number }[], allowLast: boolean): number {
   let violations = 0;
@@ -31,8 +34,15 @@ function simulate(path: { x: number; z: number }[], allowLast: boolean): number 
         x: pos.x + (dx / dist) * stepLen + jx,
         z: pos.z + (dz / dist) * stepLen + jz,
       };
+      // Only keep the push when the candidate stays walkable (strict follow).
       if (!(lastLeg && allowLast && pointHitsObstacle(target))) {
-        next = resolveCollision(next);
+        if (!isWalkable(next)) {
+          next = {
+            x: pos.x + (dx / dist) * stepLen,
+            z: pos.z + (dz / dist) * stepLen,
+          };
+        }
+        next = resolveCollision(next, undefined, NAV_CLEARANCE);
       }
       pos = next;
       if (pointHitsObstacle(pos) && !(lastLeg && allowLast)) violations++;
@@ -54,6 +64,15 @@ describe("walk simulation", () => {
           total += simulate(path.slice(1), allow);
         }
       }
+    }
+    expect(total).toBe(0);
+  });
+
+  it("agents never penetrate furniture while following patrol loops", () => {
+    let total = 0;
+    for (const path of OFFICE_PATHS) {
+      const pts = path.loop ? [...path.waypoints, path.waypoints[0]] : path.waypoints;
+      total += simulate(pts, false);
     }
     expect(total).toBe(0);
   });

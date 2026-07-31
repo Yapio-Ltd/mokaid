@@ -1630,8 +1630,8 @@
     "semantic_hash": "8af3e9e858ba8c1a0844cf4a82105fc8"
   },
   "apps/web/src/pages/login.tsx": {
-    "mtime": 1785496439.4967947,
-    "ast_hash": "61e37007b870387ffe22e473e3d4a319",
+    "mtime": 1785496755.0356326,
+    "ast_hash": "ba284f4d9794f816a17691856fb09f23",
     "semantic_hash": ""
   },
   "apps/web/src/pages/mcp-hub.tsx": {
@@ -1785,9 +1785,9 @@
     "semantic_hash": "166a26ce4265ed1175aab3efd38ff02b"
   },
   "apps/web/src/test/sim-walk.test.ts": {
-    "mtime": 1784158970.320488,
-    "ast_hash": "5cee4505db2b8677153e88a02067d38a",
-    "semantic_hash": "5cee4505db2b8677153e88a02067d38a"
+    "mtime": 1785496769.3876994,
+    "ast_hash": "e24993967211f6597276e67b09173c3a",
+    "semantic_hash": ""
   },
   "apps/web/src/test/visual-state.test.ts": {
     "mtime": 1783376896.6347728,
@@ -1840,19 +1840,19 @@
     "semantic_hash": "7e43666421c15ad28338d15e8384ceb9"
   },
   "apps/web/src/three/office-navdata.test.ts": {
-    "mtime": 1784161095.4523005,
-    "ast_hash": "668f123a57ae001e58d489c618319ff5",
-    "semantic_hash": "668f123a57ae001e58d489c618319ff5"
+    "mtime": 1785496839.8216019,
+    "ast_hash": "a805291f7f028de8834dc16b4051d3d1",
+    "semantic_hash": ""
   },
   "apps/web/src/three/office-navdata.ts": {
-    "mtime": 1785496514.1458788,
-    "ast_hash": "0c16838c733fa1fc8d803e09a7e0f033",
+    "mtime": 1785496839.814417,
+    "ast_hash": "0fc42302a87ed987eb8e03e978346118",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-paths.ts": {
-    "mtime": 1784158768.4265597,
-    "ast_hash": "95942171de496b3f86e42c87bd1358a8",
-    "semantic_hash": "95942171de496b3f86e42c87bd1358a8"
+    "mtime": 1785496625.393446,
+    "ast_hash": "561611fc0d47239e461ca2be2b4726fd",
+    "semantic_hash": ""
   },
   "apps/web/src/three/office-scene-host.ts": {
     "mtime": 1784152402.8169715,
@@ -1860,9 +1860,9 @@
     "semantic_hash": "6841304762971ff56daff67715ed571e"
   },
   "apps/web/src/three/office-scene.ts": {
-    "mtime": 1784161095.4520743,
-    "ast_hash": "9efc8882f595b0b3a3b835a880be8b6d",
-    "semantic_hash": "9efc8882f595b0b3a3b835a880be8b6d"
+    "mtime": 1785496866.7171226,
+    "ast_hash": "7586130b4c81267809c64771c8d456a2",
+    "semantic_hash": ""
   },
   "apps/web/src/three/types.ts": {
     "mtime": 1784151583.018528,
@@ -13285,8 +13285,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/auth/google-sign-in-button.tsx": {
-    "mtime": 1785496428.8504214,
-    "ast_hash": "987c3fe7cea1933b2a5e9f545639c09b",
+    "mtime": 1785496753.0279438,
+    "ast_hash": "c030e488adf43fe07c031638c78ff75d",
     "semantic_hash": ""
   },
   "apps/web/src/components/brand/google-logo.tsx": {
