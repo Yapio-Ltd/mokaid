@@ -86,7 +86,7 @@ export function LoginPage() {
         .timeline({ defaults: { ease: "power3.out" } })
         .from("[data-login-left]", { xPercent: -6, opacity: 0, duration: 0.7 })
         .from("[data-agent-card]", { y: 26, opacity: 0, stagger: 0.12, duration: 0.55 }, "-=0.3")
-        .from("[data-login-form] > *", { y: 18, opacity: 0, stagger: 0.07, duration: 0.5 }, "-=0.5");
+        .from("[data-login-form] > *", { y: 18, opacity: 0, stagger: 0.07, duration: 0.5, clearProps: "opacity,transform" }, "-=0.5");
     }, rootRef);
     return () => ctx.revert();
   }, []);
@@ -296,7 +296,9 @@ export function LoginPage() {
             </div>
           </div>
 
-          <GoogleSignInButton intent="login" onError={setError} />
+          <div data-google-auth>
+            <GoogleSignInButton intent="login" onError={setError} />
+          </div>
 
           <p className="mt-4 text-center text-xs text-text-muted lg:text-left">
             New to Mokaid?{" "}

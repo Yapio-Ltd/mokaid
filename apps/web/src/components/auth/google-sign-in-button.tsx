@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { apiFetch } from "@/api/client";
-import { Button } from "@/components/ui/button";
 import { GoogleLogo } from "@/components/brand/google-logo";
 
 interface GoogleSignInButtonProps {
@@ -47,16 +46,21 @@ export function GoogleSignInButton({
   };
 
   return (
-    <Button
+    <button
       type="button"
-      variant="secondary"
-      size="lg"
-      className={className ?? "w-full"}
-      loading={loading}
+      disabled={loading}
       onClick={start}
+      className={
+        className ??
+        "mk-focus-ring inline-flex h-11 w-full select-none items-center justify-center gap-3 rounded-md border border-white/20 bg-white px-5 text-sm font-medium text-[#1f1f1f] shadow-sm transition-all duration-200 hover:bg-[#f7f7f7] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
+      }
     >
-      {!loading && <GoogleLogo />}
+      {loading ? (
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#1f1f1f]/40 border-t-[#1f1f1f]" />
+      ) : (
+        <GoogleLogo />
+      )}
       {text}
-    </Button>
+    </button>
   );
 }
