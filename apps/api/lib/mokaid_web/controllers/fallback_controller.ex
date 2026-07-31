@@ -56,6 +56,7 @@ defmodule MokaidWeb.FallbackController do
   defp humanize(:insufficient_credits), do: "Not enough AI credits for this boost"
   defp humanize(:invalid_archetype), do: "Unknown agent archetype"
   defp humanize(:invalid_boost), do: "Unknown agent boost"
+
   defp humanize(:oauth_only),
     do: "Password changes are managed by your identity provider (e.g. Google)"
 

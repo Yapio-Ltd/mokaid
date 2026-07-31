@@ -239,6 +239,8 @@ defmodule MokaidWeb.AuthController do
   def google_callback(conn, _params) do
     conn
     |> put_status(:bad_request)
-    |> json(%{error: %{code: "bad_request", message: "code, state and redirect_uri are required"}})
+    |> json(%{
+      error: %{code: "bad_request", message: "code, state and redirect_uri are required"}
+    })
   end
 end
