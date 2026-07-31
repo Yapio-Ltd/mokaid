@@ -26,6 +26,15 @@ config :mokaid, :google_oauth,
       "http://localhost:5173/oauth/google/callback"
     ])
 
+# Google identity (sign in / sign up) — same client, distinct redirect URIs.
+config :mokaid, :google_auth,
+  redirect_uris:
+    Enum.uniq([
+      System.get_env("GOOGLE_AUTH_REDIRECT_URI") || "https://mokaid.com/auth/google/callback",
+      "https://mokaid.com/auth/google/callback",
+      "http://localhost:5173/auth/google/callback"
+    ])
+
 config :mokaid, :github_oauth,
   client_id: System.get_env("GITHUB_CLIENT_ID"),
   client_secret: System.get_env("GITHUB_CLIENT_SECRET"),

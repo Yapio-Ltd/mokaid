@@ -9,6 +9,7 @@ import { apiFetch } from "@/api/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -19,7 +20,13 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 interface LoginResponse {
   token: string;
-  user: { id: string; email: string; full_name: string; avatar_url: string | null };
+  user: {
+    id: string;
+    email: string;
+    full_name: string;
+    avatar_url: string | null;
+    has_password?: boolean;
+  };
 }
 
 interface MeResponse {
@@ -95,6 +102,7 @@ export function LoginPage() {
       setSession(response.token, response.user);
 
       const me = await apiFetch<MeResponse>("/api/me", { skipWorkspace: true });
+      setSession(response.token, me.user);
       setWorkspaces(me.workspaces);
 
       navigate({ to: "/dashboard" });
@@ -278,6 +286,17 @@ export function LoginPage() {
               Sign in
             </Button>
           </form>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center" aria-hidden>
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-[11px]">
+              <span className="bg-bg-deep px-3 text-text-muted">or</span>
+            </div>
+          </div>
+
+          <GoogleSignInButton intent="login" onError={setError} />
 
           <p className="mt-4 text-center text-xs text-text-muted lg:text-left">
             New to Mokaid?{" "}

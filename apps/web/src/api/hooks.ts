@@ -38,7 +38,7 @@ import type {
   TaskComment,
   Workspace,
 } from "./types";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore, type WorkspaceSummary } from "@/stores/auth-store";
 
 export interface Asset3d {
   id: string;
@@ -1149,6 +1149,40 @@ export function useCreateWorkspace() {
   return useMutation({
     mutationFn: (body: { name: string }) =>
       apiFetch<Envelope<Workspace>>("/api/workspaces", {
+        method: "POST",
+        body,
+        skipWorkspace: true,
+      }),
+  });
+}
+
+export function useMe() {
+  const token = useAuthStore((s) => s.token);
+  return useQuery({
+    queryKey: ["me"],
+    enabled: Boolean(token),
+    queryFn: () =>
+      apiFetch<{
+        user: {
+          id: string;
+          email: string;
+          full_name: string;
+          avatar_url: string | null;
+          has_password?: boolean;
+        };
+        workspaces: WorkspaceSummary[];
+      }>("/api/me", { skipWorkspace: true }),
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (body: {
+      current_password: string;
+      password: string;
+      password_confirmation: string;
+    }) =>
+      apiFetch<{ ok: boolean }>("/api/me/password", {
         method: "POST",
         body,
         skipWorkspace: true,

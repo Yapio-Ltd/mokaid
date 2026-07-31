@@ -44,6 +44,12 @@ config :mokaid, :auth,
   cognito_user_pool_id: nil,
   cognito_client_id: nil
 
+config :mokaid, :google_auth,
+  redirect_uris: [
+    "http://localhost:5173/auth/google/callback",
+    "https://mokaid.com/auth/google/callback"
+  ]
+
 config :mokaid, :storage,
   adapter: :s3,
   bucket_uploads: "mokaid-user-uploads-dev",

@@ -71,8 +71,8 @@ export interface FindPathOptions {
 /** Agent collision radius (agent-agent separation & visuals). */
 export const AGENT_RADIUS = 0.35;
 
-/** Clearance between an agent's center and any obstacle while walking. */
-export const NAV_CLEARANCE = 0.18;
+/** Clearance between an agent's center and any obstacle while walking (= body radius). */
+export const NAV_CLEARANCE = AGENT_RADIUS;
 
 /** Max agents that share the 3D office (one desk each). */
 export const MAX_OFFICE_SEATS = 9;
@@ -180,6 +180,38 @@ export const OFFICE_OBSTACLES: Aabb2[] = [
   { minX: 6.64, maxX: 7.17, minZ: -5.68, maxZ: -5.14 }, // model_0.001 side table NE
 ];
 
+/** Inset applied to chair-like AABBs so agent-radius clearance still leaves aisle gaps. */
+const NAV_CHAIR_INSET = 0.18;
+/** Mild inset for bulky desks / cabinets (walls & thin décor stay exact). */
+const NAV_BULK_INSET = 0.05;
+
+function isThinNavObstacle(o: Aabb2): boolean {
+  return Math.min(o.maxX - o.minX, o.maxZ - o.minZ) < 0.12;
+}
+
+function isChairLikeObstacle(o: Aabb2): boolean {
+  const w = o.maxX - o.minX;
+  const d = o.maxZ - o.minZ;
+  const area = w * d;
+  return area < 1.2 && Math.min(w, d) < 0.95 && Math.max(w, d) < 1.5;
+}
+
+/**
+ * Obstacles used for walkability + runtime slide. Mesh AABBs are slightly
+ * inset so NAV_CLEARANCE (= AGENT_RADIUS) keeps a single connected aisle graph
+ * without carving through walls.
+ */
+export const NAV_OBSTACLES: Aabb2[] = OFFICE_OBSTACLES.map((o) => {
+  if (isThinNavObstacle(o)) return o;
+  const inset = isChairLikeObstacle(o) ? NAV_CHAIR_INSET : NAV_BULK_INSET;
+  return {
+    minX: o.minX + inset,
+    maxX: o.maxX - inset,
+    minZ: o.minZ + inset,
+    maxZ: o.maxZ - inset,
+  };
+}).filter((o) => o.maxX > o.minX + 0.05 && o.maxZ > o.minZ + 0.05);
+
 /**
  * Aisle anchor points (all verified walkable with clearance).
  * Kept for patrol loop construction and debug tooling; pathfinding itself
@@ -187,7 +219,7 @@ export const OFFICE_OBSTACLES: Aabb2[] = [
  */
 export const OFFICE_NAV_NODES: NavNode[] = [
   { id: "nw", x: -5.55, z: -5.2 },
-  { id: "n_lounge", x: -3.5, z: -5.2 },
+  { id: "n_lounge", x: -3.46, z: -5.16 },
   { id: "n_mid", x: -0.5, z: -5.0 },
   { id: "n_sofa", x: 1.8, z: -5.2 },
   { id: "ne", x: 5.4, z: -5.2 },
@@ -198,11 +230,11 @@ export const OFFICE_NAV_NODES: NavNode[] = [
   { id: "e_door", x: 4.1, z: -1.3 },
   { id: "e_room", x: 5.6, z: -1.2 },
   { id: "sw", x: -5.4, z: 3.2 },
-  { id: "s_mid", x: -1.5, z: 3.6 },
+  { id: "s_mid", x: -1.45, z: 3.6 },
   { id: "s_coffee", x: 2.2, z: 3.4 },
   { id: "se", x: 3.5, z: 1.8 },
-  { id: "foosball_s", x: 1.85, z: 3.7 },
-  { id: "foosball_n", x: 1.85, z: 5.45 },
+  { id: "foosball_s", x: 1.85, z: 3.55 },
+  { id: "foosball_n", x: 1.91, z: 5.59 },
   { id: "sofa_appr", x: 1.79, z: -5.2 },
   { id: "coffee", x: -1.99, z: -5.2 },
 ];
@@ -312,8 +344,8 @@ export function pointHitsObstacle(p: NavPoint, obstacles: Aabb2[] = OFFICE_OBSTA
   return false;
 }
 
-function hitsInflated(x: number, z: number, pad: number): boolean {
-  for (const o of OFFICE_OBSTACLES) {
+function hitsInflated(x: number, z: number, pad: number, obstacles: Aabb2[] = NAV_OBSTACLES): boolean {
+  for (const o of obstacles) {
     if (x >= o.minX - pad && x <= o.maxX + pad && z >= o.minZ - pad && z <= o.maxZ + pad) {
       return true;
     }
@@ -339,31 +371,55 @@ export function segmentIsWalkable(a: NavPoint, b: NavPoint, steps?: number): boo
 }
 
 /**
- * Push a candidate point out of the nearest obstacle AABB (axis-aligned slide).
- * Returns the original point when already clear.
+ * Push a candidate point out of inflated nav obstacles, then ensure it is
+ * never left inside a raw mesh AABB. Defaults match planning (NAV_OBSTACLES +
+ * NAV_CLEARANCE) so runtime and pathfinding share the same envelope.
+ * Falls back to the nearest walkable grid cell when axis slides land in a
+ * pinch between two inflated boxes.
  */
-export function resolveCollision(p: NavPoint, obstacles: Aabb2[] = OFFICE_OBSTACLES): NavPoint {
+export function resolveCollision(
+  p: NavPoint,
+  obstacles: Aabb2[] = NAV_OBSTACLES,
+  pad: number = NAV_CLEARANCE,
+): NavPoint {
   let { x, z } = p;
-  // Iterate: sliding out of one box can land inside an adjacent one
-  // (e.g. contiguous wall segments).
-  for (let pass = 0; pass < 4; pass++) {
+  const margin = 0.02;
+
+  const slide = (obs: Aabb2[], usePad: number): boolean => {
     let moved = false;
-    for (const o of obstacles) {
-      if (x < o.minX || x > o.maxX || z < o.minZ || z > o.maxZ) continue;
-      const left = x - o.minX;
-      const right = o.maxX - x;
-      const bottom = z - o.minZ;
-      const top = o.maxZ - z;
+    for (const o of obs) {
+      const minX = o.minX - usePad;
+      const maxX = o.maxX + usePad;
+      const minZ = o.minZ - usePad;
+      const maxZ = o.maxZ + usePad;
+      if (x < minX || x > maxX || z < minZ || z > maxZ) continue;
+      const left = x - minX;
+      const right = maxX - x;
+      const bottom = z - minZ;
+      const top = maxZ - z;
       const min = Math.min(left, right, bottom, top);
-      if (min === left) x = o.minX - 0.02;
-      else if (min === right) x = o.maxX + 0.02;
-      else if (min === bottom) z = o.minZ - 0.02;
-      else z = o.maxZ + 0.02;
+      if (min === left) x = minX - margin;
+      else if (min === right) x = maxX + margin;
+      else if (min === bottom) z = minZ - margin;
+      else z = maxZ + margin;
       moved = true;
     }
-    if (!moved) break;
+    return moved;
+  };
+
+  for (let pass = 0; pass < 8; pass++) {
+    const rawMoved = slide(OFFICE_OBSTACLES, 0);
+    const navMoved = slide(obstacles, pad);
+    if (!rawMoved && !navMoved) break;
   }
-  return { x, z };
+
+  const candidate = { x, z };
+  if (!pointHitsObstacle(candidate) && !hitsInflated(x, z, pad, obstacles)) {
+    return candidate;
+  }
+  // Pinch between adjacent inflated AABBs — snap to nearest free cell.
+  const free = nearestFreeCell(candidate, 24);
+  return free ? pointOf(free.i, free.j) : candidate;
 }
 
 /* ---------- occupancy grid A* ---------- */

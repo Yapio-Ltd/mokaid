@@ -75,6 +75,9 @@ const FigmaCallbackPage = lazyPage(() =>
 const GoogleCallbackPage = lazyPage(() =>
   import("@/pages/google-callback").then((m) => ({ default: m.GoogleCallbackPage })),
 );
+const GoogleAuthCallbackPage = lazyPage(() =>
+  import("@/pages/google-auth-callback").then((m) => ({ default: m.GoogleAuthCallbackPage })),
+);
 const GithubCallbackPage = lazyPage(() =>
   import("@/pages/github-callback").then((m) => ({ default: m.GithubCallbackPage })),
 );
@@ -174,6 +177,12 @@ const googleCallbackRoute = createRoute({
   component: GoogleCallbackPage,
 });
 
+const googleAuthCallbackRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/auth/google/callback",
+  component: GoogleAuthCallbackPage,
+});
+
 const githubCallbackRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/oauth/github/callback",
@@ -228,6 +237,7 @@ const routeTree = rootRoute.addChildren([
   signupRoute,
   figmaCallbackRoute,
   googleCallbackRoute,
+  googleAuthCallbackRoute,
   githubCallbackRoute,
   linearCallbackRoute,
   slackCallbackRoute,

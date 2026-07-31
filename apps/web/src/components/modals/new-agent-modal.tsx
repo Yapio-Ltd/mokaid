@@ -46,7 +46,11 @@ export function NewAgentModal({ open, onOpenChange, onCreated }: NewAgentModalPr
   const createAgent = useCreateAgent();
   const { data: catalogData } = useAgentCatalog();
   const { data: billingData } = useBillingOverview();
-  const { data: characterAssets } = useAssets3d("character");
+  const {
+    data: characterAssets,
+    isLoading: charactersLoading,
+    isError: charactersError,
+  } = useAssets3d("character");
 
   const models = useMemo(() => characterAssets ?? [], [characterAssets]);
   const defaultAssetId = models.find((a) => a.slug === "avatar_male")?.id ?? models[0]?.id ?? "";
@@ -309,9 +313,16 @@ export function NewAgentModal({ open, onOpenChange, onCreated }: NewAgentModalPr
             </p>
           </div>
 
-          {models.length === 0 ? (
+          {charactersLoading && models.length === 0 ? (
             <div className="flex h-[320px] items-center justify-center rounded-xl bg-surface-raised/50 text-xs text-text-muted">
               Loading characters…
+            </div>
+          ) : charactersError || models.length === 0 ? (
+            <div className="flex h-[320px] flex-col items-center justify-center gap-1 rounded-xl bg-surface-raised/50 px-4 text-center text-xs text-text-muted">
+              <span>No 3D characters available.</span>
+              <span className="text-[11px] text-text-muted/80">
+                Refresh the page or contact support if this persists.
+              </span>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">

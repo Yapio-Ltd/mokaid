@@ -33,6 +33,14 @@ defmodule MokaidWeb.FallbackController do
     |> json(%{error: %{code: "invalid_credentials", message: "Invalid email or password"}})
   end
 
+  def call(conn, {:error, {:token_exchange_failed, _, _}}) do
+    conn
+    |> put_status(:bad_gateway)
+    |> json(%{
+      error: %{code: "token_exchange_failed", message: "Google token exchange failed"}
+    })
+  end
+
   def call(conn, {:error, reason}) when is_atom(reason) do
     conn
     |> put_status(:unprocessable_entity)
@@ -48,6 +56,14 @@ defmodule MokaidWeb.FallbackController do
   defp humanize(:insufficient_credits), do: "Not enough AI credits for this boost"
   defp humanize(:invalid_archetype), do: "Unknown agent archetype"
   defp humanize(:invalid_boost), do: "Unknown agent boost"
+  defp humanize(:oauth_only),
+    do: "Password changes are managed by your identity provider (e.g. Google)"
+
+  defp humanize(:oauth_not_configured), do: "Google sign-in is not configured"
+  defp humanize(:invalid_redirect_uri), do: "Invalid OAuth redirect URI"
+  defp humanize(:invalid_state), do: "OAuth state is invalid or expired"
+  defp humanize(:profile_incomplete), do: "Google did not return a usable profile"
+  defp humanize(:profile_fetch_failed), do: "Could not fetch the Google profile"
 
   defp humanize(reason) do
     reason |> to_string() |> String.replace("_", " ") |> String.capitalize()

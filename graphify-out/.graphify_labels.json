@@ -2704,7 +2704,7 @@
   "2702": "13. File Deletion",
   "2703": "14. Complex Error Message",
   "2704": "15. Task Completion Summary",
-  "2705": "react",
+  "2705": "clsx",
   "2706": "5. Git Operation",
   "2707": "8. Test Failure Output",
   "2708": "9. Git Status/Diff Output",
@@ -2815,7 +2815,7 @@
   "2813": "eslint",
   "2814": "clsx",
   "2815": "phoenix",
-  "2816": "@radix-ui/react-avatar",
+  "2816": "@types/react-dom",
   "2817": "@radix-ui/react-switch",
   "2818": "MokaidWeb.Plugs.WorkspaceScope",
   "2819": "Bounding Spheres",
@@ -2832,6 +2832,10 @@
   "2830": "scene-store.ts",
   "2831": "label-overlay.ts",
   "2832": "eslint",
-  "2833": "@types/react-dom",
-  "2838": "9. Git Status/Diff Output"
+  "2833": "autoprefixer",
+  "2834": "NAV_CLEARANCE",
+  "2835": "Best Practices",
+  "2837": "7. Build Error Output",
+  "2838": "9. Git Status/Diff Output",
+  "2842": "lenis"
 }

@@ -32,6 +32,10 @@ defmodule MokaidWeb.Router do
     post "/auth/register", AuthController, :register
     post "/auth/logout", AuthController, :logout
 
+    get "/auth/google/status", AuthController, :google_status
+    post "/auth/google/start", AuthController, :google_start
+    post "/auth/google/callback", AuthController, :google_callback
+
     # PayMe posts payment results here (reconciled by invoice id).
     post "/payme/callback", PaymeWebhookController, :callback
   end
@@ -40,6 +44,7 @@ defmodule MokaidWeb.Router do
     pipe_through [:api, :authenticated]
 
     get "/me", AuthController, :me
+    post "/me/password", AuthController, :change_password
     get "/workspaces", WorkspaceController, :index
     post "/workspaces", WorkspaceController, :create
 

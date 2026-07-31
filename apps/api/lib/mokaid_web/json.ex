@@ -12,7 +12,9 @@ defmodule MokaidWeb.JSON do
       locale: user.locale,
       timezone: user.timezone,
       mfa_enabled: user.mfa_enabled,
-      last_login_at: user.last_login_at
+      last_login_at: user.last_login_at,
+      # True when the account has a local password (not OAuth/Cognito-only).
+      has_password: Mokaid.Accounts.User.has_password?(user)
     }
   end
 

@@ -38,6 +38,46 @@ defmodule Mokaid.Accounts.User do
     cast(user, attrs, [:full_name, :avatar_url, :locale, :timezone])
   end
 
+  @doc """
+  Changes password for email/password accounts. Requires `current_password`,
+  `password` and `password_confirmation`. OAuth-only users have no hash.
+  """
+  def password_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:password])
+    |> validate_required([:password])
+    |> validate_length(:password, min: 10, max: 100)
+    |> validate_confirmation(:password, required: true, message: "does not match")
+    |> validate_current_password(attrs)
+    |> maybe_hash_password()
+  end
+
+  def has_password?(%__MODULE__{hashed_password: hashed})
+      when is_binary(hashed) and hashed != "",
+      do: true
+
+  def has_password?(_), do: false
+
+  defp validate_current_password(changeset, attrs) do
+    current = attrs["current_password"] || attrs[:current_password]
+
+    cond do
+      not has_password?(changeset.data) ->
+        add_error(changeset, :current_password, "cannot be changed for OAuth accounts")
+
+      not is_binary(current) or current == "" ->
+        add_error(changeset, :current_password, "can't be blank")
+
+      valid_password?(changeset.data, current) ->
+        changeset
+
+      true ->
+        add_error(changeset, :current_password, "is incorrect")
+    end
+  end
+
+  defp maybe_hash_password(%Ecto.Changeset{valid?: false} = changeset), do: changeset
+
   defp maybe_hash_password(changeset) do
     case get_change(changeset, :password) do
       nil ->

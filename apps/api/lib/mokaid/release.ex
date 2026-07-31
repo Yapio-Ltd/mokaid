@@ -14,16 +14,23 @@ defmodule Mokaid.Release do
       {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
     end
 
-    seed_integration_logos()
+    seed_catalogs()
   end
 
-  def seed_integration_logos do
+  @doc "Seeds integration logos, MCP catalog and 3D asset catalog (idempotent)."
+  def seed_catalogs do
     load_app()
 
     {:ok, _, _} =
       Ecto.Migrator.with_repo(Mokaid.Repo, fn _repo ->
         Mokaid.Integrations.LogoAssets.seed_all()
+        Mokaid.MCP.seed_catalog()
+        Mokaid.Assets3d.seed_catalog()
       end)
+  end
+
+  def seed_integration_logos do
+    seed_catalogs()
   end
 
   def rollback(repo, version) do

@@ -7,6 +7,7 @@ import { ArrowLeft, Bot, Building2, Sparkles } from "lucide-react";
 import { apiFetch } from "@/api/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 const signupSchema = z.object({
   full_name: z.string().min(2, "Tell us your name"),
@@ -43,7 +44,7 @@ export function SignupPage() {
         body: values,
         skipWorkspace: true,
       });
-      setSession(response.token, response.user);
+      setSession(response.token, { ...response.user, has_password: true });
       setWorkspaces([{ ...response.workspace, role_name: "Owner" } as never]);
       navigate({ to: "/dashboard" });
     } catch (err) {
@@ -156,6 +157,17 @@ export function SignupPage() {
             <Sparkles size={15} /> Create workspace
           </Button>
         </form>
+
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center" aria-hidden>
+            <div className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-[11px]">
+            <span className="bg-bg-deep px-3 text-text-muted">or</span>
+          </div>
+        </div>
+
+        <GoogleSignInButton intent="signup" onError={setError} />
 
         <p className="mt-6 text-center text-xs text-text-muted">
           Already have an account?{" "}

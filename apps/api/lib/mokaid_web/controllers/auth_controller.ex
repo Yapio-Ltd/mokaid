@@ -96,4 +96,71 @@ defmodule MokaidWeb.AuthController do
         end)
     })
   end
+
+  @doc """
+  Changes the authenticated user's password (email/password accounts only).
+  Body: current_password, password, password_confirmation.
+  """
+  def change_password(conn, params) do
+    user = current_user(conn)
+
+    with {:ok, _user} <- Accounts.change_password(user, params) do
+      json(conn, %{ok: true})
+    end
+  end
+
+  @doc "Returns whether Google identity OAuth is configured."
+  def google_status(conn, _params) do
+    json(conn, %{data: %{configured: Mokaid.Auth.Google.configured?()}})
+  end
+
+  @doc "Starts Google sign-in / sign-up. Body: redirect_uri, optional intent (login|signup)."
+  def google_start(conn, params) do
+    redirect_uri = params["redirect_uri"]
+    intent = params["intent"] || "login"
+
+    with {:ok, url} <- Mokaid.Auth.Google.authorize_url(redirect_uri, intent: intent) do
+      json(conn, %{data: %{authorize_url: url}})
+    end
+  end
+
+  @doc """
+  Completes Google sign-in / sign-up.
+  Body: code, state, redirect_uri.
+  """
+  def google_callback(conn, %{"code" => code, "state" => state, "redirect_uri" => redirect_uri}) do
+    with {:ok, profile} <- Mokaid.Auth.Google.exchange_code(code, state, redirect_uri),
+         {:ok, user, status, workspace} <- Accounts.login_or_register_with_google(profile) do
+      workspaces = Workspaces.list_workspaces_with_role(user.id)
+
+      payload = %{
+        token: Token.sign(user.id),
+        user: Serializer.user(user),
+        status: status,
+        workspaces:
+          Enum.map(workspaces, fn {ws, role_name} ->
+            ws |> Serializer.workspace() |> Map.put(:role_name, role_name)
+          end)
+      }
+
+      payload =
+        if workspace do
+          Map.put(payload, :workspace, Serializer.workspace(workspace))
+        else
+          payload
+        end
+
+      status_code = if status == :created, do: :created, else: :ok
+
+      conn
+      |> put_status(status_code)
+      |> json(payload)
+    end
+  end
+
+  def google_callback(conn, _params) do
+    conn
+    |> put_status(:bad_request)
+    |> json(%{error: %{code: "bad_request", message: "code, state and redirect_uri are required"}})
+  end
 end

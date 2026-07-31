@@ -11,6 +11,8 @@ interface AuthUser {
   email: string;
   full_name: string;
   avatar_url: string | null;
+  /** Local password account (not Google/Cognito-only). */
+  has_password?: boolean;
 }
 
 export interface WorkspaceSummary {
