@@ -52,6 +52,27 @@ defmodule Mokaid.Accounts do
 
   def has_password?(%User{} = user), do: User.has_password?(user)
 
+  @doc "Updates profile fields (full_name, locale, timezone, avatar_url)."
+  def update_profile(%User{} = user, attrs) do
+    user
+    |> User.profile_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc "Uploads an avatar image to object storage and stores the S3 key on the user."
+  def upload_avatar(%User{} = user, %Plug.Upload{} = file) do
+    with {:ok, stored} <- Mokaid.Storage.upload_user_avatar(user.id, file) do
+      update_profile(user, %{"avatar_url" => stored.storage_key})
+    end
+  end
+
+  @doc "Clears the user's avatar_url."
+  def remove_avatar(%User{} = user) do
+    user
+    |> Ecto.Changeset.change(avatar_url: nil)
+    |> Repo.update()
+  end
+
   @doc """
   Signs in or registers a user from a verified Google profile.
   Returns `{:ok, user, :created | :existing}`. New users get a workspace.

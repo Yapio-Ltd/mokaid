@@ -35,7 +35,40 @@ defmodule Mokaid.Accounts.User do
   end
 
   def profile_changeset(user, attrs) do
-    cast(user, attrs, [:full_name, :avatar_url, :locale, :timezone])
+    user
+    |> cast(attrs, [:full_name, :avatar_url, :locale, :timezone])
+    |> validate_required([:full_name])
+    |> validate_length(:full_name, min: 1, max: 120)
+    |> validate_inclusion(:locale, ~w(en fr he))
+    |> validate_required([:timezone])
+    |> validate_length(:timezone, min: 1, max: 80)
+  end
+
+  @doc """
+  True when `avatar_url` holds an S3 storage key (uploaded avatar), not an
+  external HTTPS URL (e.g. Google profile picture).
+  """
+  def uploaded_avatar?(%__MODULE__{avatar_url: url}) when is_binary(url) do
+    String.starts_with?(url, "users/")
+  end
+
+  def uploaded_avatar?(_), do: false
+
+  @doc "Derives a coarse auth provider label for the profile UI."
+  def auth_provider(%__MODULE__{} = user) do
+    cond do
+      is_binary(user.cognito_sub) and String.starts_with?(user.cognito_sub, "google:") ->
+        "google"
+
+      has_password?(user) ->
+        "password"
+
+      is_binary(user.cognito_sub) and user.cognito_sub != "" ->
+        "sso"
+
+      true ->
+        "password"
+    end
   end
 
   @doc """

@@ -5,7 +5,6 @@ import { Topbar } from "./topbar";
 import { useWorkspaceChannel } from "@/realtime/use-workspace-channel";
 import { useOnboardingSettings } from "@/api/hooks";
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
-import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
 import { CoachmarkTour } from "@/components/onboarding/coachmark-tour";
 import { ReviewBanner } from "@/components/approvals/review-banner";
 import { ReviewGateModal } from "@/components/approvals/review-gate-modal";
@@ -49,7 +48,6 @@ export function AppShell() {
       <TaskDetailPanel taskId={selectedTaskId} onClose={() => selectTask(null)} overlay />
       <FloatingChatDock />
       <OnboardingGate />
-      <OnboardingChecklist />
       <CoachmarkTour />
       <ReviewGateModal />
       <Toaster />

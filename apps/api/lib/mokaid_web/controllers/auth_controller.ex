@@ -98,6 +98,76 @@ defmodule MokaidWeb.AuthController do
   end
 
   @doc """
+  Updates the authenticated user's profile.
+  Body (all optional): full_name, locale, timezone.
+  """
+  def update_me(conn, params) do
+    user = current_user(conn)
+    attrs = Map.take(params, ["full_name", "locale", "timezone"])
+
+    with {:ok, updated} <- Accounts.update_profile(user, attrs) do
+      json(conn, %{user: Serializer.user(updated)})
+    end
+  end
+
+  @doc "Streams the current user's uploaded avatar (S3 key stored in avatar_url)."
+  def avatar(conn, _params) do
+    user = current_user(conn)
+
+    with true <- Accounts.User.uploaded_avatar?(user),
+         {:ok, body, content_type} <- Mokaid.Storage.get_object(user.avatar_url) do
+      conn
+      |> put_resp_content_type(content_type)
+      |> put_resp_header("cache-control", "private, max-age=300")
+      |> send_resp(200, body)
+    else
+      false ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: %{code: "not_found", message: "No uploaded avatar"}})
+
+      {:error, _} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: %{code: "not_found", message: "Avatar file not found"}})
+    end
+  end
+
+  @doc "Multipart upload for the current user's avatar. Field name: file."
+  def upload_avatar(conn, %{"file" => %Plug.Upload{} = file}) do
+    user = current_user(conn)
+
+    with :ok <- validate_avatar_file(file),
+         {:ok, updated} <- Accounts.upload_avatar(user, file) do
+      json(conn, %{user: Serializer.user(updated)})
+    else
+      {:error, :invalid_image} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{
+          error: %{code: "invalid_image", message: "Avatar must be a PNG, JPG, WebP or GIF image"}
+        })
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def upload_avatar(conn, _params) do
+    conn
+    |> put_status(:bad_request)
+    |> json(%{error: %{code: "missing_file", message: "Expected multipart field \"file\""}})
+  end
+
+  def remove_avatar(conn, _params) do
+    user = current_user(conn)
+
+    with {:ok, updated} <- Accounts.remove_avatar(user) do
+      json(conn, %{user: Serializer.user(updated)})
+    end
+  end
+
+  @doc """
   Changes the authenticated user's password (email/password accounts only).
   Body: current_password, password, password_confirmation.
   """
@@ -107,6 +177,14 @@ defmodule MokaidWeb.AuthController do
     with {:ok, _user} <- Accounts.change_password(user, params) do
       json(conn, %{ok: true})
     end
+  end
+
+  defp validate_avatar_file(%Plug.Upload{content_type: ct, filename: name}) do
+    ext = name |> Path.extname() |> String.downcase()
+    ext_ok = ext in ~w(.jpg .jpeg .png .webp .gif)
+    type_ok = is_binary(ct) and String.starts_with?(ct, "image/")
+
+    if ext_ok or type_ok, do: :ok, else: {:error, :invalid_image}
   end
 
   @doc "Returns whether Google identity OAuth is configured."

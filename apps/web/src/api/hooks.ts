@@ -1156,6 +1156,20 @@ export function useCreateWorkspace() {
   });
 }
 
+export type MeUser = {
+  id: string;
+  email: string;
+  full_name: string;
+  avatar_url: string | null;
+  has_avatar?: boolean;
+  has_password?: boolean;
+  locale?: string;
+  timezone?: string;
+  mfa_enabled?: boolean;
+  last_login_at?: string | null;
+  auth_provider?: string;
+};
+
 export function useMe() {
   const token = useAuthStore((s) => s.token);
   return useQuery({
@@ -1163,15 +1177,87 @@ export function useMe() {
     enabled: Boolean(token),
     queryFn: () =>
       apiFetch<{
-        user: {
-          id: string;
-          email: string;
-          full_name: string;
-          avatar_url: string | null;
-          has_password?: boolean;
-        };
+        user: MeUser;
         workspaces: WorkspaceSummary[];
       }>("/api/me", { skipWorkspace: true }),
+  });
+}
+
+function syncAuthUser(user: MeUser) {
+  const { token, patchUser, setSession } = useAuthStore.getState();
+  if (!token) return;
+  const next = {
+    id: user.id,
+    email: user.email,
+    full_name: user.full_name,
+    avatar_url: user.avatar_url,
+    has_avatar: user.has_avatar,
+    has_password: user.has_password,
+    locale: user.locale,
+    timezone: user.timezone,
+    mfa_enabled: user.mfa_enabled,
+    last_login_at: user.last_login_at,
+    auth_provider: user.auth_provider,
+  };
+  if (useAuthStore.getState().user) {
+    patchUser(next);
+  } else {
+    setSession(token, next);
+  }
+}
+
+export function useUpdateMe() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { full_name?: string; locale?: string; timezone?: string }) =>
+      apiFetch<{ user: MeUser }>("/api/me", {
+        method: "PATCH",
+        body,
+        skipWorkspace: true,
+      }),
+    onSuccess: (res) => {
+      syncAuthUser(res.user);
+      queryClient.setQueryData(["me"], (prev: { user: MeUser; workspaces: WorkspaceSummary[] } | undefined) =>
+        prev ? { ...prev, user: res.user } : prev,
+      );
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+}
+
+export function useUploadAvatar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return apiUpload<{ user: MeUser }>("/api/me/avatar", formData);
+    },
+    onSuccess: (res) => {
+      syncAuthUser(res.user);
+      queryClient.setQueryData(["me"], (prev: { user: MeUser; workspaces: WorkspaceSummary[] } | undefined) =>
+        prev ? { ...prev, user: res.user } : prev,
+      );
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+}
+
+export function useRemoveAvatar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<{ user: MeUser }>("/api/me/avatar", {
+        method: "DELETE",
+        skipWorkspace: true,
+      }),
+    onSuccess: (res) => {
+      syncAuthUser(res.user);
+      queryClient.setQueryData(["me"], (prev: { user: MeUser; workspaces: WorkspaceSummary[] } | undefined) =>
+        prev ? { ...prev, user: res.user } : prev,
+      );
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+    },
   });
 }
 

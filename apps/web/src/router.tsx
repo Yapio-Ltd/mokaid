@@ -60,6 +60,9 @@ const AnalyticsPage = lazyPage(() =>
 const SettingsPage = lazyPage(() =>
   import("@/pages/settings").then((m) => ({ default: m.SettingsPage })),
 );
+const ProfilePage = lazyPage(() =>
+  import("@/pages/profile").then((m) => ({ default: m.ProfilePage })),
+);
 const MembersPage = lazyPage(() =>
   import("@/pages/members").then((m) => ({ default: m.MembersPage })),
 );
@@ -156,6 +159,7 @@ const pages = [
   { path: "/calendar", component: CalendarPage },
   { path: "/analytics", component: AnalyticsPage },
   { path: "/settings", component: SettingsPage },
+  { path: "/profile", component: ProfilePage },
   { path: "/members", component: MembersPage },
   { path: "/integrations", component: McpHubPage },
   { path: "/billing", component: BillingPage },

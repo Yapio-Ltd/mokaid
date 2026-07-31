@@ -18,6 +18,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useUiStore } from "@/stores/ui-store";
 import { Logo } from "@/components/brand/logo";
 import { Avatar } from "@/components/ui/avatar";
+import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
 
 const mainNav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -124,16 +125,25 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className={cn("p-3", collapsed && "flex justify-center")}>
-        <div className={cn("flex items-center gap-2.5", collapsed && "justify-center")}>
-          <Avatar name={user?.full_name} size="sm" color="#5936d1" />
+      <div className={cn("space-y-1 border-t border-border/40 p-3", collapsed && "flex flex-col items-center")}>
+        <OnboardingChecklist collapsed={collapsed} />
+        <Link
+          to="/profile"
+          title={collapsed ? user?.full_name ?? "Profile" : undefined}
+          className={cn(
+            "flex items-center gap-2.5 rounded-md px-3 py-2 transition-colors hover:bg-surface-hover mk-focus-ring",
+            isActive("/profile") && "bg-primary-muted",
+            collapsed && "justify-center px-2",
+          )}
+        >
+          <Avatar name={user?.full_name} src={user?.avatar_url} size="sm" color="#5936d1" />
           {!collapsed && (
             <div className="min-w-0">
               <p className="truncate text-[13px] font-semibold text-text">{user?.full_name}</p>
               <p className="truncate text-[11px] text-text-muted">{roleName}</p>
             </div>
           )}
-        </div>
+        </Link>
       </div>
     </nav>
   );

@@ -44,7 +44,11 @@ defmodule MokaidWeb.Router do
     pipe_through [:api, :authenticated]
 
     get "/me", AuthController, :me
+    patch "/me", AuthController, :update_me
     post "/me/password", AuthController, :change_password
+    get "/me/avatar", AuthController, :avatar
+    post "/me/avatar", AuthController, :upload_avatar
+    delete "/me/avatar", AuthController, :remove_avatar
     get "/workspaces", WorkspaceController, :index
     post "/workspaces", WorkspaceController, :create
 

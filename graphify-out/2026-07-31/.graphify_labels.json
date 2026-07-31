@@ -2828,12 +2828,8 @@
   "2826": "Keyboard Controls",
   "2827": "_render-idle-preview.py",
   "2828": "Cost Optimization for Observability",
-  "2829": "Collections",
-  "2830": "scene-store.ts",
   "2831": "label-overlay.ts",
-  "2832": "eslint",
   "2833": "autoprefixer",
-  "2834": "NAV_CLEARANCE",
   "2835": "Best Practices",
   "2836": "@mokaid/shared-types",
   "2837": "7. Build Error Output",
@@ -2841,12 +2837,9 @@
   "2839": "@radix-ui/react-tooltip",
   "2840": "@tanstack/react-router",
   "2841": "zod",
-  "2842": "lenis",
   "2843": "typescript",
   "2844": "@typescript-eslint/eslint-plugin",
   "2845": "vitest",
-  "2846": "autoprefixer",
   "2847": "eslint",
-  "2848": "google-logo.tsx",
-  "2849": "main.tsx"
+  "2849": "Runbook Generation and Incident Response"
 }

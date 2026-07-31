@@ -8,11 +8,13 @@ defmodule MokaidWeb.JSON do
       id: user.id,
       email: user.email,
       full_name: user.full_name,
-      avatar_url: user.avatar_url,
+      avatar_url: resolve_user_avatar_url(user),
+      has_avatar: user_has_avatar?(user),
       locale: user.locale,
       timezone: user.timezone,
       mfa_enabled: user.mfa_enabled,
       last_login_at: user.last_login_at,
+      auth_provider: Mokaid.Accounts.User.auth_provider(user),
       # True when the account has a local password (not OAuth/Cognito-only).
       has_password: Mokaid.Accounts.User.has_password?(user)
     }
@@ -315,7 +317,7 @@ defmodule MokaidWeb.JSON do
             member_id: pm.member_id,
             role: pm.role,
             full_name: member_user && member_user.full_name,
-            avatar_url: member_user && member_user.avatar_url
+            avatar_url: member_user && resolve_user_avatar_url(member_user)
           }
         end),
       inserted_at: project.inserted_at
@@ -334,7 +336,7 @@ defmodule MokaidWeb.JSON do
       user_id: member.user_id,
       full_name: user && user.full_name,
       email: user && user.email,
-      avatar_url: user && user.avatar_url,
+      avatar_url: user && resolve_user_avatar_url(user),
       role_name: (role && role.name) || "Member",
       team_name: team && team.name,
       title: member.title,
@@ -639,6 +641,31 @@ defmodule MokaidWeb.JSON do
       _ ->
         workspace.logo_url
     end
+  end
+
+  defp resolve_user_avatar_url(user) do
+    url = user.avatar_url
+
+    cond do
+      is_binary(url) and String.starts_with?(url, "http://") ->
+        url
+
+      is_binary(url) and String.starts_with?(url, "https://") ->
+        url
+
+      Mokaid.Accounts.User.uploaded_avatar?(user) ->
+        case Mokaid.Storage.download_url(url) do
+          {:ok, signed} -> signed
+          _ -> "/api/me/avatar"
+        end
+
+      true ->
+        nil
+    end
+  end
+
+  defp user_has_avatar?(user) do
+    is_binary(user.avatar_url) and user.avatar_url != ""
   end
 
   defp logo_uploaded?(workspace) do

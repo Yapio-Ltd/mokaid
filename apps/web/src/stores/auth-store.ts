@@ -6,13 +6,19 @@ function disposeOfficeHostLazy() {
   void import("@/three/office-scene-host").then((m) => m.disposeOfficeHost());
 }
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   email: string;
   full_name: string;
   avatar_url: string | null;
   /** Local password account (not Google/Cognito-only). */
   has_password?: boolean;
+  has_avatar?: boolean;
+  locale?: string;
+  timezone?: string;
+  mfa_enabled?: boolean;
+  last_login_at?: string | null;
+  auth_provider?: "google" | "password" | "sso" | string;
 }
 
 export interface WorkspaceSummary {
@@ -29,6 +35,7 @@ interface AuthState {
   workspaceId: string | null;
   workspaces: WorkspaceSummary[];
   setSession: (token: string, user: AuthUser) => void;
+  patchUser: (patch: Partial<AuthUser>) => void;
   setWorkspaces: (workspaces: WorkspaceSummary[]) => void;
   selectWorkspace: (id: string) => void;
   addWorkspace: (workspace: WorkspaceSummary) => void;
@@ -44,6 +51,8 @@ export const useAuthStore = create<AuthState>()(
       workspaceId: null,
       workspaces: [],
       setSession: (token, user) => set({ token, user }),
+      patchUser: (patch) =>
+        set((state) => (state.user ? { user: { ...state.user, ...patch } } : state)),
       setWorkspaces: (workspaces) =>
         set((state) => ({
           workspaces,

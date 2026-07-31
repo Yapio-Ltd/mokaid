@@ -219,7 +219,7 @@ export function Topbar() {
             className="mk-focus-ring rounded-full transition-transform duration-150 hover:scale-105 active:scale-95"
             aria-label="Account menu"
           >
-            <Avatar name={user?.full_name} size="sm" color="#5936d1" />
+            <Avatar name={user?.full_name} src={user?.avatar_url} size="sm" color="#5936d1" />
           </button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
@@ -234,6 +234,12 @@ export function Topbar() {
             </div>
             <DropdownMenu.Item
               className="mt-1 cursor-pointer rounded-md px-2 py-1.5 text-xs text-text outline-none data-[highlighted]:bg-surface-hover"
+              onSelect={() => navigate({ to: "/profile" })}
+            >
+              Profile
+            </DropdownMenu.Item>
+            <DropdownMenu.Item
+              className="cursor-pointer rounded-md px-2 py-1.5 text-xs text-text outline-none data-[highlighted]:bg-surface-hover"
               onSelect={() => navigate({ to: "/settings" })}
             >
               Workspace Settings

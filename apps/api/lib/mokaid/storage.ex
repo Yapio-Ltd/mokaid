@@ -28,6 +28,18 @@ defmodule Mokaid.Storage do
     end
   end
 
+  @doc "Uploads a user avatar image (PNG/JPG/WebP/GIF)."
+  @spec upload_user_avatar(String.t(), Plug.Upload.t()) ::
+          {:ok, %{storage_key: String.t(), size_bytes: non_neg_integer(), checksum: String.t()}}
+          | {:error, term()}
+  def upload_user_avatar(user_id, %Plug.Upload{} = upload) do
+    with {:ok, body} <- File.read(upload.path) do
+      safe_name = upload.filename |> String.slice(0, 100)
+      key = "users/#{user_id}/avatar/#{Ecto.UUID.generate()}/#{safe_name}"
+      put_object(uploads_bucket(), key, body, upload.content_type)
+    end
+  end
+
   defp put_object(bucket, key, body, content_type) do
     checksum = :crypto.hash(:sha256, body) |> Base.encode16(case: :lower)
     ct = safe_content_type(content_type)

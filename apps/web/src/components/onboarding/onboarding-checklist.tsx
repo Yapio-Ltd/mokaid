@@ -63,7 +63,7 @@ function ProgressRing({ value, total }: { value: number; total: number }) {
   );
 }
 
-export function OnboardingChecklist() {
+export function OnboardingChecklist({ collapsed = false }: { collapsed?: boolean }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const startTour = useOnboardingStore((s) => s.startTour);
@@ -156,9 +156,14 @@ export function OnboardingChecklist() {
   };
 
   return (
-    <div className="fixed bottom-5 left-5 z-40">
-      {open ? (
-        <div className="w-[320px] rounded-2xl bg-surface p-4 shadow-[0_12px_48px_rgba(0,0,0,0.35)] mk-fade-up">
+    <div className="relative">
+      {open && (
+        <div
+          className={cn(
+            "absolute bottom-full z-40 mb-2 w-[320px] rounded-2xl bg-surface p-4 shadow-[0_12px_48px_rgba(0,0,0,0.35)] mk-fade-up",
+            collapsed ? "left-0" : "left-0 right-0 w-auto min-w-[240px]",
+          )}
+        >
           <div className="mb-3 flex items-start justify-between">
             <div>
               <h3 className="text-sm font-bold text-text">Getting started</h3>
@@ -177,7 +182,6 @@ export function OnboardingChecklist() {
             </div>
           </div>
 
-          {/* Progress bar */}
           <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-surface-raised">
             <div
               className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-700"
@@ -226,23 +230,30 @@ export function OnboardingChecklist() {
             ))}
           </div>
         </div>
-      ) : (
-        <button
-          onClick={() => setOpen(true)}
-          className="flex items-center gap-2.5 rounded-full bg-surface py-1.5 pl-1.5 pr-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] transition-transform hover:scale-[1.03] mk-fade-up"
-        >
-          <span className="relative flex items-center justify-center">
-            <ProgressRing value={doneCount} total={items.length} />
-            <ListChecks size={14} className="absolute text-primary-light" />
-          </span>
-          <span className="text-left">
-            <span className="block text-xs font-semibold text-text">Getting started</span>
-            <span className="block text-[10px] text-text-muted">
+      )}
+
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title={collapsed ? "Getting started" : undefined}
+        className={cn(
+          "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left transition-colors hover:bg-surface-hover",
+          open && "bg-surface-hover",
+          collapsed && "justify-center px-2",
+        )}
+      >
+        <span className="relative flex shrink-0 items-center justify-center">
+          <ProgressRing value={doneCount} total={items.length} />
+          <ListChecks size={14} className="absolute text-primary-light" />
+        </span>
+        {!collapsed && (
+          <span className="min-w-0">
+            <span className="block text-[13px] font-semibold text-text">Getting started</span>
+            <span className="block text-[11px] text-text-muted">
               {doneCount}/{items.length} done
             </span>
           </span>
-        </button>
-      )}
+        )}
+      </button>
     </div>
   );
 }
