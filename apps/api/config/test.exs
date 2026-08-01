@@ -29,6 +29,9 @@ config :mokaid, MokaidWeb.Endpoint,
 
 config :mokaid, Oban, testing: :inline
 
+# Head-start training worker: no cinematic delays in tests (Oban runs inline).
+config :mokaid, :boost_training_step_ms, 0
+
 # No AI worker in tests: the dispatcher always uses its deterministic heuristic.
 config :mokaid, :ai_worker, dispatch: :none, url: nil, token: "test-token"
 

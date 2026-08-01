@@ -39,6 +39,12 @@ const DashboardPage = lazyPage(() =>
 const AgentsPage = lazyPage(() =>
   import("@/pages/agents").then((m) => ({ default: m.AgentsPage })),
 );
+const AgentsNewPage = lazyPage(() =>
+  import("@/pages/agents-new").then((m) => ({ default: m.AgentsNewPage })),
+);
+const AgentTrainingPage = lazyPage(() =>
+  import("@/pages/agent-training").then((m) => ({ default: m.AgentTrainingPage })),
+);
 const TasksPage = lazyPage(() =>
   import("@/pages/tasks").then((m) => ({ default: m.TasksPage })),
 );
@@ -169,6 +175,18 @@ const pageRoutes = pages.map(({ path, component }) =>
   createRoute({ getParentRoute: () => appRoute, path, component }),
 );
 
+const agentsNewRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/agents/new",
+  component: AgentsNewPage,
+});
+
+const agentTrainingRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/agents/$agentId/training",
+  component: AgentTrainingPage,
+});
+
 const figmaCallbackRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/oauth/figma/callback",
@@ -250,7 +268,7 @@ const routeTree = rootRoute.addChildren([
   termsRoute,
   cookiesRoute,
   legalRoute,
-  appRoute.addChildren(pageRoutes),
+  appRoute.addChildren([...pageRoutes, agentsNewRoute, agentTrainingRoute]),
 ]);
 
 export const router = createRouter({ routeTree });

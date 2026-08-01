@@ -48,7 +48,7 @@ defmodule Mokaid.Agents.Agent do
   end
 
   @kinds ~w(ai human_linked hybrid)
-  @statuses ~w(active busy idle waiting blocked away offline archived)
+  @statuses ~w(active busy idle waiting blocked away offline archived training)
   @presences ~w(online offline away)
   @office_activities ~w(preparing_coffee playing_foosball sitting_sofa walking scrolling stretching looking_around)
   @office_phases ~w(approaching entering active leaving)

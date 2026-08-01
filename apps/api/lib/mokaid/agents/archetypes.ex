@@ -328,9 +328,9 @@ defmodule Mokaid.Agents.Archetypes do
   def build_create_attrs(attrs, archetype_key, boost_key \\ nil) do
     with {:ok, archetype} <- fetch_archetype(archetype_key),
          {:ok, boost} <- fetch_boost(boost_key, archetype) do
-      skill_bonus = if boost, do: boost.skill_bonus, else: 0
-      target_level = if boost, do: boost.target_level, else: 1
-      {level, xp, next} = starting_progression(target_level)
+      # Paid boosts start at level 1; AgentBoostTrainingWorker applies the climb.
+      skill_bonus = 0
+      {level, xp, next} = starting_progression(1)
       kind = resolve_kind(attrs)
       seed = skill_seed_for(archetype)
 
@@ -360,6 +360,9 @@ defmodule Mokaid.Agents.Archetypes do
           "archetype" => archetype.key,
           "tier" => archetype.tier
         })
+        |> maybe_put_training(boost, archetype, brief)
+
+      status = if boost, do: "training", else: "idle"
 
       created =
         attrs
@@ -391,11 +394,28 @@ defmodule Mokaid.Agents.Archetypes do
           "ai_enabled" => kind in ["ai", "hybrid"],
           "control_mode" =>
             if(kind == "human_linked", do: "human_controlled", else: "ai_controlled"),
-          "status" => "idle"
+          "status" => status
         })
 
       {:ok, created, archetype, boost}
     end
+  end
+
+  defp maybe_put_training(capabilities, nil, _archetype, _brief), do: capabilities
+
+  defp maybe_put_training(capabilities, boost, archetype, brief) do
+    Map.put(capabilities, "training", %{
+      "boost_key" => boost.key,
+      "target_level" => boost.target_level,
+      "skill_bonus" => boost.skill_bonus,
+      "base_skill_level" => skill_seed_for(archetype),
+      "status" => "running",
+      "phase" => "leveling",
+      "started_at" => DateTime.utc_now() |> DateTime.to_iso8601(),
+      "archetype_key" => archetype.key,
+      "knowledge_brief" => blank_to_nil(brief),
+      "suggested_mcp" => Map.get(archetype, :suggested_mcp) || []
+    })
   end
 
   defp resolve_kind(attrs) do

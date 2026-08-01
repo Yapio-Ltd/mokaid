@@ -815,8 +815,8 @@
     "semantic_hash": "410eadd244435ef353c272014ee0dd31"
   },
   "apps/api/lib/mokaid_web/controllers/auth_controller.ex": {
-    "mtime": 1785507420.6876132,
-    "ast_hash": "ae0cbd77c46cca652bcab16aca010420",
+    "mtime": 1785509726.745925,
+    "ast_hash": "037e77d67646ec0da6f7e808b2871d47",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/controllers/billing_controller.ex": {
@@ -845,8 +845,8 @@
     "semantic_hash": "4f6b0d14d00d5b329824cd11dae72ae6"
   },
   "apps/api/lib/mokaid_web/controllers/fallback_controller.ex": {
-    "mtime": 1785496418.5989466,
-    "ast_hash": "dab8935cd2401ff7f293ce3bc346dac8",
+    "mtime": 1785509726.7515974,
+    "ast_hash": "677f2e8221a8c6420d3ed44cf598d746",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/controllers/health_controller.ex": {
@@ -940,8 +940,8 @@
     "semantic_hash": "a0a255004966023e3af867c841e38e96"
   },
   "apps/api/lib/mokaid_web/json.ex": {
-    "mtime": 1785507281.788109,
-    "ast_hash": "43c8adb1ec87a91bae50df8f2be4656b",
+    "mtime": 1785507480.1950588,
+    "ast_hash": "8f2dd33b5dc8f93765bb6028beff2136",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/plugs/authenticate.ex": {
@@ -1110,8 +1110,8 @@
     "semantic_hash": ""
   },
   "apps/api/test/mokaid/agents_test.exs": {
-    "mtime": 1784302199.767073,
-    "ast_hash": "b15b4e9bc60a971c2b30494282cf49ec",
+    "mtime": 1785510008.1698096,
+    "ast_hash": "c6235397995dd5a8d05f4091fe381116",
     "semantic_hash": ""
   },
   "apps/api/test/mokaid/ai_completion_test.exs": {

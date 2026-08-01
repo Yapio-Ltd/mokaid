@@ -497,7 +497,7 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
           setAgentError(`Need ${specialistCredits} credits for a level-10 specialist.`);
           return;
         }
-        await createAgent.mutateAsync({
+        const created = await createAgent.mutateAsync({
           display_name: agentName.trim(),
           kind: "ai",
           archetype_key: key,
@@ -507,15 +507,24 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
           department: selectedArchetype?.department,
           avatar_config: { primary_color: agentColor },
         });
-      } else {
-        await createAgent.mutateAsync({
-          display_name: agentName.trim(),
-          kind: "ai",
-          archetype_key: "blank",
-          knowledge_brief: brief || undefined,
-          avatar_config: { primary_color: agentColor },
+        setAgentCreated(true);
+        // Head-start training cinematic — close wizard and show level climb.
+        void updateOnboarding.mutateAsync({ wizard_done: true }).catch(() => undefined);
+        onFinish();
+        void navigate({
+          to: "/agents/$agentId/training",
+          params: { agentId: created.data.id },
         });
+        return;
       }
+
+      await createAgent.mutateAsync({
+        display_name: agentName.trim(),
+        kind: "ai",
+        archetype_key: "blank",
+        knowledge_brief: brief || undefined,
+        avatar_config: { primary_color: agentColor },
+      });
       setAgentCreated(true);
       setTimeout(() => setStep(4), 700);
     } catch (e) {

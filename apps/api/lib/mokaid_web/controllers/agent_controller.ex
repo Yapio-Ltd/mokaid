@@ -62,6 +62,14 @@ defmodule MokaidWeb.AgentController do
     end
   end
 
+  @doc "Head-start training progress (poll fallback for the training page)."
+  def training(conn, %{"id" => id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "agents.view"),
+         %{} = agent <- Agents.get_agent(workspace_id(conn), id) do
+      json(conn, %{data: Agents.training_snapshot(agent)})
+    end
+  end
+
   def update(conn, %{"id" => id} = params) do
     with :ok <- Permissions.authorize(current_member(conn), "agents.update"),
          %{} = agent <- Agents.get_agent(workspace_id(conn), id),

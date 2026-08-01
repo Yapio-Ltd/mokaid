@@ -1,11 +1,12 @@
 import type { AgentStatus, TaskStatus, TaskPriority } from "@mokaid/shared-types";
 import { Badge } from "./badge";
 
-const agentStatusTone: Record<string, "success" | "warning" | "primary" | "danger" | "muted"> = {
+const agentStatusTone: Record<string, "success" | "warning" | "primary" | "danger" | "muted" | "info"> = {
   active: "success",
   busy: "warning",
   idle: "primary",
   waiting: "warning",
+  training: "info",
   blocked: "danger",
   away: "warning",
   offline: "muted",
@@ -17,6 +18,7 @@ const agentStatusLabel: Record<string, string> = {
   busy: "Busy",
   idle: "Waiting",
   waiting: "Waiting",
+  training: "Training",
   blocked: "Blocked",
   away: "Away",
   offline: "Offline",

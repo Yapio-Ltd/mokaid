@@ -10,7 +10,8 @@ export type AgentStatus =
   | "blocked"
   | "away"
   | "offline"
-  | "archived";
+  | "archived"
+  | "training";
 
 export type PresenceStatus = "online" | "offline" | "away";
 

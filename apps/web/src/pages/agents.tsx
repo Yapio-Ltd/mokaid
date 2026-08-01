@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Bot, Plus, Users } from "lucide-react";
 import { useAgents } from "@/api/hooks";
 import { KpiCard } from "@/components/ui/kpi-card";
@@ -11,7 +11,6 @@ import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AgentProfilePanel } from "@/components/agents/agent-profile-panel";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
-import { NewAgentModal } from "@/components/modals/new-agent-modal";
 import { cn } from "@/lib/cn";
 import { formatRelative } from "@/lib/format";
 
@@ -22,14 +21,14 @@ const kindFilters = [
   { value: "hybrid", label: "Hybrid" },
 ];
 
-const statusFilters = ["", "active", "busy", "idle", "waiting", "offline"];
+const statusFilters = ["", "active", "busy", "idle", "waiting", "training", "offline"];
 
 export function AgentsPage() {
+  const navigate = useNavigate();
   const [kind, setKind] = useState("");
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showNewAgent, setShowNewAgent] = useState(false);
 
   const { data, isLoading } = useAgents({ kind: kind || undefined, status: status || undefined });
 
@@ -48,6 +47,8 @@ export function AgentsPage() {
   const counts = data?.meta.counts;
   const selectedAgent = agents.find((a) => a.id === selectedId) ?? null;
   const atLimit = (counts?.total ?? 0) >= (counts?.limit ?? 1);
+
+  const goNewAgent = () => void navigate({ to: "/agents/new" });
 
   return (
     <div className="flex h-full gap-5">
@@ -73,7 +74,7 @@ export function AgentsPage() {
               <Plus size={14} /> Upgrade for more seats
             </Link>
           ) : (
-            <Button onClick={() => setShowNewAgent(true)} data-tour="new-agent">
+            <Button onClick={goNewAgent} data-tour="new-agent">
               <Plus size={14} /> New Agent
             </Button>
           )}
@@ -143,7 +144,7 @@ export function AgentsPage() {
             title="No agents found"
             description="Adjust your filters or create your first agent."
             action={
-              <Button size="sm" onClick={() => setShowNewAgent(true)}>
+              <Button size="sm" onClick={goNewAgent}>
                 <Plus size={13} /> New Agent
               </Button>
             }
@@ -166,7 +167,16 @@ export function AgentsPage() {
                 {agents.map((agent) => (
                   <tr
                     key={agent.id}
-                    onClick={() => setSelectedId(agent.id)}
+                    onClick={() => {
+                      if (agent.status === "training") {
+                        void navigate({
+                          to: "/agents/$agentId/training",
+                          params: { agentId: agent.id },
+                        });
+                        return;
+                      }
+                      setSelectedId(agent.id);
+                    }}
                     className={cn(
                       "cursor-pointer transition-colors hover:bg-surface-hover",
                       selectedId === agent.id && "bg-primary-muted/40",
@@ -225,11 +235,6 @@ export function AgentsPage() {
       </div>
 
       <AgentProfilePanel agent={selectedAgent} onClose={() => setSelectedId(null)} />
-      <NewAgentModal
-        open={showNewAgent}
-        onOpenChange={setShowNewAgent}
-        onCreated={(id) => setSelectedId(id)}
-      />
     </div>
   );
 }

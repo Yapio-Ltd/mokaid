@@ -84,6 +84,34 @@ export interface AgentProgression {
   recent_memories: Array<{ id: string; title: string; inserted_at: string }>;
 }
 
+export interface AgentTrainingSnapshot {
+  agent_id: string;
+  display_name: string;
+  status: string;
+  level: number;
+  xp: number;
+  xp_for_next_level: number;
+  skills: AgentSkill[];
+  role_title: string | null;
+  training: {
+    boost_key?: string;
+    target_level?: number;
+    skill_bonus?: number;
+    status?: string;
+    phase?: string;
+    current_level?: number;
+  } | null;
+  domain_pack: {
+    seeded_count: number;
+    pending_count: number;
+    seed_status: string | null;
+    skill_count: number;
+    archetype?: string;
+  };
+  complete?: boolean;
+  target_level: number;
+}
+
 export interface AgentCounts {
   total: number;
   ai: number;

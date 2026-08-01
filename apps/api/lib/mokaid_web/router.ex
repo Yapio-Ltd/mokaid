@@ -72,6 +72,7 @@ defmodule MokaidWeb.Router do
     post "/agents/:id/assign-task", AgentController, :assign_task
     post "/agents/:id/files", AgentController, :upload_files
     get "/agents/:id/progression", AgentController, :progression
+    get "/agents/:id/training", AgentController, :training
 
     get "/agent-chats", AgentChatController, :index
     get "/agents/:agent_id/chat", AgentChatController, :show

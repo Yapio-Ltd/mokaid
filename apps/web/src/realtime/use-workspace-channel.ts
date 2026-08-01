@@ -362,6 +362,10 @@ function maybeToast(event: string, payload: EventPayload): void {
       });
       return;
     }
+    case "agent.training_complete": {
+      // Celebrated on the dedicated training page — skip global toast noise.
+      return;
+    }
     default:
   }
 }
@@ -397,6 +401,8 @@ export function useWorkspaceChannel(): void {
       ["agent.status_changed", [["agents"], ["dashboard"]]],
       ["agent.linked_user_changed", [["agents"], ["members"]]],
       ["agent.level_up", [["agents"]]],
+      ["agent.training_progress", [["agents"]]],
+      ["agent.training_complete", [["agents"], ["billing"]]],
       ["task.created", [["tasks"], ["dashboard"]]],
       ["task.updated", [["tasks"]]],
       ["task.status_changed", [["tasks"], ["dashboard"], ["analytics"]]],

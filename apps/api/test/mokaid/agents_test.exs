@@ -174,8 +174,11 @@ defmodule Mokaid.AgentsTest do
                  "boost_key" => "boost_l5"
                })
 
+      # Oban :inline runs AgentBoostTrainingWorker before create returns.
       assert agent.level == 5
+      assert agent.status == "idle"
       assert Enum.any?(agent.skills, &(&1["level"] == 70))
+      assert get_in(agent.capabilities, ["training", "status"]) == "complete"
 
       # 500 included + 1500 purchased - 1500 boost = 500 remaining
       summary = Credits.summary(workspace.id)
@@ -225,8 +228,12 @@ defmodule Mokaid.AgentsTest do
                  "knowledge_brief" => "Build features from GitHub PRs"
                })
 
+      # Oban :inline completes progressive training + domain pack seed.
       assert agent.level == 10
+      assert agent.status == "idle"
       assert Enum.any?(agent.skills, &(&1["level"] == 90))
+      assert get_in(agent.capabilities, ["training", "status"]) == "complete"
+      assert get_in(agent.capabilities, ["training", "boost_key"]) == "boost_l10"
 
       items = Mokaid.Knowledge.list_items(workspace.id, %{"agent_id" => agent.id})
       assert length(items) >= 1
@@ -236,6 +243,10 @@ defmodule Mokaid.AgentsTest do
       assert domain_pack["archetype"] == "developer"
       assert is_list(domain_pack["skill_index"])
       assert domain_pack["skill_count"] >= 1
+
+      snap = Agents.training_snapshot(agent)
+      assert snap.complete?
+      assert snap.target_level == 10
 
       assert {:ok, skill} = Mokaid.Agents.DomainPacks.load_skill("developer", "code-review")
       # fallback: any first index slug

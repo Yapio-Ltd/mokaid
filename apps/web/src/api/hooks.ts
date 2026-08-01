@@ -7,6 +7,7 @@ import type {
   AgentChatMessage,
   AgentChatSummary,
   AgentProgression,
+  AgentTrainingSnapshot,
   AgentCounts,
   AnalyticsOverview,
   CreateAgentPayload,
@@ -98,6 +99,16 @@ export function useAgentProgression(id: string | null) {
     queryKey: [...key, "progression", id],
     enabled: id != null,
     queryFn: () => apiFetch<Envelope<AgentProgression>>(`/api/agents/${id}/progression`),
+  });
+}
+
+export function useAgentTraining(id: string | null) {
+  const key = useWorkspaceKey("agents");
+  return useQuery({
+    queryKey: [...key, "training", id],
+    enabled: id != null,
+    queryFn: () => apiFetch<Envelope<AgentTrainingSnapshot>>(`/api/agents/${id}/training`),
+    refetchInterval: (query) => (query.state.data?.data.complete ? false : 1_200),
   });
 }
 
