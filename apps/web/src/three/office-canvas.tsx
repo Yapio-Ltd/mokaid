@@ -28,6 +28,7 @@ import {
   attachOfficeHost,
   detachOfficeHost,
   getOfficeHostScene,
+  OFFICE_SCENE_BUILD,
   updateOfficeHostAgents,
 } from "./office-scene-host";
 
@@ -100,8 +101,21 @@ function toSceneAgents(
         agent.kind === "human_linked" ? agent.presence_status : ("online" as const);
       const serverActivity = toSecondaryActivity(agent.office_activity);
       const local = localActivities.get(agent.id) ?? null;
-      const secondaryActivity =
-        local === "walking" ? "walking" : (serverActivity ?? local);
+      // Never show a POI pose label until the 3D layer confirms arrival
+      // (local === that pose). Server "playing_foosball" while still in the
+      // aisle must read as Walking.
+      const poiPose =
+        serverActivity === "playing_foosball" ||
+        serverActivity === "sitting_sofa" ||
+        serverActivity === "preparing_coffee";
+      const secondaryActivity: SecondaryActivity =
+        local === "walking"
+          ? "walking"
+          : local != null && local === serverActivity
+            ? local
+            : poiPose && local !== serverActivity
+              ? "walking"
+              : (local ?? (poiPose ? "walking" : serverActivity));
       return {
         id: agent.id,
         name: agent.display_name,
@@ -294,7 +308,8 @@ export function OfficeCanvas({
     });
   }, []);
 
-  // Attach/reuse the singleton scene — never dispose on route leave.
+  // Attach/reuse the singleton scene. OFFICE_SCENE_BUILD in deps + host check
+  // recreates WebGL when collision/socket logic changes.
   useEffect(() => {
     if (disable3d || !hostRef.current || !workspaceId) return;
 
@@ -323,7 +338,7 @@ export function OfficeCanvas({
       detachOfficeHost(container);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disable3d, workspaceId]);
+  }, [disable3d, workspaceId, OFFICE_SCENE_BUILD]);
 
   // Push agent updates into the running scene (singleton survives remounts).
   useEffect(() => {

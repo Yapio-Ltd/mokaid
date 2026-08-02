@@ -53,6 +53,10 @@ export default defineConfig(({ mode }) => {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  optimizeDeps: {
+    // recast-navigation ships ESM + WASM; prebundle breaks init in Vite.
+    exclude: ["recast-navigation", "@recast-navigation/core", "@recast-navigation/generators", "@recast-navigation/wasm"],
+  },
   server: {
     port: 5173,
     host: true,

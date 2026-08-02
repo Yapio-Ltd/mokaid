@@ -60,26 +60,67 @@ import {
   OFFICE_PATHS,
   pathForSeat,
   routeToDesk,
-  routeToPoiSlot,
   staggeredWaypointIndex,
   type IdleActivity,
   type OfficePath,
 } from "./office-paths";
+import type { CrowdAgent } from "recast-navigation";
+import {
+  createAgentCollider,
+  createObstacleColliders,
+  disposeObstacleColliders,
+  setAgentCollisionsEnabled,
+  syncColliderToRoot,
+} from "./office-collisions";
+import {
+  addCrowdAgent,
+  crowdAgentIsStuck,
+  crowdClosestPoint,
+  crowdGoto,
+  crowdNavTarget,
+  CROWD_MOVE_EPS,
+  crowdPointInFurniture,
+  crowdSpeed,
+  crowdTeleport,
+  createOfficeCrowd,
+  type OfficeCrowd,
+} from "./office-crowd";
 import {
   AGENT_RADIUS,
-  findPath,
+  deskSocket,
   floorYAt,
+  FOOSBALL_STAND_GAP,
+  FOOSBALL_TABLE_AABB,
   isWalkable,
   MAX_OFFICE_SEATS,
   NAV_CLEARANCE,
+  nearestAislePoint,
+  OFFICE_OBSTACLES,
   poiById,
-  pointHitsObstacle,
+  poiSlotSocket,
   resolveCollision,
+  type SeatSocket,
   type SecondaryActivity,
 } from "./office-navdata";
 import type { SceneAgent, SceneCallbacks } from "./types";
 
-type IdleBehavior = "patrol" | IdleActivity | "poi";
+type IdleBehavior = "patrol" | IdleActivity | "poi" | "desk_sit";
+
+interface SocketBlend {
+  fromX: number;
+  fromZ: number;
+  fromY: number;
+  fromYaw: number;
+  toX: number;
+  toZ: number;
+  toY: number;
+  toYaw: number;
+  start: number;
+  duration: number;
+  anim: AgentAnimName | string;
+  socketId: string;
+  sits: boolean;
+}
 
 interface OfficeCamOverride {
   px: number;
@@ -106,6 +147,8 @@ type RenderQuality = "high" | "medium" | "low";
 
 interface AvatarNode {
   root: TransformNode;
+  /** Invisible Babylon collider with ellipsoid (world-space). */
+  collider: Mesh;
   meshes: AbstractMesh[];
   ring: Mesh;
   agent: SceneAgent;
@@ -122,6 +165,13 @@ interface AvatarNode {
   idleBehavior: IdleBehavior;
   behaviorEnd: number;
   facing: number;
+  /**
+   * Low-pass filtered walk heading. Detour's per-frame velocity wobbles under
+   * obstacle avoidance; steering off the filtered value keeps turns readable.
+   */
+  headingFilter: number | null;
+  /** POI slot exclusively held by this agent, if any. */
+  claimedSlotId: string | null;
   avatarUrl: string;
   footOffset: number;
   /** Pelvis height above root while the sitting clip is active. */
@@ -133,13 +183,40 @@ interface AvatarNode {
   /** Last secondary activity reported to React. */
   reportedActivity: SecondaryActivity;
   routeBusy: boolean;
+  /** Walking to desk chair after a task assignment. */
+  deskRouteBusy: boolean;
+  /** Visual state clip to play once seated at the desk. */
+  pendingDeskState: AgentAnimName | string | null;
+  /** True while locked onto a seat/stand socket (collisions off). */
+  socketLocked: boolean;
+  socketId: string | null;
+  socketBlend: SocketBlend | null;
   /** Desk seat index used for exclusive patrol lane assignment. */
   seatIndex: number;
   /** Seconds spent making little progress toward the current waypoint. */
   stuckTimer: number;
   /** Last progress distance sample for stuck detection. */
   lastProgressDist: number;
+  /** Anchor for immobility detection (ignores collision micro-jitter). */
+  immobileAnchorX: number;
+  immobileAnchorZ: number;
+  /** Seconds spent near the immobility anchor while trying to walk. */
+  noMoveTimer: number;
+  /** Recast Crowd agent (null when crowd bake failed / fallback loco). */
+  crowdAgent: CrowdAgent | null;
+  /** Last crowd destination key to avoid re-issuing the same goto. */
+  crowdTargetKey: string | null;
+  /** Perf.now() until which recover is suppressed (stops thrash loops). */
+  recoverUntil: number;
 }
+
+/**
+ * Bump when collision / socket / locomotion logic changes so the singleton
+ * scene is recreated instead of surviving with stale state. Re-exported by
+ * office-scene-host and reported in the debug snapshot, so the number the
+ * verification harness reads can never drift from the one the host compares.
+ */
+export const OFFICE_SCENE_BUILD = 14;
 
 export class OfficeScene {
   private engine: Engine;
@@ -163,6 +240,13 @@ export class OfficeScene {
   private camera: FreeCamera | null = null;
   /** AABB centering offsets applied when the GLB loads. */
   private centerOffset = { x: 0, y: 0, z: 0 };
+  private obstacleColliders: Mesh[] = [];
+  /** Recast navmesh + Detour crowd (Babylon AI best practice). */
+  private officeCrowd: OfficeCrowd | null = null;
+  /** Runtime socket overrides calibrated from loaded GLB meshes (raw space). */
+  private socketOverrides = new Map<string, SeatSocket>();
+  /** slotId → agent id holding it. Keeps two agents out of the same socket. */
+  private slotClaims = new Map<string, string>();
   private renderQuality: RenderQuality = "high";
   private lowFpsFrames = 0;
   /**
@@ -254,7 +338,8 @@ export class OfficeScene {
     const avatar = this.avatars.values().next().value as AvatarNode | undefined;
     if (!poi || !slot || !avatar) return { ok: false };
 
-    const dest = this.toCentered(slot.position.x, slot.position.z);
+    const socket = poiSlotSocket(slot.id);
+    if (!socket) return { ok: false };
     avatar.agent = {
       ...avatar.agent,
       officePoiId: poi.id,
@@ -263,14 +348,12 @@ export class OfficeScene {
       officeActivityPhase: "active",
       visualState: "idle",
     };
-    avatar.root.position.x = dest.x;
-    avatar.root.position.z = dest.z;
     avatar.idleBehavior = "poi";
     avatar.routeBusy = false;
     avatar.activePath = { id: `debug-sit-${slot.id}`, loop: false, waypoints: [] };
     avatar.pathIndex = 0;
     this.lastPoiKey.set(avatar.agent.id, `${poi.id}:${slot.id}`);
-    this.applyPoiPose(avatar, slot, performance.now() / 1000);
+    this.blendToSocket(avatar, socket, "sitting", 0.2);
     this.reportActivity(avatar, slot.animation);
 
     const seatY = (slot.seatHeight ?? 0.48) - this.centerOffset.y;
@@ -300,18 +383,75 @@ export class OfficeScene {
     };
   }
 
-  /** Dev tooling: drop a glowing marker at raw GLB coords (navdata frame). */
-  debugMarker(x: number, z: number, hex = "#ff2d78", y = 0.6) {
-    const m = MeshBuilder.CreateSphere(`debug-marker-${x}-${z}`, { diameter: 0.3 }, this.scene);
-    m.position.set(x - this.centerOffset.x, y, z - this.centerOffset.z);
-    const mat = new StandardMaterial(`debug-marker-mat-${x}-${z}`, this.scene);
-    mat.emissiveColor = Color3.FromHexString(hex);
-    mat.disableLighting = true;
-    m.material = mat;
-    m.isPickable = false;
+  /** Dev tooling: mesh world AABBs in raw GLB coords (navdata frame). */
+  debugSceneFootprint(): { minX: number; maxX: number; minZ: number; maxZ: number } | null {
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+    let seen = false;
+    for (const mesh of this.scene.meshes) {
+      if (!mesh.isEnabled() || mesh.name.startsWith("agent-")) continue;
+      const bb = mesh.getBoundingInfo().boundingBox;
+      minX = Math.min(minX, bb.minimumWorld.x + this.centerOffset.x);
+      maxX = Math.max(maxX, bb.maximumWorld.x + this.centerOffset.x);
+      minZ = Math.min(minZ, bb.minimumWorld.z + this.centerOffset.z);
+      maxZ = Math.max(maxZ, bb.maximumWorld.z + this.centerOffset.z);
+      seen = true;
+    }
+    return seen
+      ? {
+          minX: +minX.toFixed(2),
+          maxX: +maxX.toFixed(2),
+          minZ: +minZ.toFixed(2),
+          maxZ: +maxZ.toFixed(2),
+        }
+      : null;
   }
 
-  /** Dev tooling: mesh world AABBs in raw GLB coords (navdata frame). */
+  /**
+   * Drop a bright emissive pillar at a raw office-GLB coordinate.
+   *
+   * The one honest way to check nav data against the render: if the marker
+   * does not stand on the furniture the data claims is there, the coordinate
+   * is wrong — no projection maths or screenshot squinting involved.
+   */
+  debugMarker(rawX: number, rawZ: number, hex = "#ff0055", height = 3): void {
+    const pillar = MeshBuilder.CreateCylinder(
+      `debug-marker-${rawX}-${rawZ}`,
+      { height, diameter: 0.12 },
+      this.scene,
+    );
+    pillar.position.set(rawX - this.centerOffset.x, height / 2, rawZ - this.centerOffset.z);
+    const mat = new StandardMaterial(`debug-marker-mat-${rawX}-${rawZ}`, this.scene);
+    mat.emissiveColor = Color3.FromHexString(hex);
+    mat.disableLighting = true;
+    pillar.material = mat;
+    pillar.isPickable = false;
+  }
+
+  /**
+   * Project a raw office-GLB point to canvas pixels. Lets a verification
+   * script confirm that where the data puts an agent is where the camera
+   * actually draws it, instead of eyeballing a screenshot.
+   */
+  debugProject(rawX: number, rawZ: number, y = 0): { x: number; y: number } | null {
+    const camera = this.scene.activeCamera;
+    if (!camera) return null;
+    const world = new Vector3(rawX - this.centerOffset.x, y, rawZ - this.centerOffset.z);
+    const w = this.engine.getRenderWidth();
+    const h = this.engine.getRenderHeight();
+    const p = Vector3.Project(
+      world,
+      Matrix.Identity(),
+      this.scene.getTransformMatrix(),
+      camera.viewport.toGlobal(w, h),
+    );
+    const cssW = this.canvas.clientWidth;
+    const cssH = this.canvas.clientHeight;
+    return { x: +((p.x / w) * cssW).toFixed(1), y: +((p.y / h) * cssH).toFixed(1) };
+  }
+
   debugMeshBounds(nameFilter: string): Array<{
     name: string;
     min: { x: number; y: number; z: number };
@@ -379,6 +519,72 @@ export class OfficeScene {
 
   isReady(): boolean {
     return this.officeReady;
+  }
+
+  /** Dev/E2E: snapshot of loco state for browser verification. */
+  debugLocoSnapshot(): {
+    officeReady: boolean;
+    crowdReady: boolean;
+    buildHint: number;
+    centerOffset: { x: number; z: number };
+    agents: Array<{
+      name: string;
+      x: number;
+      z: number;
+      /** Raw office-GLB coords, so checks can compare against furniture AABBs. */
+      rawX: number;
+      rawZ: number;
+      y: number;
+      absX: number;
+      absZ: number;
+      meshX?: number;
+      meshZ?: number;
+      speed: number;
+      inFurniture: boolean;
+      behavior: string;
+      activity: SecondaryActivity;
+      slot: string | null;
+      crowd: boolean;
+    }>;
+  } {
+    const agents = [...this.avatars.values()].map((a) => {
+      const speed = a.crowdAgent ? crowdSpeed(a.crowdAgent) : 0;
+      return {
+        name: a.agent.name,
+        x: +a.root.position.x.toFixed(3),
+        z: +a.root.position.z.toFixed(3),
+        rawX: +(a.root.position.x + this.centerOffset.x).toFixed(3),
+        rawZ: +(a.root.position.z + this.centerOffset.z).toFixed(3),
+        y: +a.root.position.y.toFixed(3),
+        // World position the renderer actually draws — diverges from
+        // root.position if a parent transform or stale world matrix creeps in.
+        absX: +a.root.getAbsolutePosition().x.toFixed(3),
+        absZ: +a.root.getAbsolutePosition().z.toFixed(3),
+        // Centre of the drawn meshes, in world space. If this tracks absX/absZ
+        // the avatar really is where the logic says; if it lags behind, the
+        // visible body has detached from the node we move.
+        ...(() => {
+          const c = meshCentre(a);
+          return c ? { meshX: +c.x.toFixed(3), meshZ: +c.z.toFixed(3) } : {};
+        })(),
+        speed: +speed.toFixed(3),
+        inFurniture: crowdPointInFurniture(a.root.position.x, a.root.position.z, this.centerOffset),
+        behavior: String(a.idleBehavior),
+        activity: a.reportedActivity,
+        slot: a.claimedSlotId,
+        crowd: Boolean(a.crowdAgent),
+      };
+    });
+    return {
+      officeReady: this.officeReady,
+      crowdReady: Boolean(this.officeCrowd),
+      buildHint: OFFICE_SCENE_BUILD,
+      centerOffset: {
+        x: +this.centerOffset.x.toFixed(3),
+        z: +this.centerOffset.z.toFixed(3),
+      },
+      agents,
+    };
   }
 
   private agentAvatarUrl(agent: SceneAgent): string {
@@ -663,6 +869,12 @@ export class OfficeScene {
       root.computeWorldMatrix(true);
       this.centerOffset = { x: centerX, y: minY, z: centerZ };
 
+      // Recast Crowd owns locomotion — Babylon furniture boxes fight the navmesh
+      // (re-enable only if crowd bake fails; see bakeOfficeCrowd fallback).
+      disposeObstacleColliders(this.obstacleColliders);
+      this.scene.collisionsEnabled = false;
+      this.checkFoosballTableDrift();
+
       this.recreateBlenderLights(centerX, minY, centerZ);
       this.reframeCamera(centerX, minY, centerZ);
 
@@ -682,6 +894,9 @@ export class OfficeScene {
       this.officeReady = true;
       this.callbacks.onLoadProgress?.(1);
       this.callbacks.onOfficeReady?.(true);
+
+      // Bake Recast navmesh + crowd (async); agents fall back to A* until ready.
+      void this.bakeOfficeCrowd();
 
       // Spawn any agents that arrived before the office finished loading.
       this.lastAgents.forEach((agent, index) => {
@@ -744,6 +959,7 @@ export class OfficeScene {
         // Swap mesh if the catalog asset changed.
         if (existing.avatarUrl !== nextUrl) {
           disposeAgentAnims(existing);
+          existing.collider.dispose();
           existing.root.dispose();
           this.avatars.delete(agent.id);
           void this.createAvatar(agent, agent.seatIndex >= 0 ? agent.seatIndex : index);
@@ -757,15 +973,17 @@ export class OfficeScene {
         if (agent.seatIndex >= 0) existing.seatIndex = agent.seatIndex;
         if (colorChanged) applyTint(existing.meshes, agent.color);
         if (wasIdle && !nowIdle) {
-          existing.root.position.copyFrom(existing.homePos);
-          existing.idleBehavior = "patrol";
+          existing.idleBehavior = "desk_sit";
           existing.routeBusy = false;
-          this.reportActivity(existing, null);
-          this.seatAtDesk(existing, agent.visualState);
+          this.standFromSocket(existing);
+          this.beginDeskSitRoute(existing, agent.visualState);
         } else if (!wasIdle && nowIdle) {
           existing.idleBehavior = "patrol";
           existing.behaviorEnd = 0;
           existing.stuckTimer = 0;
+          existing.deskRouteBusy = false;
+          existing.pendingDeskState = null;
+          this.standFromSocket(existing);
           this.assignPatrolLane(existing);
         }
         this.syncServerActivity(existing);
@@ -779,6 +997,9 @@ export class OfficeScene {
     for (const [id, avatar] of this.avatars) {
       if (!seen.has(id)) {
         disposeAgentAnims(avatar);
+        this.detachCrowdAgent(avatar);
+        this.releaseSlot(avatar);
+        avatar.collider.dispose();
         avatar.root.dispose();
         this.avatars.delete(id);
       }
@@ -841,8 +1062,12 @@ export class OfficeScene {
     ring.parent = root;
     ring.isPickable = false;
 
+    const collider = createAgentCollider(this.scene, agent.id);
+    syncColliderToRoot(collider, root);
+
     const avatar: AvatarNode = {
       root,
+      collider,
       meshes: spawned.meshes,
       ring,
       agent,
@@ -859,6 +1084,8 @@ export class OfficeScene {
       idleBehavior: "patrol",
       behaviorEnd: 0,
       facing: root.rotation.y,
+      headingFilter: null,
+      claimedSlotId: null,
       avatarUrl,
       footOffset: template.footOffset,
       sitPelvisHeight: template.sitPelvisHeight,
@@ -866,17 +1093,30 @@ export class OfficeScene {
       deskSeatHeight: desk?.seatHeight ?? 0.5,
       reportedActivity: null,
       routeBusy: false,
+      deskRouteBusy: false,
+      pendingDeskState: null,
+      socketLocked: false,
+      socketId: null,
+      socketBlend: null,
       seatIndex,
       stuckTimer: 0,
       lastProgressDist: Infinity,
+      immobileAnchorX: root.position.x,
+      immobileAnchorZ: root.position.z,
+      noMoveTimer: 0,
+      crowdAgent: null,
+      crowdTargetKey: null,
+      recoverUntil: 0,
     };
+    this.attachCrowdAgent(avatar);
 
     this.avatars.set(agent.id, avatar);
     if (isIdleVisual(agent.visualState)) {
       this.plantFeet(avatar);
       playAgentAnimation(avatar, "idle");
     } else {
-      this.seatAtDesk(avatar, agent.visualState);
+      // Spawn already at the desk — sit immediately without walking.
+      this.snapToDeskSocket(avatar, agent.visualState);
     }
     for (const mesh of spawned.meshes) {
       this.shadowGenerator?.addShadowCaster(mesh);
@@ -905,18 +1145,36 @@ export class OfficeScene {
 
   private animate() {
     const t = performance.now() / 1000;
-    const dt = this.engine.getDeltaTime() / 1000;
+    const dt = Math.min(0.05, this.engine.getDeltaTime() / 1000);
+
+    // Detour Crowd advances all agents first (navmesh-constrained loco).
+    this.officeCrowd?.crowd.update(dt);
 
     for (const avatar of this.avatars.values()) {
+      if (avatar.socketBlend) {
+        this.tickSocketBlend(avatar, t);
+        continue;
+      }
+
       const state = avatar.agent.visualState;
+
+      if (avatar.deskRouteBusy || avatar.idleBehavior === "desk_sit") {
+        this.animateDeskSit(avatar, t, dt);
+        continue;
+      }
 
       if (isIdleVisual(state)) {
         this.animateIdle(avatar, t, dt);
         continue;
       }
 
-      // Desk / status clips — sit on the assigned chair (never stand on the desk).
-      this.seatAtDesk(avatar, state);
+      // Working / busy — leave crowd and sit at desk.
+      this.pauseCrowdAgent(avatar);
+      if (!avatar.socketLocked || avatar.socketId !== `desk_${avatar.seatIndex}`) {
+        this.snapToDeskSocket(avatar, state);
+      } else {
+        playAgentAnimation(avatar, state as AgentAnimName);
+      }
       if (state === "away" || state === "offline") {
         avatar.root.position.y = avatar.baseY;
       }
@@ -926,11 +1184,258 @@ export class OfficeScene {
     }
   }
 
+  private async bakeOfficeCrowd() {
+    try {
+      const crowd = await createOfficeCrowd({
+        x: this.centerOffset.x,
+        z: this.centerOffset.z,
+      });
+      if (this.disposed) {
+        crowd?.destroy();
+        return;
+      }
+      this.officeCrowd?.destroy();
+      this.officeCrowd = crowd;
+      if (crowd) {
+        // Crowd mode: no Babylon mesh collisions.
+        disposeObstacleColliders(this.obstacleColliders);
+        this.scene.collisionsEnabled = false;
+        if (import.meta.env.DEV) {
+          console.info("[OfficeScene] Recast crowd ready (navmesh loco, no mesh colliders)");
+        }
+      } else {
+        // Fallback A*: software resolveCollision + optional Babylon boxes.
+        this.scene.collisionsEnabled = true;
+        disposeObstacleColliders(this.obstacleColliders);
+        this.obstacleColliders = createObstacleColliders(this.scene, this.centerOffset);
+        if (import.meta.env.DEV) {
+          console.info("[OfficeScene] fallback loco + obstacle colliders:", this.obstacleColliders.length);
+        }
+      }
+      for (const avatar of this.avatars.values()) {
+        this.attachCrowdAgent(avatar);
+      }
+    } catch (err) {
+      console.warn("[OfficeScene] Recast crowd bake failed — using fallback loco", err);
+      this.officeCrowd = null;
+      this.scene.collisionsEnabled = true;
+      disposeObstacleColliders(this.obstacleColliders);
+      this.obstacleColliders = createObstacleColliders(this.scene, this.centerOffset);
+    }
+  }
+
+  private attachCrowdAgent(avatar: AvatarNode) {
+    if (!this.officeCrowd || avatar.crowdAgent) return;
+    let x = avatar.root.position.x;
+    let z = avatar.root.position.z;
+    // Spawn seats sit inside desks — snap onto the navmesh before adding.
+    if (crowdPointInFurniture(x, z, this.centerOffset)) {
+      const raw = nearestAislePoint({
+        x: x + this.centerOffset.x,
+        z: z + this.centerOffset.z,
+      });
+      x = raw.x - this.centerOffset.x;
+      z = raw.z - this.centerOffset.z;
+    }
+    const snapped = crowdClosestPoint(this.officeCrowd.query, x, z);
+    const agent = addCrowdAgent(
+      this.officeCrowd.crowd,
+      this.officeCrowd.query,
+      snapped.x,
+      snapped.z,
+    );
+    avatar.crowdAgent = agent;
+    avatar.crowdTargetKey = null;
+    if (agent) {
+      setAgentCollisionsEnabled(avatar.collider, false);
+      crowdTeleport(agent, this.officeCrowd.query, snapped.x, snapped.z);
+      avatar.root.position.x = snapped.x;
+      avatar.root.position.z = snapped.z;
+      this.plantFeet(avatar);
+      avatar.immobileAnchorX = snapped.x;
+      avatar.immobileAnchorZ = snapped.z;
+      avatar.noMoveTimer = 0;
+    }
+  }
+
+  private detachCrowdAgent(avatar: AvatarNode) {
+    if (!avatar.crowdAgent || !this.officeCrowd) return;
+    try {
+      this.officeCrowd.crowd.removeAgent(avatar.crowdAgent.agentIndex);
+    } catch {
+      /* already removed */
+    }
+    avatar.crowdAgent = null;
+    avatar.crowdTargetKey = null;
+  }
+
+  /**
+   * Push an idle agent off any neighbour standing too close.
+   *
+   * Only used while Detour is not steering (idle activities, held sockets):
+   * during normal walking the crowd's own separation handles it, and fighting
+   * it here would make agents jitter. The push is clamped to walkable space so
+   * nudging someone out of a huddle never shoves them into furniture.
+   */
+  private separateFromNeighbours(avatar: AvatarNode) {
+    const minGap = OfficeScene.SEPARATION;
+    let pushX = 0;
+    let pushZ = 0;
+    for (const other of this.avatars.values()) {
+      if (other === avatar) continue;
+      const dx = avatar.root.position.x - other.root.position.x;
+      const dz = avatar.root.position.z - other.root.position.z;
+      const d2 = dx * dx + dz * dz;
+      if (d2 >= minGap * minGap) continue;
+      const d = Math.sqrt(d2);
+      if (d < 1e-4) {
+        // Exactly co-located: break the tie deterministically by seat index.
+        pushX += Math.cos(avatar.seatIndex) * minGap * 0.5;
+        pushZ += Math.sin(avatar.seatIndex) * minGap * 0.5;
+        continue;
+      }
+      const overlap = (minGap - d) * 0.5;
+      pushX += (dx / d) * overlap;
+      pushZ += (dz / d) * overlap;
+    }
+    if (pushX === 0 && pushZ === 0) return;
+
+    const raw = {
+      x: avatar.root.position.x + pushX + this.centerOffset.x,
+      z: avatar.root.position.z + pushZ + this.centerOffset.z,
+    };
+    if (!isWalkable(raw)) return;
+    avatar.root.position.x += pushX;
+    avatar.root.position.z += pushZ;
+    this.plantFeet(avatar);
+    syncColliderToRoot(avatar.collider, avatar.root);
+    if (avatar.crowdAgent && this.officeCrowd) {
+      // Keep Detour's copy of the position in step, or it will yank the agent
+      // back to where it thought the body was on the next update.
+      crowdTeleport(
+        avatar.crowdAgent,
+        this.officeCrowd.query,
+        avatar.root.position.x,
+        avatar.root.position.z,
+      );
+    }
+  }
+
+  private pauseCrowdAgent(avatar: AvatarNode) {
+    avatar.crowdAgent?.resetMoveTarget();
+    avatar.crowdTargetKey = null;
+  }
+
+  /** Issue a crowd goto in centered scene space (idempotent per target). */
+  private crowdGoTo(avatar: AvatarNode, x: number, z: number) {
+    if (!this.officeCrowd || !avatar.crowdAgent) return false;
+    const key = `${x.toFixed(2)},${z.toFixed(2)}`;
+    if (avatar.crowdTargetKey === key) return true;
+    crowdGoto(avatar.crowdAgent, this.officeCrowd.query, x, z);
+    avatar.crowdTargetKey = key;
+    // Do NOT reset noMoveTimer here — retargeting while stuck must still escape.
+    return true;
+  }
+
+  /**
+   * Sync Babylon root from crowd agent. Returns true when the agent has
+   * reached its current move target.
+   */
+  private syncFromCrowd(avatar: AvatarNode, dt: number, reach = 0.4): boolean {
+    const agent = avatar.crowdAgent;
+    if (!agent || !this.officeCrowd) return false;
+
+    // Always read live Detour position() — interpolatedPosition can stale-freeze
+    // while velocity still reports motion (walking-in-place bug).
+    const p = agent.position();
+    avatar.root.position.x = p.x;
+    avatar.root.position.z = p.z;
+    this.plantFeet(avatar);
+    syncColliderToRoot(avatar.collider, avatar.root);
+
+    // Trust the navmesh. Only recover on Detour invalid state or true immobility.
+    // Do NOT use padded furniture AABBs here — they thrash recover in narrow aisles.
+    if (crowdAgentIsStuck(agent) || this.tickImmobile(avatar, dt)) {
+      this.recoverCrowdAgent(avatar);
+      return false;
+    }
+
+    const speed = crowdSpeed(agent);
+    const vel = agent.velocity();
+    if (speed > CROWD_MOVE_EPS) {
+      // Steer by a smoothed heading: raw Detour velocity jitters as obstacle
+      // avoidance nudges it, and feeding that straight into rotation.y made
+      // avatars twitch and appear to slide sideways through their own turn.
+      const target = Math.atan2(vel.x, vel.z);
+      avatar.headingFilter = avatar.headingFilter ?? target;
+      let delta = target - avatar.headingFilter;
+      while (delta > Math.PI) delta -= Math.PI * 2;
+      while (delta < -Math.PI) delta += Math.PI * 2;
+      // Time-correct exponential smoothing (frame-rate independent).
+      const alpha = 1 - Math.exp(-dt / OfficeScene.HEADING_TAU);
+      avatar.headingFilter += delta * alpha;
+      this.turnToward(avatar, avatar.headingFilter, dt);
+      playAgentAnimation(avatar, "walking");
+      this.reportActivity(avatar, "walking");
+    } else {
+      avatar.headingFilter = avatar.facing;
+      playAgentAnimation(avatar, "idle");
+      // Clear stale "Walking" labels while standing still.
+      if (avatar.reportedActivity === "walking") this.reportActivity(avatar, null);
+    }
+
+    let target: { x: number; z: number };
+    try {
+      target = agent.target();
+    } catch {
+      return false;
+    }
+    const dist = Math.hypot(target.x - p.x, target.z - p.z);
+    return dist < reach && speed < CROWD_MOVE_EPS * 1.5;
+  }
+
+  private recoverCrowdAgent(avatar: AvatarNode) {
+    const now = performance.now();
+    if (now < avatar.recoverUntil) return;
+    avatar.recoverUntil = now + 2500;
+
+    if (!this.officeCrowd || !avatar.crowdAgent) {
+      this.escapeToAisle(avatar);
+      return;
+    }
+    const fromRaw = {
+      x: avatar.root.position.x + this.centerOffset.x,
+      z: avatar.root.position.z + this.centerOffset.z,
+    };
+    const safe = nearestAislePoint(fromRaw);
+    const jig = ((avatar.seatIndex % 5) - 2) * 0.18;
+    const centered = crowdClosestPoint(
+      this.officeCrowd.query,
+      safe.x + jig - this.centerOffset.x,
+      safe.z - this.centerOffset.z,
+    );
+    crowdTeleport(avatar.crowdAgent, this.officeCrowd.query, centered.x, centered.z);
+    avatar.root.position.x = centered.x;
+    avatar.root.position.z = centered.z;
+    this.plantFeet(avatar);
+    avatar.crowdTargetKey = null;
+    avatar.noMoveTimer = 0;
+    avatar.immobileAnchorX = centered.x;
+    avatar.immobileAnchorZ = centered.z;
+    avatar.stuckTimer = 0;
+    if (import.meta.env.DEV) {
+      console.info("[OfficeScene] crowd recover → aisle", avatar.agent.name, centered);
+    }
+    // Re-issue mission from the safe point.
+    if (avatar.idleBehavior === "poi") this.beginPoiRoute(avatar);
+    else if (avatar.deskRouteBusy || avatar.idleBehavior === "desk_sit") {
+      this.beginDeskSitRoute(avatar, avatar.pendingDeskState ?? "working");
+    } else this.assignPatrolLane(avatar);
+  }
+
   /** Follow pre-traced paths; pause at waypoints; honor server POI assignments. */
   private animateIdle(avatar: AvatarNode, t: number, dt: number) {
-    const { root } = avatar;
-
-    if (avatar.agent.secondaryActivity && avatar.agent.officePoiId && !avatar.routeBusy) {
+    if (avatar.agent.officePoiId && avatar.agent.officeSlotId && !avatar.routeBusy) {
       if (avatar.idleBehavior !== "poi") {
         this.beginPoiRoute(avatar);
       }
@@ -944,6 +1449,10 @@ export class OfficeScene {
     if (avatar.idleBehavior !== "patrol") {
       playAgentAnimation(avatar, "idle");
       this.plantFeet(avatar);
+      // Detour stops steering an agent once its move target is cleared, so two
+      // agents that stop to scroll or stretch beside each other keep whatever
+      // spacing they arrived with — which can be none. Keep them apart here.
+      this.separateFromNeighbours(avatar);
       if (t >= avatar.behaviorEnd) {
         avatar.idleBehavior = "patrol";
         this.reportActivity(avatar, null);
@@ -959,60 +1468,76 @@ export class OfficeScene {
       return;
     }
 
-    const target = new Vector3(wp.x, root.position.y, wp.z);
-    const arrived = this.walkToward(avatar, target, 1.35, dt);
-    this.reportActivity(avatar, arrived ? null : "walking");
+    const arrived = this.moveAlongMission(avatar, wp.x, wp.z, 1.35, dt, 0.4);
+    if (!arrived) return;
 
-    if (arrived) {
-      playAgentAnimation(avatar, "idle");
-      this.plantFeet(avatar);
-      avatar.stuckTimer = 0;
+    playAgentAnimation(avatar, "idle");
+    this.plantFeet(avatar);
+    avatar.stuckTimer = 0;
+    this.reportActivity(avatar, null);
 
-      if (wp.activity) {
-        avatar.idleBehavior = wp.activity;
-        avatar.behaviorEnd = t + 4 + Math.random() * 5;
-        this.reportActivity(
-          avatar,
-          wp.activity === "coffee"
-            ? "preparing_coffee"
-            : wp.activity === "playing"
-              ? "playing_foosball"
-              : wp.activity === "sitting"
-                ? "sitting_sofa"
-                : wp.activity === "scrolling"
-                  ? "scrolling"
-                  : wp.activity === "stretch"
-                    ? "stretching"
-                    : "looking_around",
-        );
-        return;
-      }
-
-      if (Math.random() < 0.2) {
-        const pauses: IdleActivity[] = ["look", "scrolling", "stretch"];
-        avatar.idleBehavior = pauses[Math.floor(Math.random() * pauses.length)];
-        avatar.behaviorEnd = t + 3 + Math.random() * 4;
-        this.reportActivity(
-          avatar,
-          avatar.idleBehavior === "scrolling"
-            ? "scrolling"
-            : avatar.idleBehavior === "stretch"
-              ? "stretching"
-              : "looking_around",
-        );
-        return;
-      }
-
-      avatar.pathIndex += 1;
-      if (avatar.pathIndex >= avatar.activePath.waypoints.length) {
-        // Stay on the exclusive lane; only rotate start if the loop ends.
-        if (avatar.activePath.loop) {
-          avatar.pathIndex = 0;
-        } else {
-          this.assignPatrolLane(avatar);
-        }
-      }
+    if (wp.activity) {
+      avatar.idleBehavior = wp.activity;
+      avatar.behaviorEnd = t + 4 + Math.random() * 5;
+      this.reportActivity(
+        avatar,
+        wp.activity === "coffee"
+          ? "preparing_coffee"
+          : wp.activity === "playing"
+            ? "playing_foosball"
+            : wp.activity === "sitting"
+              ? "sitting_sofa"
+              : wp.activity === "scrolling"
+                ? "scrolling"
+                : wp.activity === "stretch"
+                  ? "stretching"
+                  : "looking_around",
+      );
+      return;
     }
+
+    if (Math.random() < 0.2) {
+      const pauses: IdleActivity[] = ["look", "scrolling", "stretch"];
+      avatar.idleBehavior = pauses[Math.floor(Math.random() * pauses.length)];
+      avatar.behaviorEnd = t + 3 + Math.random() * 4;
+      this.reportActivity(
+        avatar,
+        avatar.idleBehavior === "scrolling"
+          ? "scrolling"
+          : avatar.idleBehavior === "stretch"
+            ? "stretching"
+            : "looking_around",
+      );
+      return;
+    }
+
+    avatar.pathIndex += 1;
+    avatar.crowdTargetKey = null;
+    if (avatar.pathIndex >= avatar.activePath.waypoints.length) {
+      if (avatar.activePath.loop) avatar.pathIndex = 0;
+      else this.assignPatrolLane(avatar);
+    }
+  }
+
+  /**
+   * Prefer Recast Crowd; fall back to single-authority resolveCollision walk.
+   * Returns true when the destination is reached.
+   */
+  private moveAlongMission(
+    avatar: AvatarNode,
+    x: number,
+    z: number,
+    speed: number,
+    dt: number,
+    reach: number,
+  ): boolean {
+    this.attachCrowdAgent(avatar);
+    if (avatar.crowdAgent && this.officeCrowd) {
+      this.crowdGoTo(avatar, x, z);
+      return this.syncFromCrowd(avatar, dt, reach);
+    }
+    const target = new Vector3(x, avatar.root.position.y, z);
+    return this.walkToward(avatar, target, speed, dt);
   }
 
   /** Assign (or re-assign) the seat-exclusive patrol loop. */
@@ -1027,6 +1552,8 @@ export class OfficeScene {
     );
     avatar.stuckTimer = 0;
     avatar.lastProgressDist = Infinity;
+    avatar.crowdTargetKey = null;
+    avatar.noMoveTimer = 0;
   }
 
   /** Last POI slot this avatar committed to (re-route when server reassigns). */
@@ -1035,7 +1562,9 @@ export class OfficeScene {
   private syncServerActivity(avatar: AvatarNode) {
     const agent = avatar.agent;
     if (!isIdleVisual(agent.visualState)) return;
-    if (agent.officePoiId && agent.officeSlotId && agent.secondaryActivity) {
+    // Drive POI from slot assignment — not from secondaryActivity, which the
+    // React layer may rewrite to "walking" while approaching.
+    if (agent.officePoiId && agent.officeSlotId) {
       const key = `${agent.officePoiId}:${agent.officeSlotId}`;
       const prev = this.lastPoiKey.get(agent.id);
       if (avatar.idleBehavior !== "poi" || prev !== key) {
@@ -1046,157 +1575,534 @@ export class OfficeScene {
       this.lastPoiKey.delete(agent.id);
       avatar.idleBehavior = "patrol";
       avatar.routeBusy = false;
+      this.standFromSocket(avatar);
       this.reportActivity(avatar, null);
       this.returnHome(avatar);
     }
   }
 
+  /** Prefer mesh-calibrated sockets when available. */
+  private resolveSocket(slotId: string): SeatSocket | null {
+    return this.socketOverrides.get(slotId) ?? poiSlotSocket(slotId);
+  }
+
+  /**
+   * Claim a POI slot for one agent.
+   *
+   * The server assigns POI slots, but two agents can legitimately hold the
+   * same slot for a few frames (reassignment races, reconnects). Without an
+   * exclusive claim they walk into the same socket and the hold logic pins
+   * both to identical coordinates, which reads as two bodies merged into one.
+   * Returns false when another live agent already owns the slot.
+   */
+  private claimSlot(avatar: AvatarNode, slotId: string): boolean {
+    const owner = this.slotClaims.get(slotId);
+    if (owner && owner !== avatar.agent.id && this.avatars.has(owner)) return false;
+    // Release whatever this agent held before (slot changed server-side).
+    if (avatar.claimedSlotId && avatar.claimedSlotId !== slotId) {
+      this.releaseSlot(avatar);
+    }
+    this.slotClaims.set(slotId, avatar.agent.id);
+    avatar.claimedSlotId = slotId;
+    return true;
+  }
+
+  private releaseSlot(avatar: AvatarNode) {
+    const held = avatar.claimedSlotId;
+    if (!held) return;
+    if (this.slotClaims.get(held) === avatar.agent.id) this.slotClaims.delete(held);
+    avatar.claimedSlotId = null;
+  }
+
+  /**
+   * Report drift between the authored foosball table AABB and the mesh that
+   * actually shipped in the GLB.
+   *
+   * This used to *rewrite* the two stand sockets from the mesh bounds, putting
+   * players at the north and south ends. Recast erodes the floor mesh by the
+   * agent radius and the north strip is too thin to keep a navmesh polygon, so
+   * the second player could never arrive and looped in crowd-recover forever.
+   * The authored sockets are navmesh-verified (office-crowd.test.ts), so they
+   * win; a mismatch here means the GLB moved and the data needs re-measuring.
+   */
+  private checkFoosballTableDrift() {
+    const tables = this.debugMeshBounds("soccer|foosball").filter((t) => {
+      const w = t.max.x - t.min.x;
+      const d = t.max.z - t.min.z;
+      return w > 0.45 && w < 2.8 && d > 0.45 && d < 2.8;
+    });
+    if (!tables.length) return;
+
+    const t = tables[0];
+    const driftX = Math.abs((t.min.x + t.max.x) / 2 - (FOOSBALL_TABLE_AABB.minX + FOOSBALL_TABLE_AABB.maxX) / 2);
+    const driftZ = Math.abs((t.min.z + t.max.z) / 2 - (FOOSBALL_TABLE_AABB.minZ + FOOSBALL_TABLE_AABB.maxZ) / 2);
+    if (driftX > FOOSBALL_STAND_GAP || driftZ > FOOSBALL_STAND_GAP) {
+      console.warn(
+        `[OfficeScene] foosball table moved in the GLB (drift ${driftX.toFixed(2)}m x, ` +
+          `${driftZ.toFixed(2)}m z) — re-measure FOOSBALL_TABLE_AABB and the player spots`,
+      );
+    }
+  }
+
+  /** Navmesh-reachable approach for a POI (aisle), not the seat inside furniture. */
+  private poiCrowdDest(poi: NonNullable<ReturnType<typeof poiById>>, socket: SeatSocket): {
+    x: number;
+    z: number;
+  } {
+    const approach = poi.approach[0] ?? socket.position;
+    if (this.officeCrowd) {
+      return crowdNavTarget(
+        this.officeCrowd.query,
+        approach.x,
+        approach.z,
+        this.centerOffset,
+      );
+    }
+    return this.toCentered(approach.x, approach.z);
+  }
+
   private beginPoiRoute(avatar: AvatarNode) {
     const poi = poiById(avatar.agent.officePoiId ?? "");
     const slot = poi?.slots.find((s) => s.id === avatar.agent.officeSlotId);
-    if (!poi || !slot) return;
+    const socket = slot ? this.resolveSocket(slot.id) : null;
+    if (!poi || !slot || !socket) return;
 
-    const dest = this.toCentered(slot.position.x, slot.position.z);
-    const alreadyThere =
-      avatar.agent.officeActivityPhase === "active" ||
-      Math.hypot(avatar.root.position.x - dest.x, avatar.root.position.z - dest.z) < 0.45;
-
-    if (alreadyThere) {
-      avatar.root.position.x = dest.x;
-      avatar.root.position.z = dest.z;
-      avatar.facing = slot.facing;
-      avatar.root.rotation.y = slot.facing;
-      avatar.idleBehavior = "poi";
-      avatar.routeBusy = false;
-      avatar.activePath = { id: `poi-${poi.id}-${slot.id}`, loop: false, waypoints: [] };
-      avatar.pathIndex = 0;
-      this.applyPoiPose(avatar, slot, performance.now() / 1000);
-      this.reportActivity(avatar, slot.animation);
+    // Someone else is already using this exact spot — roam instead of
+    // stacking two bodies on one socket.
+    if (!this.claimSlot(avatar, slot.id)) {
+      this.assignPatrolLane(avatar);
       return;
     }
 
-    // Sofa slots sit inside the sofa AABB; foosball / coffee slots are walkable.
-    const allowSit = slot.animation === "sitting_sofa";
-    const fromRaw = {
-      x: avatar.root.position.x + this.centerOffset.x,
-      z: avatar.root.position.z + this.centerOffset.z,
-    };
-    const pathPts = routeToPoiSlot(
-      fromRaw,
-      avatar.seatIndex,
-      slot.id,
-      { x: slot.position.x, z: slot.position.z },
-      allowSit,
-    ).map((p) => ({ x: p.x - this.centerOffset.x, z: p.z - this.centerOffset.z }));
+    this.standFromSocket(avatar);
+    this.attachCrowdAgent(avatar);
+    const socketCentered = this.toCentered(socket.position.x, socket.position.z);
+    const navDest = this.poiCrowdDest(poi, socket);
+    const distSocket = Math.hypot(
+      avatar.root.position.x - socketCentered.x,
+      avatar.root.position.z - socketCentered.z,
+    );
+    const distNav = Math.hypot(avatar.root.position.x - navDest.x, avatar.root.position.z - navDest.z);
+    const alreadyThere = distSocket < 0.55 || distNav < 0.45;
 
-    avatar.activePath = {
-      id: `poi-${poi.id}-${slot.id}`,
-      loop: false,
-      waypoints: pathPts.length ? pathPts : [{ x: dest.x, z: dest.z }],
-    };
-    avatar.pathIndex = 0;
     avatar.idleBehavior = "poi";
-    avatar.routeBusy = true;
     avatar.behaviorEnd = 0;
     avatar.stuckTimer = 0;
     avatar.lastProgressDist = Infinity;
+    avatar.crowdTargetKey = null;
+    this.reportActivity(avatar, "walking");
+    playAgentAnimation(avatar, "walking");
+
+    if (alreadyThere) {
+      avatar.routeBusy = false;
+      avatar.activePath = { id: `poi-${poi.id}-${slot.id}`, loop: false, waypoints: [] };
+      avatar.pathIndex = 0;
+      this.pauseCrowdAgent(avatar);
+      this.blendToSocket(avatar, socket, this.poiAnimForSlot(slot.animation), 0.35);
+      return;
+    }
+
+    // Crowd walks to the aisle approach; socket blend handles the last meters.
+    avatar.activePath = {
+      id: `poi-${poi.id}-${slot.id}`,
+      loop: false,
+      waypoints: [{ x: navDest.x, z: navDest.z }],
+    };
+    avatar.pathIndex = 0;
+    avatar.routeBusy = true;
+    if (avatar.crowdAgent && this.officeCrowd) {
+      this.crowdGoTo(avatar, navDest.x, navDest.z);
+    }
+  }
+
+  private poiAnimForSlot(animation: SecondaryActivity): AgentAnimName | string {
+    if (animation === "sitting_sofa") return "sitting";
+    if (animation === "playing_foosball") return "playing_foosball";
+    if (animation === "preparing_coffee") return "preparing_coffee";
+    return "idle";
   }
 
   private animatePoi(avatar: AvatarNode, t: number, dt: number) {
     const poi = poiById(avatar.agent.officePoiId ?? "");
     const slot = poi?.slots.find((s) => s.id === avatar.agent.officeSlotId);
-    if (!poi || !slot) {
+    const socket = slot ? this.resolveSocket(slot.id) : null;
+    if (!poi || !slot || !socket) {
       avatar.idleBehavior = "patrol";
       avatar.routeBusy = false;
       return;
     }
 
+    if (avatar.socketBlend) return;
+
+    const dest = this.toCentered(socket.position.x, socket.position.z);
+    const distToSocket = Math.hypot(
+      avatar.root.position.x - dest.x,
+      avatar.root.position.z - dest.z,
+    );
+
+    // Only hold POI pose when physically at the socket — never in the aisle.
+    if (avatar.socketLocked && avatar.socketId === socket.id) {
+      if (distToSocket > 0.85) {
+        avatar.socketLocked = false;
+        avatar.socketId = null;
+        setAgentCollisionsEnabled(avatar.collider, !avatar.crowdAgent);
+        this.beginPoiRoute(avatar);
+        return;
+      }
+      this.holdPoiSocket(avatar, socket, slot.animation, t);
+      this.reportActivity(avatar, slot.animation);
+      return;
+    }
+
+    // Crowd goes to the aisle approach (navmesh), then we blend into the socket.
+    if (avatar.crowdAgent && this.officeCrowd) {
+      const navDest = this.poiCrowdDest(poi, socket);
+      this.crowdGoTo(avatar, navDest.x, navDest.z);
+      const distNav = Math.hypot(
+        avatar.root.position.x - navDest.x,
+        avatar.root.position.z - navDest.z,
+      );
+      const arrived = this.syncFromCrowd(avatar, dt, 0.5);
+      if (distToSocket < 0.7 || distNav < 0.55 || arrived) {
+        avatar.routeBusy = false;
+        avatar.stuckTimer = 0;
+        this.pauseCrowdAgent(avatar);
+        this.blendToSocket(avatar, socket, this.poiAnimForSlot(slot.animation), 0.4);
+      }
+      return;
+    }
+
     const wp = avatar.activePath.waypoints[avatar.pathIndex];
-    if (wp && avatar.routeBusy) {
-      const target = new Vector3(wp.x, avatar.root.position.y, wp.z);
-      const arrived = this.walkToward(avatar, target, 1.4, dt);
-      this.reportActivity(avatar, "walking");
+    if (avatar.routeBusy && wp) {
+      const allowEnter = Boolean(socket.sits && distToSocket < 0.95);
+      const arrived = this.walkToward(
+        avatar,
+        new Vector3(wp.x, avatar.root.position.y, wp.z),
+        1.45,
+        dt,
+        allowEnter,
+      );
+
+      if (distToSocket < 0.5) {
+        avatar.routeBusy = false;
+        avatar.stuckTimer = 0;
+        this.blendToSocket(avatar, socket, this.poiAnimForSlot(slot.animation), 0.4);
+        return;
+      }
+
       if (arrived) {
         avatar.pathIndex += 1;
         if (avatar.pathIndex >= avatar.activePath.waypoints.length) {
           avatar.routeBusy = false;
-          const dest = this.toCentered(slot.position.x, slot.position.z);
-          avatar.root.position.x = dest.x;
-          avatar.root.position.z = dest.z;
-          avatar.facing = slot.facing;
-          avatar.root.rotation.y = slot.facing;
-          this.applyPoiPose(avatar, slot, t);
-          this.reportActivity(avatar, slot.animation);
+          if (distToSocket < 1.1) {
+            this.blendToSocket(avatar, socket, this.poiAnimForSlot(slot.animation), 0.45);
+          } else {
+            this.beginPoiRoute(avatar);
+          }
         }
       }
       return;
     }
 
-    // Active at POI — procedural pose until status clears.
-    this.applyPoiPose(avatar, slot, t);
-    this.reportActivity(avatar, slot.animation);
+    this.beginPoiRoute(avatar);
   }
 
-  /** Plant at a social slot using dedicated skeletal clips (never tilt root.x). */
-  private applyPoiPose(
+  /** Micro-sway / hold once the socket blend has finished at the real spot. */
+  private holdPoiSocket(
     avatar: AvatarNode,
-    slot: { facing: number; animation: SecondaryActivity; seatHeight?: number },
+    socket: SeatSocket,
+    animation: SecondaryActivity,
     t: number,
   ) {
     avatar.ring.setEnabled(false);
     avatar.root.rotation.x = 0;
     avatar.root.rotation.z = 0;
-    avatar.root.rotation.y = slot.facing;
-    avatar.facing = slot.facing;
+    // Pin XZ to the socket every frame so separation cannot drift them away.
+    const dest = this.toCentered(socket.position.x, socket.position.z);
+    avatar.root.position.x = dest.x;
+    avatar.root.position.z = dest.z;
 
-    if (slot.animation === "sitting_sofa") {
-      playAgentAnimation(avatar, "sitting" as AgentAnimName);
-      // Plant pelvis on the cushion: seatHeight is authored in raw GLB space.
-      const seatY = (slot.seatHeight ?? 0.48) - this.centerOffset.y;
-      avatar.root.position.y = seatY - avatar.sitPelvisHeight;
-      avatar.baseY = avatar.root.position.y;
-    } else if (slot.animation === "playing_foosball") {
+    if (animation === "playing_foosball") {
       playAgentAnimation(avatar, "playing_foosball" as AgentAnimName);
       this.plantFeet(avatar);
-      // Micro sway is owned by the skeletal clip; keep facing locked to the table.
-      avatar.root.rotation.y = slot.facing + Math.sin(t * 3.2 + avatar.phase) * 0.06;
+      avatar.root.rotation.y = socket.facing + Math.sin(t * 3.2 + avatar.phase) * 0.06;
       avatar.facing = avatar.root.rotation.y;
-    } else if (slot.animation === "preparing_coffee") {
+    } else if (animation === "preparing_coffee") {
       playAgentAnimation(avatar, "preparing_coffee" as AgentAnimName);
       this.plantFeet(avatar);
-      avatar.root.rotation.y = slot.facing + Math.sin(t * 1.4 + avatar.phase) * 0.04;
+      avatar.root.rotation.y = socket.facing + Math.sin(t * 1.4 + avatar.phase) * 0.04;
       avatar.facing = avatar.root.rotation.y;
+    } else if (animation === "sitting_sofa") {
+      playAgentAnimation(avatar, "sitting" as AgentAnimName);
+      const seatY = (socket.seatHeight || 0.48) - this.centerOffset.y;
+      avatar.root.position.y = seatY - avatar.sitPelvisHeight;
+      avatar.baseY = avatar.root.position.y;
+      avatar.root.rotation.y = socket.facing;
+      avatar.facing = socket.facing;
     } else {
       playAgentAnimation(avatar, "idle");
       this.plantFeet(avatar);
     }
+    syncColliderToRoot(avatar.collider, avatar.root);
+  }
+
+  /** Walk quickly to the desk chair then blend into the seat socket. */
+  private beginDeskSitRoute(avatar: AvatarNode, state: AgentAnimName | string) {
+    // Heading back to the desk frees whatever lounge/foosball spot was held.
+    this.releaseSlot(avatar);
+    avatar.pendingDeskState = state;
+    avatar.deskRouteBusy = true;
+    avatar.idleBehavior = "desk_sit";
+    avatar.routeBusy = true;
+    avatar.socketLocked = false;
+    avatar.socketId = null;
+    avatar.crowdTargetKey = null;
+    this.attachCrowdAgent(avatar);
+
+    const dist = Math.hypot(
+      avatar.root.position.x - avatar.homePos.x,
+      avatar.root.position.z - avatar.homePos.z,
+    );
+    if (dist < 0.4) {
+      avatar.deskRouteBusy = false;
+      avatar.routeBusy = false;
+      this.pauseCrowdAgent(avatar);
+      const socket = deskSocket(avatar.seatIndex);
+      if (socket) this.blendToSocket(avatar, socket, state, 0.35);
+      else this.snapToDeskSocket(avatar, state);
+      return;
+    }
+
+    // Fallback path if crowd is unavailable.
+    if (!avatar.crowdAgent) {
+      setAgentCollisionsEnabled(avatar.collider, true);
+      const fromRaw = {
+        x: avatar.root.position.x + this.centerOffset.x,
+        z: avatar.root.position.z + this.centerOffset.z,
+      };
+      const deskRaw = {
+        x: avatar.homePos.x + this.centerOffset.x,
+        z: avatar.homePos.z + this.centerOffset.z,
+      };
+      const pathPts = routeToDesk(fromRaw, avatar.seatIndex, deskRaw, null).map((p) => ({
+        x: p.x - this.centerOffset.x,
+        z: p.z - this.centerOffset.z,
+      }));
+      avatar.activePath = {
+        id: `desk-sit-${avatar.agent.id}`,
+        loop: false,
+        waypoints: pathPts.length > 1 ? pathPts : [{ x: avatar.homePos.x, z: avatar.homePos.z }],
+      };
+      avatar.pathIndex = 0;
+    }
+
+    avatar.stuckTimer = 0;
+    avatar.lastProgressDist = Infinity;
+    this.reportActivity(avatar, "walking");
+    playAgentAnimation(avatar, "walking");
+  }
+
+  private animateDeskSit(avatar: AvatarNode, _t: number, dt: number) {
+    if (avatar.socketBlend) return;
+    if (!avatar.deskRouteBusy) {
+      const socket = deskSocket(avatar.seatIndex);
+      if (socket && !avatar.socketLocked) {
+        this.blendToSocket(avatar, socket, avatar.pendingDeskState ?? "working", 0.4);
+      }
+      return;
+    }
+
+    if (avatar.crowdAgent && this.officeCrowd) {
+      // Chair sits inside a desk AABB — walk to nearest navmesh point, then blend in.
+      const nav = crowdNavTarget(
+        this.officeCrowd.query,
+        avatar.homePos.x + this.centerOffset.x,
+        avatar.homePos.z + this.centerOffset.z,
+        this.centerOffset,
+      );
+      this.crowdGoTo(avatar, nav.x, nav.z);
+      const distNav = Math.hypot(
+        avatar.root.position.x - nav.x,
+        avatar.root.position.z - nav.z,
+      );
+      const distHome = Math.hypot(
+        avatar.root.position.x - avatar.homePos.x,
+        avatar.root.position.z - avatar.homePos.z,
+      );
+      const arrived = this.syncFromCrowd(avatar, dt, 0.45);
+      if (arrived || distNav < 0.5 || distHome < 0.65) {
+        avatar.deskRouteBusy = false;
+        avatar.routeBusy = false;
+        this.pauseCrowdAgent(avatar);
+        const socket = deskSocket(avatar.seatIndex);
+        if (socket) this.blendToSocket(avatar, socket, avatar.pendingDeskState ?? "working", 0.4);
+        else this.snapToDeskSocket(avatar, avatar.pendingDeskState ?? "working");
+      }
+      return;
+    }
+
+    const wp = avatar.activePath.waypoints[avatar.pathIndex];
+    if (!wp) {
+      avatar.deskRouteBusy = false;
+      avatar.routeBusy = false;
+      const socket = deskSocket(avatar.seatIndex);
+      if (socket) this.blendToSocket(avatar, socket, avatar.pendingDeskState ?? "working", 0.4);
+      return;
+    }
+
+    const lastLeg = avatar.pathIndex >= avatar.activePath.waypoints.length - 1;
+    const arrived = this.walkToward(
+      avatar,
+      new Vector3(wp.x, avatar.root.position.y, wp.z),
+      2.2,
+      dt,
+      lastLeg,
+    );
+    if (arrived) {
+      avatar.pathIndex += 1;
+      if (avatar.pathIndex >= avatar.activePath.waypoints.length) {
+        avatar.deskRouteBusy = false;
+        avatar.routeBusy = false;
+        const socket = deskSocket(avatar.seatIndex);
+        if (socket) this.blendToSocket(avatar, socket, avatar.pendingDeskState ?? "working", 0.4);
+        else this.snapToDeskSocket(avatar, avatar.pendingDeskState ?? "working");
+      }
+    }
+  }
+
+  /** Immediate seat (spawn / already at desk) — no blend. */
+  private snapToDeskSocket(avatar: AvatarNode, state: AgentAnimName | string) {
+    const socket = deskSocket(avatar.seatIndex);
+    if (!socket) return;
+    setAgentCollisionsEnabled(avatar.collider, false);
+    const dest = this.toCentered(socket.position.x, socket.position.z);
+    avatar.root.position.x = dest.x;
+    avatar.root.position.z = dest.z;
+    avatar.root.rotation.x = 0;
+    avatar.root.rotation.z = 0;
+    avatar.root.rotation.y = socket.facing;
+    avatar.facing = socket.facing;
+    const seatY = socket.seatHeight - this.centerOffset.y;
+    avatar.root.position.y = seatY - avatar.sitPelvisHeight;
+    avatar.baseY = avatar.root.position.y;
+    avatar.socketLocked = true;
+    avatar.socketId = socket.id;
+    avatar.ring.setEnabled(true);
+    playAgentAnimation(avatar, state as AgentAnimName);
+    syncColliderToRoot(avatar.collider, avatar.root);
+    this.reportActivity(avatar, null);
   }
 
   /**
-   * Sit the avatar on their assigned desk chair with the status clip
-   * (typing / working / …). Pelvis is planted on the cushion like sofa sits.
+   * Smoothly transition into a seat/stand socket: disable collisions, lerp
+   * position + yaw, then lock and play the target animation.
    */
-  private seatAtDesk(avatar: AvatarNode, state: AgentAnimName | string) {
-    avatar.ring.setEnabled(true);
+  private blendToSocket(
+    avatar: AvatarNode,
+    socket: SeatSocket,
+    anim: AgentAnimName | string,
+    duration = 0.45,
+  ) {
+    this.pauseCrowdAgent(avatar);
+    setAgentCollisionsEnabled(avatar.collider, false);
+    const dest = this.toCentered(socket.position.x, socket.position.z);
+    const toY = socket.sits
+      ? (socket.seatHeight || 0.48) - this.centerOffset.y - avatar.sitPelvisHeight
+      : floorYAt(dest.x, dest.z) + avatar.footOffset;
+
+    avatar.socketBlend = {
+      fromX: avatar.root.position.x,
+      fromZ: avatar.root.position.z,
+      fromY: avatar.root.position.y,
+      fromYaw: avatar.facing,
+      toX: dest.x,
+      toZ: dest.z,
+      toY,
+      toYaw: socket.facing,
+      start: performance.now() / 1000,
+      duration,
+      anim,
+      socketId: socket.id,
+      sits: socket.sits,
+    };
+    avatar.socketLocked = false;
+    avatar.socketId = null;
+    avatar.ring.setEnabled(socket.kind === "desk");
+    // Keep walking until we are nearly at the socket — avoids foosball pose in the aisle.
+    playAgentAnimation(avatar, "walking");
+    this.reportActivity(avatar, "walking");
+  }
+
+  private tickSocketBlend(avatar: AvatarNode, t: number) {
+    const blend = avatar.socketBlend;
+    if (!blend) return;
+    const u = Math.min(1, (t - blend.start) / Math.max(0.05, blend.duration));
+    const s = u * u * (3 - 2 * u); // smoothstep
+    avatar.root.position.x = blend.fromX + (blend.toX - blend.fromX) * s;
+    avatar.root.position.z = blend.fromZ + (blend.toZ - blend.fromZ) * s;
+    avatar.root.position.y = blend.fromY + (blend.toY - blend.fromY) * s;
+
+    let dyaw = blend.toYaw - blend.fromYaw;
+    const twoPi = Math.PI * 2;
+    dyaw = ((dyaw + Math.PI) % twoPi + twoPi) % twoPi - Math.PI;
+    avatar.facing = blend.fromYaw + dyaw * s;
+    avatar.root.rotation.y = avatar.facing;
     avatar.root.rotation.x = 0;
     avatar.root.rotation.z = 0;
-    avatar.root.position.x = avatar.homePos.x;
-    avatar.root.position.z = avatar.homePos.z;
-    avatar.root.rotation.y = avatar.deskFacing;
-    avatar.facing = avatar.deskFacing;
-    playAgentAnimation(avatar, state as AgentAnimName);
-    const seatY = avatar.deskSeatHeight - this.centerOffset.y;
-    avatar.root.position.y = seatY - avatar.sitPelvisHeight;
-    avatar.baseY = avatar.root.position.y;
+    syncColliderToRoot(avatar.collider, avatar.root);
+
+    // Switch to the target clip only when close to the socket.
+    if (u >= 0.85) {
+      playAgentAnimation(
+        avatar,
+        (blend.sits ? "sitting" : blend.anim) as AgentAnimName,
+      );
+    } else {
+      playAgentAnimation(avatar, "walking");
+      this.reportActivity(avatar, "walking");
+    }
+
+    if (u < 1) return;
+
+    avatar.socketBlend = null;
+    avatar.socketLocked = true;
+    avatar.socketId = blend.socketId;
+    avatar.root.position.x = blend.toX;
+    avatar.root.position.z = blend.toZ;
+    avatar.root.position.y = blend.toY;
+    avatar.baseY = blend.toY;
+    avatar.facing = blend.toYaw;
+    avatar.root.rotation.y = blend.toYaw;
+    playAgentAnimation(avatar, blend.anim as AgentAnimName);
+
+    const slot = avatar.agent.officeSlotId
+      ? poiById(avatar.agent.officePoiId ?? "")?.slots.find((s) => s.id === avatar.agent.officeSlotId)
+      : null;
+    if (slot?.animation) this.reportActivity(avatar, slot.animation);
+    else this.reportActivity(avatar, null);
+  }
+
+  /** Leave a socket; crowd agents stay on navmesh (no ellipsoid furniture checks). */
+  private standFromSocket(avatar: AvatarNode) {
+    avatar.socketBlend = null;
+    if (!avatar.socketLocked && !avatar.crowdAgent && avatar.collider.checkCollisions) return;
+    avatar.socketLocked = false;
+    avatar.socketId = null;
+    // Crowd owns loco → keep collisions off. Fallback A* needs them on.
+    setAgentCollisionsEnabled(avatar.collider, !avatar.crowdAgent);
+    avatar.ring.setEnabled(true);
+    this.plantFeet(avatar);
+    syncColliderToRoot(avatar.collider, avatar.root);
   }
 
   private returnHome(avatar: AvatarNode) {
+    this.releaseSlot(avatar);
+    this.standFromSocket(avatar);
     avatar.root.rotation.x = 0;
     avatar.root.rotation.z = 0;
     avatar.ring.setEnabled(true);
     this.plantFeet(avatar);
     playAgentAnimation(avatar, "walking");
-    // Desk seats live inside desk furniture AABBs — allow the final snap.
     const fromRaw = {
       x: avatar.root.position.x + this.centerOffset.x,
       z: avatar.root.position.z + this.centerOffset.z,
@@ -1214,8 +2120,10 @@ export class OfficeScene {
     avatar.activePath = { id: `home-${avatar.agent.id}`, loop: false, waypoints: pathPts };
     avatar.pathIndex = 0;
     avatar.idleBehavior = "patrol";
+    avatar.routeBusy = false;
     avatar.stuckTimer = 0;
     avatar.lastProgressDist = Infinity;
+    this.reportActivity(avatar, "walking");
   }
 
   private toCentered(x: number, z: number) {
@@ -1249,13 +2157,28 @@ export class OfficeScene {
   }
 
   /** Turn radians/sec while pivoting on the spot before stepping forward. */
-  private static readonly TURN_SPEED = Math.PI * 2.2;
-  /** Must be facing within this tolerance before advancing position. */
-  private static readonly FACING_TOLERANCE = 0.08;
+  private static readonly TURN_SPEED = Math.PI * 2.4;
+  /** Heading low-pass time constant (s). ~90 ms keeps turns snappy but stable. */
+  private static readonly HEADING_TAU = 0.09;
   private static readonly SEPARATION = AGENT_RADIUS * 2.05;
   private static readonly STUCK_SECONDS = 1.5;
+  /** Reset immobility anchor only after this much real travel (m). */
+  private static readonly IMMOBILE_ANCHOR_R = 0.55;
+  /** Yank to nearest aisle after this many seconds near the anchor. */
+  private static readonly NO_MOVE_ESCAPE = 2.4;
 
-  private walkToward(avatar: AvatarNode, target: Vector3, speed: number, dt: number): boolean {
+  /**
+   * Fallback step when Recast Crowd is unavailable.
+   * Single collision authority: resolveCollision only (no moveWithCollisions
+   * double-resolve — that jitter was resetting stuck timers forever).
+   */
+  private walkToward(
+    avatar: AvatarNode,
+    target: Vector3,
+    speed: number,
+    dt: number,
+    allowEnterObstacle = false,
+  ): boolean {
     const pos = avatar.root.position;
     let dx = target.x - pos.x;
     let dz = target.z - pos.z;
@@ -1264,10 +2187,7 @@ export class OfficeScene {
       x: target.x + this.centerOffset.x,
       z: target.z + this.centerOffset.z,
     };
-    const goalIsSit = pointHitsObstacle(rawTarget);
 
-    // Separation from other agents — only if the steered point stays walkable
-    // (or we are intentionally entering a sit target).
     let sepDx = 0;
     let sepDz = 0;
     for (const other of this.avatars.values()) {
@@ -1288,38 +2208,29 @@ export class OfficeScene {
         x: pos.x + dx + sepDx + this.centerOffset.x,
         z: pos.z + dz + sepDz + this.centerOffset.z,
       };
-      if (goalIsSit || isWalkable(trialRaw)) {
+      if (allowEnterObstacle || isWalkable(trialRaw)) {
         dx += sepDx;
         dz += sepDz;
       }
     }
 
     const dist = Math.sqrt(dx * dx + dz * dz);
-    if (dist < 1e-6) {
-      if (goalIsSit || isWalkable(rawTarget)) {
+    if (dist < 0.22) {
+      if (allowEnterObstacle || isWalkable(rawTarget)) {
         pos.x = target.x;
         pos.z = target.z;
         this.plantFeet(avatar);
+        syncColliderToRoot(avatar.collider, avatar.root);
         avatar.stuckTimer = 0;
+        avatar.noMoveTimer = 0;
         return true;
       }
+      // Unreachable waypoint — skip instead of moonwalking.
+      avatar.pathIndex += 1;
+      avatar.stuckTimer = 0;
       return false;
     }
 
-    if (dist < 0.22) {
-      // Snap only onto walkable waypoints or intentional sit targets.
-      if (goalIsSit || isWalkable(rawTarget)) {
-        pos.x = target.x;
-        pos.z = target.z;
-        this.plantFeet(avatar);
-        playAgentAnimation(avatar, "idle");
-        avatar.stuckTimer = 0;
-        avatar.lastProgressDist = Infinity;
-        return true;
-      }
-    }
-
-    // Stuck detection → one-shot repath around other agents.
     if (dist < avatar.lastProgressDist - 0.02) {
       avatar.stuckTimer = 0;
       avatar.lastProgressDist = dist;
@@ -1328,70 +2239,118 @@ export class OfficeScene {
       if (avatar.stuckTimer >= OfficeScene.STUCK_SECONDS) {
         avatar.stuckTimer = 0;
         avatar.lastProgressDist = Infinity;
-        this.repathAroundAgents(avatar, rawTarget, goalIsSit);
+        this.escapeToAisle(avatar);
+        return false;
       }
     }
 
-    const heading = Math.atan2(dx, dz);
-    const turned = this.turnToward(avatar, heading, dt);
-    if (!turned) {
-      playAgentAnimation(avatar, "idle");
-      this.plantFeet(avatar);
+    if (this.tickImmobile(avatar, dt)) {
+      this.escapeToAisle(avatar);
       return false;
     }
 
-    playAgentAnimation(avatar, "walking");
+    const heading = Math.atan2(dx, dz);
+    const turnAlign = this.turnToward(avatar, heading, dt);
     avatar.root.rotation.x = 0;
     avatar.root.rotation.z = 0;
-    const step = Math.min(speed * dt, dist);
-    const nextX = pos.x + (dx / dist) * step;
-    const nextZ = pos.z + (dz / dist) * step;
-    // Final sit snap targets live inside the sofa AABB — don't push out of them.
-    if (goalIsSit) {
-      pos.x = nextX;
-      pos.z = nextZ;
+
+    const beforeX = pos.x;
+    const beforeZ = pos.z;
+    // Only brake for genuinely sharp turns. turnAlign maps yaw error over the
+    // full ±π, so the old 0.35 + 0.65·align curve slowed agents to a crawl for
+    // routine course corrections. Full speed once we are within ~50°.
+    const moveScale = 0.55 + 0.45 * Math.min(1, turnAlign / 0.72);
+    const step = Math.min(speed * dt * moveScale, dist);
+    const stepX = (dx / dist) * step;
+    const stepZ = (dz / dist) * step;
+
+    if (allowEnterObstacle) {
+      pos.x += stepX;
+      pos.z += stepZ;
     } else {
-      const raw = resolveCollision(
+      const trial = resolveCollision(
         {
-          x: nextX + this.centerOffset.x,
-          z: nextZ + this.centerOffset.z,
+          x: pos.x + stepX + this.centerOffset.x,
+          z: pos.z + stepZ + this.centerOffset.z,
         },
-        undefined,
-        NAV_CLEARANCE,
+        OFFICE_OBSTACLES,
+        AGENT_RADIUS,
       );
+      const raw = resolveCollision(trial, undefined, NAV_CLEARANCE);
       pos.x = raw.x - this.centerOffset.x;
       pos.z = raw.z - this.centerOffset.z;
     }
     this.plantFeet(avatar);
+    syncColliderToRoot(avatar.collider, avatar.root);
+
+    const moved = Math.hypot(pos.x - beforeX, pos.z - beforeZ);
+    if (moved < 0.01) {
+      playAgentAnimation(avatar, "idle");
+      this.reportActivity(avatar, "walking");
+    } else {
+      playAgentAnimation(avatar, "walking");
+      this.reportActivity(avatar, "walking");
+    }
     return false;
   }
 
   /**
-   * Rebuild the remainder of the active path with temporary blocks around
-   * nearby agents so a stuck avatar can slip past.
+   * Immobility by anchor: ignore micro-jitter from collision slides.
+   * Only resets when the agent travels > IMMOBILE_ANCHOR_R from the anchor.
    */
-  private repathAroundAgents(
-    avatar: AvatarNode,
-    goalRaw: { x: number; z: number },
-    allowGoalInObstacle: boolean,
-  ) {
+  private tickImmobile(avatar: AvatarNode, dt: number): boolean {
+    const x = avatar.root.position.x;
+    const z = avatar.root.position.z;
+    const fromAnchor = Math.hypot(x - avatar.immobileAnchorX, z - avatar.immobileAnchorZ);
+    if (fromAnchor > OfficeScene.IMMOBILE_ANCHOR_R) {
+      avatar.immobileAnchorX = x;
+      avatar.immobileAnchorZ = z;
+      avatar.noMoveTimer = 0;
+      return false;
+    }
+    avatar.noMoveTimer += dt;
+    return avatar.noMoveTimer >= OfficeScene.NO_MOVE_ESCAPE;
+  }
+
+  /** Teleport out of a dead-end pinch onto the nearest open aisle anchor. */
+  private escapeToAisle(avatar: AvatarNode) {
     const fromRaw = {
       x: avatar.root.position.x + this.centerOffset.x,
       z: avatar.root.position.z + this.centerOffset.z,
     };
-    // Live A* already avoids furniture; other agents are soft — just recompute
-    // a fresh path to the same goal (clears bad intermediate waypoints).
-    const pts = findPath(fromRaw, goalRaw, { allowGoalInObstacle }).map((p) => ({
-      x: p.x - this.centerOffset.x,
-      z: p.z - this.centerOffset.z,
-    }));
-    if (pts.length < 2) return;
-    const remaining = avatar.activePath.waypoints.slice(avatar.pathIndex + 1);
-    avatar.activePath = {
-      ...avatar.activePath,
-      waypoints: [...pts, ...remaining],
-    };
-    avatar.pathIndex = 0;
+    const safe = nearestAislePoint(fromRaw);
+    // Slight seat-based offset so two stuck agents don't re-stack on the same cell.
+    const jig = ((avatar.seatIndex % 5) - 2) * 0.18;
+    const dest = resolveCollision(
+      { x: safe.x + jig, z: safe.z },
+      undefined,
+      NAV_CLEARANCE,
+    );
+    avatar.root.position.x = dest.x - this.centerOffset.x;
+    avatar.root.position.z = dest.z - this.centerOffset.z;
+    this.plantFeet(avatar);
+    syncColliderToRoot(avatar.collider, avatar.root);
+    avatar.noMoveTimer = 0;
+    avatar.stuckTimer = 0;
+    avatar.lastProgressDist = Infinity;
+    avatar.immobileAnchorX = avatar.root.position.x;
+    avatar.immobileAnchorZ = avatar.root.position.z;
+    avatar.crowdTargetKey = null;
+    if (avatar.crowdAgent && this.officeCrowd) {
+      crowdTeleport(avatar.crowdAgent, this.officeCrowd.query, dest.x - this.centerOffset.x, dest.z - this.centerOffset.z);
+    }
+
+    if (import.meta.env.DEV) {
+      console.info("[OfficeScene] escaped pinch → aisle", avatar.agent.name, dest);
+    }
+
+    if (avatar.idleBehavior === "poi") {
+      this.beginPoiRoute(avatar);
+    } else if (avatar.deskRouteBusy || avatar.idleBehavior === "desk_sit") {
+      this.beginDeskSitRoute(avatar, avatar.pendingDeskState ?? "working");
+    } else {
+      this.assignPatrolLane(avatar);
+    }
   }
 
   /** Plant feet exactly on the floor surface using footOffset + nav floor height. */
@@ -1401,20 +2360,20 @@ export class OfficeScene {
     const y = floorYAt(avatar.root.position.x, avatar.root.position.z) + avatar.footOffset;
     avatar.root.position.y = y;
     avatar.baseY = y;
+    syncColliderToRoot(avatar.collider, avatar.root);
   }
 
   private reportActivity(avatar: AvatarNode, activity: SecondaryActivity) {
     if (avatar.reportedActivity === activity) return;
-    // Prefer server-driven labels when present.
-    if (avatar.agent.secondaryActivity && activity !== "walking" && activity != null) {
-      // still update walking vs active distinctions through callback for local-only agents
-    }
     avatar.reportedActivity = activity;
     this.callbacks.onAgentActivity?.(avatar.agent.id, activity);
   }
 
-  /** Smoothly rotate the avatar toward `heading`. Returns true once aligned. */
-  private turnToward(avatar: AvatarNode, heading: number, dt: number): boolean {
+  /**
+   * Smoothly rotate the avatar toward `heading`.
+   * Returns alignment factor 0..1 (1 = fully facing the target).
+   */
+  private turnToward(avatar: AvatarNode, heading: number, dt: number): number {
     const twoPi = Math.PI * 2;
     let delta = (heading - avatar.facing) % twoPi;
     if (delta > Math.PI) delta -= twoPi;
@@ -1423,12 +2382,14 @@ export class OfficeScene {
     const maxStep = OfficeScene.TURN_SPEED * dt;
     if (Math.abs(delta) <= maxStep) {
       avatar.facing = heading;
+      delta = 0;
     } else {
       avatar.facing += Math.sign(delta) * maxStep;
     }
 
     avatar.root.rotation.y = avatar.facing;
-    return Math.abs(delta) <= OfficeScene.FACING_TOLERANCE;
+    // Map remaining yaw error to a 0..1 alignment (π rad → 0).
+    return Math.max(0, 1 - Math.abs(delta) / Math.PI);
   }
 
   /** Drop bloom / resolution when FPS stays low to keep the office responsive. */
@@ -1537,6 +2498,14 @@ export class OfficeScene {
     this.disposed = true;
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    for (const avatar of this.avatars.values()) {
+      this.detachCrowdAgent(avatar);
+      avatar.collider.dispose();
+    }
+    this.avatars.clear();
+    this.officeCrowd?.destroy();
+    this.officeCrowd = null;
+    disposeObstacleColliders(this.obstacleColliders);
     this.pipeline?.dispose();
     this.pipeline = null;
     for (const light of this.sceneLights) light.dispose();
@@ -1549,6 +2518,29 @@ export class OfficeScene {
 
 // Only truly unoccupied agents roam the office. "waiting" (approval pending)
 // stays at the desk: an agent with work in flight must look like it.
+/**
+ * World-space centre of an avatar's drawn geometry. Used by the debug
+ * snapshot to tell "the logic moved the agent" apart from "the body the
+ * viewer sees actually moved".
+ */
+function meshCentre(avatar: AvatarNode): { x: number; z: number } | null {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  let found = false;
+  for (const mesh of avatar.meshes) {
+    if (!mesh.isEnabled()) continue;
+    const bb = mesh.getBoundingInfo().boundingBox;
+    minX = Math.min(minX, bb.minimumWorld.x);
+    maxX = Math.max(maxX, bb.maximumWorld.x);
+    minZ = Math.min(minZ, bb.minimumWorld.z);
+    maxZ = Math.max(maxZ, bb.maximumWorld.z);
+    found = true;
+  }
+  return found ? { x: (minX + maxX) / 2, z: (minZ + maxZ) / 2 } : null;
+}
+
 function isIdleVisual(state: string): boolean {
   return state === "idle" || state === "walking";
 }

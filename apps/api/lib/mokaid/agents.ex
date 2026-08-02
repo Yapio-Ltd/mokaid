@@ -205,6 +205,20 @@ defmodule Mokaid.Agents do
     end
   end
 
+  # Options reach this module either as a keyword list (direct call) or as a
+  # string-keyed map (deserialised from an Oban job payload). Keyword access
+  # raises on the map form, so normalise the lookup in one place.
+  defp fetch_opt(opts, key) when is_list(opts) do
+    # Keyword keys are always atoms, so only the atom lookup applies here.
+    Keyword.get(opts, key)
+  end
+
+  defp fetch_opt(opts, key) when is_map(opts) do
+    Map.get(opts, key) || Map.get(opts, to_string(key))
+  end
+
+  defp fetch_opt(_opts, _key), do: nil
+
   defp do_run_boost_training(%Agent{} = agent, training, opts) do
     target = Map.get(training, "target_level") || 1
     skill_bonus = Map.get(training, "skill_bonus") || 0
@@ -212,7 +226,10 @@ defmodule Mokaid.Agents do
     archetype_key = Map.get(training, "archetype_key") || "blank"
     brief = Map.get(training, "knowledge_brief")
     suggested_mcp = Map.get(training, "suggested_mcp") || []
-    member_id = opts[:member_id] || opts["member_id"]
+    # opts arrives as a keyword list from direct calls and as a string-keyed
+    # map when Oban round-trips it through JSON. `opts[:member_id]` raises on
+    # the latter, so read both shapes explicitly.
+    member_id = fetch_opt(opts, :member_id)
     member = if member_id, do: Mokaid.Repo.get(Mokaid.Members.Member, member_id)
 
     current = agent.level || 1
@@ -329,7 +346,8 @@ defmodule Mokaid.Agents do
     {:ok, updated}
   end
 
-  defp maybe_seed_domain_pack(agent, _boost_key, _archetype, _brief, _mcp, _member), do: {:ok, agent}
+  defp maybe_seed_domain_pack(agent, _boost_key, _archetype, _brief, _mcp, _member),
+    do: {:ok, agent}
 
   defp finalize_training(agent, target, skill_bonus, seed_base) do
     skills = interpolate_skills(agent.skills || [], seed_base, skill_bonus, 1.0)
@@ -374,17 +392,22 @@ defmodule Mokaid.Agents do
   end
 
   defp broadcast_training_progress(agent, extra) do
-    Realtime.broadcast_workspace(agent.workspace_id, "agent.training_progress", %{
-      agent_id: agent.id,
-      agent_name: agent.display_name,
-      level: agent.level,
-      xp: agent.xp,
-      xp_for_next_level: agent.xp_for_next_level,
-      skills: agent.skills,
-      status: agent.status,
-      training: get_in(agent.capabilities || %{}, ["training"]),
-      domain_pack: get_in(agent.capabilities || %{}, ["domain_pack"])
-    } |> Map.merge(extra))
+    Realtime.broadcast_workspace(
+      agent.workspace_id,
+      "agent.training_progress",
+      %{
+        agent_id: agent.id,
+        agent_name: agent.display_name,
+        level: agent.level,
+        xp: agent.xp,
+        xp_for_next_level: agent.xp_for_next_level,
+        skills: agent.skills,
+        status: agent.status,
+        training: get_in(agent.capabilities || %{}, ["training"]),
+        domain_pack: get_in(agent.capabilities || %{}, ["domain_pack"])
+      }
+      |> Map.merge(extra)
+    )
   end
 
   defp boost_training_step_ms(target_level) do

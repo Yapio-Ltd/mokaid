@@ -15,6 +15,12 @@ defmodule Mokaid.Office do
   alias Mokaid.Repo
   alias Mokaid.Workspaces.Workspace
 
+  # Share of idle agents that leave their desk on a given tick. The rest keep
+  # working, which is what makes the office read as an office.
+  @wander_chance 0.28
+  # Chance a tick tries to seat a foosball pair at all.
+  @foosball_pair_chance 0.22
+
   @pois %{
     "foosball" => %{
       activity: "playing_foosball",
@@ -101,8 +107,20 @@ defmodule Mokaid.Office do
       )
       |> Repo.all()
 
-    # Prefer filling foosball with pairs when 2+ idle agents exist.
-    {idle, free_by_poi} = maybe_fill_foosball(idle, free_by_poi)
+    # Occasionally pair two agents up at the foosball table. This used to run
+    # on every tick, which meant the table was booked before anything else and
+    # the office looked like it had one activity.
+    {idle, free_by_poi} =
+      if :rand.uniform() < @foosball_pair_chance do
+        maybe_fill_foosball(idle, free_by_poi)
+      else
+        {idle, free_by_poi}
+      end
+
+    # Most idle agents simply stay at their desk. Without this every free
+    # agent was pushed to a POI the moment it had nothing to do, so the room
+    # was permanently in motion instead of mostly working with the odd break.
+    idle = Enum.filter(idle, fn _ -> :rand.uniform() < @wander_chance end)
 
     Enum.reduce(idle, free_by_poi, fn agent, free_map ->
       case pick_poi(free_map) do
@@ -153,16 +171,30 @@ defmodule Mokaid.Office do
     end
   end
 
+  # Picking uniformly over free *slots* let the POI with the most seats win:
+  # foosball and the sofa hold five of the six, so the coffee machine was
+  # almost never chosen. Weight per POI instead, then pick a seat within it.
+  @poi_weights %{"coffee" => 4, "sofa_main" => 3, "foosball" => 2}
+
   defp pick_poi(free_map) do
-    candidates =
+    available =
       free_map
+      # Foosball needs two players. It is filled as a pair by
+      # maybe_fill_foosball; letting the generic picker hand out a single seat
+      # left one agent miming a match against an empty end of the table.
+      |> Enum.reject(fn {poi_id, slots} -> slots == [] or poi_id == "foosball" end)
       |> Enum.flat_map(fn {poi_id, slots} ->
-        Enum.map(slots, fn slot -> {poi_id, slot, List.delete(slots, slot)} end)
+        List.duplicate({poi_id, slots}, Map.get(@poi_weights, poi_id, 1))
       end)
 
-    case candidates do
-      [] -> nil
-      list -> Enum.random(list)
+    case available do
+      [] ->
+        nil
+
+      list ->
+        {poi_id, slots} = Enum.random(list)
+        slot = Enum.random(slots)
+        {poi_id, slot, List.delete(slots, slot)}
     end
   end
 

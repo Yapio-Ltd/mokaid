@@ -39,13 +39,32 @@ export interface OfficePath {
 
 const NODE = new Map(OFFICE_NAV_NODES.map((n) => [n.id, { x: n.x, z: n.z }]));
 
-/** Route through anchor ids; every leg uses the grid pathfinder. */
+/**
+ * Route through anchor ids; every leg uses the grid pathfinder.
+ * An unknown id is skipped rather than crashing the whole scene — patrol
+ * anchors move when the nav data is regenerated from the .blend.
+ */
 function chain(ids: string[]): PathWaypoint[] {
   const out: PathWaypoint[] = [];
   for (let k = 0; k < ids.length - 1; k++) {
-    const a = NODE.get(ids[k])!;
-    const b = NODE.get(ids[k + 1])!;
+    const a = NODE.get(ids[k]);
+    const b = NODE.get(ids[k + 1]);
+    if (!a || !b) {
+      if (import.meta.env?.DEV) {
+        console.warn("[office-paths] unknown anchor in loop:", ids[k], ids[k + 1]);
+      }
+      continue;
+    }
     const leg = findPath(a, b);
+    // findPath returns a single point when A* cannot connect the two anchors.
+    // Chaining that in would splice a straight line between them — the patrol
+    // route would cut through whatever furniture sits in between.
+    if (leg.length < 2) {
+      if (import.meta.env?.DEV) {
+        console.warn("[office-paths] no route between anchors:", ids[k], "->", ids[k + 1]);
+      }
+      continue;
+    }
     for (const p of leg) {
       const last = out[out.length - 1];
       if (!last || Math.hypot(p.x - last.x, p.z - last.z) > 0.05) {
@@ -66,40 +85,32 @@ function loopPath(id: string, ids: string[]): OfficePath {
  */
 export const OFFICE_PATHS: OfficePath[] = [
   loopPath("perimeter-cw", [
-    "nw", "n_lounge", "n_mid", "n_sofa", "ne", "e_door", "se",
-    "s_coffee", "s_mid", "sw", "w_aisle", "nw",
+    "n_sofa", "n_coffee", "n_east", "mid_e", "s_mid",
+    "foosball_s", "sw", "mid_w", "w_aisle", "n_sofa",
   ]),
   loopPath("perimeter-ccw", [
-    "nw", "w_aisle", "sw", "s_mid", "s_coffee", "se", "e_door",
-    "ne", "n_sofa", "n_mid", "n_lounge", "nw",
+    "n_sofa", "w_aisle", "mid_w", "sw", "foosball_s", "s_mid",
+    "mid_e", "n_east", "n_coffee", "n_sofa",
   ]),
   loopPath("mid-aisle", [
-    "w_aisle", "mid_w", "mid_c", "mid_e", "e_door", "mid_e", "mid_c", "mid_w", "w_aisle",
+    "w_aisle", "mid_w", "mid_c", "mid_e", "mid_c", "mid_w", "w_aisle",
   ]),
   loopPath("mid-aisle-rev", [
-    "e_door", "mid_e", "mid_c", "mid_w", "w_aisle", "mid_w", "mid_c", "mid_e", "e_door",
+    "mid_e", "mid_c", "mid_w", "w_aisle", "mid_w", "mid_c", "mid_e",
   ]),
-  loopPath("back-aisle", ["sw", "s_mid", "s_coffee", "se", "s_coffee", "s_mid", "sw"]),
+  loopPath("south-aisle", ["sw", "foosball_s", "s_mid", "s_mid", "foosball_s", "sw"]),
   loopPath("north-aisle", [
-    "nw", "n_lounge", "n_mid", "n_sofa", "ne", "n_sofa", "n_mid", "n_lounge", "nw",
+    "n_sofa", "n_coffee", "n_east", "n_coffee", "n_sofa",
   ]),
-  loopPath("west-loop", [
-    "nw", "w_aisle", "sw", "s_mid", "mid_w", "w_aisle", "nw",
-  ]),
-  loopPath("center-loop", [
-    "mid_w", "mid_c", "mid_e", "se", "s_coffee", "s_mid", "mid_w",
-  ]),
-  loopPath("east-loop", [
-    "e_door", "ne", "n_sofa", "sofa_appr", "mid_e", "e_door",
-  ]),
+  loopPath("west-loop", ["w_aisle", "mid_w", "sw", "mid_w", "w_aisle"]),
+  loopPath("center-loop", ["mid_w", "mid_c", "mid_e", "s_mid", "mid_c", "mid_w"]),
+  loopPath("east-loop", ["mid_e", "n_east", "n_coffee", "mid_c", "mid_e"]),
   loopPath("foosball-circuit", [
-    "s_coffee", "foosball_s", "s_mid", "mid_c", "mid_e", "se", "s_coffee",
+    "s_mid", "foosball_s", "foosball_w", "foosball_s", "sw", "mid_w", "mid_c", "s_mid",
   ]),
-  loopPath("coffee-sofa", [
-    "coffee", "n_mid", "n_sofa", "sofa_appr", "n_lounge", "coffee",
-  ]),
+  loopPath("coffee-sofa", ["n_coffee", "n_sofa", "w_aisle", "mid_w", "mid_c", "n_coffee"]),
   loopPath("cross-office", [
-    "sw", "mid_w", "mid_c", "n_mid", "n_sofa", "mid_e", "se", "s_mid", "sw",
+    "sw", "mid_w", "mid_c", "n_sofa", "n_coffee", "mid_e", "s_mid", "sw",
   ]),
 ];
 

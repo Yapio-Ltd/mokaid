@@ -6,7 +6,11 @@
 import { describe, expect, it } from "vitest";
 import {
   AGENT_RADIUS,
+  deskSocket,
+  distToAabbEdge,
   findPath,
+  FOOSBALL_STAND_GAP,
+  FOOSBALL_TABLE_AABB,
   isWalkable,
   NAV_CLEARANCE,
   NAV_OBSTACLES,
@@ -14,6 +18,7 @@ import {
   OFFICE_NAV_NODES,
   OFFICE_OBSTACLES,
   OFFICE_POIS,
+  poiSlotSocket,
   pointHitsObstacle,
   resolveCollision,
   segmentIsWalkable,
@@ -62,7 +67,7 @@ describe("office-navdata", () => {
   });
 
   it("reaches every desk seat from the coffee corner without crossing furniture", () => {
-    const from = { x: -1.99, z: -4.7 };
+    const from = { x: 1.99, z: -5.08 };
     for (const [i, seat] of OFFICE_DESK_SLOTS.entries()) {
       const path = findPath(from, seat, { allowGoalInObstacle: true });
       expect(path.length, `desk ${i} unreachable`).toBeGreaterThan(1);
@@ -164,19 +169,19 @@ describe("office-navdata", () => {
   });
 
   it("never returns a path crossing furniture even for blocked goals", () => {
-    const insideMeetingTable = { x: 5.7, z: 3.9 };
+    const insideMeetingTable = { x: -5.7, z: 3.9 };
     expect(pointHitsObstacle(insideMeetingTable)).toBe(true);
-    const path = findPath({ x: -5.85, z: -0.8 }, insideMeetingTable);
+    const path = findPath({ x: 0.35, z: -1.6 }, insideMeetingTable);
     // Goal is dropped (not allowGoalInObstacle) and the rest stays clear.
     expect(pathIsClear(path)).toBe(true);
   });
 
   it("resolveCollision slides a point out of any obstacle (raw + clearance)", () => {
     for (const probe of [
-      { x: 5.7, z: 3.9 }, // meeting table
-      { x: 1.8, z: 4.7 }, // foosball table
-      { x: -5.0, z: 0.7 }, // desk0
-      { x: 1.79, z: -6.0 }, // sofa
+      { x: -5.7, z: 3.9 }, // meeting table (table 2)
+      { x: -1.8, z: 4.7 }, // foosball table
+      { x: -5.7, z: 0.2 }, // desk Cube.011
+      { x: -1.79, z: -6.0 }, // main sofa
     ]) {
       expect(pointHitsObstacle(probe)).toBe(true);
       const out = resolveCollision(probe);
@@ -185,9 +190,57 @@ describe("office-navdata", () => {
     }
   });
 
+  it("keeps the meeting-room table solid so agents route around it", () => {
+    // table 2 sits at X[-6.17,-5.24] Z[3.06,4.72] in the west corner.
+    expect(pointHitsObstacle({ x: -5.7, z: 3.9 })).toBe(true);
+    expect(isWalkable({ x: -5.7, z: 3.9 })).toBe(false);
+    const freed = resolveCollision({ x: -5.7, z: 3.9 });
+    expect(isWalkable(freed)).toBe(true);
+  });
+
   it("defines foosball, sofa and coffee POIs with capacity", () => {
     expect(OFFICE_POIS.find((p) => p.kind === "foosball")?.capacity).toBe(2);
     expect(OFFICE_POIS.find((p) => p.kind === "sofa")?.capacity).toBe(3);
     expect(OFFICE_POIS.find((p) => p.kind === "coffee")?.capacity).toBe(1);
+  });
+
+  it("exposes seat sockets for desks, sofa and foosball", () => {
+    for (let i = 0; i < OFFICE_DESK_SLOTS.length; i++) {
+      const sock = deskSocket(i);
+      expect(sock, `desk ${i}`).toBeTruthy();
+      expect(sock!.sits).toBe(true);
+      expect(sock!.kind).toBe("desk");
+      expect(sock!.seatHeight).toBeGreaterThan(0);
+      // Path can terminate at the desk seat (allowGoalInObstacle).
+      const path = findPath({ x: -1.99, z: -4.7 }, sock!.position, { allowGoalInObstacle: true });
+      expect(path.length, `desk ${i} unreachable`).toBeGreaterThan(1);
+    }
+
+    const sofa = poiSlotSocket("sofa_b");
+    expect(sofa?.sits).toBe(true);
+    expect(pointHitsObstacle(sofa!.position)).toBe(true);
+
+    for (const id of ["foosball_a", "foosball_b"] as const) {
+      const sock = poiSlotSocket(id);
+      expect(sock, id).toBeTruthy();
+      expect(sock!.sits).toBe(false);
+      expect(isWalkable(sock!.position), `${id} not walkable`).toBe(true);
+      const edge = distToAabbEdge(sock!.position, FOOSBALL_TABLE_AABB);
+      expect(edge, `${id} too far from table`).toBeLessThanOrEqual(FOOSBALL_STAND_GAP + 0.05);
+      expect(edge, `${id} inside table`).toBeGreaterThan(0.05);
+    }
+
+    // Players face the table from whichever flanks the navmesh actually
+    // reaches, so assert the intent (looking at the table) rather than fixed
+    // angles that break whenever a spot moves.
+    const midX = (FOOSBALL_TABLE_AABB.minX + FOOSBALL_TABLE_AABB.maxX) / 2;
+    const midZ = (FOOSBALL_TABLE_AABB.minZ + FOOSBALL_TABLE_AABB.maxZ) / 2;
+    for (const id of ["foosball_a", "foosball_b"] as const) {
+      const sock = poiSlotSocket(id)!;
+      const look = { x: Math.sin(sock.facing), z: Math.cos(sock.facing) };
+      const to = { x: midX - sock.position.x, z: midZ - sock.position.z };
+      const len = Math.hypot(to.x, to.z) || 1;
+      expect((look.x * to.x + look.z * to.z) / len, `${id} faces away`).toBeGreaterThan(0.7);
+    }
   });
 });

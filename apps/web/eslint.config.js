@@ -30,6 +30,7 @@ export default [
         setInterval: "readonly",
         clearInterval: "readonly",
         MouseEvent: "readonly",
+        BeforeUnloadEvent: "readonly",
         Node: "readonly",
         File: "readonly",
         FileList: "readonly",

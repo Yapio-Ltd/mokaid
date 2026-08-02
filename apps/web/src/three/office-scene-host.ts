@@ -1,16 +1,24 @@
 /**
  * Persistent host for the Babylon office: one WebGL context + canvas survive
  * React route changes. Pause on leave, resume on re-enter — no GLB reload.
- * Full dispose only on logout / workspace switch.
+ * Full dispose only on logout / workspace switch / build bump.
  */
 
-import { OfficeScene } from "./office-scene";
+import { OFFICE_SCENE_BUILD, OfficeScene } from "./office-scene";
 import type { SceneAgent, SceneCallbacks } from "./types";
+
+/**
+ * Bump when collision/socket logic changes so the singleton is recreated.
+ * Defined in office-scene so the debug snapshot reports the same number
+ * (importing it back from here would close an import cycle).
+ */
+export { OFFICE_SCENE_BUILD };
 
 interface HostState {
   canvas: HTMLCanvasElement;
   scene: OfficeScene;
   workspaceId: string;
+  build: number;
 }
 
 let host: HostState | null = null;
@@ -34,7 +42,7 @@ export function attachOfficeHost(
   workspaceId: string,
   callbacks: SceneCallbacks,
 ): OfficeScene {
-  if (host && host.workspaceId !== workspaceId) {
+  if (host && (host.workspaceId !== workspaceId || host.build !== OFFICE_SCENE_BUILD)) {
     disposeOfficeHost();
   }
 
@@ -42,7 +50,7 @@ export function attachOfficeHost(
     const canvas = createCanvas();
     container.appendChild(canvas);
     const scene = new OfficeScene(canvas, callbacks);
-    host = { canvas, scene, workspaceId };
+    host = { canvas, scene, workspaceId, build: OFFICE_SCENE_BUILD };
     return scene;
   }
 
@@ -78,4 +86,41 @@ export function getOfficeHostScene(): OfficeScene | null {
 
 export function updateOfficeHostAgents(agents: SceneAgent[]) {
   host?.scene.updateAgents(agents);
+}
+
+/** Expose loco debug on window for Playwright / console checks. */
+export function bindOfficeDebugGlobal() {
+  if (typeof window === "undefined") return;
+  (window as unknown as { __mokaidOfficeDebug?: () => unknown }).__mokaidOfficeDebug = () =>
+    host?.scene.debugLocoSnapshot() ?? { officeReady: false, crowdReady: false, agents: [] };
+  // Raw office-GLB point → canvas pixels, so a verification script can check
+  // that what the data says lines up with what the camera actually shows.
+  (
+    window as unknown as { __mokaidOfficeProject?: (x: number, z: number, y?: number) => unknown }
+  ).__mokaidOfficeProject = (x, z, y) => host?.scene.debugProject(x, z, y) ?? null;
+  // Plant a visible pillar at a raw coordinate to check nav data against the render.
+  (
+    window as unknown as { __mokaidOfficeMark?: (x: number, z: number, hex?: string) => void }
+  ).__mokaidOfficeMark = (x, z, hex) => host?.scene.debugMarker(x, z, hex);
+}
+
+bindOfficeDebugGlobal();
+
+// Hot reload: drop the singleton so the next attach gets fresh collision/socket code.
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    disposeOfficeHost();
+  });
+  import.meta.hot.accept("./office-scene", () => {
+    disposeOfficeHost();
+  });
+  import.meta.hot.accept("./office-collisions", () => {
+    disposeOfficeHost();
+  });
+  import.meta.hot.accept("./office-navdata", () => {
+    disposeOfficeHost();
+  });
+  import.meta.hot.accept("./office-crowd", () => {
+    disposeOfficeHost();
+  });
 }

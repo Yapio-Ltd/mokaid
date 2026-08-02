@@ -74,3 +74,10 @@ apps/web/graphify-out/
 
 # Local skill harvest clones
 /tmp/mokaid-skill-sources/
+
+# Office 3D verification artefacts (screenshots, JSON reports) — regenerated
+# by apps/web/scripts/verify-office-*.mjs, never reviewed as source.
+apps/web/tmp-office-verify/
+# Generated nav data dumps from scripts/dump_office_nav.py; the reviewed copy
+# lives in apps/web/src/three/office-navdata.ts.
+scripts/out/
