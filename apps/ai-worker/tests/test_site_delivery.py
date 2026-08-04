@@ -67,7 +67,7 @@ def test_choice_payload_shape():
 
 async def test_ensure_site_delivery_applies_edited_payload(phoenix):
     """Resume with decision=edited + delivery=webapp forces webapp routing."""
-    from app.agents.runner import seed_decision, _ensure_site_delivery_choice
+    from app.agents.runner import _ensure_site_delivery_choice, seed_decision
     from app.schemas import ResumeRequest, RunState, RunStatus
 
     req = _req(task_description="Fais un site pour ma boutique")

@@ -113,7 +113,8 @@ defmodule Mokaid.OfficeTest do
       assert length(players) != 1, "foosball had a single player: #{inspect(players)}"
       assert away <= cap
 
-      for p <- Enum.filter(agents, & &1.office_activity), do: {:ok, _} = Agents.clear_office_activity(p)
+      for p <- Enum.filter(agents, & &1.office_activity),
+          do: {:ok, _} = Agents.clear_office_activity(p)
     end
   end
 

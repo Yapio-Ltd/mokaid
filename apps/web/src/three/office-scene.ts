@@ -2159,13 +2159,6 @@ export class OfficeScene {
     syncColliderToRoot(avatar.collider, avatar.root);
   }
 
-  private returnHome(avatar: AvatarNode) {
-    this.releaseSlot(avatar);
-    this.standFromSocket(avatar);
-    // Walk (or snap) to the assigned desk chair and sit — default idle state.
-    this.beginDeskSitRoute(avatar, "sitting");
-  }
-
   private toCentered(x: number, z: number) {
     return { x: x - this.centerOffset.x, z: z - this.centerOffset.z };
   }

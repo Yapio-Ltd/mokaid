@@ -396,7 +396,8 @@ defmodule Mokaid.AI.Dispatcher do
 
   # Role / department phrases → domain (used when specialty is not yet set).
   @role_domain_hints [
-    {~w(software engineer developer développeur developpeur devops coding programming full-stack fullstack), "code"},
+    {~w(software engineer developer développeur developpeur devops coding programming full-stack fullstack),
+     "code"},
     {~w(designer design ui ux figma creative), "design"},
     {~w(data scientist analyst analytics ml), "data"},
     {~w(writer content redacteur rédacteur copywriter editorial), "document"},
@@ -420,6 +421,7 @@ defmodule Mokaid.AI.Dispatcher do
       roster
       |> Enum.map(fn entry ->
         score = agent_score(entry.agent, signals, categories)
+
         graph_bonus =
           graph_bonus_for_agent(workspace_id, entry.agent, instruction, categories)
 
@@ -635,8 +637,16 @@ defmodule Mokaid.AI.Dispatcher do
     []
     |> maybe_skill_domain(names, "code", ~w(coding debugging code-review architecture))
     |> maybe_skill_domain(names, "design", ~w(ui-design figma branding design-systems ux))
-    |> maybe_skill_domain(names, "data", ~w(data-analysis statistics modeling reporting spreadsheets))
-    |> maybe_skill_domain(names, "document", ~w(writing editing storytelling presentations research))
+    |> maybe_skill_domain(
+      names,
+      "data",
+      ~w(data-analysis statistics modeling reporting spreadsheets)
+    )
+    |> maybe_skill_domain(
+      names,
+      "document",
+      ~w(writing editing storytelling presentations research)
+    )
     |> maybe_skill_domain(names, "legal", ~w(contracts compliance legal-research risk))
     |> maybe_skill_domain(names, "finance", ~w(financial-analysis budgeting forecasting))
     |> maybe_skill_domain(names, "marketing", ~w(seo content-marketing campaigns branding))
