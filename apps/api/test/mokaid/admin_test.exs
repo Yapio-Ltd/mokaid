@@ -7,6 +7,7 @@ defmodule Mokaid.AdminTest do
   alias Mokaid.Repo
 
   setup do
+    Billing.seed_plans()
     {workspace, owner} = workspace_fixture()
 
     admin =
