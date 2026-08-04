@@ -17,6 +17,23 @@ import {
   Th,
 } from "@/components/ui";
 
+function formatCostCents(cents?: number | null): string {
+  if (!cents) return "—";
+  return `$${(cents / 100).toFixed(cents < 100 ? 3 : 2)}`;
+}
+
+// Revenue side: 1 credit sells for ~1.9¢ ($19 per 1000-credit pack — see
+// Mokaid.Billing.Credits). Margin only makes sense on spend transactions.
+const CREDIT_PRICE_CENTS = 1.9;
+
+function spendMargin(kind: string, amount: number, costCents?: number | null): string {
+  if (kind !== "spend" || amount >= 0 || !costCents) return "—";
+  const revenue = Math.abs(amount) * CREDIT_PRICE_CENTS;
+  if (revenue <= 0) return "—";
+  const pct = ((revenue - costCents) / revenue) * 100;
+  return `${pct.toFixed(0)}%`;
+}
+
 export default function CreditsPage() {
   const [page, setPage] = useState(1);
   const [workspaceId, setWorkspaceId] = useState("");
@@ -105,6 +122,8 @@ export default function CreditsPage() {
                   <Th>Workspace</Th>
                   <Th>Kind</Th>
                   <Th>Amount</Th>
+                  <Th>Coût provider</Th>
+                  <Th>Marge</Th>
                   <Th>Balance after</Th>
                   <Th>Description</Th>
                 </tr>
@@ -118,6 +137,8 @@ export default function CreditsPage() {
                     <Td className={t.amount < 0 ? "text-danger" : "text-success"}>
                       {t.amount}
                     </Td>
+                    <Td className="text-muted">{formatCostCents(t.cost_cents)}</Td>
+                    <Td>{spendMargin(t.kind, t.amount, t.cost_cents)}</Td>
                     <Td>{t.balance_after}</Td>
                     <Td className="text-muted">{t.description || "—"}</Td>
                   </tr>

@@ -16,18 +16,20 @@ from app.schemas import RunRequest
 PRODUCER_TOOLS = frozenset(
     {
         "generate_website",
+        "generate_webapp",
         "draft_document",
         "generate_report",
         "transform_image",
         "transcribe_audio",
         "analyze_file",
         "extract_document_text",
+        "export_pdf",
     }
 )
 
 # Mission kinds that must produce a file (or fail / wait).
 # research is intentionally excluded — chat answer + web_search is enough.
-PRODUCER_KINDS = frozenset({"website", "document", "image", "analysis"})
+PRODUCER_KINDS = frozenset({"website", "webapp", "document", "image", "analysis"})
 
 _RESEARCH_RE = re.compile(
     r"\b("
@@ -215,6 +217,13 @@ def detect_mission_kind(request: RunRequest) -> str:
         )
     ).lower()
 
+    if re.search(
+        r"\b(next\.?js|react|typescript|webapp|web app|full.?stack|application|"
+        r"crm|erp|site (?:internet |web )?complet|complete (?:website|site)|deploy)\b",
+        text,
+    ):
+        return "webapp"
+
     if re.search(r"\b(site|website|landing|page web|html|vitrine)\b", text):
         return "website"
 
@@ -236,6 +245,7 @@ def detect_mission_kind(request: RunRequest) -> str:
 def required_tool_for_kind(kind: str) -> str | None:
     return {
         "website": "generate_website",
+        "webapp": "generate_webapp",
         "document": "draft_document",
         "image": "transform_image",
         "analysis": "analyze_file",

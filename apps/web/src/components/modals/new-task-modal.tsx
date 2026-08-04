@@ -118,6 +118,8 @@ export function NewTaskModal({ open, onOpenChange, defaultProjectId }: NewTaskMo
       let finalAgentId = agentId;
       let finalPriority = priority;
       let title = deriveTitle(text);
+      let metadata: Record<string, unknown> | undefined;
+      let capabilityToast: { title: string; description: string } | null = null;
 
       // No agent picked manually: let the dispatcher route the task. Any
       // failure falls back to a plain unassigned task, never blocks creation.
@@ -126,8 +128,38 @@ export function NewTaskModal({ open, onOpenChange, defaultProjectId }: NewTaskMo
           const { data } = await analyze.mutateAsync({ instruction: text });
           title = data.task.title || title;
           finalPriority = finalPriority ?? data.task.priority;
-          if (data.recommendation.mode === "existing_agent" && data.recommendation.agent_id) {
-            finalAgentId = data.recommendation.agent_id;
+          const rec = data.recommendation;
+
+          // user_choice = partial fit: assign anyway (never block), but tell
+          // the user the agent is out of their specialty.
+          if (rec.agent_id && (rec.mode === "existing_agent" || rec.mode === "user_choice")) {
+            finalAgentId = rec.agent_id;
+          }
+
+          const outOfScope = rec.mode !== "existing_agent";
+          metadata = {
+            domain_requested: data.domain_categories ?? [],
+            capability_match: {
+              mode: rec.mode,
+              confidence: rec.confidence,
+              reason: rec.reason,
+              warning_shown: outOfScope,
+            },
+          };
+
+          if (rec.mode === "user_choice" && rec.agent_id) {
+            const agent = agents.find((a) => a.id === rec.agent_id);
+            capabilityToast = {
+              title: `${agent?.display_name ?? "The assigned agent"} isn't specialized in this`,
+              description:
+                "They'll do their best, but the result may be limited. For the best outcome, hire a dedicated specialist from the agent catalog.",
+            };
+          } else if (rec.mode === "custom_agent") {
+            capabilityToast = {
+              title: "No agent covers this well",
+              description:
+                "The task was created unassigned. Use smart dispatch (drop the task on the office) to create a purpose-built specialist.",
+            };
           }
         } catch {
           // dispatcher unavailable — create the task without assignment
@@ -141,7 +173,34 @@ export function NewTaskModal({ open, onOpenChange, defaultProjectId }: NewTaskMo
         assigned_agent_id: finalAgentId ?? undefined,
         priority: (finalPriority ?? "medium") as never,
         due_at: dueAt ? new Date(dueAt).toISOString() : undefined,
+        ...(metadata ? { metadata } : {}),
       });
+
+      // Manually assigned agent: soft-check the fit in the background — never
+      // blocks creation, just informs.
+      if (agentId) {
+        void analyze
+          .mutateAsync({ instruction: text })
+          .then(({ data }) => {
+            const rec = data.recommendation;
+            const chosen = agents.find((a) => a.id === agentId);
+            if (rec.mode !== "existing_agent" || (rec.agent_id && rec.agent_id !== agentId)) {
+              const better = rec.agent_id ? agents.find((a) => a.id === rec.agent_id) : null;
+              toast({
+                tone: "warning",
+                title: `${chosen?.display_name ?? "This agent"} may not be the best fit`,
+                description: better
+                  ? `The dispatcher would have picked ${better.display_name} for this request. ${chosen?.display_name ?? "Your agent"} will still do their best.`
+                  : "No agent is specialized in this request — the result may be limited.",
+              });
+            }
+          })
+          .catch(() => {});
+      }
+
+      if (capabilityToast) {
+        toast({ tone: "warning", ...capabilityToast });
+      }
 
       // Attach staged files before kicking off the agent so the run sees them.
       if (files.length > 0) {

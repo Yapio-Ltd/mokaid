@@ -66,6 +66,18 @@ defmodule Mokaid.AI.DispatcherTest do
       assert analysis.recommendation.custom_agent.archetype_key == "data_scientist"
     end
 
+    test "exposes the requested domain categories" do
+      {workspace, _owner} = workspace_fixture()
+      _writer = create_agent(workspace.id, "Leo", "Writer", ["writing"])
+
+      assert {:ok, analysis} =
+               Dispatcher.analyze(workspace.id, %{
+                 "instruction" => "Redesign our logo with a modern branding"
+               })
+
+      assert "design" in analysis.domain_categories
+    end
+
     test "detects urgency and derives a bounded title" do
       {workspace, _owner} = workspace_fixture()
       long = String.duplicate("very long instruction ", 20)
@@ -96,6 +108,33 @@ defmodule Mokaid.AI.DispatcherTest do
       assert task.metadata["source"] == "dispatch"
       assert run != nil
       assert run.task_id == task.id
+    end
+
+    test "persists the capability match snapshot and requested domains" do
+      {workspace, owner} = workspace_fixture()
+      member = owner_member(workspace, owner)
+      agent = create_agent(workspace.id, "Leo", "Writer", ["writing"])
+
+      assert {:ok, %{task: task}} =
+               Dispatcher.confirm(workspace.id, member, %{
+                 "instruction" => "Redesign our logo",
+                 "agent_id" => agent.id,
+                 "capability_match" => %{
+                   "mode" => "user_choice",
+                   "confidence" => 30,
+                   "reason" => "Leo can handle it, but a design agent would fit better.",
+                   "warning_shown" => true,
+                   "unexpected" => "dropped"
+                 }
+               })
+
+      assert task.metadata["domain_requested"] == ["design"]
+
+      match = task.metadata["capability_match"]
+      assert match["mode"] == "user_choice"
+      assert match["confidence"] == 30
+      assert match["warning_shown"] == true
+      refute Map.has_key?(match, "unexpected")
     end
 
     test "creates a custom agent on demand via archetype" do

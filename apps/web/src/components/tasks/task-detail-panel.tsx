@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { fetchDriveFileBlob } from "@/api/client";
 import { isTextPreviewable } from "@/lib/file-parsers";
-import type { TaskAttachment, TaskRunToolCall } from "@/api/types";
+import type { Agent, TaskAttachment, TaskRunToolCall } from "@/api/types";
 import {
   useAgents,
   useApproveTaskAction,
@@ -44,6 +44,9 @@ import {
 } from "@/api/hooks";
 import { SaveToDriveModal } from "@/components/modals/save-to-drive-modal";
 import { DetailPanel } from "@/components/ui/detail-panel";
+import { MarkdownView } from "@/components/ui/markdown-view";
+import { openDeliverable } from "@/stores/deliverable-store";
+import { DeployActions } from "@/components/deliverables/deploy-actions";
 import { toast } from "@/stores/toast-store";
 import { motion } from "framer-motion";
 import { useMissionPlanStore, type MissionPlanStep } from "@/stores/mission-plan-store";
@@ -60,11 +63,33 @@ import { humanizeErrorMessage } from "@/lib/notifications";
 const NO_PROJECT = "__none__";
 const NO_AGENT = "__none__";
 
+/** True when the agent's specialty or skills plausibly cover the task's
+ * requested domains. Empty domains = nothing to check. */
+function agentCoversDomains(agent: Agent, domains: string[] | undefined): boolean {
+  if (!domains || domains.length === 0) return true;
+  const specialty = String(agent.capabilities?.learning?.specialty ?? "").toLowerCase();
+  const haystack = [
+    specialty,
+    agent.role_title ?? "",
+    agent.department ?? "",
+    ...(agent.skills ?? []).map((s) => s.name ?? ""),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return domains.some((d) => haystack.includes(d.toLowerCase()));
+}
+
 function toDatetimeLocal(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
 }
 
 function fileIcon(mime: string | null) {
@@ -199,7 +224,11 @@ function FileRow({ file }: { file: TaskAttachment }) {
     file.mime_type === "text/html" ||
     file.name.toLowerCase().endsWith(".html") ||
     file.name.toLowerCase().endsWith(".htm");
-  const isText = !isHtml && isTextPreviewable(file.name, file.mime_type);
+  const isPdf =
+    file.mime_type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  const isMarkdown =
+    file.mime_type === "text/markdown" || file.name.toLowerCase().endsWith(".md");
+  const isText = !isHtml && !isMarkdown && isTextPreviewable(file.name, file.mime_type);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [previewText, setPreviewText] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -276,27 +305,15 @@ function FileRow({ file }: { file: TaskAttachment }) {
     setPreviewOpen(true);
   };
 
-  // Row click: text deliverables expand inline; images / HTML open in a new
-  // tab; other files download.
+  // Row click: rich deliverables (PDF / image / website / markdown) open in
+  // the immersive viewer; plain text expands inline; other files download.
   const open = async () => {
+    if (isPdf || isImage || isHtml || isMarkdown) {
+      openDeliverable({ id: file.id, name: file.name, mime_type: file.mime_type });
+      return;
+    }
     if (isText) {
       void togglePreview();
-      return;
-    }
-    if (isImage && blobUrl) {
-      window.open(blobUrl, "_blank");
-      return;
-    }
-    if (isHtml) {
-      setBusy(true);
-      try {
-        const url = await ensureBlobUrl();
-        window.open(url, "_blank", "noopener");
-      } catch {
-        setError(true);
-      } finally {
-        setBusy(false);
-      }
       return;
     }
     void download();
@@ -382,7 +399,7 @@ function FileRow({ file }: { file: TaskAttachment }) {
           </pre>
         </div>
       )}
-      {isImage && blobUrl && (
+          {isImage && blobUrl && (
         <button
           type="button"
           onClick={open}
@@ -397,6 +414,16 @@ function FileRow({ file }: { file: TaskAttachment }) {
             onError={() => setBlobUrl(null)}
           />
         </button>
+      )}
+      {isHtml && (
+        <div className="border-t border-border/40 px-2.5 py-2.5">
+          <DeployActions
+            fileName={file.name}
+            onPreview={() =>
+              openDeliverable({ id: file.id, name: file.name, mime_type: file.mime_type })
+            }
+          />
+        </div>
       )}
     </div>
   );
@@ -471,6 +498,24 @@ export function TaskDetailPanel({
   const canOpenConversation =
     chatAgentId != null && task?.assigned_agent_kind !== "human_linked";
 
+  // Immersive delivery: when the mission just finished (fresh completion),
+  // open the newest deliverable in the full viewer so the user sees the
+  // result immediately. Old tasks reopened later don't hijack the screen.
+  const autoOpenedRunRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!run || run.status !== "completed" || outputs.length === 0) return;
+    if (autoOpenedRunRef.current === run.id) return;
+    autoOpenedRunRef.current = run.id;
+
+    const completedAt = run.completed_at ? new Date(run.completed_at).getTime() : 0;
+    if (Date.now() - completedAt > 2 * 60 * 1000) return;
+
+    const newest = [...outputs].sort(
+      (a, b) => new Date(a.inserted_at).getTime() - new Date(b.inserted_at).getTime(),
+    )[outputs.length - 1];
+    openDeliverable({ id: newest.id, name: newest.name, mime_type: newest.mime_type });
+  }, [run, outputs]);
+
   const openTaskConversation = () => {
     if (!chatAgentId) return;
     openChat(chatAgentId, task?.conversation_id ?? null);
@@ -527,6 +572,52 @@ export function TaskDetailPanel({
               ))}
             </div>
           </div>
+
+          {/* Persistent out-of-specialty note from dispatch time. */}
+          {task.capability_match?.warning_shown &&
+            task.assigned_agent_id &&
+            !["completed", "canceled"].includes(task.status) && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning/8 px-3.5 py-2.5">
+                <AlertTriangle size={13} className="mt-0.5 shrink-0 text-warning" />
+                <p className="min-w-0 flex-1 text-[11px] leading-snug text-text-secondary">
+                  <span className="font-semibold text-text">
+                    {task.assigned_agent_name ?? "The assigned agent"}
+                  </span>{" "}
+                  isn’t specialized in this
+                  {task.domain_requested.length > 0
+                    ? ` (${task.domain_requested.join(", ")})`
+                    : ""}{" "}
+                  work — the result may be limited.
+                </p>
+              </div>
+            )}
+
+          {/* Composite multi-agent plan — children run in waves with handoffs. */}
+          {task.composite && !["completed", "canceled"].includes(task.status) && (
+            <div className="rounded-xl bg-info/8 px-3.5 py-3">
+              <p className="text-[12px] font-semibold text-text">
+                Multi-agent mission
+              </p>
+              <p className="mt-0.5 text-[11px] leading-snug text-text-secondary">
+                Split into {task.composite.total} specialist workstreams (wave{" "}
+                {task.composite.current_wave}). Deliverables hand off between waves
+                automatically — track them in the checklist below.
+              </p>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-raised">
+                <div
+                  className="h-full rounded-full bg-info transition-all"
+                  style={{ width: `${task.progress_percent}%` }}
+                />
+              </div>
+            </div>
+          )}
+          {task.composite_parent_id && (
+            <div className="rounded-xl bg-surface-raised/50 px-3.5 py-2.5">
+              <p className="text-[11px] leading-snug text-text-secondary">
+                Part of a multi-agent mission — this agent owns one workstream.
+              </p>
+            </div>
+          )}
 
           {/* Status banners */}
           {agentWorking && (
@@ -706,9 +797,22 @@ export function TaskDetailPanel({
                 <Select
                   className="h-7 w-full text-[11px]"
                   value={task.assigned_agent_id ?? NO_AGENT}
-                  onValueChange={(v) =>
-                    patch({ assigned_agent_id: v === NO_AGENT ? null : v })
-                  }
+                  onValueChange={(v) => {
+                    const nextId = v === NO_AGENT ? null : v;
+                    patch({ assigned_agent_id: nextId });
+                    // Soft capability check — inform, never block.
+                    if (nextId) {
+                      const agent = agents.find((a) => a.id === nextId);
+                      if (agent && !agentCoversDomains(agent, task.domain_requested)) {
+                        toast({
+                          tone: "warning",
+                          title: `${agent.display_name} isn't specialized in ${task.domain_requested.join(", ")}`,
+                          description:
+                            "They'll do their best, but the result may be limited. Consider a dedicated specialist for this domain.",
+                        });
+                      }
+                    }
+                  }}
                   options={[
                     { value: NO_AGENT, label: "Unassigned" },
                     ...agents.map((a) => ({ value: a.id, label: a.display_name })),
@@ -767,6 +871,21 @@ export function TaskDetailPanel({
             <MetaRow label="Created">
               <span className="text-xs text-text-muted">{formatDateTime(task.inserted_at)}</span>
             </MetaRow>
+
+            {/* User-facing cost: credits only — provider cost stays in the CRM. */}
+            {run != null && run.credits_charged > 0 && (
+              <MetaRow label="Cost">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-text">
+                  <Sparkles size={11} className="text-primary-light" />
+                  {run.credits_charged} credit{run.credits_charged > 1 ? "s" : ""}
+                  {run.token_usage?.total_tokens ? (
+                    <span className="font-normal text-text-muted">
+                      · {formatTokens(run.token_usage.total_tokens)} tokens
+                    </span>
+                  ) : null}
+                </span>
+              </MetaRow>
+            )}
           </div>
 
           {/* Progress */}
@@ -827,9 +946,9 @@ export function TaskDetailPanel({
                             <Copy size={11} /> Copy
                           </button>
                         </div>
-                        <pre className="max-h-48 overflow-y-auto font-sans text-[11px] leading-relaxed text-text-secondary">
-                          {doc.content}
-                        </pre>
+                        <div className="max-h-64 overflow-y-auto">
+                          <MarkdownView markdown={doc.content} />
+                        </div>
                       </div>
                     )}
                   </div>

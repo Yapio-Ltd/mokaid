@@ -30,6 +30,7 @@ TOOL_RISK: dict[str, RiskLevel] = {
     "transform_image": RiskLevel.MEDIUM,
     "transcribe_audio": RiskLevel.MEDIUM,
     "generate_website": RiskLevel.MEDIUM,
+    "generate_webapp": RiskLevel.MEDIUM,
     # Internal mutations
     "update_task": RiskLevel.MEDIUM,
     "create_subtasks": RiskLevel.MEDIUM,

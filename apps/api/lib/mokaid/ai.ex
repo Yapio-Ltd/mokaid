@@ -19,6 +19,61 @@ defmodule Mokaid.AI do
   immediately when the agent is free, otherwise when its current run ends.
   """
   def start_run(%WorkTask{} = task, input \\ %{}) do
+    instruction = resolve_run_instruction(task, input)
+
+    cond do
+      # Parent of a composite plan — children own the runs.
+      get_in(task.metadata || %{}, ["composite"]) != nil ->
+        {:error, :composite_parent}
+
+      # Multi-deliverable request entered via any surface (dispatch, New Task,
+      # chat, "Run AI") — split into waves instead of a single agent run.
+      not is_binary(get_in(task.metadata || %{}, ["composite_parent_id"])) and
+          Mokaid.AI.Orchestrator.composite?(instruction) ->
+        with :ok <- validate_ai_assignable(task),
+             :ok <- validate_credits(task.workspace_id),
+             {:ok, plan} <-
+               Mokaid.AI.Orchestrator.launch(
+                 task.workspace_id,
+                 task,
+                 instruction,
+                 nil
+               ),
+             {:ok, run} <-
+               Tasks.create_execution_run(
+                 task,
+                 Map.merge(input || %{}, %{"composite_plan" => true, "instruction" => instruction})
+               ),
+             {:ok, run} <-
+               Tasks.update_run_progress(run, %{
+                 "status" => "completed",
+                 "output" => %{
+                   "summary" => "Composite mission launched",
+                   "waves" => plan.waves,
+                   "children" => Enum.map(plan.children, & &1.id)
+                 }
+               }) do
+          Billing.record_usage(
+            task.workspace_id,
+            "agent",
+            task.assigned_agent_id,
+            "ai_request",
+            1,
+            "request"
+          )
+
+          {:ok, run}
+        else
+          :not_composite -> do_start_run(task, input)
+          other -> other
+        end
+
+      true ->
+        do_start_run(task, input)
+    end
+  end
+
+  defp do_start_run(%WorkTask{} = task, input) do
     with :ok <- validate_ai_assignable(task),
          :ok <- validate_credits(task.workspace_id),
          {:ok, run} <- Tasks.create_execution_run(task, input) do
@@ -39,6 +94,14 @@ defmodule Mokaid.AI do
       dispatch_next(run.workspace_id, run.agent_id)
       {:ok, run}
     end
+  end
+
+  defp resolve_run_instruction(task, input) do
+    (input || %{})["instruction"] ||
+      get_in(task.metadata || %{}, ["instruction"]) ||
+      task.description ||
+      task.title ||
+      ""
   end
 
   defp validate_ai_assignable(%WorkTask{assigned_agent_id: nil}), do: {:error, :no_agent_assigned}
@@ -358,7 +421,13 @@ defmodule Mokaid.AI do
       if cost_cents > 0 do
         # Meter real cost AND charge the workspace's AI credits (live balance).
         Billing.record_usage(run.workspace_id, "agent", run.agent_id, "ai_cost", 1, "run",
-          cost_cents: cost_cents
+          cost_cents: cost_cents,
+          metadata: %{
+            "run_id" => run.id,
+            "task_id" => run.task_id,
+            "total_tokens" => (token_usage || %{})["total_tokens"],
+            "images" => (token_usage || %{})["images"]
+          }
         )
 
         Mokaid.Billing.Credits.charge_run(
@@ -387,6 +456,13 @@ defmodule Mokaid.AI do
 
         progress = if has_output, do: 100, else: task.progress_percent || 0
         Tasks.update_task(task, %{"status" => new_status, "progress_percent" => progress})
+
+        # Composite child finished → check off parent checklist, hand off
+        # Drive artifacts to the next wave, or promote the parent to review.
+        if has_output do
+          refreshed = Tasks.get_task(run.workspace_id, run.task_id)
+          if refreshed, do: Mokaid.AI.Orchestrator.maybe_advance(refreshed)
+        end
 
         # The run is over — release the agent so it can take new missions.
         if run.agent_id do

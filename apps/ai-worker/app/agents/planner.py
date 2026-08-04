@@ -41,6 +41,7 @@ Available tools:
 - transcribe_audio {file_url, original_filename}: transcribe audio/video to text using Whisper
 - extract_document_text {file_url, original_filename}: extract text from PDFs and documents
 - generate_website {brief, brand_name, style}: design and build a complete landing page / one-page website as a self-contained HTML file (premium design, real copy, responsive)
+- generate_webapp {brief, brand_name, style}: full React/Next.js/TypeScript scaffold + HTML preview + Vercel/Render/Supabase deploy files (use for complete apps/CRM/full sites)
 %(mcp_tools)s
 Rules:
 - 1 to %(max_steps)d steps, ordered.
@@ -88,9 +89,12 @@ Websites & landing pages:
   one-pager or similar, use generate_website. Put ALL user requirements
   (business, audience, tone, colors, sections, language) into the brief.
   generate_website IS the deliverable — do NOT add draft_document after it.
+- When the task asks for a complete app, CRM, Next/React, site complet, or
+  deployable stack, use generate_webapp (HTML preview + Next scaffold for
+  Vercel/Render/Supabase).
 - On iteration requests ("change the color", "add a pricing section"), call
-  generate_website again with a brief that restates the full previous intent
-  plus the requested change.
+  generate_website or generate_webapp again with a brief that restates the
+  full previous intent plus the requested change.
 
 Prioritization judgment:
 - Urgent/high-priority tasks (or tasks close to their due date): go straight to

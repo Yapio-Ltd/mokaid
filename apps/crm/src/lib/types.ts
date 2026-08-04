@@ -119,6 +119,19 @@ export type CreditTxn = {
   inserted_at: string;
 };
 
+export type UsageEvent = {
+  id: string;
+  workspace_id: string;
+  actor_type: string | null;
+  actor_id: string | null;
+  event_type: string;
+  quantity: number | null;
+  unit: string | null;
+  cost_cents: number | null;
+  metadata: Record<string, unknown> | null;
+  occurred_at: string;
+};
+
 export type MemberRow = {
   id: string;
   workspace_id: string;

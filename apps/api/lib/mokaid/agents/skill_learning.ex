@@ -35,13 +35,28 @@ defmodule Mokaid.Agents.SkillLearning do
     "slides" => ~w(ppt pptx key)
   }
 
+  # Keep in sync with Mokaid.AI.Dispatcher.@category_keywords and the domains
+  # of Mokaid.Agents.Archetypes — learning and dispatch must agree on domains.
   @category_keywords %{
     "design" => ~w(design figma maquette wireframe prototype logo brand branding),
     "data" => ~w(data analyse analysis spreadsheet tableur report rapport metrics kpi excel),
     "document" => ~w(document redaction writing resume summary contrat brief write),
     "media" => ~w(image photo video visuel media asset),
     "code" => ~w(code development developpement bug feature api script deploy),
-    "slides" => ~w(presentation slides deck pitch)
+    "slides" => ~w(presentation slides deck pitch),
+    "legal" =>
+      ~w(legal juridique contract rgpd gdpr compliance conformite clause nda avocat lawyer),
+    "finance" =>
+      ~w(finance budget comptable comptabilite invoice facture forecast tresorerie cashflow fiscal tax),
+    "marketing" => ~w(marketing seo campagne campaign newsletter social ads audience growth),
+    "sales" => ~w(sales vente prospection pipeline lead deal crm),
+    "research" => ~w(research recherche etude benchmark veille survey sondage),
+    "sciences" => ~w(scientifique scientific experiment hypothesis laboratoire laboratory),
+    "ops" => ~w(recrutement recruiting onboarding hiring rh embauche),
+    "product" => ~w(roadmap backlog user-story spec produit product),
+    "security" => ~w(securite security vulnerabilite vulnerability pentest phishing),
+    "devops" => ~w(devops deployment deploiement docker kubernetes terraform infra ci/cd),
+    "support" => ~w(support ticket faq helpdesk sav)
   }
 
   @domain_role_map %{
@@ -50,7 +65,18 @@ defmodule Mokaid.Agents.SkillLearning do
     "data" => {"Data Analyst", "Data"},
     "document" => {"Content Specialist", "Content"},
     "media" => {"Media Specialist", "Marketing"},
-    "slides" => {"Presentation Specialist", "Content"}
+    "slides" => {"Presentation Specialist", "Content"},
+    "legal" => {"Legal Advisor", "Legal"},
+    "finance" => {"Finance Specialist", "Finance"},
+    "marketing" => {"Marketing Specialist", "Marketing"},
+    "sales" => {"Sales Specialist", "Sales"},
+    "research" => {"Research Analyst", "Research"},
+    "sciences" => {"Scientific Analyst", "Research"},
+    "ops" => {"Operations Specialist", "Operations"},
+    "product" => {"Product Manager", "Product"},
+    "security" => {"Security Specialist", "Engineering"},
+    "devops" => {"DevOps Engineer", "Engineering"},
+    "support" => {"Customer Support Specialist", "Support"}
   }
 
   # ─── Public API ─────────────────────────────────────────────────────────────

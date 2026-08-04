@@ -162,16 +162,34 @@ async def transform_image(params: dict[str, Any], ctx: RunContext) -> Any:
     if resolved_name and not params.get("original_filename"):
         params = {**params, "original_filename": resolved_name}
 
-    if not file_url:
-        return {"error": "No image URL provided. Ensure an image file is attached to the task."}
-
     # Image edit/generate stays on OpenAI (DALL·E / gpt-image) — DeepSeek and
     # Anthropic do not provide an images API. Check the OpenAI key specifically
     # rather than llm.is_configured(), which is true when only text providers
     # are set.
     from app.config import get_settings
 
-    if not get_settings().openai_api_key:
+    has_key = bool(get_settings().openai_api_key)
+
+    if not file_url:
+        # No source image attached. A creation-style ask ("create a logo…")
+        # can still be honored via text-to-image; a modification ask cannot —
+        # surface an actionable error the runner turns into a user question.
+        if _looks_like_creation(instruction):
+            if not has_key:
+                return {
+                    "error": "OpenAI API key required for image processing.",
+                    "note": "offline fallback",
+                }
+            return await _generate_from_scratch(instruction, params, ctx)
+        return {
+            "error": (
+                "No image is attached to this task. Attach the image to modify "
+                "(drop it on the task or in chat), then retry."
+            ),
+            "needs_user_input": True,
+        }
+
+    if not has_key:
         return {"error": "OpenAI API key required for image processing.", "note": "offline fallback"}
 
     try:
@@ -234,7 +252,7 @@ produces a cheap color-filter result. pillow_ops (only when method=pillow):
 
     if method == "ai_edit":
         edit_prompt = plan.get("edit_prompt") or instruction
-        result_bytes = await llm.edit_image(
+        result_bytes, edit_error = await llm.edit_image(
             image_bytes, edit_prompt, usage=ctx.usage, mime_type=source_mime
         )
         if result_bytes:
@@ -244,17 +262,24 @@ produces a cheap color-filter result. pillow_ops (only when method=pillow):
             # Editing unavailable (model access, size limits…) — regenerate
             # from a vision description so the request still lands, which
             # beats degrading to a color filter.
-            log.warning("ai_edit_unavailable_falling_back", run_id=ctx.run_id)
+            log.warning(
+                "ai_edit_unavailable_falling_back", run_id=ctx.run_id, error=edit_error
+            )
             fallback_prompt = (
                 f"Recreate this exact image with the following change applied: {edit_prompt}"
             )
-            result_bytes = await llm.generate_image(fallback_prompt, usage=ctx.usage)
+            result_bytes, gen_error = await llm.generate_image(
+                fallback_prompt, usage=ctx.usage
+            )
             if result_bytes:
                 output_format = "PNG"
                 description = f"Regenerated the image with the requested change: {edit_prompt[:120]}"
             else:
                 return {
-                    "error": "AI image editing failed. Try rephrasing the instruction or retry later."
+                    "error": "AI image editing failed. Try rephrasing the instruction or retry later.",
+                    "provider_error": gen_error or edit_error,
+                    "method": "ai_edit",
+                    "edit_prompt": edit_prompt[:300],
                 }
 
     elif method == "pillow":
@@ -341,11 +366,15 @@ produces a cheap color-filter result. pillow_ops (only when method=pillow):
     elif method == "dalle":
         # Legacy plan shape — treat as text-to-image generation.
         dalle_prompt = plan.get("dalle_prompt") or f"Based on the original image: {instruction}"
-        result_bytes = await llm.generate_image(dalle_prompt, usage=ctx.usage)
+        result_bytes, gen_error = await llm.generate_image(dalle_prompt, usage=ctx.usage)
         if result_bytes:
             description = f"Generated new image: {dalle_prompt[:100]}"
         else:
-            return {"error": "Image generation failed. Try rephrasing the instruction."}
+            return {
+                "error": "Image generation failed. Try rephrasing the instruction.",
+                "provider_error": gen_error,
+                "method": "dalle",
+            }
 
     if result_bytes is None:
         return {"error": "Image processing produced no output."}
@@ -366,9 +395,107 @@ produces a cheap color-filter result. pillow_ops (only when method=pillow):
             encoding="base64",
         )
         if saved:
-            return {"filename": filename, "description": description, "size_bytes": len(result_bytes)}
+            return {
+                "filename": filename,
+                "description": description,
+                "size_bytes": len(result_bytes),
+                "method": method,
+                "source_filename": params.get("original_filename") or resolved_name,
+            }
 
-    return {"error": "Could not save the processed image."}
+    return {"error": "Could not save the processed image.", "method": method}
+
+
+_CREATION_RE = re.compile(
+    r"\b("
+    r"cr[ée]{1,2}[erz]?|con[çc]ois|conception|dessine|g[ée]n[èe]re[rz]?|imagine|invente|"
+    r"create|design|draw|generate|make|invent"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _looks_like_creation(instruction: str) -> bool:
+    """True when the ask is to CREATE an image from scratch (vs modify one)."""
+    return bool(instruction and _CREATION_RE.search(instruction))
+
+
+async def _generate_from_scratch(
+    instruction: str, params: dict[str, Any], ctx: RunContext
+) -> dict[str, Any]:
+    """Text-to-image path for creation asks that arrive without a source file."""
+    result_bytes, gen_error = await llm.generate_image(instruction, usage=ctx.usage)
+    if not result_bytes:
+        return {
+            "error": "Image generation failed. Try rephrasing the instruction.",
+            "provider_error": gen_error,
+            "method": "generate",
+        }
+
+    original_name = params.get("original_filename") or "image"
+    clean_name = re.sub(r"\.[^.]+$", "", original_name)
+    filename = f"{clean_name}-generated.png"
+    if ctx.phoenix:
+        saved = await ctx.phoenix.save_task_output(
+            ctx.workspace_id,
+            ctx.task_id,
+            filename,
+            base64.b64encode(result_bytes).decode(),
+            mime_type="image/png",
+            encoding="base64",
+        )
+        if saved:
+            return {
+                "filename": filename,
+                "description": f"Generated a new image from the brief: {instruction[:150]}",
+                "size_bytes": len(result_bytes),
+                "method": "generate",
+            }
+    return {"error": "Could not save the generated image.", "method": "generate"}
+
+
+@tool("export_pdf")
+async def export_pdf(params: dict[str, Any], ctx: RunContext) -> Any:
+    """Render markdown/text content as a styled PDF and save it as a task
+    deliverable. This is the default packaging for documents and analyses."""
+    from app import pdf as pdf_mod
+
+    content = params.get("content") or ""
+    title = params.get("title") or ctx.task_title or "Document"
+    if not content.strip():
+        return {"error": "No content provided to export."}
+
+    try:
+        pdf_bytes = pdf_mod.markdown_to_pdf_bytes(content, title=title)
+    except Exception as exc:  # noqa: BLE001 — surface, don't crash the run
+        log.warning("pdf_export_failed", run_id=ctx.run_id, error=str(exc))
+        return {"error": f"PDF rendering failed: {exc}"}
+
+    filename = params.get("filename") or f"{_safe_pdf_name(title)}.pdf"
+    if not filename.lower().endswith(".pdf"):
+        filename += ".pdf"
+
+    if ctx.phoenix:
+        saved = await ctx.phoenix.save_task_output(
+            ctx.workspace_id,
+            ctx.task_id,
+            filename,
+            base64.b64encode(pdf_bytes).decode(),
+            mime_type="application/pdf",
+            encoding="base64",
+        )
+        if saved:
+            return {
+                "filename": filename,
+                "size_bytes": len(pdf_bytes),
+                "description": f"Exported '{title}' as PDF.",
+            }
+    return {"error": "Could not save the PDF."}
+
+
+def _safe_pdf_name(title: str) -> str:
+    clean = re.sub(r"[^\w\s-]", "", title).strip().replace(" ", "-")[:60]
+    return clean or "document"
 
 
 @tool("transcribe_audio")

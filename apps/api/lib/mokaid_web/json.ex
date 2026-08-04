@@ -150,6 +150,14 @@ defmodule MokaidWeb.JSON do
       pending_approval: pending_approval(loaded(task.approval_requests)),
       conversation_id: get_in(task.metadata || %{}, ["conversation_id"]),
       chat_agent_id: get_in(task.metadata || %{}, ["chat_agent_id"]),
+      # Routing snapshot: which domains the request needs and how well the
+      # assigned agent matched — powers out-of-specialty warnings in the UI.
+      domain_requested: get_in(task.metadata || %{}, ["domain_requested"]) || [],
+      capability_match: get_in(task.metadata || %{}, ["capability_match"]),
+      # Multi-deliverable plan: children, waves and current wave so the UI
+      # can show mission progress without an extra round-trip.
+      composite: get_in(task.metadata || %{}, ["composite"]),
+      composite_parent_id: get_in(task.metadata || %{}, ["composite_parent_id"]),
       inserted_at: task.inserted_at,
       updated_at: task.updated_at
     }
@@ -203,6 +211,10 @@ defmodule MokaidWeb.JSON do
       # Deep-agent live plan: [%{"content" => ..., "status" => ...}]
       plan: plan_steps(run.steps),
       token_usage: run.token_usage,
+      # Provider cost (Mokaid's, cents) and what the user was billed (credits).
+      # The web UI only shows credits; the CRM sees both for margin tracking.
+      cost_cents: run.cost_cents,
+      credits_charged: Mokaid.Billing.Credits.cost_cents_to_credits(run.cost_cents || 0),
       started_at: run.started_at,
       completed_at: run.completed_at,
       inserted_at: run.inserted_at

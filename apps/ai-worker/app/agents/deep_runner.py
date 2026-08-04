@@ -148,7 +148,10 @@ def _deliverable_rule(kind: str, language: str) -> str:
         "to your teammate automatically — a mission without a deliverable file is "
         "an unfinished mission, UNLESS a specialized tool (transform_image, "
         "generate_website, transcribe_audio) already produced the deliverable "
-        "itself, OR the mission kind is research (chat answer is enough)."
+        "itself, OR the mission kind is research (chat answer is enough). "
+        "Documents and analyses are delivered to the teammate as polished PDFs "
+        "automatically; call `export_pdf` yourself only for additional text you "
+        "want packaged as its own PDF."
     )
 
 
@@ -174,6 +177,16 @@ def _mission_kind_rule(kind: str, language: str) -> str:
             else "Mission SITE WEB. Tu DOIS appeler `generate_website` avec un "
             "brief complet (complète avec des valeurs raisonnables si des détails "
             "manquent). Ne termine jamais sans ce livrable."
+        )
+    if kind == "webapp":
+        return (
+            "This is a FULL WEBAPP mission (React/Next/TypeScript). You MUST call "
+            "`generate_webapp` (HTML live preview + deployable scaffold for "
+            "Vercel/Render/Supabase). Do not finish without that tool succeeding."
+            if not fr
+            else "Mission APPLICATION WEB COMPLÈTE (React/Next/TypeScript). Tu DOIS "
+            "appeler `generate_webapp` (aperçu HTML + scaffold déployable "
+            "Vercel/Render/Supabase). Ne termine jamais sans ce livrable."
         )
     if kind in ("document", "image", "analysis"):
         tool = {"document": "draft_document", "image": "transform_image", "analysis": "analyze_file"}[
@@ -599,12 +612,28 @@ class _Engine:
                 {"file_url": file_url, "original_filename": original_filename},
             )
 
+        async def export_pdf(title: str, content: str, filename: str = "") -> Any:
+            """Renders markdown/text content as a polished PDF and saves it as
+            a task deliverable. Documents, analyses and reports should ship
+            as PDF by default — it opens instantly in the user's viewer."""
+            return await engine._run_tool(
+                "export_pdf", {"title": title, "content": content, "filename": filename}
+            )
+
         async def generate_website(brief: str, brand_name: str = "", style: str = "") -> Any:
             """Designs and builds a complete landing page / one-page website
             (premium, responsive, self-contained HTML). Saved as a
             deliverable automatically. Put ALL requirements in the brief."""
             return await engine._run_tool(
                 "generate_website",
+                {"brief": brief, "brand_name": brand_name, "style": style},
+            )
+
+        async def generate_webapp(brief: str, brand_name: str = "", style: str = "") -> Any:
+            """Builds a deployable React/Next.js/TypeScript scaffold plus an
+            instant HTML preview and partner deploy docs (Vercel/Render/Supabase)."""
+            return await engine._run_tool(
+                "generate_webapp",
                 {"brief": brief, "brand_name": brand_name, "style": style},
             )
 
@@ -634,7 +663,9 @@ class _Engine:
             transform_image,
             transcribe_audio,
             extract_document_text,
+            export_pdf,
             generate_website,
+            generate_webapp,
         ]
         tools = [StructuredTool.from_function(coroutine=fn) for fn in native]
 

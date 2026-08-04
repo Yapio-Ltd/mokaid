@@ -104,12 +104,21 @@ async def test_transform_image_falls_back_to_attached_files():
     assert result.get("note") == "offline fallback"
 
 
-async def test_transform_image_errors_without_url_or_attachment():
+async def test_transform_image_asks_for_file_when_modification_has_no_image():
     ctx = RunContext(run_id="r2", workspace_id="ws-1", task_id="t1")
     result = await transform_image({"instruction": "Ajouter une moustache"}, ctx)
-    assert result.get("error") == (
-        "No image URL provided. Ensure an image file is attached to the task."
-    )
+    assert "No image is attached" in result.get("error", "")
+    assert result.get("needs_user_input") is True
+
+
+async def test_transform_image_creation_without_file_is_offline_gated():
+    # Creation-style ask without a source file goes to text-to-image, which
+    # needs the OpenAI key — offline test env returns the key error instead
+    # of asking the user for a file.
+    ctx = RunContext(run_id="r3", workspace_id="ws-1", task_id="t1")
+    result = await transform_image({"instruction": "Crée un logo minimaliste"}, ctx)
+    assert result.get("note") == "offline fallback"
+    assert not result.get("needs_user_input")
 
 
 async def test_force_producer_injects_file_url_for_transform_image(phoenix, monkeypatch):

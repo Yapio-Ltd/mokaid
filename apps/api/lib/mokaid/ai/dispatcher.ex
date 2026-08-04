@@ -59,7 +59,31 @@ defmodule Mokaid.AI.Dispatcher do
             heuristic_analysis(workspace_id, instruction, files, roster, servers)
         end
 
+      # Requested domains let every UI (New Task, detail panel reassignment)
+      # warn about out-of-specialty assignments consistently.
+      base = Map.put(base, :domain_categories, detect_categories(instruction, files))
+
       {:ok, decorate_mcp_suggestions(base, workspace_id, installations, servers)}
+    end
+  end
+
+  @doc """
+  Best-fit agent for a sub-brief using the offline skill heuristic (no LLM
+  round-trip) — used by the composite orchestrator to staff each wave.
+  """
+  def best_agent(workspace_id, instruction) do
+    categories = detect_categories(instruction, [])
+    signals = signal_tokens(instruction, categories)
+
+    workspace_id
+    |> dispatchable_agents()
+    |> Enum.map(fn entry ->
+      {entry.agent, agent_score(entry.agent, signals) * 10 - entry.open_tasks}
+    end)
+    |> Enum.sort_by(fn {_agent, score} -> -score end)
+    |> case do
+      [{agent, _score} | _] -> agent
+      [] -> nil
     end
   end
 
@@ -87,7 +111,9 @@ defmodule Mokaid.AI.Dispatcher do
                "metadata" => %{
                  "source" => "dispatch",
                  "instruction" => instruction,
-                 "drive_item_ids" => drive_ids
+                 "drive_item_ids" => drive_ids,
+                 "domain_requested" => detect_categories(instruction, []),
+                 "capability_match" => normalize_capability_match(params["capability_match"])
                }
              },
              member
@@ -97,6 +123,8 @@ defmodule Mokaid.AI.Dispatcher do
 
       run =
         if params["start_now"] != false and agent != nil and agent.kind != "human_linked" do
+          # Composite requests are decomposed inside start_run (waves of child
+          # missions); ordinary ones go straight to the worker queue.
           case Mokaid.AI.start_run(task, %{
                  "instruction" => instruction,
                  "drive_item_ids" => drive_ids
@@ -109,6 +137,19 @@ defmodule Mokaid.AI.Dispatcher do
       {:ok, %{task: Tasks.get_task(workspace_id, task.id), agent: agent, run: run}}
     end
   end
+
+  # Sanitized snapshot of the routing decision, persisted on the task so the
+  # UI can keep showing why this agent was (or wasn't) a fit.
+  defp normalize_capability_match(%{} = match) do
+    %{
+      "mode" => to_string(match["mode"] || ""),
+      "confidence" => clamp_confidence(match["confidence"]),
+      "reason" => String.slice(to_string(match["reason"] || ""), 0, 500),
+      "warning_shown" => match["warning_shown"] == true
+    }
+  end
+
+  defp normalize_capability_match(_), do: nil
 
   @doc "Files attached to a task via dispatch, with presigned download URLs for the AI worker."
   def attached_files(workspace_id, drive_item_ids) when is_list(drive_item_ids) do
@@ -326,13 +367,29 @@ defmodule Mokaid.AI.Dispatcher do
     "slides" => ~w(ppt pptx key)
   }
 
+  # Keep in sync with Mokaid.Agents.SkillLearning.@category_keywords and the
+  # domains of Mokaid.Agents.Archetypes — a request should map to the same
+  # domain everywhere (dispatch warnings, learning, specialist proposals).
   @category_keywords %{
     "design" => ~w(design figma maquette wireframe prototype logo brand branding),
     "data" => ~w(data analyse analysis spreadsheet tableur report rapport metrics kpi excel),
     "document" => ~w(document redaction writing resume summary contrat brief write),
     "media" => ~w(image photo video visuel media asset),
     "code" => ~w(code development developpement bug feature api script deploy),
-    "slides" => ~w(presentation slides deck pitch)
+    "slides" => ~w(presentation slides deck pitch),
+    "legal" =>
+      ~w(legal juridique contract rgpd gdpr compliance conformite clause nda avocat lawyer),
+    "finance" =>
+      ~w(finance budget comptable comptabilite invoice facture forecast tresorerie cashflow fiscal tax),
+    "marketing" => ~w(marketing seo campagne campaign newsletter social ads audience growth),
+    "sales" => ~w(sales vente prospection pipeline lead deal crm),
+    "research" => ~w(research recherche etude benchmark veille survey sondage),
+    "sciences" => ~w(scientifique scientific experiment hypothesis laboratoire laboratory),
+    "ops" => ~w(recrutement recruiting onboarding hiring rh embauche),
+    "product" => ~w(roadmap backlog user-story spec produit product),
+    "security" => ~w(securite security vulnerabilite vulnerability pentest phishing),
+    "devops" => ~w(devops deployment deploiement docker kubernetes terraform infra ci/cd),
+    "support" => ~w(support ticket faq helpdesk sav)
   }
 
   defp heuristic_analysis(workspace_id, instruction, files, roster, servers) do

@@ -220,6 +220,10 @@ export interface TaskRun {
   /** Deep-agent live plan (todo checklist), streamed while the run works. */
   plan?: Array<{ content: string; status: string }>;
   token_usage: Record<string, number> | null;
+  /** Mokaid's provider cost in cents — CRM only, never shown to end users. */
+  cost_cents: number | null;
+  /** Credits billed to the workspace for this run. */
+  credits_charged: number;
   started_at: string | null;
   completed_at: string | null;
   inserted_at: string;
@@ -265,8 +269,24 @@ export interface Task {
   /** Anchored agent DM for chat-born (or delivered) missions. */
   conversation_id: string | null;
   chat_agent_id: string | null;
+  /** Domains the original request touches (design, legal, code…). */
+  domain_requested: string[];
+  /** How well the assigned agent matched the request at dispatch time. */
+  capability_match: TaskCapabilityMatch | null;
+  /** Multi-deliverable plan (branding + site + CRM…): children + waves. */
+  composite: TaskCompositePlan | null;
+  /** When set, this task is a wave child of a composite parent. */
+  composite_parent_id: string | null;
   inserted_at: string;
   updated_at: string;
+}
+
+/** Orchestrator snapshot stored on a composite parent task. */
+export interface TaskCompositePlan {
+  child_ids: string[];
+  waves: Record<string, string[]>;
+  current_wave: number;
+  total: number;
 }
 
 export interface ProjectMemberEntry {
@@ -653,6 +673,16 @@ export interface DispatchAnalysis {
     custom_agent: DispatchCustomAgent | null;
   };
   mcp_suggestions: DispatchMcpSuggestion[];
+  /** Domains the request touches (design, legal, code…) — drives capability warnings. */
+  domain_categories: string[];
+}
+
+/** Routing snapshot persisted on the task at dispatch time. */
+export interface TaskCapabilityMatch {
+  mode: "existing_agent" | "custom_agent" | "user_choice" | "";
+  confidence: number;
+  reason: string;
+  warning_shown: boolean;
 }
 
 export interface DispatchConfirmResult {

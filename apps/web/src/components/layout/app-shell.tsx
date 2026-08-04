@@ -10,6 +10,7 @@ import { ReviewBanner } from "@/components/approvals/review-banner";
 import { ReviewGateModal } from "@/components/approvals/review-gate-modal";
 import { useReviewQueueHydration } from "@/components/approvals/use-review-queue-hydration";
 import { TaskDetailPanel } from "@/components/tasks/task-detail-panel";
+import { DeliverableViewer } from "@/components/deliverables/deliverable-viewer";
 import { FloatingChatDock } from "@/components/chat/floating-chat-dock";
 import { Toaster } from "@/components/ui/toaster";
 import { useUiStore } from "@/stores/ui-store";
@@ -46,6 +47,7 @@ export function AppShell() {
         </main>
       </div>
       <TaskDetailPanel taskId={selectedTaskId} onClose={() => selectTask(null)} overlay />
+      <DeliverableViewer />
       <FloatingChatDock />
       <OnboardingGate />
       <CoachmarkTour />

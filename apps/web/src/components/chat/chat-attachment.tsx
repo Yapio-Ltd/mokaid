@@ -13,6 +13,7 @@ import {
 import type { ChatAttachment } from "@/api/types";
 import { fetchDriveFileBlob } from "@/api/client";
 import { SaveToDriveModal } from "@/components/modals/save-to-drive-modal";
+import { openDeliverable } from "@/stores/deliverable-store";
 import { cn } from "@/lib/cn";
 
 function iconFor(name: string | null, mime: string | null) {
@@ -111,20 +112,21 @@ export function ChatAttachmentView({
   };
 
   const handleOpen = async () => {
+    // Rich deliverables open in the immersive viewer instead of a raw tab.
+    if (openable) {
+      openDeliverable({ id, name: name ?? "file", mime_type: mime });
+      return;
+    }
     setBusy(true);
     setFailed(false);
     try {
       const url = await ensureUrl();
-      if (openable) {
-        window.open(url, "_blank", "noopener");
-      } else {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = name ?? "download";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name ?? "download";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     } catch {
       setFailed(true);
     } finally {

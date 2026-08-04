@@ -45,6 +45,15 @@ _PRICES: dict[str, dict[str, float]] = {
     EMBEDDING_MODEL: {"input": 0.02, "output": 0.0},
 }
 
+# USD per generated/edited image (flat, 1024px tier) — image APIs bill per
+# image, not per token, so they need their own price table.
+_IMAGE_PRICES: dict[str, float] = {
+    "dall-e-3": 0.04,
+    "gpt-image-1": 0.04,
+    "gpt-image-2": 0.05,
+}
+_DEFAULT_IMAGE_PRICE = 0.04
+
 _client: AsyncOpenAI | None = None
 _anthropic: AsyncAnthropic | None = None
 _deepseek: AsyncOpenAI | None = None
@@ -212,6 +221,7 @@ class UsageTracker:
     def __init__(self) -> None:
         self.prompt_tokens = 0
         self.completion_tokens = 0
+        self.images = 0
         self.cost_usd = 0.0
 
     def add(self, model: str, prompt_tokens: int, completion_tokens: int) -> None:
@@ -222,16 +232,24 @@ class UsageTracker:
             prompt_tokens * prices["input"] + completion_tokens * prices["output"]
         ) / 1_000_000
 
+    def add_image(self, model: str, count: int = 1) -> None:
+        """Flat per-image billing for generation/edit calls (no tokens)."""
+        self.images += count
+        self.cost_usd += _IMAGE_PRICES.get(model, _DEFAULT_IMAGE_PRICE) * count
+
     @property
     def cost_cents(self) -> int:
         return round(self.cost_usd * 100)
 
     def as_dict(self) -> dict[str, int]:
-        return {
+        data = {
             "prompt_tokens": self.prompt_tokens,
             "completion_tokens": self.completion_tokens,
             "total_tokens": self.prompt_tokens + self.completion_tokens,
         }
+        if self.images:
+            data["images"] = self.images
+        return data
 
 
 async def _deepseek_chat(
@@ -582,13 +600,15 @@ async def generate_image(
     prompt: str,
     usage: UsageTracker | None = None,
     size: str = "1024x1024",
-) -> bytes | None:
-    """Text-to-image generation with the configured image model. Returns the
-    image bytes or None. (`response_format` no longer exists on this API —
-    current models return b64_json, older ones a URL.)"""
+) -> tuple[bytes | None, str | None]:
+    """Text-to-image generation with the configured image model. Returns
+    (image bytes, last provider error) so callers can surface WHY generation
+    failed instead of a generic message. (`response_format` no longer exists
+    on this API — current models return b64_json, older ones a URL.)"""
     import base64
 
     models = [get_settings().openai_image_model, "dall-e-3"]
+    last_error: str | None = None
 
     for model in dict.fromkeys(models):
         try:
@@ -600,18 +620,23 @@ async def generate_image(
             )
             data = response.data[0]
             if data.b64_json:
-                return base64.b64decode(data.b64_json)
+                if usage:
+                    usage.add_image(model)
+                return base64.b64decode(data.b64_json), None
             if data.url:
                 import httpx
 
                 async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
                     resp = await client.get(data.url)
                     resp.raise_for_status()
-                    return resp.content
+                    if usage:
+                        usage.add_image(model)
+                    return resp.content, None
         except Exception as exc:
+            last_error = f"{model}: {exc}"
             log.warning("image_generation_failed", model=model, error=str(exc))
 
-    return None
+    return None, last_error
 
 
 async def edit_image(
@@ -619,16 +644,17 @@ async def edit_image(
     prompt: str,
     usage: UsageTracker | None = None,
     mime_type: str = "image/png",
-) -> bytes | None:
+) -> tuple[bytes | None, str | None]:
     """AI image editing: transforms the ORIGINAL image per the prompt,
     preserving its composition. Uses the configured image model
     (gpt-image-2 by default) and falls back to gpt-image-1 when the account
-    doesn't have access. Returns PNG bytes or None."""
+    doesn't have access. Returns (PNG bytes, last provider error)."""
     import base64
     import io
 
     ext = (mime_type.split("/") + ["png"])[1]
     models = [get_settings().openai_image_model, "gpt-image-1"]
+    last_error: str | None = None
 
     for model in dict.fromkeys(models):
         try:
@@ -639,11 +665,14 @@ async def edit_image(
             )
             b64 = response.data[0].b64_json
             if b64:
-                return base64.b64decode(b64)
+                if usage:
+                    usage.add_image(model)
+                return base64.b64decode(b64), None
         except Exception as exc:
+            last_error = f"{model}: {exc}"
             log.warning("image_edit_failed", model=model, error=str(exc))
 
-    return None
+    return None, last_error
 
 
 async def transcribe_audio_data(

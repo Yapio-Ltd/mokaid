@@ -191,7 +191,7 @@ export function useTask(id: string | null) {
 export function useCreateTask() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: Partial<Task> & { title: string }) =>
+    mutationFn: (body: Partial<Task> & { title: string; metadata?: Record<string, unknown> }) =>
       apiFetch<Envelope<Task>>("/api/tasks", { method: "POST", body }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
   });
@@ -317,6 +317,12 @@ export function useDispatchConfirm() {
       grant_installation_ids?: string[];
       drive_item_ids?: string[];
       start_now?: boolean;
+      capability_match?: {
+        mode: string;
+        confidence: number;
+        reason: string;
+        warning_shown: boolean;
+      };
     }) => apiFetch<Envelope<DispatchConfirmResult>>("/api/dispatch/confirm", { method: "POST", body }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });

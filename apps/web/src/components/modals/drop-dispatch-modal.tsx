@@ -6,6 +6,7 @@ import {
   Loader2,
   Plug,
   Sparkles,
+  TriangleAlert,
   Wand2,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -243,6 +244,32 @@ export function DropDispatchModal({
     }
   };
 
+  // Confidence of the currently selected agent (recommended card or an
+  // alternative). Null when a custom agent is selected.
+  const selectedConfidence = useMemo(() => {
+    if (!analysis || selection?.kind !== "agent") return null;
+    const rec = analysis.recommendation;
+    if (rec.agent_id === selection.agentId) return rec.confidence;
+    const alt = rec.alternatives.find((a) => a.agent_id === selection.agentId);
+    return alt ? alt.confidence : null;
+  }, [analysis, selection]);
+
+  // Out-of-specialty warning: the dispatcher didn't fully endorse this agent
+  // (user_choice / custom_agent verdict, or a weak-confidence pick).
+  const capabilityWarning = useMemo(() => {
+    if (!analysis || selection?.kind !== "agent") return null;
+    const rec = analysis.recommendation;
+    const weak = selectedConfidence !== null && selectedConfidence < 45;
+    if (rec.mode === "existing_agent" && !weak) return null;
+    const agent = agentById.get(selection.agentId);
+    const domains = analysis.domain_categories?.join(", ");
+    return {
+      agentName: agent?.display_name ?? "This agent",
+      domains: domains || null,
+      hasCustomOption: Boolean(rec.custom_agent),
+    };
+  }, [analysis, selection, selectedConfidence, agentById]);
+
   const handleConfirm = async () => {
     if (!analysis || !selection) return;
     setError(null);
@@ -263,6 +290,12 @@ export function DropDispatchModal({
         grant_installation_ids: [...grantIds],
         drive_item_ids: uploaded.map((item) => item.id),
         start_now: true,
+        capability_match: {
+          mode: analysis.recommendation.mode,
+          confidence: selection.kind === "custom" ? 100 : (selectedConfidence ?? 0),
+          reason: analysis.recommendation.reason,
+          warning_shown: Boolean(capabilityWarning),
+        },
       });
       setResult({
         agentName: response.data.agent?.display_name ?? null,
@@ -572,6 +605,24 @@ export function DropDispatchModal({
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {capabilityWarning && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2.5">
+              <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warning" />
+              <div className="min-w-0 flex-1 text-[11px] leading-snug text-text-secondary">
+                <p className="font-semibold text-text">
+                  {capabilityWarning.agentName} isn’t specialized in this
+                  {capabilityWarning.domains ? ` (${capabilityWarning.domains})` : ""} work
+                </p>
+                <p className="mt-0.5">
+                  They’ll do their best, but the result may be limited.
+                  {capabilityWarning.hasCustomOption
+                    ? " For the best outcome, pick the purpose-built specialist above."
+                    : " Consider hiring a dedicated specialist from the agent catalog."}
+                </p>
+              </div>
             </div>
           )}
 

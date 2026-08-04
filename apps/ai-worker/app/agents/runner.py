@@ -272,6 +272,8 @@ async def _execute_deep(
 
         output["artifacts"] = artifacts
         output["mission_kind"] = kind
+        if required:
+            output["required_tool"] = required
 
         executed = [c for c in state.tool_calls if c.approved is not False]
         errors = [
@@ -288,6 +290,15 @@ async def _execute_deep(
             and not has_deliverable
             and not request.attached_files
             and not (request.input or {}).get("drive_item_ids")
+        ):
+            await _pause_for_user_input(request, phoenix, state, kind=kind)
+            return state
+
+        # A tool explicitly asked for user input (e.g. transform_image with no
+        # attached image) — pause with the question instead of failing.
+        if not has_deliverable and any(
+            isinstance(c.output, dict) and c.output.get("needs_user_input")
+            for c in executed
         ):
             await _pause_for_user_input(request, phoenix, state, kind=kind)
             return state
@@ -418,15 +429,26 @@ async def _pause_for_user_input(
     from app.agents.mission_kind import language_for_request
 
     lang = language_for_request(request)
-    question = (
-        "Pour analyser correctement, j'ai besoin du fichier source — "
-        "dépose-le ici ou dans la tâche, puis relance-moi."
-        if lang == "fr"
-        else (
-            "To analyze this properly I need the source file — "
-            "drop it here or on the task, then send me again."
+    if kind == "image":
+        question = (
+            "Pour modifier l'image, j'ai besoin du fichier source — "
+            "dépose l'image ici ou dans la tâche, puis relance-moi."
+            if lang == "fr"
+            else (
+                "To modify the image I need the source file — "
+                "drop the image here or on the task, then send me again."
+            )
         )
-    )
+    else:
+        question = (
+            "Pour analyser correctement, j'ai besoin du fichier source — "
+            "dépose-le ici ou dans la tâche, puis relance-moi."
+            if lang == "fr"
+            else (
+                "To analyze this properly I need the source file — "
+                "drop it here or on the task, then send me again."
+            )
+        )
     state.status = RunStatus.WAITING_FOR_USER_INPUT
     state.error = None
     await phoenix.update_run_status(
@@ -465,30 +487,39 @@ async def _force_producer_tool(
         or request.task_title
         or ""
     )
-    tool_input: dict = {"brief": brief} if tool_name == "generate_website" else {}
+    tool_input: dict = (
+        {"brief": brief}
+        if tool_name in ("generate_website", "generate_webapp")
+        else {}
+    )
     if tool_name == "draft_document":
         tool_input = {"title": request.task_title or "Document", "brief": brief}
     if tool_name in ("analyze_file", "transform_image", "transcribe_audio", "extract_document_text"):
         files = request.attached_files
         if not files:
-            return []
-        # Prefer user input over agent output, then the most recent match.
-        inputs = [f for f in files if f.source != "agent_output"]
-        chosen = (inputs or files)[-1]
-        file_url = chosen.download_url or ""
-        if tool_name == "analyze_file":
-            tool_input = {"file_url": file_url, "question": brief}
-        elif tool_name == "transform_image":
-            tool_input = {
-                "file_url": file_url,
-                "instruction": brief,
-                "original_filename": chosen.name or "",
-            }
+            # transform_image can still generate from scratch (creation asks)
+            # or return a needs_user_input marker — let the tool decide.
+            if tool_name != "transform_image":
+                return []
+            tool_input = {"instruction": brief}
         else:
-            tool_input = {
-                "file_url": file_url,
-                "original_filename": chosen.name or "",
-            }
+            # Prefer user input over agent output, then the most recent match.
+            inputs = [f for f in files if f.source != "agent_output"]
+            chosen = (inputs or files)[-1]
+            file_url = chosen.download_url or ""
+            if tool_name == "analyze_file":
+                tool_input = {"file_url": file_url, "question": brief}
+            elif tool_name == "transform_image":
+                tool_input = {
+                    "file_url": file_url,
+                    "instruction": brief,
+                    "original_filename": chosen.name or "",
+                }
+            else:
+                tool_input = {
+                    "file_url": file_url,
+                    "original_filename": chosen.name or "",
+                }
 
     call = ToolCall(tool=tool_name, input=tool_input, risk=risk_for_tool(tool_name))
     try:
@@ -603,50 +634,104 @@ async def _save_artifacts(request: RunRequest, state: RunState, phoenix: Phoenix
 
         try:
             if call.tool == "draft_document" and output.get("content"):
-                filename = f"{_safe_filename(output.get('title') or request.task_title or 'document')}.md"
-                saved = await saver(
-                    request.workspace_id,
-                    request.task_id,
-                    filename,
-                    output["content"],
-                    mime_type="text/markdown",
+                title = output.get("title") or request.task_title or "document"
+                filename = await _save_pdf_or_md(
+                    request, saver, title, output["content"]
                 )
-                if saved:
+                if filename:
                     artifacts.append(filename)
             elif call.tool == "generate_report" and output.get("report"):
-                filename = f"{_safe_filename(request.task_title or 'report')}-report.json"
-                saved = await saver(
-                    request.workspace_id,
-                    request.task_id,
-                    filename,
-                    json.dumps(output["report"], indent=2, ensure_ascii=False),
-                    mime_type="application/json",
+                report = output["report"]
+                title = (
+                    report.get("headline") if isinstance(report, dict) else None
+                ) or f"{request.task_title or 'Report'}"
+                filename = await _save_pdf_or_md(
+                    request, saver, title, _report_to_markdown(report)
                 )
-                if saved:
+                if filename:
                     artifacts.append(filename)
             elif call.tool == "transform_image" and output.get("filename"):
                 artifacts.append(output["filename"])
-            elif call.tool == "generate_website" and output.get("filename"):
+            elif call.tool in ("generate_website", "generate_webapp", "export_pdf") and output.get(
+                "filename"
+            ):
                 # Already saved by the tool itself — just record the artifact name.
                 artifacts.append(output["filename"])
+                if call.tool == "generate_webapp":
+                    for art in output.get("artifacts") or []:
+                        name = art.get("filename") if isinstance(art, dict) else None
+                        if name and name not in artifacts:
+                            artifacts.append(name)
             elif call.tool == "transcribe_audio" and output.get("transcript"):
                 clean = _safe_filename(request.task_title or "transcript")
                 artifacts.append(f"{clean}-transcript.txt")
             elif call.tool == "analyze_file" and output.get("analysis"):
-                filename = f"{_safe_filename(request.task_title or 'analysis')}.md"
-                saved = await saver(
-                    request.workspace_id,
-                    request.task_id,
-                    filename,
-                    f"# Analysis\n\n{output['analysis']}",
-                    mime_type="text/markdown",
+                title = request.task_title or "Analysis"
+                filename = await _save_pdf_or_md(
+                    request, saver, title, output["analysis"]
                 )
-                if saved:
+                if filename:
                     artifacts.append(filename)
         except Exception as exc:  # noqa: BLE001 — artifacts are best-effort
             log.warning("artifact_save_failed", run_id=request.run_id, tool=call.tool, error=str(exc))
 
     return artifacts
+
+
+async def _save_pdf_or_md(
+    request: RunRequest, saver, title: str, markdown: str
+) -> str | None:
+    """Documents ship as PDF by default (immersive viewer opens them
+    instantly); markdown is the fallback when PDF rendering fails."""
+    import base64
+
+    from app import pdf as pdf_mod
+
+    base = _safe_filename(title)
+    try:
+        pdf_bytes = pdf_mod.markdown_to_pdf_bytes(markdown, title=title)
+        filename = f"{base}.pdf"
+        saved = await saver(
+            request.workspace_id,
+            request.task_id,
+            filename,
+            base64.b64encode(pdf_bytes).decode(),
+            mime_type="application/pdf",
+            encoding="base64",
+        )
+        if saved:
+            return filename
+    except Exception as exc:  # noqa: BLE001 — fall back to markdown below
+        log.warning("pdf_render_failed", run_id=request.run_id, error=str(exc))
+
+    filename = f"{base}.md"
+    saved = await saver(
+        request.workspace_id,
+        request.task_id,
+        filename,
+        markdown,
+        mime_type="text/markdown",
+    )
+    return filename if saved else None
+
+
+def _report_to_markdown(report) -> str:
+    """Flattens the generate_report JSON shape into a markdown document."""
+    if not isinstance(report, dict):
+        return json.dumps(report, indent=2, ensure_ascii=False)
+
+    parts: list[str] = []
+    if report.get("headline"):
+        parts.append(f"# {report['headline']}")
+    if report.get("period"):
+        parts.append(f"*Period: {report['period']}*")
+    for section in report.get("sections") or []:
+        if isinstance(section, dict):
+            if section.get("title"):
+                parts.append(f"## {section['title']}")
+            if section.get("content"):
+                parts.append(str(section["content"]))
+    return "\n\n".join(parts) if parts else json.dumps(report, indent=2, ensure_ascii=False)
 
 
 async def _wait_for_decision(run_id: str) -> ResumeRequest:

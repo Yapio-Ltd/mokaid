@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Activity,
   Building2,
   CreditCard,
   FileText,
@@ -25,6 +26,7 @@ const nav = [
   { href: "/plans", label: "Forfaits", icon: Package },
   { href: "/invoices", label: "Factures", icon: Receipt },
   { href: "/credits", label: "Crédits", icon: Wallet },
+  { href: "/usage", label: "Usage AI", icon: Activity },
   { href: "/members", label: "Membres", icon: Users },
   { href: "/audit-logs", label: "Audit logs", icon: ScrollText },
 ];

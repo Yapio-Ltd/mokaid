@@ -195,6 +195,48 @@ async def test_deep_analysis_without_file_waits_for_user(phoenix, monkeypatch):
     assert not any(kind == "complete" for kind, _ in phoenix.calls)
 
 
+async def test_deep_image_without_file_waits_for_user(phoenix, monkeypatch):
+    # "Modifie le logo" without an attached image: the forced transform_image
+    # returns needs_user_input, and the run must pause instead of failing.
+    async def fake_deep(request, ctx, state, phoenix_client, toolbox, mcp_tools, wait_fn, resume=False):
+        return {"summary": "Je m'en occupe", "artifacts": []}
+
+    async def fake_transform(params, ctx):
+        return {
+            "error": "No image is attached to this task.",
+            "needs_user_input": True,
+        }
+
+    monkeypatch.setattr(runner.deep_runner, "is_available", lambda: True)
+    monkeypatch.setattr(runner.deep_runner, "execute", fake_deep)
+    monkeypatch.setattr(
+        "app.tools.registry.get_tool",
+        lambda name: fake_transform if name == "transform_image" else None,
+    )
+
+    req = RunRequest(
+        run_id="run-logo-wait",
+        workspace_id="ws-1",
+        agent_id="agent-1",
+        task_id="task-1",
+        task_title="Modifie le logo",
+        input={
+            "instruction": "Modifie le logo en bleu",
+            "mission_kind": "image",
+            "language": "fr",
+        },
+    )
+    state = await runner.execute_run(req, phoenix=phoenix)
+
+    assert state.status == RunStatus.WAITING_FOR_USER_INPUT
+    assert any(
+        kind == "status" and payload["status"] == "waiting_for_user_input"
+        for kind, payload in phoenix.calls
+    )
+    assert not any(kind == "fail" for kind, _ in phoenix.calls)
+    assert not any(kind == "complete" for kind, _ in phoenix.calls)
+
+
 def test_is_refusal_detects_ethics_and_policy_messages():
     assert runner._is_refusal(
         "I understand the request, but I cannot help with this task because "
