@@ -245,9 +245,9 @@
     "semantic_hash": ""
   },
   "apps/api/config/dev.exs": {
-    "mtime": 1784154581.614454,
-    "ast_hash": "392deacfebe932823595491ba1410b89",
-    "semantic_hash": "392deacfebe932823595491ba1410b89"
+    "mtime": 1785844403.2037215,
+    "ast_hash": "9096e37056eb594d61a006ce1f98eb9c",
+    "semantic_hash": ""
   },
   "apps/api/config/prod.exs": {
     "mtime": 1783200047.287338,
@@ -270,13 +270,13 @@
     "semantic_hash": "dedd5c62e524a6edfdc6d6c54833598a"
   },
   "apps/api/lib/mokaid/accounts.ex": {
-    "mtime": 1785507276.5445485,
+    "mtime": 1785844435.0,
     "ast_hash": "97cb6a2a1f03a65e07576215f404cd7d",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid/accounts/user.ex": {
-    "mtime": 1785507273.331405,
-    "ast_hash": "e66695ebb4b97b48022884c790ac360f",
+    "mtime": 1785844263.739105,
+    "ast_hash": "4154feaf84406b28b12afd180f997100",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid/agent_chat.ex": {
@@ -690,8 +690,8 @@
     "semantic_hash": "1a60ddc416fc0c8cc57e03377d8a0d0e"
   },
   "apps/api/lib/mokaid/release.ex": {
-    "mtime": 1785825669.5081842,
-    "ast_hash": "30c68c3b97da3deb3eab98cc8a9cabea",
+    "mtime": 1785844448.6799715,
+    "ast_hash": "81ea1026460abeeb46b7fbefe3490ee8",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid/repo.ex": {
@@ -940,8 +940,8 @@
     "semantic_hash": "a0a255004966023e3af867c841e38e96"
   },
   "apps/api/lib/mokaid_web/json.ex": {
-    "mtime": 1785507480.1950588,
-    "ast_hash": "8f2dd33b5dc8f93765bb6028beff2136",
+    "mtime": 1785844266.2889903,
+    "ast_hash": "b3d7efb42ef21460df5db0b3d8335274",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/plugs/authenticate.ex": {
@@ -970,8 +970,8 @@
     "semantic_hash": "482f095b4287dfc0c47eab8a2e06b943"
   },
   "apps/api/lib/mokaid_web/router.ex": {
-    "mtime": 1785617466.381358,
-    "ast_hash": "b69ba0a81f35d97db04185dab9ad8752",
+    "mtime": 1785844402.7438025,
+    "ast_hash": "bbeaabda63166110c81a9050c03a8656",
     "semantic_hash": ""
   },
   "apps/api/mix.exs": {
@@ -1835,13 +1835,13 @@
     "semantic_hash": "7e43666421c15ad28338d15e8384ceb9"
   },
   "apps/web/src/three/office-navdata.test.ts": {
-    "mtime": 1785825669.4143414,
-    "ast_hash": "7e6297473cb6e03201eb7b9f34fe3ae8",
+    "mtime": 1785837531.9543483,
+    "ast_hash": "f5be025beaa82d7791df19261eb1409d",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-navdata.ts": {
-    "mtime": 1785825669.4135034,
-    "ast_hash": "b7c7c45f16f2069bd9c0a4abe1c89ff0",
+    "mtime": 1785837531.4165695,
+    "ast_hash": "a4392aba9fb8c499f3e0bf6c14950aa6",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-paths.ts": {
@@ -1855,8 +1855,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-scene.ts": {
-    "mtime": 1785825669.4140263,
-    "ast_hash": "0361b2ff69acf6acaeba65d79ee47528",
+    "mtime": 1785837615.3840349,
+    "ast_hash": "71d2f78178bced654a02503b52a108de",
     "semantic_hash": ""
   },
   "apps/web/src/three/types.ts": {
@@ -1890,19 +1890,19 @@
     "semantic_hash": "55a7dbdd969d4db923ed236e70deb303"
   },
   "infra/terraform/bootstrap/github_oidc.tf": {
-    "mtime": 1784299930.1343076,
-    "ast_hash": "f41feed06dd33b1aa7c83c6cf0cc07cd",
+    "mtime": 1785844935.6373675,
+    "ast_hash": "de084c391b5d546e9ed3301df2e5d78f",
     "semantic_hash": ""
   },
   "infra/terraform/bootstrap/main.tf": {
-    "mtime": 1785825669.4803483,
-    "ast_hash": "4b1b2cd28e5e214c65583b5e5e62eccb",
+    "mtime": 1785844909.3165033,
+    "ast_hash": "3fe607338d4622ac0b6bc30c261a19eb",
     "semantic_hash": ""
   },
   "infra/terraform/modules/alb/main.tf": {
-    "mtime": 1783357343.2873697,
-    "ast_hash": "bcbffc93dc4f1f6862ae9b89d53e053c",
-    "semantic_hash": "bcbffc93dc4f1f6862ae9b89d53e053c"
+    "mtime": 1785844937.9002283,
+    "ast_hash": "04369e71173701a9057674b282049ee8",
+    "semantic_hash": ""
   },
   "infra/terraform/modules/cloudfront/main.tf": {
     "mtime": 1783202393.341161,
@@ -1945,8 +1945,8 @@
     "semantic_hash": "5ead73ace41d0d7bac66f28005a54a8c"
   },
   "infra/terraform/modules/stack/main.tf": {
-    "mtime": 1785825669.4881108,
-    "ast_hash": "f434ece60ba88c7824ddba379bfe5253",
+    "mtime": 1785845010.6171389,
+    "ast_hash": "d5bcf043a0c6f0b7c12ee951ab9425d7",
     "semantic_hash": ""
   },
   "infra/terraform/modules/vpc/main.tf": {
@@ -1955,9 +1955,9 @@
     "semantic_hash": "75190007b96c72377c81892160d04c2e"
   },
   "package.json": {
-    "mtime": 1783199914.1937048,
-    "ast_hash": "e52a81842cc2dd055d2aeddbfba85f04",
-    "semantic_hash": "e52a81842cc2dd055d2aeddbfba85f04"
+    "mtime": 1785844565.3403704,
+    "ast_hash": "0920525eade5ea85cf26b2cca08f2a87",
+    "semantic_hash": ""
   },
   "packages/design-tokens/package.json": {
     "mtime": 1783199915.9725788,
@@ -2155,13 +2155,13 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1785825669.44116,
-    "ast_hash": "3c1203698aef8f8e37f8403a8cf5d942",
+    "mtime": 1785845047.3374994,
+    "ast_hash": "507afaf20a165d87fef12dcb9b1f6cbb",
     "semantic_hash": ""
   },
   ".github/workflows/deploy.yml": {
-    "mtime": 1785062862.119007,
-    "ast_hash": "ef9a5aabcde6213b597f2c8dd9115b70",
+    "mtime": 1785845040.1199858,
+    "ast_hash": "f6568fd7aaf5c8e502bdef1398892528",
     "semantic_hash": ""
   },
   "README.md": {
@@ -2235,8 +2235,8 @@
     "semantic_hash": ""
   },
   "docs/DEPLOYMENT.md": {
-    "mtime": 1785060772.998259,
-    "ast_hash": "20298dccf89ae9f8e332252bba03a6b9",
+    "mtime": 1785845105.5320926,
+    "ast_hash": "4b4c91669dc9256679de75ace91ef5df",
     "semantic_hash": ""
   },
   "docs/PERFORMANCE.md": {
@@ -3300,8 +3300,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/environments/prod/main.tf": {
-    "mtime": 1785825669.5127869,
-    "ast_hash": "d83eb32c1f2975125271a0bb4bb120c2",
+    "mtime": 1785845028.683094,
+    "ast_hash": "c32a25fcedf6c0cd36aaf0ad5ae06f37",
     "semantic_hash": ""
   },
   "scripts/copy-stack-secrets.sh": {
@@ -13380,8 +13380,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-seating.test.ts": {
-    "mtime": 1785625699.6259587,
-    "ast_hash": "dbdef4356fd0304731fb6f16d90b86a1",
+    "mtime": 1785837793.9746935,
+    "ast_hash": "702f01282780c47162eeeddacc4e2c16",
     "semantic_hash": ""
   },
   "scripts/dump_office_nav.py": {
@@ -13390,8 +13390,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/legal/cookie-consent.tsx": {
-    "mtime": 1785826178.1995342,
-    "ast_hash": "f40cf221ef84d596dc4673910d4f637b",
+    "mtime": 1785828151.6200223,
+    "ast_hash": "55d724d49a504fcddbf780bcb36f5b80",
     "semantic_hash": ""
   },
   "apps/web/src/components/legal/legal-doc-layout.tsx": {
@@ -13415,8 +13415,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/landing/why-mokaid.tsx": {
-    "mtime": 1785827766.5874696,
-    "ast_hash": "1ec69c4d1353ae84a3cf1e9253c004ce",
+    "mtime": 1785828016.360054,
+    "ast_hash": "b1de7c680e0ff9efa05a4c81eaa98a5b",
     "semantic_hash": ""
   },
   "apps/web/src/components/ui/m-random-letter-swap-1.tsx": {
@@ -13427,6 +13427,171 @@
   "apps/web/src/components/ui/random-letter-swap.tsx": {
     "mtime": 1785827795.4950852,
     "ast_hash": "281e9aa7800bf8aa947c396cc81e888a",
+    "semantic_hash": ""
+  },
+  "apps/api/lib/mokaid/admin.ex": {
+    "mtime": 1785844461.836777,
+    "ast_hash": "2d43f0d3687cadfadc0379e11cf5ad4c",
+    "semantic_hash": ""
+  },
+  "apps/api/lib/mokaid_web/controllers/admin_controller.ex": {
+    "mtime": 1785844460.846429,
+    "ast_hash": "0830016756c5d6ebb561551d396fd73e",
+    "semantic_hash": ""
+  },
+  "apps/api/lib/mokaid_web/plugs/require_platform_admin.ex": {
+    "mtime": 1785844336.6187751,
+    "ast_hash": "bbc31040fc4992cd9c33cb3799a57745",
+    "semantic_hash": ""
+  },
+  "apps/api/priv/repo/migrations/20260804000001_add_platform_admin_to_users.exs": {
+    "mtime": 1785844260.1976109,
+    "ast_hash": "18bb49eac9e3944f3303e34d0acbf419",
+    "semantic_hash": ""
+  },
+  "apps/api/test/mokaid/admin_test.exs": {
+    "mtime": 1785844430.902526,
+    "ast_hash": "e97438fc1e53c17757cbcccc56cd5810",
+    "semantic_hash": ""
+  },
+  "apps/crm/next-env.d.ts": {
+    "mtime": 1785844868.8835669,
+    "ast_hash": "ba64ff7d54714a8f64db89b1003207d8",
+    "semantic_hash": ""
+  },
+  "apps/crm/next.config.js": {
+    "mtime": 1785844570.3613174,
+    "ast_hash": "f06c92c54f5445428f107e865b4eae4a",
+    "semantic_hash": ""
+  },
+  "apps/crm/package.json": {
+    "mtime": 1785844568.1883068,
+    "ast_hash": "f7159b8e6fa5d9e9a481ec5cb546a6ee",
+    "semantic_hash": ""
+  },
+  "apps/crm/postcss.config.js": {
+    "mtime": 1785844575.8826506,
+    "ast_hash": "8640f9b2e6475cc3f5b1ff4548925765",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/audit-logs/page.tsx": {
+    "mtime": 1785844795.1274266,
+    "ast_hash": "06fdcde5ff522483d970a58f4c024a88",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/credits/page.tsx": {
+    "mtime": 1785844786.4175985,
+    "ast_hash": "b5ff8257ee945ea0e6cee4e224fa0bb3",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/invoices/page.tsx": {
+    "mtime": 1785844773.7791011,
+    "ast_hash": "d20e234f5acda094f73dbd76dc957f78",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/layout.tsx": {
+    "mtime": 1785844840.2852862,
+    "ast_hash": "dd3e622d66a5da955f979c109ef30110",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/members/page.tsx": {
+    "mtime": 1785844794.72903,
+    "ast_hash": "0589b2b489e71f49ff865a97eecd0202",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/page.tsx": {
+    "mtime": 1785844661.2630646,
+    "ast_hash": "4af915b4805af354528ab1ca3cb46e98",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/plans/page.tsx": {
+    "mtime": 1785844762.970651,
+    "ast_hash": "15e1f668b89c93af5c9ac591ddee78f8",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/subscriptions/page.tsx": {
+    "mtime": 1785844840.2380836,
+    "ast_hash": "e132563e168dedd912d2952a8711adf7",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/users/[id]/page.tsx": {
+    "mtime": 1785844681.436918,
+    "ast_hash": "8f88e791778ad2111534ae97eaae5ee5",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/users/page.tsx": {
+    "mtime": 1785844674.7460117,
+    "ast_hash": "24eeeee0b0d1efa674bb59d2a9d4eaeb",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/workspaces/[id]/page.tsx": {
+    "mtime": 1785844700.783278,
+    "ast_hash": "a56f21c2e30c51691b01a803cff20212",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/workspaces/page.tsx": {
+    "mtime": 1785844699.9510214,
+    "ast_hash": "3c5f11312925b3a2674fa70a1938f5c4",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/layout.tsx": {
+    "mtime": 1785844606.5157256,
+    "ast_hash": "79447f728ce71562116f56d5e91ef230",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/login/page.tsx": {
+    "mtime": 1785844651.553457,
+    "ast_hash": "76d74c5895882077ed4bccb8f605841e",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/components/app-shell.tsx": {
+    "mtime": 1785844633.5290449,
+    "ast_hash": "78b4219a5c7ad79536b7f57e0db5b1ba",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/components/providers.tsx": {
+    "mtime": 1785844616.7477977,
+    "ast_hash": "98540e5b05e0788f24f8764ef93b8298",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/components/ui.tsx": {
+    "mtime": 1785844637.3189669,
+    "ast_hash": "badb8fc506eacdca5bec5b804dd333fe",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/lib/api.ts": {
+    "mtime": 1785844597.1481054,
+    "ast_hash": "b7aae1f89aaee855e06869d4a3e31808",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/lib/auth-store.ts": {
+    "mtime": 1785844597.062561,
+    "ast_hash": "c770701c45261b538f7c87c2063fb2f6",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/lib/cn.ts": {
+    "mtime": 1785844600.8282394,
+    "ast_hash": "a6cde2d19f2cae965cdc163071c30159",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/lib/types.ts": {
+    "mtime": 1785844589.9405668,
+    "ast_hash": "6d157147cd1114fa4a83fe1d25553d8e",
+    "semantic_hash": ""
+  },
+  "apps/crm/tailwind.config.js": {
+    "mtime": 1785844575.218527,
+    "ast_hash": "6e81dd4cee73f9bb44f7846d9c44e7fd",
+    "semantic_hash": ""
+  },
+  "apps/crm/tsconfig.json": {
+    "mtime": 1785844574.6763225,
+    "ast_hash": "51cb58f619b9c838b6d81d4da011e0ef",
+    "semantic_hash": ""
+  },
+  "scripts/provision-platform-admin.sh": {
+    "mtime": 1785845108.74916,
+    "ast_hash": "26b7e3ddafe6c6797271c8e262251a8d",
     "semantic_hash": ""
   }
 }

@@ -51,6 +51,60 @@ defmodule Mokaid.Release do
   end
 
   @doc """
+  Creates or updates a platform operator (CRM admin). Password is taken from
+  arguments or `PLATFORM_ADMIN_PASSWORD` env — never commit secrets to git.
+
+      bin/mokaid eval "Mokaid.Release.provision_platform_admin(\\"email@example.com\\", System.get_env(\\"PLATFORM_ADMIN_PASSWORD\\"))"
+  """
+  def provision_platform_admin(email, password \\ nil, opts \\ [])
+
+  def provision_platform_admin(email, password, opts) when is_binary(email) do
+    load_app()
+    password = password || System.get_env("PLATFORM_ADMIN_PASSWORD")
+    full_name = Keyword.get(opts, :full_name, "Platform Admin")
+
+    if not is_binary(password) or byte_size(password) < 10 do
+      raise "provision_platform_admin requires a password (>= 10 chars) or PLATFORM_ADMIN_PASSWORD"
+    end
+
+    {:ok, _, _} =
+      Ecto.Migrator.with_repo(Mokaid.Repo, fn _repo ->
+        alias Mokaid.{Accounts, Repo}
+
+        user =
+          case Accounts.get_user_by_email(email) do
+            nil ->
+              {:ok, user} =
+                Accounts.register_user(%{
+                  "email" => email,
+                  "full_name" => full_name,
+                  "password" => password
+                })
+
+              user
+
+            existing ->
+              hashed = Bcrypt.hash_pwd_salt(password)
+
+              existing
+              |> Ecto.Changeset.change(
+                hashed_password: hashed,
+                full_name: existing.full_name || full_name,
+                status: "active"
+              )
+              |> Repo.update!()
+          end
+
+        user
+        |> Ecto.Changeset.change(is_platform_admin: true, status: "active")
+        |> Repo.update!()
+
+        IO.puts("provisioned platform admin #{email}")
+        :ok
+      end)
+  end
+
+  @doc """
   Creates or updates a dev-fallback user and attaches them to an existing workspace.
   """
   def provision_dev_user(email, password, opts \\ []) do

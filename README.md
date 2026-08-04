@@ -10,6 +10,7 @@
 mokaid/
   apps/
     web/          React + TypeScript + Vite + Babylon.js frontend
+    crm/          Next.js operator CRM (users, billing, audit) — crm.mokaid.com
     api/          Elixir Phoenix backend (JSON API + Channels + Presence)
     ai-worker/    Python FastAPI + LangGraph AI execution worker
   packages/
@@ -38,6 +39,10 @@ make api.dev         # Phoenix on http://localhost:4000
 # 3. Frontend
 make web.install
 make web.dev         # Vite on http://localhost:5173
+
+# 3b. Operator CRM (optional)
+make crm.dev         # Next.js on http://localhost:3001
+# PLATFORM_ADMIN_PASSWORD='…' ./scripts/provision-platform-admin.sh
 
 # 4. AI worker
 make ai.install

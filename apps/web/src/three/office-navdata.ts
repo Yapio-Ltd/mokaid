@@ -420,8 +420,11 @@ export const NAV_OBSTACLES: Aabb2[] = OFFICE_OBSTACLES.map((o) => {
 
 /** Aisle anchors used for patrol loops and pinch escapes. */
 export const OFFICE_NAV_NODES: NavNode[] = [
-  { id: "n_sofa", x: -1.79, z: -5.05 },
-  { id: "n_coffee", x: 1.99, z: -5.05 },
+  // Verified live 2026-08-04: green markers on former "sofa" coords landed on the
+  // coffee appliance; the dark lounge sofa is the long Cube.002 cushion band east
+  // of that unit. Nav nodes match the corrected POIs below.
+  { id: "n_sofa", x: 1.99, z: -5.05 },
+  { id: "n_coffee", x: -1.79, z: -5.05 },
   { id: "n_east", x: 5.28, z: -4.16 },
   { id: "w_aisle", x: -4.3, z: -3.4 },
   { id: "mid_w", x: -3.4, z: -0.6 },
@@ -468,26 +471,27 @@ export const OFFICE_POIS: OfficePoi[] = [
     id: "sofa_main",
     kind: "sofa",
     capacity: 3,
-    approach: [{ x: -1.79, z: -5.05 }],
-    // Cushion top measured at 0.66; sitters sit clear of the Cube.024 backrest.
+    // Dark lounge on the long low north cushion (Cube.002 band). Live markers
+    // showed the previous Cube.021 seats sitting on the coffee appliance.
+    approach: [{ x: 1.99, z: -5.05 }],
     slots: [
       {
         id: "sofa_a",
-        position: { x: -2.31, z: -5.72 },
+        position: { x: 1.15, z: -5.95 },
         facing: Math.PI,
         animation: "sitting_sofa",
         seatHeight: SOFA_SEAT_HEIGHT,
       },
       {
         id: "sofa_b",
-        position: { x: -1.79, z: -5.72 },
+        position: { x: 1.99, z: -5.95 },
         facing: Math.PI,
         animation: "sitting_sofa",
         seatHeight: SOFA_SEAT_HEIGHT,
       },
       {
         id: "sofa_c",
-        position: { x: -1.27, z: -5.72 },
+        position: { x: 2.83, z: -5.95 },
         facing: Math.PI,
         animation: "sitting_sofa",
         seatHeight: SOFA_SEAT_HEIGHT,
@@ -498,17 +502,17 @@ export const OFFICE_POIS: OfficePoi[] = [
     id: "coffee",
     kind: "coffee",
     capacity: 1,
-    approach: [{ x: 1.99, z: -5.05 }],
+    // Coffee appliance unit (former "sofa" footprint around Cube.020/021).
+    approach: [{ x: -1.79, z: -5.05 }],
     queueSlots: [
-      { x: 1.2, z: -5.1 },
-      { x: 2.7, z: -4.9 },
+      { x: -2.5, z: -5.1 },
+      { x: -1.1, z: -4.9 },
     ],
     slots: [
       {
         id: "coffee_active",
-        // Standing clear of the counter (Cube.002 ends at z −5.65) with the
-        // aisle in front measured free from z −5.15 outwards.
-        position: { x: 1.99, z: -5.08 },
+        // Stand clear of the unit's front edge (mesh ends ~z −5.61).
+        position: { x: -1.79, z: -5.08 },
         facing: Math.PI,
         animation: "preparing_coffee",
       },

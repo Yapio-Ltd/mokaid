@@ -48,8 +48,13 @@ variable "app_domain" {
   default = "mokaid.com"
 }
 
+variable "crm_domain" {
+  type    = string
+  default = "crm.mokaid.com"
+}
+
 variable "alb_certificate_arn" {
-  description = "ACM certificate (il-central-1) for the ALB HTTPS listener"
+  description = "ACM certificate (il-central-1) for the ALB HTTPS listener — must include mokaid.com and crm.mokaid.com SANs"
   type        = string
   default     = "arn:aws:acm:il-central-1:660601648321:certificate/527d80b3-bb90-4a7d-aa35-f8adca582d28"
 }
@@ -57,6 +62,11 @@ variable "alb_certificate_arn" {
 variable "web_image_tag" {
   type    = string
   default = "v2"
+}
+
+variable "crm_image_tag" {
+  type    = string
+  default = "latest"
 }
 
 variable "api_image_tag" {
@@ -95,6 +105,7 @@ module "stack" {
   db_snapshot_identifier = var.db_snapshot_identifier
 
   app_domain                = var.app_domain
+  crm_domain                = var.crm_domain
   alb_certificate_arn       = var.alb_certificate_arn
   waf_allowed_country_codes = ["IL", "FR"]
 
@@ -103,6 +114,7 @@ module "stack" {
 
   api_image_tag    = var.api_image_tag
   web_image_tag    = var.web_image_tag
+  crm_image_tag    = var.crm_image_tag
   worker_image_tag = var.worker_image_tag
 
   alarm_email        = var.alarm_email
@@ -111,6 +123,10 @@ module "stack" {
 
 output "web_service_name" {
   value = module.stack.web_service_name
+}
+
+output "crm_service_name" {
+  value = module.stack.crm_service_name
 }
 
 output "cloudfront_domain" {

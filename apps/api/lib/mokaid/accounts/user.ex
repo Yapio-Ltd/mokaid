@@ -18,6 +18,7 @@ defmodule Mokaid.Accounts.User do
     field :status, :string, default: "active"
     field :last_login_at, :utc_datetime_usec
     field :mfa_enabled, :boolean, default: false
+    field :is_platform_admin, :boolean, default: false
 
     has_many :memberships, Mokaid.Members.Member
 

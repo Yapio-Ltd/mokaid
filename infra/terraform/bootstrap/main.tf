@@ -83,7 +83,7 @@ resource "aws_dynamodb_table" "locks" {
 module "ecr" {
   source = "../modules/ecr"
 
-  repositories = ["mokaid-api", "mokaid-ai-worker", "mokaid-web"]
+  repositories = ["mokaid-api", "mokaid-ai-worker", "mokaid-web", "mokaid-crm"]
 
   tags = {
     Project     = "mokaid"

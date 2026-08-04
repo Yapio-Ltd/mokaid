@@ -181,7 +181,7 @@ describe("office-navdata", () => {
       { x: -5.7, z: 3.9 }, // meeting table (table 2)
       { x: -1.8, z: 4.7 }, // foosball table
       { x: -5.7, z: 0.2 }, // desk Cube.011
-      { x: -1.79, z: -6.0 }, // main sofa
+      { x: 1.99, z: -6.0 }, // lounge cushion (Cube.002)
     ]) {
       expect(pointHitsObstacle(probe)).toBe(true);
       const out = resolveCollision(probe);

@@ -1,13 +1,15 @@
 /**
  * Seating / POI geometry invariants.
  *
- * Every expectation here is derived from measured office.glb geometry
- * (up-facing triangle bands + rod-side vertex counts), not from eyeballing:
- *   - Cube.021 main sofa  cushion band Y = 0.66 (1.15 m² up-facing)
- *   - Cube.024 sofa back  occupies Z −6.29..−5.74, Y 0.70..1.16
- *   - Object_122 chairs   cushion band Y = 0.51
- *   - soccer table.001    top Y = 0.64, rods protrude on ±X (924 verts each
- *                         side vs 78/208 on ±Z) → players stand east/west
+ * Visual check 2026-08-04 (markers + capture): the coffee appliance sits on
+ * the Cube.021 band (~x −1.5); the long low lounge cushion is Cube.002
+ * (~x +1..+3). Labels that said "Sitting on sofa" while the avatar stood at
+ * the coffee machine meant those two POI clusters had been swapped.
+ *
+ * Other measured props:
+ *   - sofa / lounge cushion band Y ≈ 0.66
+ *   - Object_122 chairs cushion band Y = 0.51
+ *   - soccer table.001 top Y = 0.64, rods on ±X → players stand E/W
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -21,8 +23,11 @@ import {
   type NavPoint,
 } from "./office-navdata";
 
-/** Cube.024 — the sofa backrest an agent must never be placed inside. */
-const SOFA_BACKREST = { minX: 1.44, maxX: 2.14, minZ: -6.29, maxZ: -5.74 };
+/**
+ * Cube.024 (kitchen / appliance side) — sitters must stay off that backrest
+ * volume. Sofa seats live on the Cube.002 lounge band instead.
+ */
+const SOFA_BACKREST = { minX: -2.14, maxX: -1.44, minZ: -6.29, maxZ: -5.74 };
 /** Cube.021 — main sofa body; cushion top measured at Y 0.66. */
 const SOFA_CUSHION_Y = 0.66;
 /** Object_122 desk chairs; cushion top measured at Y 0.51. */

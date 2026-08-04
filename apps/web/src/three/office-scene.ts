@@ -216,7 +216,7 @@ interface AvatarNode {
  * office-scene-host and reported in the debug snapshot, so the number the
  * verification harness reads can never drift from the one the host compares.
  */
-export const OFFICE_SCENE_BUILD = 14;
+export const OFFICE_SCENE_BUILD = 15;
 
 export class OfficeScene {
   private engine: Engine;

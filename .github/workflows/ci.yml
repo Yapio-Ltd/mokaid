@@ -40,6 +40,26 @@ jobs:
       - name: Build
         run: npm run build --workspace=apps/web
 
+  crm:
+    name: CRM (typecheck, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck
+        run: npm run typecheck --workspace=apps/crm
+
+      - name: Build
+        run: npm run build --workspace=apps/crm
+
   api:
     name: API (format, compile, test)
     runs-on: ubuntu-latest
@@ -142,7 +162,7 @@ jobs:
   docker:
     name: Docker builds
     runs-on: ubuntu-latest
-    needs: [web, ai-worker]
+    needs: [web, crm, ai-worker]
     if: github.ref == 'refs/heads/prod' || github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
@@ -175,3 +195,12 @@ jobs:
           push: false
           cache-from: type=gha,scope=web
           cache-to: type=gha,scope=web,mode=max
+
+      - name: Build CRM image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/crm.Dockerfile
+          push: false
+          cache-from: type=gha,scope=crm
+          cache-to: type=gha,scope=crm,mode=max

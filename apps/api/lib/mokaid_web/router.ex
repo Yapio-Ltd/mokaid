@@ -21,6 +21,10 @@ defmodule MokaidWeb.Router do
     plug MokaidWeb.Plugs.WorkerAuth
   end
 
+  pipeline :platform_admin do
+    plug MokaidWeb.Plugs.RequirePlatformAdmin
+  end
+
   scope "/api", MokaidWeb do
     pipe_through :api
 
@@ -166,6 +170,48 @@ defmodule MokaidWeb.Router do
     post "/notifications/:id/read", NotificationController, :mark_read
 
     get "/search", SearchController, :index
+  end
+
+  # Platform CRM / operator console — cross-tenant, no workspace scope.
+  scope "/api/admin", MokaidWeb do
+    pipe_through [:api, :authenticated, :platform_admin]
+
+    get "/metrics", AdminController, :metrics
+
+    get "/users", AdminController, :list_users
+    get "/users/:id", AdminController, :show_user
+    patch "/users/:id", AdminController, :update_user
+    post "/users/:id/reset-password", AdminController, :reset_password
+
+    get "/workspaces", AdminController, :list_workspaces
+    get "/workspaces/:id", AdminController, :show_workspace
+    patch "/workspaces/:id", AdminController, :update_workspace
+    delete "/workspaces/:id", AdminController, :delete_workspace
+    post "/workspaces/:id/restore", AdminController, :restore_workspace
+
+    get "/plans", AdminController, :list_plans
+    post "/plans", AdminController, :create_plan
+    patch "/plans/:id", AdminController, :update_plan
+
+    get "/subscriptions", AdminController, :list_subscriptions
+    get "/subscriptions/:id", AdminController, :show_subscription
+    patch "/subscriptions/:id", AdminController, :update_subscription
+
+    get "/invoices", AdminController, :list_invoices
+    get "/invoices/:id", AdminController, :show_invoice
+    post "/invoices/:id/mark-paid", AdminController, :mark_invoice_paid
+    post "/invoices/:id/void", AdminController, :void_invoice
+
+    get "/credits/transactions", AdminController, :list_credit_transactions
+    get "/usage-events", AdminController, :list_usage_events
+    post "/credits/adjust", AdminController, :adjust_credits
+
+    get "/audit-logs", AdminController, :list_audit_logs
+
+    get "/members", AdminController, :list_members
+    patch "/members/:id", AdminController, :update_member
+    get "/invites", AdminController, :list_invites
+    delete "/invites/:id", AdminController, :cancel_invite
   end
 
   scope "/api/worker", MokaidWeb do

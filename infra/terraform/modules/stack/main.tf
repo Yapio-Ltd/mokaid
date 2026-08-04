@@ -33,6 +33,11 @@ variable "web_image_tag" {
   default = "latest"
 }
 
+variable "crm_image_tag" {
+  type    = string
+  default = "latest"
+}
+
 variable "web_cpu" {
   type    = number
   default = 256
@@ -49,6 +54,26 @@ variable "web_desired_count" {
 }
 
 variable "web_max_count" {
+  type    = number
+  default = 2
+}
+
+variable "crm_cpu" {
+  type    = number
+  default = 256
+}
+
+variable "crm_memory" {
+  type    = number
+  default = 512
+}
+
+variable "crm_desired_count" {
+  type    = number
+  default = 1
+}
+
+variable "crm_max_count" {
   type    = number
   default = 2
 }
@@ -125,6 +150,12 @@ variable "app_domain" {
   default     = ""
 }
 
+variable "crm_domain" {
+  description = "Operator CRM hostname (e.g. crm.mokaid.com)"
+  type        = string
+  default     = ""
+}
+
 variable "alarm_email" {
   type    = string
   default = ""
@@ -178,9 +209,14 @@ locals {
     "http://localhost:5173",
   ]
 
+  crm_origins = var.crm_domain != "" ? ["https://${var.crm_domain}"] : [
+    "http://localhost:3001",
+  ]
+
   # Cognito requires HTTPS for non-localhost callbacks; ALB HTTP origin is API CORS/S3 only.
   cors_origins = concat(
     local.app_origins,
+    local.crm_origins,
     var.app_domain == "" ? ["http://${module.alb.alb_dns_name}"] : [],
   )
 
@@ -205,6 +241,7 @@ module "alb" {
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
   certificate_arn   = var.alb_certificate_arn
+  crm_domain        = var.crm_domain
   tags              = local.tags
 }
 
@@ -232,11 +269,16 @@ data "aws_ecr_repository" "web" {
   name = "mokaid-web"
 }
 
+data "aws_ecr_repository" "crm" {
+  name = "mokaid-crm"
+}
+
 locals {
   ecr_repository_urls = {
     "mokaid-api"       = data.aws_ecr_repository.api.repository_url
     "mokaid-ai-worker" = data.aws_ecr_repository.ai_worker.repository_url
     "mokaid-web"       = data.aws_ecr_repository.web.repository_url
+    "mokaid-crm"       = data.aws_ecr_repository.crm.repository_url
   }
 }
 
@@ -531,6 +573,34 @@ module "web_service" {
   tags = local.tags
 }
 
+module "crm_service" {
+  source = "../ecs-service"
+
+  name               = "${local.name}-crm"
+  cluster_arn        = aws_ecs_cluster.this.arn
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+
+  container_image = "${local.ecr_repository_urls["mokaid-crm"]}:${var.crm_image_tag}"
+  container_port  = 3001
+  cpu             = var.crm_cpu
+  memory          = var.crm_memory
+  desired_count   = var.crm_desired_count
+  max_count       = var.crm_max_count
+
+  # Same-origin API on crm.mokaid.com (ALB host+path rules). Empty public URL.
+  environment = {
+    PORT                = "3001"
+    HOSTNAME            = "0.0.0.0"
+    NEXT_PUBLIC_API_URL = ""
+  }
+
+  target_group_arn      = module.alb.crm_target_group_arn
+  alb_security_group_id = module.alb.alb_security_group_id
+
+  tags = local.tags
+}
+
 data "aws_iam_policy_document" "worker_task" {
   statement {
     sid = "SqsConsume"
@@ -614,6 +684,10 @@ output "alb_dns_name" {
 
 output "web_service_name" {
   value = module.web_service.service_name
+}
+
+output "crm_service_name" {
+  value = module.crm_service.service_name
 }
 
 output "cognito_user_pool_id" {

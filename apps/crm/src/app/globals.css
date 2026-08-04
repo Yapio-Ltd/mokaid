@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --canvas: #0f1217;
+  --surface: #161b22;
+  --panel: #1c222c;
+  --line: #2a3341;
+  --ink: #e8edf5;
+  --muted: #8b97a8;
+  --accent: #3d8bfd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(61, 139, 253, 0.12), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(62, 207, 142, 0.06), transparent 40%),
+    var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-geist), "IBM Plex Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(61, 139, 253, 0.35);
+}
+
+/* subtle scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a3341 transparent;
+}

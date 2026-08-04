@@ -9,14 +9,72 @@ make db.setup
 make api.dev      # Phoenix on :4000
 make ai.dev       # FastAPI on :8000
 make web.dev      # Vite on :3000
+make crm.dev      # Next.js operator CRM on :3001
 ```
+
+## Operator CRM (`crm.mokaid.com`)
+
+The CRM is a Next.js app (`apps/crm`) that uses the same Phoenix API with
+platform-admin endpoints under `/api/admin/*`.
+
+### Local
+
+```bash
+# Terminal 1 — API
+make api.dev
+
+# Terminal 2 — CRM (proxies /api → localhost:4000 when NEXT_PUBLIC_API_URL is empty)
+make crm.dev
+
+# Provision your platform operator once (password via env — never commit it):
+PLATFORM_ADMIN_PASSWORD='…' ./scripts/provision-platform-admin.sh
+# default email: tomyy4136@gmail.com (override with PLATFORM_ADMIN_EMAIL)
+```
+
+Login at http://localhost:3001/login with a user that has `is_platform_admin = true`.
+
+### AWS
+
+Infra (Terraform):
+
+1. Create ECR repo `mokaid-crm` (bootstrap):
+   `cd infra/terraform/bootstrap && terraform apply`
+2. Ensure the ALB ACM certificate includes **SAN `crm.mokaid.com`** (same cert as `mokaid.com` or additional certificate on the HTTPS listener).
+3. DNS: CNAME/ALIAS `crm.mokaid.com` → ALB DNS name (`terraform output alb_dns_name`).
+4. `cd infra/terraform/environments/prod && terraform apply` — deploys ECS service `mokaid-prod-crm` and host-based ALB rules:
+   - `crm.mokaid.com` + `/api/*` → API
+   - `crm.mokaid.com` (default) → CRM
+5. CORS includes `https://crm.mokaid.com` automatically via `crm_domain`.
+
+Deploy: GitHub Actions builds `mokaid-crm` on `prod` and rolls the ECS service.
+
+Platform admin in production (one-shot ECS eval, password never stored in git):
+
+```bash
+# Example — replace network config with the API task's subnets/SGs
+aws ecs run-task --cluster mokaid-prod \
+  --task-definition mokaid-prod-api \
+  --launch-type FARGATE \
+  --network-configuration '...' \
+  --overrides '{
+    "containerOverrides": [{
+      "name": "mokaid-prod-api",
+      "command": ["bin/mokaid","eval","Mokaid.Release.provision_platform_admin(System.get_env(\"PLATFORM_ADMIN_EMAIL\"), System.get_env(\"PLATFORM_ADMIN_PASSWORD\"))"],
+      "environment": [
+        {"name":"PLATFORM_ADMIN_EMAIL","value":"tomyy4136@gmail.com"},
+        {"name":"PLATFORM_ADMIN_PASSWORD","value":"<from-secrets-manager>"}
+      ]
+    }]
+  }'
+```
+
 ## AWS deployment (prod)
 
 ### 0. Prerequisites (once)
 
 ```bash
 cd infra/terraform/bootstrap
-terraform init && terraform apply       # state bucket + lock table + GitHub OIDC
+terraform init && terraform apply       # state bucket + lock table + GitHub OIDC + ECR
 ```
 
 ### 1. Provision infrastructure
@@ -54,10 +112,10 @@ aws ecr get-login-password | docker login --username AWS --password-stdin <accou
 
 docker build -f infra/docker/api.Dockerfile -t <ecr>/mokaid-api:v1 .
 docker build -f infra/docker/ai-worker.Dockerfile -t <ecr>/mokaid-ai-worker:v1 .
+docker build -f infra/docker/web.Dockerfile -t <ecr>/mokaid-web:v1 .
+docker build -f infra/docker/crm.Dockerfile -t <ecr>/mokaid-crm:v1 .
 docker push <ecr>/mokaid-api:v1 && docker push <ecr>/mokaid-ai-worker:v1
-
-# Point services at the new tag
-terraform apply -var api_image_tag=v1 -var worker_image_tag=v1
+docker push <ecr>/mokaid-web:v1 && docker push <ecr>/mokaid-crm:v1
 ```
 
 ### 4. Run migrations
@@ -73,9 +131,9 @@ aws ecs run-task --cluster mokaid-prod \
 
 ## CI/CD
 
-`.github/workflows/ci.yml` runs typecheck/lint/tests for all three apps + `terraform fmt/validate` on every PR and on pushes to `main` / `prod`. Docker builds run on `main` and `prod`.
+`.github/workflows/ci.yml` runs typecheck/lint/tests for web, CRM, API, worker + `terraform fmt/validate` on every PR and on pushes to `main` / `prod`. Docker builds run on `main` and `prod`.
 
-`.github/workflows/deploy.yml` deploys API + AI worker + web to ECS when CI succeeds on the `prod` branch. Enable it once:
+`.github/workflows/deploy.yml` deploys API + AI worker + web + CRM to ECS when CI succeeds on the `prod` branch. Enable it once:
 
 ```bash
 cd infra/terraform/bootstrap
@@ -89,5 +147,5 @@ Then push to `prod` (or re-run **Deploy to AWS** from the Actions tab).
 
 ## Rollback
 
-- API/worker/web: re-deploy the previous immutable ECR image tag via ECS task definition.
+- API/worker/web/CRM: re-deploy the previous immutable ECR image tag via ECS task definition.
 - DB: migrations are additive by convention; restore from RDS snapshot if required.

@@ -7,6 +7,7 @@ COMPOSE := docker compose
 .PHONY: help dev dev.infra stop test lint format \
 	db.setup db.migrate db.seed db.reset \
 	web.dev web.install web.build web.test web.lint \
+	crm.dev crm.build crm.typecheck \
 	api.dev api.install api.test api.lint \
 	ai.dev ai.install ai.test ai.lint \
 	assets.optimize assets.manifest \
@@ -65,6 +66,17 @@ web.test: ## Run frontend tests
 
 web.lint: ## Lint + typecheck frontend
 	cd apps/web && npm run lint && npm run typecheck
+
+## ---------- CRM (Next.js operator console) ----------
+
+crm.dev: ## Start CRM dev server on :3001
+	cd apps/crm && npm run dev
+
+crm.build: ## Build CRM for production
+	cd apps/crm && npm run build
+
+crm.typecheck: ## Typecheck CRM
+	cd apps/crm && npm run typecheck
 
 ## ---------- API (Elixir / Phoenix) ----------
 

@@ -12,11 +12,14 @@ defmodule MokaidWeb.JSON do
       has_avatar: user_has_avatar?(user),
       locale: user.locale,
       timezone: user.timezone,
+      status: Map.get(user, :status),
       mfa_enabled: user.mfa_enabled,
+      is_platform_admin: Map.get(user, :is_platform_admin, false) == true,
       last_login_at: user.last_login_at,
       auth_provider: Mokaid.Accounts.User.auth_provider(user),
       # True when the account has a local password (not OAuth/Cognito-only).
-      has_password: Mokaid.Accounts.User.has_password?(user)
+      has_password: Mokaid.Accounts.User.has_password?(user),
+      inserted_at: Map.get(user, :inserted_at)
     }
   end
 

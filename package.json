@@ -5,6 +5,7 @@
   "description": "mokaid — AI Workforce OS monorepo",
   "workspaces": [
     "apps/web",
+    "apps/crm",
     "packages/design-tokens",
     "packages/shared-types"
   ],

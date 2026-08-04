@@ -111,6 +111,19 @@ jobs:
           cache-from: type=gha,scope=web-deploy
           cache-to: type=gha,scope=web-deploy,mode=max
 
+      - name: Build and push CRM image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/crm.Dockerfile
+          push: true
+          platforms: linux/arm64
+          build-args: |
+            NEXT_PUBLIC_API_URL=
+          tags: ${{ steps.registry.outputs.registry }}/mokaid-crm:${{ env.IMAGE_TAG }}
+          cache-from: type=gha,scope=crm-deploy
+          cache-to: type=gha,scope=crm-deploy,mode=max
+
       - name: Deploy API to ECS
         env:
           CLUSTER: mokaid-${{ env.DEPLOY_ENV }}
@@ -140,4 +153,12 @@ jobs:
           SERVICE: mokaid-${{ env.DEPLOY_ENV }}-web
           TASK_FAMILY: mokaid-${{ env.DEPLOY_ENV }}-web
           IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-web:${{ env.IMAGE_TAG }}
+        run: .github/scripts/deploy-ecs-service.sh
+
+      - name: Deploy CRM to ECS
+        env:
+          CLUSTER: mokaid-${{ env.DEPLOY_ENV }}
+          SERVICE: mokaid-${{ env.DEPLOY_ENV }}-crm
+          TASK_FAMILY: mokaid-${{ env.DEPLOY_ENV }}-crm
+          IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-crm:${{ env.IMAGE_TAG }}
         run: .github/scripts/deploy-ecs-service.sh

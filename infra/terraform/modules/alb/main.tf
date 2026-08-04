@@ -16,6 +16,12 @@ variable "certificate_arn" {
   default     = ""
 }
 
+variable "crm_domain" {
+  description = "Hostname for the operator CRM (e.g. crm.mokaid.com). Empty disables host rules."
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
@@ -110,6 +116,25 @@ resource "aws_lb_target_group" "web" {
   tags = var.tags
 }
 
+resource "aws_lb_target_group" "crm" {
+  name        = "${var.name}-crm"
+  port        = 3001
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    path                = "/login"
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    interval            = 15
+    timeout             = 5
+    matcher             = "200"
+  }
+
+  tags = var.tags
+}
+
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80
@@ -148,6 +173,139 @@ resource "aws_lb_listener" "https" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.web.arn
+  }
+}
+
+# CRM host: api/socket still go to API (higher priority than CRM catch-all).
+resource "aws_lb_listener_rule" "crm_api_http" {
+  count = var.certificate_arn == "" && var.crm_domain != "" ? 1 : 0
+
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 5
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.crm_domain]
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api", "/api/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "crm_socket_http" {
+  count = var.certificate_arn == "" && var.crm_domain != "" ? 1 : 0
+
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 6
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.crm_domain]
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/socket", "/socket/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "crm_http" {
+  count = var.certificate_arn == "" && var.crm_domain != "" ? 1 : 0
+
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 7
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.crm.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.crm_domain]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "crm_api_https" {
+  count = var.certificate_arn != "" && var.crm_domain != "" ? 1 : 0
+
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 5
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.crm_domain]
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api", "/api/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "crm_socket_https" {
+  count = var.certificate_arn != "" && var.crm_domain != "" ? 1 : 0
+
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 6
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.crm_domain]
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/socket", "/socket/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "crm_https" {
+  count = var.certificate_arn != "" && var.crm_domain != "" ? 1 : 0
+
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 7
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.crm.arn
+  }
+
+  condition {
+    host_header {
+      values = [var.crm_domain]
+    }
   }
 }
 
@@ -245,4 +403,8 @@ output "api_target_group_arn" {
 
 output "web_target_group_arn" {
   value = aws_lb_target_group.web.arn
+}
+
+output "crm_target_group_arn" {
+  value = aws_lb_target_group.crm.arn
 }

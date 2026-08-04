@@ -28,7 +28,12 @@ config :mokaid, MokaidWeb.Endpoint,
     ),
   server: true
 
-config :mokaid, :cors_origins, ["http://localhost:5173", "http://localhost:4173"]
+config :mokaid, :cors_origins, [
+  "http://localhost:5173",
+  "http://localhost:4173",
+  "http://localhost:3001",
+  "http://127.0.0.1:3001"
+]
 
 config :ex_aws, :s3,
   scheme: "http://",

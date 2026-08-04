@@ -83,6 +83,7 @@ data "aws_iam_policy_document" "github_deploy" {
       "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/mokaid-api",
       "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/mokaid-ai-worker",
       "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/mokaid-web",
+      "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/mokaid-crm",
     ]
   }
 
