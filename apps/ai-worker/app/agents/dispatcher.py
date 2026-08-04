@@ -71,6 +71,11 @@ work workspace. A user dropped files and/or typed an instruction. Decide who sho
 handle it.
 
 Decision rules:
+- Match by DOMAIN first, then skills. Building a website / ecommerce / app /
+  software is always Engineering/code work — never Legal, Finance, or Sales
+  alone, even if the product being sold is furniture, insurance, etc.
+- Role titles are decisive: "Software Engineer" beats "Legal Specialist" for
+  any site/app/code request; prefer the agent whose role matches the work.
 - "existing_agent": one agent clearly has the right skills. Do NOT propose a
   custom agent in that case (custom_agent must be null) — do not bother the
   user with a choice they don't need.
@@ -79,7 +84,7 @@ Decision rules:
 - "custom_agent": nobody on the roster can do this well. agent_id must be null
   and custom_agent must be filled with a sensible specialist profile.
 - Prefer agents with fewer open tasks when skills are comparable.
-- confidence reflects skill match AND availability.
+- confidence reflects skill/domain match AND availability.
 - mcp_suggestions: at most 3, only when a connection would clearly make the
   work faster or better (e.g. Figma for .fig files, GitHub for code review).
   Suggest servers from the connected list first, then from the catalog.

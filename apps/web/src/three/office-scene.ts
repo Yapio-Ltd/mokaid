@@ -216,7 +216,7 @@ interface AvatarNode {
  * office-scene-host and reported in the debug snapshot, so the number the
  * verification harness reads can never drift from the one the host compares.
  */
-export const OFFICE_SCENE_BUILD = 16;
+export const OFFICE_SCENE_BUILD = 17;
 
 export class OfficeScene {
   private engine: Engine;
@@ -970,7 +970,12 @@ export class OfficeScene {
         const nowIdle = isIdleVisual(agent.visualState);
         const colorChanged = existing.agent.color !== agent.color;
         existing.agent = agent;
-        if (agent.seatIndex >= 0) existing.seatIndex = agent.seatIndex;
+        if (agent.seatIndex >= 0 && agent.seatIndex !== existing.seatIndex) {
+          existing.seatIndex = agent.seatIndex;
+          this.applySeatIndex(existing, agent.seatIndex);
+        } else if (agent.seatIndex >= 0) {
+          existing.seatIndex = agent.seatIndex;
+        }
         if (colorChanged) applyTint(existing.meshes, agent.color);
         if (wasIdle && !nowIdle) {
           existing.idleBehavior = "desk_sit";
@@ -978,13 +983,11 @@ export class OfficeScene {
           this.standFromSocket(existing);
           this.beginDeskSitRoute(existing, agent.visualState);
         } else if (!wasIdle && nowIdle) {
-          existing.idleBehavior = "patrol";
+          // Idle default: sit at fixed desk seat (not endless aisle patrol).
           existing.behaviorEnd = 0;
           existing.stuckTimer = 0;
-          existing.deskRouteBusy = false;
-          existing.pendingDeskState = null;
           this.standFromSocket(existing);
-          this.assignPatrolLane(existing);
+          this.beginDeskSitRoute(existing, "sitting");
         }
         this.syncServerActivity(existing);
         this.applyStatusVisual(existing);
@@ -1081,7 +1084,7 @@ export class OfficeScene {
       currentAnim: null,
       activePath: path,
       pathIndex,
-      idleBehavior: "patrol",
+      idleBehavior: isIdleVisual(agent.visualState) ? "desk_sit" : "patrol",
       behaviorEnd: 0,
       facing: root.rotation.y,
       headingFilter: null,
@@ -1094,7 +1097,7 @@ export class OfficeScene {
       reportedActivity: null,
       routeBusy: false,
       deskRouteBusy: false,
-      pendingDeskState: null,
+      pendingDeskState: isIdleVisual(agent.visualState) ? "sitting" : null,
       socketLocked: false,
       socketId: null,
       socketBlend: null,
@@ -1112,8 +1115,10 @@ export class OfficeScene {
 
     this.avatars.set(agent.id, avatar);
     if (isIdleVisual(agent.visualState)) {
-      this.plantFeet(avatar);
-      playAgentAnimation(avatar, "idle");
+      // Default idle: sit at the assigned desk seat, not stand/patrol.
+      this.snapToDeskSocket(avatar, "sitting");
+      avatar.idleBehavior = "desk_sit";
+      avatar.pendingDeskState = "sitting";
     } else {
       // Spawn already at the desk — sit immediately without walking.
       this.snapToDeskSocket(avatar, agent.visualState);
@@ -1123,6 +1128,19 @@ export class OfficeScene {
     }
     this.syncServerActivity(avatar);
     this.applyStatusVisual(avatar);
+  }
+
+  /** Bind home chair from a stable server seat_index (0..MAX_OFFICE_SEATS-1). */
+  private applySeatIndex(avatar: AvatarNode, seatIndex: number) {
+    if (seatIndex < 0 || seatIndex >= MAX_OFFICE_SEATS || seatIndex >= this.deskSlots.length) {
+      return;
+    }
+    const desk = OFFICE_DESK_SLOTS[seatIndex];
+    const slot = this.deskSlots[seatIndex];
+    avatar.seatIndex = seatIndex;
+    if (slot) avatar.homePos.copyFrom(slot);
+    avatar.deskFacing = desk?.facing ?? 0;
+    avatar.deskSeatHeight = desk?.seatHeight ?? 0.5;
   }
 
   private applyStatusVisual(avatar: AvatarNode) {
@@ -1429,7 +1447,9 @@ export class OfficeScene {
     // Re-issue mission from the safe point.
     if (avatar.idleBehavior === "poi") this.beginPoiRoute(avatar);
     else if (avatar.deskRouteBusy || avatar.idleBehavior === "desk_sit") {
-      this.beginDeskSitRoute(avatar, avatar.pendingDeskState ?? "working");
+      this.beginDeskSitRoute(avatar, avatar.pendingDeskState ?? this.defaultDeskAnim(avatar));
+    } else if (isIdleVisual(avatar.agent.visualState)) {
+      this.beginDeskSitRoute(avatar, "sitting");
     } else this.assignPatrolLane(avatar);
   }
 
@@ -1454,8 +1474,8 @@ export class OfficeScene {
       // spacing they arrived with — which can be none. Keep them apart here.
       this.separateFromNeighbours(avatar);
       if (t >= avatar.behaviorEnd) {
-        avatar.idleBehavior = "patrol";
         this.reportActivity(avatar, null);
+        this.beginDeskSitRoute(avatar, "sitting");
         return;
       }
       this.playIdleActivity(avatar, t);
@@ -1464,7 +1484,7 @@ export class OfficeScene {
 
     const wp = avatar.activePath.waypoints[avatar.pathIndex];
     if (!wp) {
-      this.assignPatrolLane(avatar);
+      this.beginDeskSitRoute(avatar, "sitting");
       return;
     }
 
@@ -1514,8 +1534,8 @@ export class OfficeScene {
     avatar.pathIndex += 1;
     avatar.crowdTargetKey = null;
     if (avatar.pathIndex >= avatar.activePath.waypoints.length) {
-      if (avatar.activePath.loop) avatar.pathIndex = 0;
-      else this.assignPatrolLane(avatar);
+      // End of a short trip — sit at the fixed desk seat instead of looping aisles.
+      this.beginDeskSitRoute(avatar, "sitting");
     }
   }
 
@@ -1573,11 +1593,19 @@ export class OfficeScene {
       }
     } else if (avatar.idleBehavior === "poi" && !agent.officePoiId) {
       this.lastPoiKey.delete(agent.id);
-      avatar.idleBehavior = "patrol";
       avatar.routeBusy = false;
       this.standFromSocket(avatar);
       this.reportActivity(avatar, null);
-      this.returnHome(avatar);
+      // Back to the assigned chair — not open patrol.
+      this.beginDeskSitRoute(avatar, "sitting");
+    } else if (
+      !agent.officePoiId &&
+      avatar.idleBehavior !== "desk_sit" &&
+      avatar.idleBehavior !== "poi" &&
+      !avatar.deskRouteBusy
+    ) {
+      // Idle with no POI: sit at the fixed desk seat by default.
+      this.beginDeskSitRoute(avatar, "sitting");
     }
   }
 
@@ -1727,8 +1755,8 @@ export class OfficeScene {
     const slot = poi?.slots.find((s) => s.id === avatar.agent.officeSlotId);
     const socket = slot ? this.resolveSocket(slot.id) : null;
     if (!poi || !slot || !socket) {
-      avatar.idleBehavior = "patrol";
       avatar.routeBusy = false;
+      this.beginDeskSitRoute(avatar, "sitting");
       return;
     }
 
@@ -1902,12 +1930,20 @@ export class OfficeScene {
     playAgentAnimation(avatar, "walking");
   }
 
-  private animateDeskSit(avatar: AvatarNode, _t: number, dt: number) {
+  private animateDeskSit(avatar: AvatarNode, t: number, dt: number) {
     if (avatar.socketBlend) return;
+
+    // Already locked on the desk chair: hold the sit pose every frame (legs
+    // stay planted, no patrol slip). Task animations use pendingDeskState.
+    if (!avatar.deskRouteBusy && avatar.socketLocked && avatar.socketId?.startsWith("desk_")) {
+      this.holdDeskSocket(avatar, avatar.pendingDeskState ?? "sitting", t);
+      return;
+    }
+
     if (!avatar.deskRouteBusy) {
       const socket = deskSocket(avatar.seatIndex);
       if (socket && !avatar.socketLocked) {
-        this.blendToSocket(avatar, socket, avatar.pendingDeskState ?? "working", 0.4);
+        this.blendToSocket(avatar, socket, avatar.pendingDeskState ?? "sitting", 0.4);
       }
       return;
     }
@@ -1935,8 +1971,9 @@ export class OfficeScene {
         avatar.routeBusy = false;
         this.pauseCrowdAgent(avatar);
         const socket = deskSocket(avatar.seatIndex);
-        if (socket) this.blendToSocket(avatar, socket, avatar.pendingDeskState ?? "working", 0.4);
-        else this.snapToDeskSocket(avatar, avatar.pendingDeskState ?? "working");
+        const anim = avatar.pendingDeskState ?? "sitting";
+        if (socket) this.blendToSocket(avatar, socket, anim, 0.4);
+        else this.snapToDeskSocket(avatar, anim);
       }
       return;
     }
@@ -1946,7 +1983,8 @@ export class OfficeScene {
       avatar.deskRouteBusy = false;
       avatar.routeBusy = false;
       const socket = deskSocket(avatar.seatIndex);
-      if (socket) this.blendToSocket(avatar, socket, avatar.pendingDeskState ?? "working", 0.4);
+      const anim = avatar.pendingDeskState ?? "sitting";
+      if (socket) this.blendToSocket(avatar, socket, anim, 0.4);
       return;
     }
 
@@ -1964,10 +2002,36 @@ export class OfficeScene {
         avatar.deskRouteBusy = false;
         avatar.routeBusy = false;
         const socket = deskSocket(avatar.seatIndex);
-        if (socket) this.blendToSocket(avatar, socket, avatar.pendingDeskState ?? "working", 0.4);
-        else this.snapToDeskSocket(avatar, avatar.pendingDeskState ?? "working");
+        const anim = avatar.pendingDeskState ?? "sitting";
+        if (socket) this.blendToSocket(avatar, socket, anim, 0.4);
+        else this.snapToDeskSocket(avatar, anim);
       }
     }
+  }
+
+  /** Pin an agent on their desk chair each frame while desk_sit is active. */
+  private holdDeskSocket(avatar: AvatarNode, state: AgentAnimName | string, t: number) {
+    const socket = deskSocket(avatar.seatIndex);
+    if (!socket) return;
+    const dest = this.toCentered(socket.position.x, socket.position.z);
+    avatar.root.position.x = dest.x;
+    avatar.root.position.z = dest.z;
+    avatar.root.rotation.x = 0;
+    avatar.root.rotation.z = 0;
+    const seatY = socket.seatHeight - this.centerOffset.y;
+    avatar.root.position.y = seatY - avatar.sitPelvisHeight;
+    avatar.baseY = avatar.root.position.y;
+    // Soft look micro-sway for idle sit; busy states keep desk facing.
+    if (state === "sitting" || state === "idle") {
+      avatar.root.rotation.y = socket.facing + Math.sin(t * 0.35 + avatar.phase) * 0.04;
+    } else {
+      avatar.root.rotation.y = socket.facing;
+    }
+    avatar.facing = avatar.root.rotation.y;
+    avatar.socketLocked = true;
+    avatar.socketId = socket.id;
+    playAgentAnimation(avatar, state as AgentAnimName);
+    syncColliderToRoot(avatar.collider, avatar.root);
   }
 
   /** Immediate seat (spawn / already at desk) — no blend. */
@@ -2098,32 +2162,8 @@ export class OfficeScene {
   private returnHome(avatar: AvatarNode) {
     this.releaseSlot(avatar);
     this.standFromSocket(avatar);
-    avatar.root.rotation.x = 0;
-    avatar.root.rotation.z = 0;
-    avatar.ring.setEnabled(true);
-    this.plantFeet(avatar);
-    playAgentAnimation(avatar, "walking");
-    const fromRaw = {
-      x: avatar.root.position.x + this.centerOffset.x,
-      z: avatar.root.position.z + this.centerOffset.z,
-    };
-    const deskRaw = {
-      x: avatar.homePos.x + this.centerOffset.x,
-      z: avatar.homePos.z + this.centerOffset.z,
-    };
-    const pathPts = routeToDesk(
-      fromRaw,
-      avatar.seatIndex,
-      deskRaw,
-      avatar.agent.officeSlotId,
-    ).map((p) => ({ x: p.x - this.centerOffset.x, z: p.z - this.centerOffset.z }));
-    avatar.activePath = { id: `home-${avatar.agent.id}`, loop: false, waypoints: pathPts };
-    avatar.pathIndex = 0;
-    avatar.idleBehavior = "patrol";
-    avatar.routeBusy = false;
-    avatar.stuckTimer = 0;
-    avatar.lastProgressDist = Infinity;
-    this.reportActivity(avatar, "walking");
+    // Walk (or snap) to the assigned desk chair and sit — default idle state.
+    this.beginDeskSitRoute(avatar, "sitting");
   }
 
   private toCentered(x: number, z: number) {
@@ -2347,10 +2387,18 @@ export class OfficeScene {
     if (avatar.idleBehavior === "poi") {
       this.beginPoiRoute(avatar);
     } else if (avatar.deskRouteBusy || avatar.idleBehavior === "desk_sit") {
-      this.beginDeskSitRoute(avatar, avatar.pendingDeskState ?? "working");
+      this.beginDeskSitRoute(avatar, avatar.pendingDeskState ?? this.defaultDeskAnim(avatar));
+    } else if (isIdleVisual(avatar.agent.visualState)) {
+      this.beginDeskSitRoute(avatar, "sitting");
     } else {
       this.assignPatrolLane(avatar);
     }
+  }
+
+  /** Idle → sitting at desk; busy → current visual task pose at desk. */
+  private defaultDeskAnim(avatar: AvatarNode): AgentAnimName | string {
+    if (isIdleVisual(avatar.agent.visualState)) return "sitting";
+    return avatar.agent.visualState;
   }
 
   /** Plant feet exactly on the floor surface using footOffset + nav floor height. */

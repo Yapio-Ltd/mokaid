@@ -2,8 +2,21 @@
 
 from app.agents import runner
 from app.schemas import AttachedFile, RunRequest, RunState, RunStatus
-from app.tools.files import resolve_file_url, transform_image
+from app.tools.files import (
+    _is_svg,
+    _prepare_image_bytes,
+    _svg_recolor,
+    _target_color_hex,
+    resolve_file_url,
+    transform_image,
+)
 from app.tools.registry import RunContext
+
+_MINI_SVG = b"""<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect x="8" y="8" width="48" height="48" fill="#ff0000"/>
+</svg>
+"""
 
 
 def test_resolve_file_url_uses_explicit_param():
@@ -119,6 +132,90 @@ async def test_transform_image_creation_without_file_is_offline_gated():
     result = await transform_image({"instruction": "Crée un logo minimaliste"}, ctx)
     assert result.get("note") == "offline fallback"
     assert not result.get("needs_user_input")
+
+
+def test_is_svg_detects_filename_and_payload():
+    assert _is_svg(filename="rubik.svg")
+    assert _is_svg(mime="image/svg+xml")
+    assert _is_svg(_MINI_SVG)
+    assert not _is_svg(b"\x89PNG\r\n\x1a\n", filename="x.png")
+
+
+def test_target_color_hex_maps_french_green():
+    assert _target_color_hex("colorie le logo en vert") == "#22c55e"
+    assert _target_color_hex("make it #0f0") == "#00ff00"
+
+
+def test_svg_recolor_to_green():
+    out, err = _svg_recolor(_MINI_SVG, "#22c55e")
+    assert err is None
+    assert out is not None
+    text = out.decode()
+    assert "#22c55e" in text.lower() or "22c55e" in text.lower()
+    assert "#ff0000" not in text.lower()
+
+
+def test_prepare_image_bytes_svg_does_not_raise():
+    data, img, fmt, err = _prepare_image_bytes(
+        _MINI_SVG, filename="rubik.svg", mime="image/svg+xml"
+    )
+    assert err is None
+    assert fmt == "SVG"
+    assert img is None
+    assert data == _MINI_SVG
+
+
+def test_prepare_image_bytes_garbage_gives_stable_error():
+    data, img, fmt, err = _prepare_image_bytes(b"not-an-image-at-all", filename="x.bin")
+    assert data is None
+    assert img is None
+    assert err is not None
+    assert "BytesIO" not in err
+
+
+async def test_transform_image_recolors_svg_without_openai(phoenix, monkeypatch):
+    async def fake_download(url: str) -> bytes:
+        return _MINI_SVG
+
+    monkeypatch.setattr("app.tools.files._download", fake_download)
+    ctx = RunContext(run_id="r-svg", workspace_id="ws-1", task_id="t1", phoenix=phoenix)
+    result = await transform_image(
+        {
+            "instruction": "colorie le logo en vert",
+            "file_url": "https://cdn.example/rubik.svg",
+            "original_filename": "rubik.svg",
+            "mime_type": "image/svg+xml",
+        },
+        ctx,
+    )
+    assert "error" not in result or result.get("method") == "svg_recolor"
+    assert result.get("method") == "svg_recolor"
+    assert result.get("filename", "").endswith(".svg")
+    assert "Cannot identify image" not in (result.get("error") or "")
+    assert any(c[0] == "output" for c in phoenix.calls)
+
+
+async def test_transform_image_bad_bytes_no_bytesio_leak(phoenix, monkeypatch):
+    async def fake_download(url: str) -> bytes:
+        return b"%%%%not-image%%%%"
+
+    monkeypatch.setattr("app.tools.files._download", fake_download)
+    monkeypatch.setattr(
+        "app.config.get_settings",
+        lambda: type("S", (), {"openai_api_key": "sk-test"})(),
+    )
+    ctx = RunContext(run_id="r-bad", workspace_id="ws-1", task_id="t1", phoenix=phoenix)
+    result = await transform_image(
+        {
+            "instruction": "make it green",
+            "file_url": "https://cdn.example/x.bin",
+            "original_filename": "x.bin",
+        },
+        ctx,
+    )
+    assert "error" in result
+    assert "BytesIO" not in result["error"]
+    assert "Cannot identify image file" not in result["error"]
 
 
 async def test_force_producer_injects_file_url_for_transform_image(phoenix, monkeypatch):

@@ -15,9 +15,9 @@ defmodule Mokaid.Office do
   alias Mokaid.Repo
   alias Mokaid.Workspaces.Workspace
 
-  # Share of idle agents that leave their desk on a given tick. The rest keep
-  # working, which is what makes the office read as an office.
-  @wander_chance 0.28
+  # Share of idle agents that leave their desk for a POI break on a given tick.
+  # ~80 % stay seated at their fixed seat_index; ~20 % wander (coffee/sofa/foosball).
+  @wander_chance 0.20
   # Chance a tick tries to seat a foosball pair at all.
   @foosball_pair_chance 0.22
 
@@ -117,9 +117,8 @@ defmodule Mokaid.Office do
         {idle, free_by_poi}
       end
 
-    # Most idle agents simply stay at their desk. Without this every free
-    # agent was pushed to a POI the moment it had nothing to do, so the room
-    # was permanently in motion instead of mostly working with the odd break.
+    # Most idle agents stay at their fixed desk seat (~80 %). Without this
+    # filter every free agent was pushed to a POI and the room stayed in motion.
     idle = Enum.filter(idle, fn _ -> :rand.uniform() < @wander_chance end)
 
     Enum.reduce(idle, free_by_poi, fn agent, free_map ->

@@ -42,14 +42,15 @@ defmodule Mokaid.Agents.SkillLearning do
     "data" => ~w(data analyse analysis spreadsheet tableur report rapport metrics kpi excel),
     "document" => ~w(document redaction writing resume summary contrat brief write),
     "media" => ~w(image photo video visuel media asset),
-    "code" => ~w(code development developpement bug feature api script deploy),
+    "code" =>
+      ~w(code coding development developpement developpeur bug feature api script deploy site website webapp web ecommerce e-commerce boutique frontend backend fullstack application appli saas shopify wordpress cms plateforme),
     "slides" => ~w(presentation slides deck pitch),
     "legal" =>
       ~w(legal juridique contract rgpd gdpr compliance conformite clause nda avocat lawyer),
     "finance" =>
       ~w(finance budget comptable comptabilite invoice facture forecast tresorerie cashflow fiscal tax),
     "marketing" => ~w(marketing seo campagne campaign newsletter social ads audience growth),
-    "sales" => ~w(sales vente prospection pipeline lead deal crm),
+    "sales" => ~w(sales vente vendre vends prospection pipeline lead deal crm),
     "research" => ~w(research recherche etude benchmark veille survey sondage),
     "sciences" => ~w(scientifique scientific experiment hypothesis laboratoire laboratory),
     "ops" => ~w(recrutement recruiting onboarding hiring rh embauche),
@@ -142,7 +143,7 @@ defmodule Mokaid.Agents.SkillLearning do
           list
           |> Enum.flat_map(fn skill ->
             for {cat, kws} <- @category_keywords,
-                Enum.any?(kws, &String.contains?(String.downcase(to_string(skill)), &1)),
+                Enum.any?(kws, &keyword_in_text?(String.downcase(to_string(skill)), &1)),
                 do: cat
           end)
           |> Enum.uniq()
@@ -168,11 +169,18 @@ defmodule Mokaid.Agents.SkillLearning do
 
     kw_categories =
       for {cat, keywords} <- @category_keywords,
-          Enum.any?(keywords, &String.contains?(lower, &1)),
+          Enum.any?(keywords, &keyword_in_text?(lower, &1)),
           do: cat
 
     Enum.uniq(ext_categories ++ kw_categories)
   end
+
+  defp keyword_in_text?(text, keyword) when is_binary(text) and is_binary(keyword) do
+    pattern = ~r/(^|[^a-zà-ÿ0-9])#{Regex.escape(keyword)}([^a-zà-ÿ0-9]|$)/u
+    Regex.match?(pattern, text)
+  end
+
+  defp keyword_in_text?(_, _), do: false
 
   defp get_file_names(%WorkTask{metadata: meta}) when is_map(meta) do
     # Drive item names may be stored in metadata by the dispatcher.

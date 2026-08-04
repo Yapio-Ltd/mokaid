@@ -3,16 +3,20 @@
 These tools download attached files from their presigned URLs, process them
 using OpenAI APIs + Pillow, and upload the results back to the Phoenix API
 as task output files.
+
+Image formats: PNG/JPEG/WebP/GIF/BMP/TIFF via Pillow; SVG as vector (recolor)
+or raster via PyMuPDF; exotic formats best-effort via fitz then PNG.
 """
 
 import base64
 import io
 import re
 from typing import Any
+from xml.etree import ElementTree as ET
 
 import httpx
 import structlog
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageEnhance, ImageFilter, UnidentifiedImageError
 
 from app import llm
 from app.memory import extractors
@@ -20,7 +24,21 @@ from app.tools.registry import RunContext, tool
 
 log = structlog.get_logger()
 
-_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tiff", ".tif", ".ico")
+_IMAGE_EXTS = (
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".gif",
+    ".bmp",
+    ".tiff",
+    ".tif",
+    ".ico",
+    ".svg",
+    ".heic",
+    ".heif",
+    ".avif",
+)
 _AUDIO_EXTS = (".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac", ".webm", ".mp4", ".mov")
 _DOC_EXTS = (
     ".pdf",
@@ -40,6 +58,45 @@ _DOC_EXTS = (
     ".htm",
 )
 
+# Simple recolor intents (logo "colorie en vert") → keep SVG vector when possible.
+_RECOLOR_RE = re.compile(
+    r"\b("
+    r"colori[ee]?[rz]?|recolor(?:e[rz]?)?|teinte[rz]?|"
+    r"vert|green|bleu|blue|rouge|red|orange|jaune|yellow|violet|purple|"
+    r"rose|pink|noir|black|blanc|white|gris|gray|grey|"
+    r"couleur|color|fill|recolorie"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_COLOR_NAME_TO_HEX: dict[str, str] = {
+    "vert": "#22c55e",
+    "green": "#22c55e",
+    "bleu": "#3b82f6",
+    "blue": "#3b82f6",
+    "rouge": "#ef4444",
+    "red": "#ef4444",
+    "orange": "#f97316",
+    "jaune": "#eab308",
+    "yellow": "#eab308",
+    "violet": "#8b5cf6",
+    "purple": "#8b5cf6",
+    "rose": "#ec4899",
+    "pink": "#ec4899",
+    "noir": "#111827",
+    "black": "#111827",
+    "blanc": "#ffffff",
+    "white": "#ffffff",
+    "gris": "#6b7280",
+    "gray": "#6b7280",
+    "grey": "#6b7280",
+}
+
+_HEX_RE = re.compile(r"#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b")
+_RGB_FUNC_RE = re.compile(
+    r"rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)", re.IGNORECASE
+)
+
 
 def _mime_matches(mime: str | None, prefixes: tuple[str, ...]) -> bool:
     if not mime:
@@ -52,6 +109,203 @@ def _name_matches(name: str | None, exts: tuple[str, ...]) -> bool:
         return False
     lower = name.lower()
     return any(lower.endswith(ext) for ext in exts)
+
+
+def _is_svg(
+    data: bytes | None = None,
+    filename: str | None = None,
+    mime: str | None = None,
+) -> bool:
+    """True when the payload (or filename/mime) is SVG."""
+    mime_l = (mime or "").lower()
+    if "svg" in mime_l:
+        return True
+    if filename and filename.lower().endswith(".svg"):
+        return True
+    if not data:
+        return False
+    head = data[:512].lstrip().lower()
+    if head.startswith(b"<svg"):
+        return True
+    return head.startswith(b"<?xml") and b"<svg" in head
+
+
+def _rasterize_with_fitz(
+    data: bytes,
+    *,
+    filetype: str | None = None,
+    dpi: int = 192,
+) -> bytes | None:
+    """Rasterize SVG/PDF/etc to PNG via PyMuPDF. Returns PNG bytes or None."""
+    try:
+        import fitz
+    except Exception as exc:  # noqa: BLE001
+        log.warning("fitz_unavailable", error=str(exc))
+        return None
+
+    try:
+        open_kw: dict[str, Any] = {"stream": data}
+        if filetype:
+            open_kw["filetype"] = filetype
+        doc = fitz.open(**open_kw)
+        if doc.page_count < 1:
+            doc.close()
+            return None
+        page = doc[0]
+        rect = page.rect
+        scale = max(dpi / 72.0, 1.0)
+        if max(rect.width, rect.height) * scale > 2048:
+            scale = 2048 / max(rect.width, rect.height)
+        mat = fitz.Matrix(scale, scale)
+        pix = page.get_pixmap(matrix=mat, alpha=True)
+        png = pix.tobytes("png")
+        doc.close()
+        return png
+    except Exception as exc:  # noqa: BLE001
+        log.warning("fitz_rasterize_failed", filetype=filetype, error=str(exc))
+        return None
+
+
+def _prepare_image_bytes(
+    data: bytes,
+    *,
+    filename: str | None = None,
+    mime: str | None = None,
+) -> tuple[bytes | None, Image.Image | None, str, str | None]:
+    """Normalize any supported image into Pillow-ready raster when needed.
+
+    Returns (working_bytes, pillow_image_or_None, format_label, error_message).
+    For SVG before rasterization, pillow_image is None and format is "SVG".
+    """
+    if not data:
+        return None, None, "UNKNOWN", "Empty image file."
+
+    if _is_svg(data, filename, mime):
+        return data, None, "SVG", None
+
+    try:
+        img = Image.open(io.BytesIO(data))
+        img.load()
+        fmt = (img.format or "PNG").upper()
+        return data, img, fmt, None
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        log.info("pillow_open_failed_trying_fitz", error=str(exc), filename=filename)
+
+    guessed = None
+    if filename and "." in filename:
+        guessed = filename.rsplit(".", 1)[-1].lower() or None
+    png = _rasterize_with_fitz(data, filetype=guessed) or _rasterize_with_fitz(data)
+    if png:
+        try:
+            img = Image.open(io.BytesIO(png))
+            img.load()
+            return png, img, "PNG", None
+        except Exception as exc:  # noqa: BLE001
+            log.warning("prepared_png_unreadable", error=str(exc))
+
+    return (
+        None,
+        None,
+        "UNKNOWN",
+        "Could not read this image format. Try PNG, JPEG, WebP, GIF, or SVG.",
+    )
+
+
+def _looks_like_recolor(instruction: str) -> bool:
+    return bool(instruction and _RECOLOR_RE.search(instruction))
+
+
+def _target_color_hex(instruction: str) -> str | None:
+    """Map a plain-language recolor ask to a hex color."""
+    if not instruction:
+        return None
+    hex_match = _HEX_RE.search(instruction)
+    if hex_match:
+        raw = hex_match.group(0)
+        if len(raw) == 4:  # #rgb → #rrggbb
+            return "#" + "".join(c * 2 for c in raw[1:]).lower()
+        return raw.lower()
+
+    lower = instruction.lower()
+    ordered = sorted(_COLOR_NAME_TO_HEX.keys(), key=len, reverse=True)
+    for name in ordered:
+        if re.search(rf"\b{re.escape(name)}\b", lower):
+            return _COLOR_NAME_TO_HEX[name]
+    return None
+
+
+def _hex_to_rgb(hex_color: str) -> tuple[int, int, int] | None:
+    h = hex_color.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    if len(h) != 6:
+        return None
+    try:
+        return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    except ValueError:
+        return None
+
+
+def _svg_recolor(svg_bytes: bytes, target_hex: str) -> tuple[bytes | None, str | None]:
+    """Replace fill/stroke colors in an SVG with target_hex. Keeps the vector file."""
+    try:
+        text = svg_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            text = svg_bytes.decode("latin-1")
+        except Exception:
+            return None, "SVG encoding could not be decoded."
+
+    if "<svg" not in text.lower():
+        return None, "File is not a valid SVG."
+
+    target = target_hex if target_hex.startswith("#") else f"#{target_hex}"
+    target_rgb = _hex_to_rgb(target)
+    if not target_rgb:
+        return None, f"Invalid target color: {target_hex}"
+
+    target_rgb_str = f"rgb({target_rgb[0]},{target_rgb[1]},{target_rgb[2]})"
+
+    def repl_hex(_match: re.Match[str]) -> str:
+        return target
+
+    colored = _HEX_RE.sub(repl_hex, text)
+    colored = _RGB_FUNC_RE.sub(target_rgb_str, colored)
+
+    # Explicit fill/stroke attributes that use named colors or currentColor.
+    colored = re.sub(
+        r'\b(fill|stroke)\s*=\s*([\'"])(?!none|transparent|url\()[^\'"]+\2',
+        rf"\1=\2{target}\2",
+        colored,
+        flags=re.IGNORECASE,
+    )
+    # Inline style fill:… / stroke:…
+    colored = re.sub(
+        r"(fill|stroke)\s*:\s*(?!none|transparent|url\()[^;}\"']+",
+        rf"\1: {target}",
+        colored,
+        flags=re.IGNORECASE,
+    )
+
+    if colored == text:
+        # No color attributes found — force fill on shapes.
+        colored = re.sub(
+            r"<(path|rect|circle|ellipse|polygon|polyline|line)\b",
+            rf'<\1 fill="{target}"',
+            text,
+            flags=re.IGNORECASE,
+        )
+
+    if colored == text:
+        return None, "Could not apply color to this SVG."
+
+    try:
+        ET.fromstring(colored)
+    except ET.ParseError:
+        # Accept imperfect SVGs if colors did change (namespaces, entities…).
+        pass
+
+    return colored.encode("utf-8"), None
 
 
 def _pick_attached_file(
@@ -72,7 +326,13 @@ def _pick_attached_file(
     def matches(f: dict[str, Any]) -> bool:
         if not mime_prefixes and not name_exts:
             return True
-        return _mime_matches(f.get("mime_type"), mime_prefixes) or _name_matches(
+        mime = f.get("mime_type") or ""
+        # SVG often arrives as image/svg+xml — or application/svg+xml.
+        if "svg" in mime.lower() and (
+            any(p.startswith("image") for p in mime_prefixes) or ".svg" in name_exts
+        ):
+            return True
+        return _mime_matches(mime, mime_prefixes) or _name_matches(
             f.get("name"), name_exts
         )
 
@@ -114,11 +374,61 @@ async def _download(url: str) -> bytes:
         return resp.content
 
 
+async def _save_image_output(
+    ctx: RunContext,
+    *,
+    result_bytes: bytes,
+    filename: str,
+    mime: str,
+    description: str,
+    method: str,
+    source_filename: str | None,
+) -> dict[str, Any]:
+    if not ctx.phoenix:
+        return {
+            "filename": filename,
+            "description": description,
+            "size_bytes": len(result_bytes),
+            "method": method,
+            "source_filename": source_filename,
+            "note": "no phoenix — not uploaded",
+        }
+
+    if mime == "image/svg+xml":
+        try:
+            body = result_bytes.decode("utf-8")
+            encoding: str | None = None
+        except UnicodeDecodeError:
+            body = base64.b64encode(result_bytes).decode()
+            encoding = "base64"
+    else:
+        body = base64.b64encode(result_bytes).decode()
+        encoding = "base64"
+
+    saved = await ctx.phoenix.save_task_output(
+        ctx.workspace_id,
+        ctx.task_id,
+        filename,
+        body,
+        mime_type=mime,
+        encoding=encoding,
+    )
+    if saved:
+        return {
+            "filename": filename,
+            "description": description,
+            "size_bytes": len(result_bytes),
+            "method": method,
+            "source_filename": source_filename,
+        }
+    return {"error": "Could not save the processed image.", "method": method}
+
+
 @tool("analyze_file")
 async def analyze_file(params: dict[str, Any], ctx: RunContext) -> Any:
     """Analyze any file (image, document) using GPT-4 Vision and return a text description."""
     question = params.get("question") or ctx.task_description or "Describe this file in detail."
-    file_url, _ = resolve_file_url(params)
+    file_url, resolved_name = resolve_file_url(params)
 
     if not file_url:
         return {"analysis": "", "error": "No file URL provided. Ensure a file is attached to the task."}
@@ -139,6 +449,26 @@ async def analyze_file(params: dict[str, Any], ctx: RunContext) -> Any:
         return {"analysis": "", "error": f"Could not download the file: {exc}"}
 
     mime = params.get("mime_type") or ""
+    filename = resolved_name or params.get("original_filename") or ""
+
+    # Vision models need raster pixels — rasterize SVG / unreadable formats.
+    if _is_svg(image_bytes, filename, mime):
+        png = _rasterize_with_fitz(image_bytes, filetype="svg")
+        if not png:
+            return {
+                "analysis": "",
+                "error": "Could not rasterize this SVG for analysis. Try exporting as PNG.",
+            }
+        image_bytes = png
+        mime = "image/png"
+    else:
+        prepared, _img, _fmt, _prep_err = _prepare_image_bytes(
+            image_bytes, filename=filename, mime=mime
+        )
+        if prepared and prepared is not image_bytes:
+            image_bytes = prepared
+            mime = "image/png"
+
     analysis = await llm.vision(
         system="You are a helpful assistant. Analyze the provided file/image and answer the user's question thoroughly. Reply in the same language as the question.",
         user_text=question,
@@ -154,7 +484,7 @@ async def analyze_file(params: dict[str, Any], ctx: RunContext) -> Any:
 @tool("transform_image")
 async def transform_image(params: dict[str, Any], ctx: RunContext) -> Any:
     """Transform/modify an image based on instructions. Supports color changes, filters,
-    adjustments, format conversion, and creative modifications via DALL-E."""
+    adjustments, format conversion, SVG recolor, and creative modifications via AI."""
     instruction = params.get("instruction") or ctx.task_description or ""
     file_url, resolved_name = resolve_file_url(
         params, mime_prefixes=("image/",), name_exts=_IMAGE_EXTS
@@ -189,16 +519,96 @@ async def transform_image(params: dict[str, Any], ctx: RunContext) -> Any:
             "needs_user_input": True,
         }
 
+    filename = params.get("original_filename") or resolved_name or "image"
+    mime_hint = params.get("mime_type") or ""
+    source_name = filename
+    looks_svgish = _is_svg(None, filename, mime_hint) or (file_url or "").lower().endswith(
+        ".svg"
+    )
+
+    # Without an OpenAI key, only offline-capable SVG recolor is possible.
+    # Avoid network for PNG/JPEG etc. so offline tests and air-gapped runs
+    # fail fast with a clear note.
     if not has_key:
-        return {"error": "OpenAI API key required for image processing.", "note": "offline fallback"}
+        if looks_svgish and _looks_like_recolor(instruction):
+            try:
+                raw_bytes = await _download(file_url)
+            except Exception as exc:
+                return {"error": f"Could not download the image: {exc}"}
+            target = _target_color_hex(instruction)
+            if target and _is_svg(raw_bytes, filename, mime_hint):
+                recolored, _err = _svg_recolor(raw_bytes, target)
+                if recolored:
+                    clean_name = re.sub(r"\.[^.]+$", "", filename) or "logo"
+                    out_name = f"{clean_name}-modified.svg"
+                    return await _save_image_output(
+                        ctx,
+                        result_bytes=recolored,
+                        filename=out_name,
+                        mime="image/svg+xml",
+                        description=f"Recolored the SVG to {target}: {instruction[:120]}",
+                        method="svg_recolor",
+                        source_filename=source_name,
+                    )
+        return {
+            "error": "OpenAI API key required for image processing.",
+            "note": "offline fallback",
+        }
 
     try:
-        image_bytes = await _download(file_url)
+        raw_bytes = await _download(file_url)
     except Exception as exc:
         return {"error": f"Could not download the image: {exc}"}
 
-    img = Image.open(io.BytesIO(image_bytes))
-    original_format = img.format or "PNG"
+    # --- SVG: recolor vector path (crisp logos) ---
+    if _is_svg(raw_bytes, filename, mime_hint) and _looks_like_recolor(instruction):
+        target = _target_color_hex(instruction)
+        if target:
+            recolored, recolor_err = _svg_recolor(raw_bytes, target)
+            if recolored:
+                clean_name = re.sub(r"\.[^.]+$", "", filename) or "logo"
+                out_name = f"{clean_name}-modified.svg"
+                return await _save_image_output(
+                    ctx,
+                    result_bytes=recolored,
+                    filename=out_name,
+                    mime="image/svg+xml",
+                    description=f"Recolored the SVG to {target}: {instruction[:120]}",
+                    method="svg_recolor",
+                    source_filename=source_name,
+                )
+            log.warning("svg_recolor_failed", error=recolor_err, run_id=ctx.run_id)
+
+    prepared, img, original_format, prep_err = _prepare_image_bytes(
+        raw_bytes, filename=filename, mime=mime_hint
+    )
+
+    # SVG creative edits (or failed recolor) → rasterize then AI/Pillow path.
+    if original_format == "SVG":
+        png = _rasterize_with_fitz(prepared or raw_bytes, filetype="svg")
+        if not png:
+            png = _rasterize_with_fitz(raw_bytes)
+        if not png:
+            return {
+                "error": (
+                    "Could not process this SVG. Try a simple recolor "
+                    "(e.g. 'color it green') or export the logo as PNG."
+                )
+            }
+        prepared = png
+        try:
+            img = Image.open(io.BytesIO(png))
+            img.load()
+        except Exception:
+            return {"error": "SVG rasterization produced an unreadable image."}
+        original_format = "PNG"
+    elif prep_err or img is None or prepared is None:
+        return {
+            "error": prep_err
+            or "Could not read this image format. Try PNG, JPEG, WebP, GIF, or SVG."
+        }
+
+    image_bytes = prepared
 
     # The image APIs only accept PNG/JPEG/WebP. Anything else (.ico, .bmp,
     # .gif, .tiff…) is transparently re-encoded to PNG so the user's request
@@ -273,7 +683,9 @@ produces a cheap color-filter result. pillow_ops (only when method=pillow):
             )
             if result_bytes:
                 output_format = "PNG"
-                description = f"Regenerated the image with the requested change: {edit_prompt[:120]}"
+                description = (
+                    f"Regenerated the image with the requested change: {edit_prompt[:120]}"
+                )
             else:
                 return {
                     "error": "AI image editing failed. Try rephrasing the instruction or retry later.",
@@ -383,27 +795,17 @@ produces a cheap color-filter result. pillow_ops (only when method=pillow):
     mime = f"image/{ext}"
     original_name = params.get("original_filename") or "image"
     clean_name = re.sub(r"\.[^.]+$", "", original_name)
-    filename = f"{clean_name}-modified.{ext}"
+    out_filename = f"{clean_name}-modified.{ext}"
 
-    if ctx.phoenix:
-        saved = await ctx.phoenix.save_task_output(
-            ctx.workspace_id,
-            ctx.task_id,
-            filename,
-            base64.b64encode(result_bytes).decode(),
-            mime_type=mime,
-            encoding="base64",
-        )
-        if saved:
-            return {
-                "filename": filename,
-                "description": description,
-                "size_bytes": len(result_bytes),
-                "method": method,
-                "source_filename": params.get("original_filename") or resolved_name,
-            }
-
-    return {"error": "Could not save the processed image.", "method": method}
+    return await _save_image_output(
+        ctx,
+        result_bytes=result_bytes,
+        filename=out_filename,
+        mime=mime,
+        description=description,
+        method=method,
+        source_filename=source_name,
+    )
 
 
 _CREATION_RE = re.compile(
@@ -435,23 +837,15 @@ async def _generate_from_scratch(
     original_name = params.get("original_filename") or "image"
     clean_name = re.sub(r"\.[^.]+$", "", original_name)
     filename = f"{clean_name}-generated.png"
-    if ctx.phoenix:
-        saved = await ctx.phoenix.save_task_output(
-            ctx.workspace_id,
-            ctx.task_id,
-            filename,
-            base64.b64encode(result_bytes).decode(),
-            mime_type="image/png",
-            encoding="base64",
-        )
-        if saved:
-            return {
-                "filename": filename,
-                "description": f"Generated a new image from the brief: {instruction[:150]}",
-                "size_bytes": len(result_bytes),
-                "method": "generate",
-            }
-    return {"error": "Could not save the generated image.", "method": "generate"}
+    return await _save_image_output(
+        ctx,
+        result_bytes=result_bytes,
+        filename=filename,
+        mime="image/png",
+        description=f"Generated a new image from the brief: {instruction[:150]}",
+        method="generate",
+        source_filename=params.get("original_filename"),
+    )
 
 
 @tool("export_pdf")

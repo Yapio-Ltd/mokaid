@@ -78,7 +78,7 @@ defmodule Mokaid.AI.Dispatcher do
     workspace_id
     |> dispatchable_agents()
     |> Enum.map(fn entry ->
-      {entry.agent, agent_score(entry.agent, signals) * 10 - entry.open_tasks}
+      {entry.agent, agent_score(entry.agent, signals, categories) * 10 - entry.open_tasks}
     end)
     |> Enum.sort_by(fn {_agent, score} -> -score end)
     |> case do
@@ -375,14 +375,16 @@ defmodule Mokaid.AI.Dispatcher do
     "data" => ~w(data analyse analysis spreadsheet tableur report rapport metrics kpi excel),
     "document" => ~w(document redaction writing resume summary contrat brief write),
     "media" => ~w(image photo video visuel media asset),
-    "code" => ~w(code development developpement bug feature api script deploy),
+    # Web / product builds must land in code — "site", "ecommerce", "app" etc.
+    "code" =>
+      ~w(code coding development developpement developpeur développeur programmer programmation software logiciel bug feature api script deploy site website webapp web ecommerce e-commerce boutique frontend backend fullstack application appli saas shopify wordpress cms plateforme),
     "slides" => ~w(presentation slides deck pitch),
     "legal" =>
       ~w(legal juridique contract rgpd gdpr compliance conformite clause nda avocat lawyer),
     "finance" =>
       ~w(finance budget comptable comptabilite invoice facture forecast tresorerie cashflow fiscal tax),
     "marketing" => ~w(marketing seo campagne campaign newsletter social ads audience growth),
-    "sales" => ~w(sales vente prospection pipeline lead deal crm),
+    "sales" => ~w(sales vente vendre vends prospection pipeline lead deal crm),
     "research" => ~w(research recherche etude benchmark veille survey sondage),
     "sciences" => ~w(scientifique scientific experiment hypothesis laboratoire laboratory),
     "ops" => ~w(recrutement recruiting onboarding hiring rh embauche),
@@ -392,6 +394,24 @@ defmodule Mokaid.AI.Dispatcher do
     "support" => ~w(support ticket faq helpdesk sav)
   }
 
+  # Role / department phrases → domain (used when specialty is not yet set).
+  @role_domain_hints [
+    {~w(software engineer developer développeur developpeur devops coding programming full-stack fullstack), "code"},
+    {~w(designer design ui ux figma creative), "design"},
+    {~w(data scientist analyst analytics ml), "data"},
+    {~w(writer content redacteur rédacteur copywriter editorial), "document"},
+    {~w(legal lawyer avocat counsel compliance jurist juridique), "legal"},
+    {~w(finance accountant comptable cfo treasury fiscal), "finance"},
+    {~w(marketing growth seo campaign brand), "marketing"},
+    {~w(sales account commercial sdr ae), "sales"},
+    {~w(research researcher scientifique scientist), "research"},
+    {~w(product manager pm product owner), "product"},
+    {~w(security appsec infosec cybersecurity), "security"},
+    {~w(support helpdesk customer success cs), "support"},
+    {~w(media video film audio production), "media"},
+    {~w(ops hr operations people), "ops"}
+  ]
+
   defp heuristic_analysis(workspace_id, instruction, files, roster, servers) do
     categories = detect_categories(instruction, files)
     signals = signal_tokens(instruction, categories)
@@ -399,8 +419,10 @@ defmodule Mokaid.AI.Dispatcher do
     scored =
       roster
       |> Enum.map(fn entry ->
-        score = agent_score(entry.agent, signals)
-        graph_bonus = graph_overlap_bonus(workspace_id, entry.agent.id, instruction)
+        score = agent_score(entry.agent, signals, categories)
+        graph_bonus =
+          graph_bonus_for_agent(workspace_id, entry.agent, instruction, categories)
+
         # Slight penalty per open task so equally-skilled but freer agents win.
         {entry, max(score * 10 + graph_bonus - entry.open_tasks, 0)}
       end)
@@ -451,14 +473,19 @@ defmodule Mokaid.AI.Dispatcher do
   end
 
   defp out_of_scope_check(best_entry, confidence, categories, roster) when confidence >= 60 do
-    specialty = get_in(best_entry.agent.capabilities, ["learning", "specialty"])
+    agent_domains = agent_domains(best_entry.agent)
 
-    if specialty != nil and categories != [] and specialty not in categories and
+    # Wrong specialist for the request (archetype / role / specialty), and nobody
+    # on the roster covers the requested domains → propose creating a match.
+    if categories != [] and agent_domains != [] and
+         MapSet.disjoint?(MapSet.new(agent_domains), MapSet.new(categories)) and
          all_agents_lack_domain?(roster, categories) do
-      # The best agent is specialised but not in the right domain — propose a new one.
+      domain_label = Enum.join(categories, ", ")
+      agent_label = Enum.join(agent_domains, ", ")
+
       reason =
-        "#{best_entry.agent.display_name} specialises in #{specialty}; " <>
-          "this mission is about #{Enum.join(categories, ", ")}. " <>
+        "#{best_entry.agent.display_name} specialises in #{agent_label}; " <>
+          "this mission is about #{domain_label}. " <>
           "A dedicated agent would be more efficient."
 
       {"user_choice", reason, custom_proposal(categories)}
@@ -477,21 +504,13 @@ defmodule Mokaid.AI.Dispatcher do
      custom_proposal(categories)}
   end
 
-  # True when no agent in the roster has meaningful skills in any of the given domains.
+  # True when no agent in the roster covers any of the requested domains
+  # (via specialty, archetype, role title, or skills).
   defp all_agents_lack_domain?(roster, domains) do
-    domain_keywords =
-      domains
-      |> Enum.flat_map(fn d -> Map.get(@category_keywords, d, []) end)
-      |> MapSet.new()
+    wanted = MapSet.new(domains)
 
     Enum.all?(roster, fn entry ->
-      specialty = get_in(entry.agent.capabilities, ["learning", "specialty"])
-      skill_names = Enum.map(entry.agent.skills || [], fn s -> s["name"] || s[:name] || "" end)
-
-      specialty not in domains and
-        not Enum.any?(skill_names, fn name ->
-          MapSet.member?(domain_keywords, String.downcase(to_string(name)))
-        end)
+      MapSet.disjoint?(MapSet.new(agent_domains(entry.agent)), wanted)
     end)
   end
 
@@ -509,11 +528,24 @@ defmodule Mokaid.AI.Dispatcher do
 
     keyword_categories =
       for {category, keywords} <- @category_keywords,
-          Enum.any?(keywords, &String.contains?(text, &1)),
+          Enum.any?(keywords, &keyword_in_text?(text, &1)),
           do: category
 
     Enum.uniq(extension_categories ++ keyword_categories)
   end
+
+  # Word-boundary match so short tokens like "ads"/"tax"/"api" don't fire inside
+  # unrelated words (and so "media" never matches "ecommerce").
+  defp keyword_in_text?(text, keyword) when is_binary(text) and is_binary(keyword) do
+    # Hyphenated forms: treat "-" as a separator so "e-commerce" matches "ecommerce"
+    # only when the keyword itself is listed with that spelling.
+    pattern =
+      ~r/(^|[^a-zà-ÿ0-9])#{Regex.escape(keyword)}([^a-zà-ÿ0-9]|$)/u
+
+    Regex.match?(pattern, text)
+  end
+
+  defp keyword_in_text?(_, _), do: false
 
   defp signal_tokens(instruction, categories) do
     instruction_tokens =
@@ -526,7 +558,7 @@ defmodule Mokaid.AI.Dispatcher do
     Enum.uniq(instruction_tokens ++ category_tokens)
   end
 
-  defp agent_score(agent, signals) do
+  defp agent_score(agent, signals, categories) do
     haystack =
       [
         agent.display_name,
@@ -537,7 +569,103 @@ defmodule Mokaid.AI.Dispatcher do
       |> Enum.reject(&is_nil/1)
       |> Enum.map_join(" ", &String.downcase(to_string(&1)))
 
-    Enum.count(signals, &String.contains?(haystack, &1))
+    skill_hits = Enum.count(signals, &String.contains?(haystack, &1))
+    domain_hits = domain_alignment_score(agent, categories)
+
+    max(skill_hits + domain_hits, 0)
+  end
+
+  # Dominates pure token / graph noise: a code request must prefer engineers
+  # over e.g. legal even if the knowledge graph overlaps on common French words.
+  defp domain_alignment_score(_agent, []), do: 0
+
+  defp domain_alignment_score(agent, categories) do
+    domains = agent_domains(agent)
+    matches = Enum.count(categories, &(&1 in domains))
+
+    cond do
+      matches > 0 -> matches * 5
+      domains == [] -> 0
+      true -> -4
+    end
+  end
+
+  defp agent_domains(agent) do
+    caps = agent.capabilities || %{}
+    learning = Map.get(caps, "learning") || %{}
+    domain_pack = Map.get(caps, "domain_pack") || %{}
+
+    specialty = learning["specialty"]
+    archetype_key = domain_pack["archetype"] || learning["archetype"]
+
+    from_specialty =
+      if is_binary(specialty) and specialty != "", do: [specialty], else: []
+
+    from_archetype =
+      case Mokaid.Agents.Archetypes.get_archetype(archetype_key) do
+        %{domain: domain} when is_binary(domain) and domain != "" -> [domain]
+        _ -> []
+      end
+
+    from_role = role_department_domains(agent.role_title, agent.department)
+    from_skills = skill_name_domains(agent.skills)
+
+    Enum.uniq(from_specialty ++ from_archetype ++ from_role ++ from_skills)
+  end
+
+  defp role_department_domains(role_title, department) do
+    text =
+      [role_title, department]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.map_join(" ", &String.downcase(to_string(&1)))
+
+    for {hints, domain} <- @role_domain_hints,
+        Enum.any?(hints, &keyword_in_text?(text, &1)),
+        do: domain
+  end
+
+  # Map known starter skill names back to domains (coding ≠ keyword "code").
+  defp skill_name_domains(skills) when is_list(skills) do
+    names =
+      skills
+      |> Enum.map(fn s -> s["name"] || s[:name] end)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.map(&String.downcase(to_string(&1)))
+
+    []
+    |> maybe_skill_domain(names, "code", ~w(coding debugging code-review architecture))
+    |> maybe_skill_domain(names, "design", ~w(ui-design figma branding design-systems ux))
+    |> maybe_skill_domain(names, "data", ~w(data-analysis statistics modeling reporting spreadsheets))
+    |> maybe_skill_domain(names, "document", ~w(writing editing storytelling presentations research))
+    |> maybe_skill_domain(names, "legal", ~w(contracts compliance legal-research risk))
+    |> maybe_skill_domain(names, "finance", ~w(financial-analysis budgeting forecasting))
+    |> maybe_skill_domain(names, "marketing", ~w(seo content-marketing campaigns branding))
+    |> maybe_skill_domain(names, "sales", ~w(outbound discovery negotiation crm))
+    |> maybe_skill_domain(names, "security", ~w(threat-modeling incident-response))
+    |> maybe_skill_domain(names, "devops", ~w(ci-cd infrastructure observability runbooks))
+    |> maybe_skill_domain(names, "media", ~w(video scripting transcription image-editing))
+    |> maybe_skill_domain(names, "product", ~w(roadmapping specs prioritization discovery))
+    |> maybe_skill_domain(names, "support", ~w(support troubleshooting customer-success))
+    |> Enum.uniq()
+  end
+
+  defp skill_name_domains(_), do: []
+
+  defp maybe_skill_domain(acc, names, domain, domain_skills) do
+    if Enum.any?(names, &(&1 in domain_skills)), do: [domain | acc], else: acc
+  end
+
+  # Knowledge-graph overlap must not override an explicit domain mismatch
+  # (e.g. legal corpus mentioning "site"/"tables" on an ecommerce build request).
+  defp graph_bonus_for_agent(workspace_id, agent, instruction, categories) do
+    domains = agent_domains(agent)
+
+    if categories != [] and domains != [] and
+         MapSet.disjoint?(MapSet.new(domains), MapSet.new(categories)) do
+      0
+    else
+      graph_overlap_bonus(workspace_id, agent.id, instruction)
+    end
   end
 
   defp custom_proposal(categories) do

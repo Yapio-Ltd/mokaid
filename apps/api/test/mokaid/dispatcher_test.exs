@@ -78,6 +78,37 @@ defmodule Mokaid.AI.DispatcherTest do
       assert "design" in analysis.domain_categories
     end
 
+    test "routes ecommerce site building to the software engineer, not legal" do
+      {workspace, _owner} = workspace_fixture()
+
+      engineer =
+        create_agent(workspace.id, "Sira", "Software Engineer", [
+          "coding",
+          "debugging",
+          "code-review",
+          "architecture"
+        ])
+
+      _legal =
+        create_agent(workspace.id, "Taya", "Legal Specialist", [
+          "contracts",
+          "compliance",
+          "legal-research",
+          "risk"
+        ])
+
+      assert {:ok, analysis} =
+               Dispatcher.analyze(workspace.id, %{
+                 "instruction" =>
+                   "Jaimerai que tu fasse un site ecommerce entier pour vendre des tables"
+               })
+
+      assert "code" in analysis.domain_categories
+      assert analysis.recommendation.agent_id == engineer.id
+      assert analysis.recommendation.mode in ["existing_agent", "user_choice"]
+      assert analysis.recommendation.confidence >= 60
+    end
+
     test "detects urgency and derives a bounded title" do
       {workspace, _owner} = workspace_fixture()
       long = String.duplicate("very long instruction ", 20)

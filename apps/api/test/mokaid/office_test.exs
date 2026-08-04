@@ -33,8 +33,8 @@ defmodule Mokaid.OfficeTest do
       |> Enum.map(&Agents.get_agent(workspace.id, &1.id))
       |> Enum.filter(& &1.office_activity)
 
-    # Most agents stay at their desk on any given tick; the office should not
-    # empty out into the break area the moment everyone is free.
+    # Most agents stay seated at their desk on any given tick (~80 %); the room
+    # should not empty into the break area the moment everyone is free.
     # Some agents must stay behind; the room should not empty in one tick.
     assert length(assigned) < limit or limit <= 1
 
