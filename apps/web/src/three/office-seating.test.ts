@@ -28,8 +28,8 @@ import {
  * volume. Sofa seats live on the Cube.002 lounge band instead.
  */
 const SOFA_BACKREST = { minX: -2.14, maxX: -1.44, minZ: -6.29, maxZ: -5.74 };
-/** Cube.021 — main sofa body; cushion top measured at Y 0.66. */
-const SOFA_CUSHION_Y = 0.66;
+/** Cube.002 lounge cushion — top measured ~0.70 m above floor. */
+const SOFA_CUSHION_Y = 0.70;
 /** Object_122 desk chairs; cushion top measured at Y 0.51. */
 const DESK_CUSHION_Y = 0.51;
 
@@ -51,6 +51,21 @@ describe("sofa seating", () => {
   it("uses the measured cushion height so agents rest on the sofa, not in it", () => {
     for (const slot of sofa.slots) {
       expect(slot.seatHeight, `${slot.id} seatHeight`).toBeCloseTo(SOFA_CUSHION_Y, 2);
+    }
+  });
+
+  it("faces sitters into the room (+Z), not into the backrest", () => {
+    for (const slot of sofa.slots) {
+      // Babylon yaw 0 looks down +Z (into the office). π looked at the wall.
+      expect(slot.facing, `${slot.id} facing`).toBeCloseTo(0, 5);
+    }
+  });
+
+  it("sits on the front of the cushion, not deep against the back wall", () => {
+    for (const slot of sofa.slots) {
+      // Cushion maxZ ≈ −5.65; hips past −5.9 clip through the backrest volume.
+      expect(slot.position.z, `${slot.id} too deep into cushions`).toBeGreaterThan(-5.9);
+      expect(slot.position.z, `${slot.id} off the seat (too far into aisle)`).toBeLessThan(-5.65);
     }
   });
 

@@ -105,7 +105,7 @@ export const FOOSBALL_TABLE_AABB: Aabb2 = {
  * Seat surfaces measured from the mesh (top of Cube.021 / Object_122), not
  * guessed: hips land on the cushion instead of sinking into the frame.
  */
-export const SOFA_SEAT_HEIGHT = 0.66;
+export const SOFA_SEAT_HEIGHT = 0.70;
 export const DESK_SEAT_HEIGHT = 0.51;
 
 /** How far a foosball player stands off the table frame. */
@@ -471,28 +471,30 @@ export const OFFICE_POIS: OfficePoi[] = [
     id: "sofa_main",
     kind: "sofa",
     capacity: 3,
-    // Dark lounge on the long low north cushion (Cube.002 band). Live markers
-    // showed the previous Cube.021 seats sitting on the coffee appliance.
+    // Dark lounge on Cube.002 (north wall). Sitters face +Z into the room
+    // (Babylon yaw 0); facing π put them looking into the backrest and sank
+    // their hips through the cushions. Seats sit on the front of the cushion
+    // band (maxZ ≈ −5.65), not deep against the wall.
     approach: [{ x: 1.99, z: -5.05 }],
     slots: [
       {
         id: "sofa_a",
-        position: { x: 1.15, z: -5.95 },
-        facing: Math.PI,
+        position: { x: 1.15, z: -5.78 },
+        facing: 0,
         animation: "sitting_sofa",
         seatHeight: SOFA_SEAT_HEIGHT,
       },
       {
         id: "sofa_b",
-        position: { x: 1.99, z: -5.95 },
-        facing: Math.PI,
+        position: { x: 1.99, z: -5.78 },
+        facing: 0,
         animation: "sitting_sofa",
         seatHeight: SOFA_SEAT_HEIGHT,
       },
       {
         id: "sofa_c",
-        position: { x: 2.83, z: -5.95 },
-        facing: Math.PI,
+        position: { x: 2.83, z: -5.78 },
+        facing: 0,
         animation: "sitting_sofa",
         seatHeight: SOFA_SEAT_HEIGHT,
       },
