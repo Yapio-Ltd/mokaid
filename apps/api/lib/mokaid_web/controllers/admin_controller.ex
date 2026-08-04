@@ -245,7 +245,9 @@ defmodule MokaidWeb.AdminController do
   def adjust_credits(conn, %{"amount" => amount} = params)
       when is_binary(amount) do
     case Integer.parse(amount) do
-      {n, _} -> adjust_credits(conn, Map.put(params, "amount", n))
+      {n, _} ->
+        adjust_credits(conn, Map.put(params, "amount", n))
+
       :error ->
         conn
         |> put_status(:bad_request)

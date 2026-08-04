@@ -8,6 +8,7 @@ defmodule Mokaid.AdminTest do
 
   setup do
     {workspace, owner} = workspace_fixture()
+
     admin =
       user_fixture(%{email: "admin#{System.unique_integer([:positive])}@example.com"})
       |> then(fn u ->

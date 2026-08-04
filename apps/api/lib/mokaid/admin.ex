@@ -25,7 +25,9 @@ defmodule Mokaid.Admin do
 
     users_total = Repo.aggregate(User, :count)
     users_active = Repo.one(from u in User, where: u.status == "active", select: count(u.id))
-    workspaces_total = Repo.one(from w in Workspace, where: is_nil(w.deleted_at), select: count(w.id))
+
+    workspaces_total =
+      Repo.one(from w in Workspace, where: is_nil(w.deleted_at), select: count(w.id))
 
     subs =
       Repo.all(
@@ -159,15 +161,23 @@ defmodule Mokaid.Admin do
 
   def reset_user_password(_user, _password, _actor), do: {:error, :invalid_password}
 
-  defp guard_platform_admin_change(%User{id: id} = user, %{"is_platform_admin" => false} = attrs, %{
-         id: id
-       }) do
+  defp guard_platform_admin_change(
+         %User{id: id} = user,
+         %{"is_platform_admin" => false} = attrs,
+         %{
+           id: id
+         }
+       ) do
     _ = user
     _ = attrs
     {:error, :cannot_demote_self}
   end
 
-  defp guard_platform_admin_change(%User{} = user, %{"is_platform_admin" => false} = attrs, _actor) do
+  defp guard_platform_admin_change(
+         %User{} = user,
+         %{"is_platform_admin" => false} = attrs,
+         _actor
+       ) do
     admins =
       Repo.one(from u in User, where: u.is_platform_admin == true, select: count(u.id)) || 0
 
@@ -488,7 +498,8 @@ defmodule Mokaid.Admin do
     %{data: data, page: page, per_page: per_page, total: total}
   end
 
-  def get_invoice(id), do: Repo.get(Invoice, id) |> then(&if(&1, do: Repo.preload(&1, :workspace)))
+  def get_invoice(id),
+    do: Repo.get(Invoice, id) |> then(&if(&1, do: Repo.preload(&1, :workspace)))
 
   def mark_invoice_paid(%Invoice{} = invoice, actor) do
     with {:ok, paid} <- Billing.mark_invoice_paid(invoice, nil) do
