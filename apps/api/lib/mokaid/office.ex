@@ -2,6 +2,10 @@ defmodule Mokaid.Office do
   @moduledoc """
   Synchronized social activities for idle agents in the 3D office.
 
+  Ambient rule: most agents stay at their fixed desk seat. A global **away
+  budget** caps how many may be on coffee / sofa / foosball at once so the
+  room reads as a real office (majority seated), not a permanent break room.
+
   POI capacities:
   - foosball: 2
   - sofa_main: 3
@@ -15,11 +19,14 @@ defmodule Mokaid.Office do
   alias Mokaid.Repo
   alias Mokaid.Workspaces.Workspace
 
-  # Share of idle agents that leave their desk for a POI break on a given tick.
-  # ~80 % stay seated at their fixed seat_index; ~20 % wander (coffee/sofa/foosball).
-  @wander_chance 0.20
-  # Chance a tick tries to seat a foosball pair at all.
-  @foosball_pair_chance 0.22
+  # At most this many agents may be away from their desk simultaneously
+  # (coffee / sofa / foosball), so small teams never empty the floor.
+  @max_away_absolute 2
+  # Soft share of the roster that may be away (ceil). With absolute=2 this
+  # keeps ≥75 % at desk for n ≥ 4.
+  @max_away_ratio 0.25
+  # Chance a tick tries to seat a foosball pair when budget allows two seats.
+  @foosball_pair_chance 0.12
 
   @pois %{
     "foosball" => %{
@@ -38,6 +45,17 @@ defmodule Mokaid.Office do
       duration_sec: 25..40
     }
   }
+
+  @doc """
+  Hard cap on concurrent POI agents for a roster of size `n`.
+
+  Exposed for tests. `max_away = min(2, max(1, ceil(n * 0.25)))`.
+  """
+  def max_away(n) when is_integer(n) and n <= 0, do: 0
+
+  def max_away(n) when is_integer(n) do
+    min(@max_away_absolute, max(1, ceil(n * @max_away_ratio)))
+  end
 
   @doc "Expire elapsed activities and assign idle agents to free POI slots."
   def tick_all_workspaces do
@@ -97,59 +115,80 @@ defmodule Mokaid.Office do
         {poi_id, free}
       end)
 
-    idle =
+    roster_n =
+      from(a in Agent,
+        where: a.workspace_id == ^workspace_id and is_nil(a.archived_at),
+        select: count(a.id)
+      )
+      |> Repo.one()
+
+    currently_away =
       from(a in Agent,
         where:
           a.workspace_id == ^workspace_id and is_nil(a.archived_at) and
-            a.status in ["idle", "active"] and is_nil(a.current_task_id) and
-            is_nil(a.office_activity),
-        order_by: [asc: a.inserted_at]
+            not is_nil(a.office_activity),
+        select: count(a.id)
       )
-      |> Repo.all()
+      |> Repo.one()
 
-    # Occasionally pair two agents up at the foosball table. This used to run
-    # on every tick, which meant the table was booked before anything else and
-    # the office looked like it had one activity.
-    {idle, free_by_poi} =
-      if :rand.uniform() < @foosball_pair_chance do
-        maybe_fill_foosball(idle, free_by_poi)
-      else
-        {idle, free_by_poi}
-      end
+    budget = max(0, max_away(roster_n) - currently_away)
 
-    # Most idle agents stay at their fixed desk seat (~80 %). Without this
-    # filter every free agent was pushed to a POI and the room stayed in motion.
-    idle = Enum.filter(idle, fn _ -> :rand.uniform() < @wander_chance end)
+    if budget == 0 do
+      :ok
+    else
+      idle =
+        from(a in Agent,
+          where:
+            a.workspace_id == ^workspace_id and is_nil(a.archived_at) and
+              a.status in ["idle", "active"] and is_nil(a.current_task_id) and
+              is_nil(a.office_activity),
+          order_by: [asc: a.inserted_at]
+        )
+        |> Repo.all()
 
-    Enum.reduce(idle, free_by_poi, fn agent, free_map ->
-      case pick_poi(free_map) do
-        nil ->
-          free_map
+      # Optional foosball duo only when two away seats remain in the budget.
+      {idle, free_by_poi, budget} =
+        if budget >= 2 and :rand.uniform() < @foosball_pair_chance do
+          case maybe_fill_foosball(idle, free_by_poi) do
+            {new_idle, new_free, :booked} -> {new_idle, new_free, budget - 2}
+            {new_idle, new_free, :noop} -> {new_idle, new_free, budget}
+          end
+        else
+          {idle, free_by_poi, budget}
+        end
 
-        {poi_id, slot_id, rest_free} ->
-          meta = Map.fetch!(@pois, poi_id)
-          ends = DateTime.add(DateTime.utc_now(), Enum.random(meta.duration_sec), :second)
+      candidates = Enum.take_random(idle, budget)
 
-          Agents.set_office_activity(agent, %{
-            "office_activity" => meta.activity,
-            "office_poi_id" => poi_id,
-            "office_slot_id" => slot_id,
-            "office_activity_phase" => "approaching",
-            "office_activity_ends_at" => ends
-          })
+      Enum.reduce(candidates, free_by_poi, fn agent, free_map ->
+        case pick_poi(free_map) do
+          nil ->
+            free_map
 
-          Map.put(free_map, poi_id, rest_free)
-      end
-    end)
+          {poi_id, slot_id, rest_free} ->
+            meta = Map.fetch!(@pois, poi_id)
+            ends = DateTime.add(DateTime.utc_now(), Enum.random(meta.duration_sec), :second)
 
-    :ok
+            Agents.set_office_activity(agent, %{
+              "office_activity" => meta.activity,
+              "office_poi_id" => poi_id,
+              "office_slot_id" => slot_id,
+              "office_activity_phase" => "approaching",
+              "office_activity_ends_at" => ends
+            })
+
+            Map.put(free_map, poi_id, rest_free)
+        end
+      end)
+
+      :ok
+    end
   end
 
   defp maybe_fill_foosball(idle, free_map) do
     free = Map.get(free_map, "foosball", [])
 
     if length(idle) >= 2 and length(free) >= 2 do
-      [a, b | rest] = idle
+      [a, b | rest] = Enum.shuffle(idle)
       [s1, s2 | leftover] = free
       meta = Map.fetch!(@pois, "foosball")
       ends = DateTime.add(DateTime.utc_now(), Enum.random(meta.duration_sec), :second)
@@ -164,9 +203,9 @@ defmodule Mokaid.Office do
         })
       end)
 
-      {rest, Map.put(free_map, "foosball", leftover)}
+      {rest, Map.put(free_map, "foosball", leftover), :booked}
     else
-      {idle, free_map}
+      {idle, free_map, :noop}
     end
   end
 

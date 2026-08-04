@@ -10,7 +10,18 @@ defmodule Mokaid.OfficeTest do
     :ok
   end
 
-  test "tick only sends some idle agents off to a POI" do
+  test "max_away keeps a seated majority" do
+    assert Office.max_away(0) == 0
+    assert Office.max_away(1) == 1
+    assert Office.max_away(2) == 1
+    assert Office.max_away(3) == 1
+    assert Office.max_away(4) == 1
+    assert Office.max_away(5) == 2
+    assert Office.max_away(8) == 2
+    assert Office.max_away(9) == 2
+  end
+
+  test "tick only sends a capped number of idle agents off to a POI" do
     {workspace, _owner} = workspace_fixture()
     assert {:ok, _} = Billing.change_plan(workspace.id, "starter")
 
@@ -33,10 +44,8 @@ defmodule Mokaid.OfficeTest do
       |> Enum.map(&Agents.get_agent(workspace.id, &1.id))
       |> Enum.filter(& &1.office_activity)
 
-    # Most agents stay seated at their desk on any given tick (~80 %); the room
-    # should not empty into the break area the moment everyone is free.
-    # Some agents must stay behind; the room should not empty in one tick.
-    assert length(assigned) < limit or limit <= 1
+    cap = Office.max_away(limit)
+    assert length(assigned) <= cap
 
     # Whatever was assigned must be internally consistent.
     for a <- assigned do
@@ -52,31 +61,63 @@ defmodule Mokaid.OfficeTest do
     assert length(Enum.uniq(slots)) == length(slots)
   end
 
-  test "foosball is booked as a pair when it is booked at all" do
+  test "multi-tick never exceeds the concurrent away cap" do
     {workspace, _owner} = workspace_fixture()
     assert {:ok, _} = Billing.change_plan(workspace.id, "starter")
 
-    for i <- 1..2 do
-      {:ok, _} = Agents.create_agent(workspace.id, %{"kind" => "ai", "display_name" => "P#{i}"})
+    limit = min(Billing.agent_limit(workspace.id), 6)
+    cap = Office.max_away(limit)
+
+    for i <- 1..limit do
+      {:ok, _} =
+        Agents.create_agent(workspace.id, %{"kind" => "ai", "display_name" => "M#{i}"})
     end
 
-    # The pairing is probabilistic, so drive several ticks and assert the
-    # invariant that matters: the table never ends up with a lone player.
-    for _ <- 1..40 do
+    for _ <- 1..30 do
       Office.tick_workspace(workspace.id)
 
-      players =
+      away =
         workspace.id
         |> Agents.list_agents()
-        |> Enum.filter(&(&1.office_poi_id == "foosball"))
+        |> Enum.count(&(&1.office_activity != nil))
 
-      assert length(players) != 1, "foosball had a single player: #{inspect(players)}"
+      assert away <= cap, "away=#{away} exceeded cap=#{cap}"
 
-      for p <- players, do: {:ok, _} = Agents.clear_office_activity(p)
+      # Cycle activities so slots free without waiting for wall-clock expiry,
+      # exercising reassignment under the same hard ceiling.
+      workspace.id
+      |> Agents.list_agents()
+      |> Enum.filter(& &1.office_activity)
+      |> Enum.each(fn a -> {:ok, _} = Agents.clear_office_activity(a) end)
     end
   end
 
-  test "tick expires finished activities then may reassign" do
+  test "foosball is booked as a pair when it is booked at all and stays under cap" do
+    {workspace, _owner} = workspace_fixture()
+    # Need roster ≥ 5 so max_away ≥ 2 (ceil(n*0.25) ≥ 2) for a foosball pair.
+    assert {:ok, _} = Billing.change_plan(workspace.id, "professional")
+
+    for i <- 1..5 do
+      {:ok, _} = Agents.create_agent(workspace.id, %{"kind" => "ai", "display_name" => "P#{i}"})
+    end
+
+    cap = Office.max_away(5)
+
+    for _ <- 1..50 do
+      Office.tick_workspace(workspace.id)
+
+      agents = Agents.list_agents(workspace.id)
+      players = Enum.filter(agents, &(&1.office_poi_id == "foosball"))
+      away = Enum.count(agents, &(&1.office_activity != nil))
+
+      assert length(players) != 1, "foosball had a single player: #{inspect(players)}"
+      assert away <= cap
+
+      for p <- Enum.filter(agents, & &1.office_activity), do: {:ok, _} = Agents.clear_office_activity(p)
+    end
+  end
+
+  test "tick expires finished activities then may reassign under the cap" do
     {workspace, _owner} = workspace_fixture()
 
     {:ok, agent} = Agents.create_agent(workspace.id, %{"kind" => "ai", "display_name" => "C"})
@@ -102,5 +143,12 @@ defmodule Mokaid.OfficeTest do
     if again.office_activity_ends_at do
       refute DateTime.compare(again.office_activity_ends_at, past) == :eq
     end
+
+    away =
+      workspace.id
+      |> Agents.list_agents()
+      |> Enum.count(&(&1.office_activity != nil))
+
+    assert away <= Office.max_away(1)
   end
 end
