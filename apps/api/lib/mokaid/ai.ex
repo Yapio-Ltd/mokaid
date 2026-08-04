@@ -660,8 +660,15 @@ defmodule Mokaid.AI do
     language = get_in(task.metadata || %{}, ["language"])
     french? = language == "fr" or (language != "en" and looks_french?(instruction))
     has_html = Enum.any?(outputs, &html_attachment?/1)
+    has_codebase = Enum.any?(outputs, &codebase_attachment?/1)
 
     cond do
+      french? and has_codebase ->
+        "Voilà le codebase complet (React + Next.js + TypeScript) pour « #{task.title} » — télécharge le ZIP pour GitHub, ouvre le HTML pour l’aperçu immersif, puis `npm install && npm run dev` en local. Dis-moi si tu veux que j'ajuste quoi que ce soit !"
+
+      has_codebase ->
+        "Here's a full React + Next.js + TypeScript codebase for “#{task.title}” — download the ZIP for GitHub, open the HTML for the live preview, then `npm install && npm run dev` locally. Tell me if you'd like any changes!"
+
       french? and has_html ->
         "Voilà ton site pour « #{task.title} » — ouvre le fichier HTML joint pour le prévisualiser, et dis-moi si tu veux que j'ajuste quoi que ce soit !"
 
@@ -675,6 +682,19 @@ defmodule Mokaid.AI do
         "Here's what you asked me for on “#{task.title}” — let me know if you'd like any changes!"
     end
   end
+
+  defp codebase_attachment?(%{"name" => name}) when is_binary(name) do
+    down = String.downcase(name)
+
+    String.ends_with?(down, ".zip") or
+      String.contains?(down, "codebase.md") or
+      String.contains?(down, "-package.json")
+  end
+
+  defp codebase_attachment?(%{"mime_type" => mime}) when is_binary(mime),
+    do: String.contains?(mime, "zip")
+
+  defp codebase_attachment?(_), do: false
 
   defp html_attachment?(%{"mime_type" => mime}) when is_binary(mime),
     do: String.contains?(mime, "html")
@@ -813,9 +833,14 @@ defmodule Mokaid.AI do
   run is marked failed and — when the decision was an approval — a fresh run
   is dispatched automatically so the user's decision still takes effect.
   """
-  def resume_after_approval(run_id, decision) do
+  def resume_after_approval(run_id, decision, payload \\ nil) do
     config = Application.fetch_env!(:mokaid, :ai_worker)
-    body = %{run_id: run_id, decision: decision, type: "resume"}
+
+    body =
+      %{run_id: run_id, decision: decision, type: "resume"}
+      |> then(fn b ->
+        if is_map(payload), do: Map.put(b, :payload, payload), else: b
+      end)
 
     result =
       case Mokaid.AI.WorkerClient.post("/runs/#{run_id}/resume", body, config: config) do
@@ -823,14 +848,14 @@ defmodule Mokaid.AI do
         {:error, _} -> :error
       end
 
-    if result == :error, do: recover_lost_run(run_id, decision)
+    if result == :error, do: recover_lost_run(run_id, decision, payload)
     :ok
   end
 
-  defp recover_lost_run(run_id, decision) do
+  defp recover_lost_run(run_id, decision, payload \\ nil) do
     with %{} = run <- Tasks.get_run(run_id) do
       task = Tasks.get_task(run.workspace_id, run.task_id)
-      restart? = decision == "approved" and task != nil
+      restart? = decision in ["approved", "edited"] and task != nil
 
       error_note =
         if restart?,
@@ -840,7 +865,19 @@ defmodule Mokaid.AI do
       Tasks.update_run_progress(run, %{"status" => "failed", "error" => error_note})
 
       if restart? do
-        start_run(task, run.input || %{})
+        input = run.input || %{}
+
+        input =
+          if is_map(payload) and is_binary(payload["delivery"]) do
+            Map.merge(input, %{
+              "delivery" => payload["delivery"],
+              "site_delivery" => payload["delivery"]
+            })
+          else
+            input
+          end
+
+        start_run(task, input)
       else
         if run.agent_id do
           case Agents.get_agent(run.workspace_id, run.agent_id) do

@@ -170,23 +170,27 @@ def _mission_kind_rule(kind: str, language: str) -> str:
         )
     if kind == "website":
         return (
-            "This is a WEBSITE mission. You MUST call `generate_website` with a "
-            "complete brief (fill sensible defaults for missing brand/style). "
-            "Do not finish without that tool succeeding."
+            "This is a WEBSITE mission (HTML showcase). Delivery is already html "
+            "(or will be chosen for you). Call `generate_website` with a complete "
+            "brief. Do not finish without that tool succeeding. Do not call "
+            "`generate_webapp` unless delivery=webapp."
             if not fr
-            else "Mission SITE WEB. Tu DOIS appeler `generate_website` avec un "
-            "brief complet (complète avec des valeurs raisonnables si des détails "
-            "manquent). Ne termine jamais sans ce livrable."
+            else "Mission SITE WEB (vitrine HTML). La livraison est html (ou sera "
+            "choisie). Appelle `generate_website` avec un brief complet. Ne termine "
+            "jamais sans ce livrable. N'appelle pas `generate_webapp` sauf "
+            "delivery=webapp."
         )
     if kind == "webapp":
         return (
-            "This is a FULL WEBAPP mission (React/Next/TypeScript). You MUST call "
-            "`generate_webapp` (HTML live preview + deployable scaffold for "
-            "Vercel/Render/Supabase). Do not finish without that tool succeeding."
+            "This is a FULL WEBAPP mission (React/Next/TypeScript). Call "
+            "`generate_webapp` (HTML live preview + real multi-file codebase + ZIP "
+            "for GitHub). Do not finish without that tool succeeding. Do not use "
+            "`generate_website` alone as the final deliverable."
             if not fr
-            else "Mission APPLICATION WEB COMPLÈTE (React/Next/TypeScript). Tu DOIS "
-            "appeler `generate_webapp` (aperçu HTML + scaffold déployable "
-            "Vercel/Render/Supabase). Ne termine jamais sans ce livrable."
+            else "Mission APPLICATION WEB COMPLÈTE (React/Next/TypeScript). Appelle "
+            "`generate_webapp` (aperçu HTML + vrai codebase multi-fichiers + ZIP "
+            "GitHub). Ne termine jamais sans ce livrable. Ne te contente pas de "
+            "`generate_website` seul."
         )
     if kind in ("document", "image", "analysis"):
         tool = {"document": "draft_document", "image": "transform_image", "analysis": "analyze_file"}[
@@ -463,6 +467,21 @@ class _Engine:
         call.output = output
         self.state.tool_calls.append(call)
         self.state.steps.append({"tool": tool_name, "ok": True})
+
+        # Persist HTML vs Next choice on the run input so later producer
+        # forcing / mission_kind follow the human decision.
+        if (
+            tool_name == "choose_site_delivery"
+            and isinstance(output, dict)
+            and output.get("delivery") in ("html", "webapp")
+        ):
+            delivery = output["delivery"]
+            self.request.input = {
+                **(self.request.input or {}),
+                "delivery": delivery,
+                "site_delivery": delivery,
+                "mission_kind": "webapp" if delivery == "webapp" else "website",
+            }
         log.info("deep_tool_executed", run_id=self.request.run_id, tool=tool_name)
         return output
 
@@ -620,18 +639,29 @@ class _Engine:
                 "export_pdf", {"title": title, "content": content, "filename": filename}
             )
 
+        async def choose_site_delivery(brief: str = "") -> Any:
+            """Ask the human: Simple HTML showcase vs full React/Next/TypeScript
+            codebase. Call this BEFORE generate_website/generate_webapp on a new
+            site mission. The run pauses until they pick."""
+            return await engine._run_tool(
+                "choose_site_delivery",
+                {"brief": brief or (engine.request.task_description or "")},
+            )
+
         async def generate_website(brief: str, brand_name: str = "", style: str = "") -> Any:
             """Designs and builds a complete landing page / one-page website
             (premium, responsive, self-contained HTML). Saved as a
-            deliverable automatically. Put ALL requirements in the brief."""
+            deliverable automatically. Put ALL requirements in the brief.
+            Only after delivery=html (or choose_site_delivery returned html)."""
             return await engine._run_tool(
                 "generate_website",
                 {"brief": brief, "brand_name": brand_name, "style": style},
             )
 
         async def generate_webapp(brief: str, brand_name: str = "", style: str = "") -> Any:
-            """Builds a deployable React/Next.js/TypeScript scaffold plus an
-            instant HTML preview and partner deploy docs (Vercel/Render/Supabase)."""
+            """Builds a real React/Next.js/TypeScript multi-file codebase plus
+            HTML preview, ZIP download, and GitHub/Vercel docs. Only after
+            delivery=webapp."""
             return await engine._run_tool(
                 "generate_webapp",
                 {"brief": brief, "brand_name": brand_name, "style": style},
@@ -664,6 +694,7 @@ class _Engine:
             transcribe_audio,
             extract_document_text,
             export_pdf,
+            choose_site_delivery,
             generate_website,
             generate_webapp,
         ]
@@ -1076,6 +1107,11 @@ def _final_message(state: dict[str, Any]) -> str:
 
 
 def _describe_action(tool_name: str, tool_input: dict) -> str:
+    if tool_name == "choose_site_delivery":
+        reason = tool_input.get("reason") or ""
+        recommended = tool_input.get("recommended") or "webapp"
+        label = "codebase Next.js" if recommended == "webapp" else "HTML showcase"
+        return f"Choose how to deliver the website (recommended: {label}). {reason}".strip()
     detail = (
         tool_input.get("instruction")
         or tool_input.get("subject")

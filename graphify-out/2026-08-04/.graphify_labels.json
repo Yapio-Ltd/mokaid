@@ -2835,6 +2835,7 @@
   "2833": "14. Complex Error Message",
   "2834": "Miscellaneous",
   "2835": "@babylonjs/core",
+  "2836": "framer-motion",
   "2837": "@radix-ui/react-progress",
   "2842": "@types/react-dom",
   "2844": "invoice_cleanup_worker.ex",
@@ -2854,8 +2855,6 @@
   "2862": "provision-platform-admin.sh",
   "2863": "postcss.config.js",
   "2864": "tailwind.config.js",
-  "2875": "15. Task Completion Summary",
   "2876": "2. File Edit Approval",
-  "2878": "Read Operations",
   "2879": "7. Build Error Output"
 }

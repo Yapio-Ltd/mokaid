@@ -273,7 +273,7 @@ export function useDeleteTask() {
   });
 }
 
-/** Human decision on an agent's pending approval request (approve / reject). */
+/** Human decision on an agent's pending approval request (approve / reject / edited). */
 export function useApproveTaskAction() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -281,14 +281,20 @@ export function useApproveTaskAction() {
       taskId,
       approvalRequestId,
       decision,
+      payload,
     }: {
       taskId: string;
       approvalRequestId: string;
-      decision: "approved" | "rejected";
+      decision: "approved" | "rejected" | "edited";
+      payload?: Record<string, unknown>;
     }) =>
       apiFetch<Envelope<{ id: string; status: string }>>(`/api/tasks/${taskId}/approve-action`, {
         method: "POST",
-        body: { approval_request_id: approvalRequestId, decision },
+        body: {
+          approval_request_id: approvalRequestId,
+          decision,
+          ...(payload ? { payload } : {}),
+        },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });

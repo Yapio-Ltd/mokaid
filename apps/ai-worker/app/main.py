@@ -8,6 +8,7 @@ from fastapi import FastAPI, Header, HTTPException
 import app.tools.files  # noqa: F401 — registers file-processing tools
 import app.tools.web  # noqa: F401 — registers web_search
 import app.tools.webapp  # noqa: F401 — registers Next/React webapp scaffold tool
+import app.tools.site_delivery  # noqa: F401 — HTML vs codebase choice gate
 import app.tools.website  # noqa: F401 — registers the website generator tool
 from app.agents import converse as converse_agent
 from app.agents import direct_chat, dispatcher, runner

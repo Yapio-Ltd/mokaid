@@ -640,8 +640,8 @@
     "semantic_hash": "ad7daf4499f20cf7c4dea5707c89c6f0"
   },
   "apps/api/lib/mokaid/office.ex": {
-    "mtime": 1785646056.6944895,
-    "ast_hash": "7b4bec947ce255c43c40b827fe7c3c80",
+    "mtime": 1785876367.3657537,
+    "ast_hash": "0f5baf31f1a0ddba66ae8461171b71e2",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid/office/workers/activity_scheduler_worker.ex": {
@@ -1150,8 +1150,8 @@
     "semantic_hash": "5dc94d03185d8bbdba0a4e95d9543bb6"
   },
   "apps/api/test/mokaid/office_test.exs": {
-    "mtime": 1785646056.6946309,
-    "ast_hash": "dfe2ac7f12a50f98ccdc2527f6fef481",
+    "mtime": 1785876368.126311,
+    "ast_hash": "d9e4f4cacef6466a298873b36b95341f",
     "semantic_hash": ""
   },
   "apps/api/test/mokaid/permissions_test.exs": {
@@ -1855,8 +1855,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-scene.ts": {
-    "mtime": 1785865679.21656,
-    "ast_hash": "0df2e40670c437195d535e9df9a4a2d2",
+    "mtime": 1785876455.6020312,
+    "ast_hash": "a1e3757fce82dfd363b26479a973889e",
     "semantic_hash": ""
   },
   "apps/web/src/three/types.ts": {

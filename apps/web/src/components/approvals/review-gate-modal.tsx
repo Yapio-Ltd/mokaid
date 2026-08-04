@@ -1,6 +1,10 @@
 import { CheckCircle2, ExternalLink, ShieldAlert, ThumbsDown, ThumbsUp, Undo2 } from "lucide-react";
 import { useEffect } from "react";
 import { useApproveTaskAction, useTask, useUpdateTask } from "@/api/hooks";
+import {
+  SiteDeliveryChoice,
+  isSiteDeliveryChoice,
+} from "@/components/approvals/site-delivery-choice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -117,6 +121,22 @@ export function ReviewGateModal() {
     );
   };
 
+  const chooseSiteDelivery = (delivery: "html" | "webapp") => {
+    if (!current) return;
+    const approvalRequestId =
+      current.approvalRequestId ?? task?.pending_approval?.id ?? null;
+    if (!approvalRequestId) return;
+    approveAction.mutate(
+      {
+        taskId: current.taskId,
+        approvalRequestId,
+        decision: "edited",
+        payload: { delivery },
+      },
+      { onSuccess: () => advance(current.taskId, "tool_approval") },
+    );
+  };
+
   const openDetails = () => {
     if (!current) return;
     selectTask(current.taskId);
@@ -126,6 +146,10 @@ export function ReviewGateModal() {
   if (!current) return null;
 
   const pending = task?.pending_approval;
+  const siteDelivery =
+    current.kind === "tool_approval" && isSiteDeliveryChoice(pending?.input_payload)
+      ? pending!.input_payload
+      : null;
   const descriptionPreview =
     current.kind === "tool_approval"
       ? current.proposedAction ?? pending?.proposed_action ?? "The agent needs your go-ahead before continuing."
@@ -136,7 +160,13 @@ export function ReviewGateModal() {
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={current.kind === "tool_approval" ? "Approval needed" : "Validation required"}
+      title={
+        siteDelivery
+          ? "Choose site delivery"
+          : current.kind === "tool_approval"
+            ? "Approval needed"
+            : "Validation required"
+      }
       description={`${index} of ${total} pending`}
       className={
         current.kind === "tool_approval"
@@ -153,7 +183,7 @@ export function ReviewGateModal() {
               <ThumbsUp size={12} /> Approve
             </Button>
           </>
-        ) : (
+        ) : siteDelivery ? null : (
           <>
             <Button
               variant="secondary"
@@ -230,10 +260,18 @@ export function ReviewGateModal() {
           </div>
         )}
 
-        {!task?.latest_run?.output?.summary && (
+        {!task?.latest_run?.output?.summary && !siteDelivery && (
           <p className="text-[12px] leading-relaxed text-text-secondary line-clamp-6">
             {descriptionPreview}
           </p>
+        )}
+
+        {siteDelivery && (
+          <SiteDeliveryChoice
+            payload={siteDelivery}
+            busy={busy}
+            onChoose={chooseSiteDelivery}
+          />
         )}
 
         <button

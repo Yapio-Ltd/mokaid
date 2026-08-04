@@ -47,6 +47,11 @@ import { DetailPanel } from "@/components/ui/detail-panel";
 import { MarkdownView } from "@/components/ui/markdown-view";
 import { openDeliverable } from "@/stores/deliverable-store";
 import { DeployActions } from "@/components/deliverables/deploy-actions";
+import { CodebaseCard } from "@/components/deliverables/codebase-card";
+import {
+  SiteDeliveryChoice,
+  isSiteDeliveryChoice,
+} from "@/components/approvals/site-delivery-choice";
 import { toast } from "@/stores/toast-store";
 import { motion } from "framer-motion";
 import { useMissionPlanStore, type MissionPlanStep } from "@/stores/mission-plan-store";
@@ -530,6 +535,20 @@ export function TaskDetailPanel({
     });
   };
 
+  const chooseSiteDelivery = (delivery: "html" | "webapp") => {
+    if (!task || !pendingApproval) return;
+    approveAction.mutate({
+      taskId: task.id,
+      approvalRequestId: pendingApproval.id,
+      decision: "edited",
+      payload: { delivery },
+    });
+  };
+
+  const siteDeliveryPayload = isSiteDeliveryChoice(pendingApproval?.input_payload)
+    ? pendingApproval.input_payload
+    : null;
+
   const retry = () => {
     if (!task) return;
     executeAi.mutate({ taskId: task.id });
@@ -667,45 +686,59 @@ export function TaskDetailPanel({
                 <ShieldAlert size={15} className="mt-0.5 shrink-0 text-warning" />
                 <div className="min-w-0 flex-1">
                   <p className="text-[12px] font-semibold text-text">
-                    {task.assigned_agent_name ?? "The agent"} needs your approval
+                    {siteDeliveryPayload
+                      ? "How should we deliver this site?"
+                      : `${task.assigned_agent_name ?? "The agent"} needs your approval`}
                   </p>
                   <p className="mt-0.5 text-[11px] leading-snug text-text-secondary">
                     {pendingApproval.proposed_action}
                   </p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <Badge tone="muted">{pendingApproval.tool_name}</Badge>
-                    <span
-                      className={
-                        "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
-                        (["high", "critical"].includes(pendingApproval.risk_level)
-                          ? "bg-danger/15 text-danger"
-                          : "bg-warning/15 text-warning")
-                      }
-                    >
-                      {pendingApproval.risk_level} risk
-                    </span>
-                  </div>
+                  {!siteDeliveryPayload && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <Badge tone="muted">{pendingApproval.tool_name}</Badge>
+                      <span
+                        className={
+                          "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
+                          (["high", "critical"].includes(pendingApproval.risk_level)
+                            ? "bg-danger/15 text-danger"
+                            : "bg-warning/15 text-warning")
+                        }
+                      >
+                        {pendingApproval.risk_level} risk
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="mt-3 flex gap-2">
-                <Button
-                  size="sm"
-                  className="flex-1 gap-1.5"
-                  loading={approveAction.isPending}
-                  onClick={() => decide("approved")}
-                >
-                  <ThumbsUp size={12} /> Approve
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="flex-1 gap-1.5"
-                  disabled={approveAction.isPending}
-                  onClick={() => decide("rejected")}
-                >
-                  <ThumbsDown size={12} /> Reject
-                </Button>
-              </div>
+              {siteDeliveryPayload ? (
+                <div className="mt-3">
+                  <SiteDeliveryChoice
+                    payload={siteDeliveryPayload}
+                    busy={approveAction.isPending}
+                    onChoose={chooseSiteDelivery}
+                  />
+                </div>
+              ) : (
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    size="sm"
+                    className="flex-1 gap-1.5"
+                    loading={approveAction.isPending}
+                    onClick={() => decide("approved")}
+                  >
+                    <ThumbsUp size={12} /> Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="flex-1 gap-1.5"
+                    disabled={approveAction.isPending}
+                    onClick={() => decide("rejected")}
+                  >
+                    <ThumbsDown size={12} /> Reject
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -914,6 +947,14 @@ export function TaskDetailPanel({
               icon={<Sparkles size={11} className="text-primary" />}
             >
               <div className="space-y-2">
+                <CodebaseCard
+                  files={outputs}
+                  toolOutput={
+                    run?.output?.tool_calls?.find((c) => c.tool === "generate_webapp")?.output as
+                      | Record<string, unknown>
+                      | undefined
+                  }
+                />
                 {outputs.map((f) => (
                   <FileRow key={f.id} file={f} />
                 ))}

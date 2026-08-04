@@ -40,8 +40,9 @@ Available tools:
 - transform_image {file_url, instruction, original_filename}: modify an image (color changes, filters, resize, rotate, flip, or creative edits via DALL-E)
 - transcribe_audio {file_url, original_filename}: transcribe audio/video to text using Whisper
 - extract_document_text {file_url, original_filename}: extract text from PDFs and documents
-- generate_website {brief, brand_name, style}: design and build a complete landing page / one-page website as a self-contained HTML file (premium design, real copy, responsive)
-- generate_webapp {brief, brand_name, style}: full React/Next.js/TypeScript scaffold + HTML preview + Vercel/Render/Supabase deploy files (use for complete apps/CRM/full sites)
+- choose_site_delivery {brief}: ALWAYS call first for any new website/site/shop ask unless delivery is already known (html|webapp). Pauses for the human to pick HTML showcase vs full Next.js codebase.
+- generate_website {brief, brand_name, style}: polished self-contained HTML landing/vitrine (only after delivery=html)
+- generate_webapp {brief, brand_name, style}: full React/Next.js/TypeScript multi-file codebase + HTML preview + ZIP + GitHub/Vercel docs (only after delivery=webapp)
 %(mcp_tools)s
 Rules:
 - 1 to %(max_steps)d steps, ordered.
@@ -85,16 +86,14 @@ Text-only tasks (no attached files, or files already processed):
   search_knowledge or summarize alone is never a complete plan for those.
 
 Websites & landing pages:
-- When the task asks for a website, landing page, page de vente, portfolio,
-  one-pager or similar, use generate_website. Put ALL user requirements
-  (business, audience, tone, colors, sections, language) into the brief.
-  generate_website IS the deliverable — do NOT add draft_document after it.
-- When the task asks for a complete app, CRM, Next/React, site complet, or
-  deployable stack, use generate_webapp (HTML preview + Next scaffold for
-  Vercel/Render/Supabase).
+- For ANY new site / ecommerce / boutique / landing ask: call choose_site_delivery
+  FIRST (unless delivery=html|webapp is already set). Never jump straight to
+  generate_website for ecommerce / "site entier" — the human must choose.
+- After delivery=html: generate_website with a complete brief. That IS the deliverable.
+- After delivery=webapp: generate_webapp (HTML preview + real Next codebase + ZIP).
 - On iteration requests ("change the color", "add a pricing section"), call
   generate_website or generate_webapp again with a brief that restates the
-  full previous intent plus the requested change.
+  full previous intent plus the requested change (skip choose_site_delivery).
 
 Prioritization judgment:
 - Urgent/high-priority tasks (or tasks close to their due date): go straight to

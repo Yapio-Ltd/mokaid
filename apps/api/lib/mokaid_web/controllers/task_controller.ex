@@ -122,19 +122,20 @@ defmodule MokaidWeb.TaskController do
 
   def approve_action(conn, %{"id" => id, "approval_request_id" => request_id} = params) do
     decision = params["decision"] || "approved"
+    payload = params["payload"]
 
     with :ok <- Permissions.authorize(current_member(conn), "tasks.approve_action"),
          %{} = _task <- Tasks.get_task(workspace_id(conn), id),
          %{} = request <- Tasks.get_approval_request(workspace_id(conn), request_id),
          {:ok, updated} <-
-           Tasks.decide_approval(request, decision, current_member(conn), params["payload"]) do
+           Tasks.decide_approval(request, decision, current_member(conn), payload) do
       Audit.log(workspace_id(conn), current_member(conn), "task.approval_decided", "task", id, %{
         approval_request_id: request_id,
         decision: decision
       })
 
       if updated.run_id do
-        AI.resume_after_approval(updated.run_id, decision)
+        AI.resume_after_approval(updated.run_id, decision, payload)
       end
 
       json(conn, %{data: %{id: updated.id, status: updated.status}})

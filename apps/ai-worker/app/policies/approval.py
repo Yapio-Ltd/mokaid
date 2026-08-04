@@ -31,6 +31,8 @@ TOOL_RISK: dict[str, RiskLevel] = {
     "transcribe_audio": RiskLevel.MEDIUM,
     "generate_website": RiskLevel.MEDIUM,
     "generate_webapp": RiskLevel.MEDIUM,
+    # Always pause — user must pick HTML vitrine vs Next codebase.
+    "choose_site_delivery": RiskLevel.HIGH,
     # Internal mutations
     "update_task": RiskLevel.MEDIUM,
     "create_subtasks": RiskLevel.MEDIUM,

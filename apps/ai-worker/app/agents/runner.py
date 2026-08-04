@@ -242,6 +242,10 @@ async def _execute_deep(
     )
 
     try:
+        # Site missions: pause for HTML vs Next codebase unless already chosen.
+        if not await _ensure_site_delivery_choice(request, state, phoenix):
+            return state
+
         output = await deep_runner.execute(
             request, ctx, state, phoenix, toolbox, mcp_tools, _wait_for_decision, resume=resume
         )
@@ -602,8 +606,113 @@ async def _post_failure_comment(request: RunRequest, phoenix, usage, errors: lis
         log.warning("failure_comment_post_failed", run_id=request.run_id, error=str(exc))
 
 
+async def _ensure_site_delivery_choice(
+    request: RunRequest, state: RunState, phoenix: PhoenixClient
+) -> bool:
+    """Pauses for HTML vs Next codebase when needed. Returns False if rejected
+    or the run is waiting; True when generation can continue."""
+    from app.agents.mission_kind import language_for_request
+    from app.policies.approval import risk_for_tool
+    from app.tools import site_delivery as site_mod
+    from app.tools.registry import get_tool
+
+    if not site_mod.needs_delivery_choice(request):
+        # Persist explicit delivery from the prompt onto input for kind routing.
+        decided = site_mod.delivery_from_request(request)
+        if decided and not (request.input or {}).get("delivery"):
+            request.input = {**(request.input or {}), "delivery": decided}
+        return True
+
+    brief = (
+        (request.input or {}).get("instruction")
+        or request.task_description
+        or request.task_title
+        or ""
+    )
+    lang = language_for_request(request)
+    payload = site_mod.choice_payload(brief, lang="fr" if lang == "fr" else "en")
+    tool_name = "choose_site_delivery"
+    risk = risk_for_tool(tool_name)
+    tool_input = {**payload, "brief": brief}
+
+    decision = take_seeded_decision(request.run_id)
+    if decision is None:
+        state.status = RunStatus.WAITING_FOR_APPROVAL
+        state.pending_tool = ToolCall(tool=tool_name, input=tool_input, risk=risk)
+        created = await phoenix.request_approval(
+            request.run_id,
+            tool_name,
+            tool_input,
+            risk.value,
+            proposed_action=_describe_action(tool_name, tool_input),
+        )
+        if created is None:
+            state.status = RunStatus.FAILED
+            state.error = "Could not ask for site delivery choice."
+            await phoenix.fail_run(request.run_id, state.error)
+            return False
+
+        await phoenix.update_run_status(request.run_id, state.status.value)
+        log.info("site_delivery_waiting", run_id=request.run_id)
+        decision = await _wait_for_decision(request.run_id)
+        state.pending_tool = None
+        state.status = RunStatus.RUNNING
+        await phoenix.update_run_status(request.run_id, state.status.value)
+
+    if decision.decision == "rejected":
+        state.status = RunStatus.FAILED
+        state.error = "Site delivery choice rejected by user."
+        await phoenix.fail_run(request.run_id, state.error)
+        return False
+
+    delivery = None
+    if decision.payload and isinstance(decision.payload, dict):
+        delivery = decision.payload.get("delivery")
+    if delivery not in ("html", "webapp"):
+        delivery = payload.get("recommended") or "webapp"
+
+    request.input = {
+        **(request.input or {}),
+        "delivery": delivery,
+        "site_delivery": delivery,
+        "mission_kind": "webapp" if delivery == "webapp" else "website",
+    }
+
+    fn = get_tool(tool_name)
+    if fn:
+        from app.tools.registry import RunContext
+
+        ctx = RunContext(
+            run_id=request.run_id,
+            workspace_id=request.workspace_id,
+            task_id=request.task_id or "",
+            task_title=request.task_title,
+            task_description=request.task_description,
+            phoenix=phoenix,
+        )
+        call = ToolCall(
+            tool=tool_name,
+            input={"delivery": delivery, "brief": brief},
+            risk=risk,
+            approved=True,
+        )
+        call.output = await fn({"delivery": delivery, "brief": brief}, ctx)
+        state.tool_calls.append(call)
+
+    log.info("site_delivery_chosen", run_id=request.run_id, delivery=delivery)
+    return True
+
+
 def _describe_action(tool_name: str, tool_input: dict) -> str:
     """Human-readable summary of the gated action, shown in the approval UI."""
+    if tool_name == "choose_site_delivery":
+        reason = tool_input.get("reason") or ""
+        recommended = tool_input.get("recommended") or "webapp"
+        return (
+            f"Choose how to deliver the website "
+            f"(recommended: {'codebase Next.js' if recommended == 'webapp' else 'HTML showcase'}). "
+            f"{reason}"
+        ).strip()
     detail = (
         tool_input.get("instruction")
         or tool_input.get("subject")

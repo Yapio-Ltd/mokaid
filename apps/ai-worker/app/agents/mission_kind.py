@@ -217,9 +217,24 @@ def detect_mission_kind(request: RunRequest) -> str:
         )
     ).lower()
 
+    # Explicit delivery from the site-format choice gate.
+    delivery = (request.input or {}).get("delivery") or (request.input or {}).get(
+        "site_delivery"
+    )
+    if isinstance(delivery, str):
+        d = delivery.strip().lower()
+        if d == "webapp":
+            return "webapp"
+        if d == "html":
+            return "website"
+
     if re.search(
-        r"\b(next\.?js|react|typescript|webapp|web app|full.?stack|application|"
-        r"crm|erp|site (?:internet |web )?complet|complete (?:website|site)|deploy)\b",
+        r"\b("
+        r"next\.?js|react|typescript|webapp|web app|full.?stack|application|"
+        r"crm|erp|site (?:internet |web )?complet|complete (?:website|site)|deploy|"
+        r"ecommerce|e-?commerce|boutique|shop|store|catalogue|catalog|"
+        r"site entier|entire (?:website|site)"
+        r")\b",
         text,
     ):
         return "webapp"
