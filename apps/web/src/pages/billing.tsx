@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
   ArrowRight,
@@ -143,7 +144,11 @@ export function BillingPage() {
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold text-text">Billing & Plans</h1>
         <p className="text-sm text-text-muted">
-          Manage your subscription, AI credits, and invoices
+          Manage your subscription, AI credits, and invoices. See our{" "}
+          <Link to="/refund" className="text-primary-light hover:underline">
+            Refund & Cancellation Policy
+          </Link>
+          .
         </p>
       </div>
 

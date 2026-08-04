@@ -4,8 +4,11 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { HeroScene } from "@/components/landing/hero-scene";
+import { FinalCta } from "@/components/landing/final-cta";
 import { LazyWhenVisible } from "@/components/landing/lazy-when-visible";
 import { SiteFooter } from "@/components/landing/site-footer";
+import { WhyMokaid } from "@/components/landing/why-mokaid";
+import { RandomLetterSwap } from "@/components/ui/random-letter-swap";
 import { cn } from "@/lib/cn";
 import { useSmoothScroll } from "@/lib/use-smooth-scroll";
 import { useAuthStore } from "@/stores/auth-store";
@@ -28,41 +31,74 @@ const McpConnectors = lazy(() =>
 
 const marqueeItems = ["Agents", "Office", "Connectors", "Knowledge", "Tasks"];
 
-const stats = [
-  { value: 12, suffix: "+", label: "Agent roles out of the box" },
-  { value: 87, suffix: "%", label: "Average team efficiency score" },
-  { value: 24, suffix: "/7", label: "Your AI workforce never sleeps" },
-  { value: 3, suffix: "min", label: "From signup to first agent" },
-];
-
 const navLinks = [
   { href: "#product", label: "Product" },
   { href: "#agents", label: "Agents" },
   { href: "#connectors", label: "Connectors" },
-  { href: "#stats", label: "Why mokaid" },
+  { href: "#why", label: "Why mokaid" },
 ] as const;
 
 function LandingLogo() {
   return (
-    <span className="flex items-center gap-2 sm:gap-2.5">
-      <picture>
-        <source srcSet="/branding/logo-without-bg.webp" type="image/webp" />
-        <img
-          src="/branding/logo-without-bg.png"
-          alt="mokaid"
-          className="h-7 w-7 object-contain sm:h-8 sm:w-8"
-          width={32}
-          height={32}
-          decoding="async"
-        />
-      </picture>
-      <span className="text-[15px] font-bold tracking-tight text-text sm:text-[17px]">mokaid</span>
+    <span className="flex items-center gap-2.5 sm:gap-3">
+      <span className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 sm:h-10 sm:w-10">
+        <picture>
+          <source srcSet="/branding/logo-without-bg.webp" type="image/webp" />
+          <img
+            src="/branding/logo-without-bg.png"
+            alt="mokaid"
+            className="h-6 w-6 object-contain sm:h-7 sm:w-7"
+            width={28}
+            height={28}
+            decoding="async"
+          />
+        </picture>
+      </span>
+      <span className="mk-brand-wordmark text-[15px] tracking-tight text-text sm:text-[17px]">
+        mokaid
+      </span>
     </span>
   );
 }
 
 function SectionFallback({ className }: { className?: string }) {
   return <div className={cn("bg-bg-deep", className)} aria-hidden />;
+}
+
+function NavLink({
+  href,
+  label,
+  className,
+  onClick,
+  letterSwap = false,
+}: {
+  href: string;
+  label: string;
+  className?: string;
+  onClick?: () => void;
+  letterSwap?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      className={cn(
+        "mk-focus-ring rounded-md transition-colors",
+        className,
+      )}
+    >
+      {letterSwap ? (
+        <RandomLetterSwap
+          label={label}
+          staggerDuration={0.025}
+          transition={{ duration: 0.55, type: "spring", bounce: 0 }}
+          className="text-[13px] font-medium text-text-secondary hover:text-text"
+        />
+      ) : (
+        label
+      )}
+    </a>
+  );
 }
 
 export function LandingPage() {
@@ -109,10 +145,15 @@ export function LandingPage() {
         const nextScrolled = window.scrollY > threshold;
         setHeaderScrolled((prev) => (prev === nextScrolled ? prev : nextScrolled));
 
-        // Mobile: keep the hire line only inside the hero so it never covers tours.
+        // Hire line: hero only on mobile; on desktop hide once past mid-page so it does not
+        // cover stats / CTA / footer (was stuck visible for the whole scroll).
         const isDesktop = window.matchMedia("(min-width: 768px)").matches;
         const introBottom = introRef.current?.offsetHeight ?? window.innerHeight * 1.8;
-        const nextHire = isDesktop || window.scrollY < introBottom * 0.82;
+        const maxY = document.documentElement.scrollHeight - window.innerHeight;
+        const beforeFooter = window.scrollY < maxY - window.innerHeight * 0.85;
+        const nextHire = isDesktop
+          ? window.scrollY < introBottom * 1.35 && beforeFooter
+          : window.scrollY < introBottom * 0.82;
         setHireVisible((prev) => (prev === nextHire ? prev : nextHire));
       });
     };
@@ -204,30 +245,37 @@ export function LandingPage() {
       <header
         data-landing-header
         className={cn(
-          "fixed inset-x-0 top-0 z-50 border-b pt-[env(safe-area-inset-top)] transition-[background-color,backdrop-filter,-webkit-backdrop-filter] duration-300",
+          "fixed inset-x-0 top-0 z-50 border-b pt-[env(safe-area-inset-top)] transition-[background-color,backdrop-filter,box-shadow,border-color] duration-300",
           headerVisible ? "pointer-events-auto" : "pointer-events-none",
           headerScrolled || menuOpen
-            ? "mk-glass border-primary/15 shadow-md backdrop-blur-xl"
+            ? "mk-header-scrolled border-primary/15 shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
             : "border-transparent bg-transparent backdrop-blur-none",
         )}
       >
-        <div className="mx-auto grid h-14 max-w-7xl grid-cols-[1fr_auto] items-center gap-2 px-4 sm:h-[4.5rem] sm:grid-cols-[1fr_auto_1fr] sm:px-6 lg:px-10">
-          <Link to="/" className="mk-focus-ring w-fit rounded-md">
+        <div className="mx-auto grid h-14 max-w-7xl grid-cols-[1fr_auto] items-center gap-3 px-4 sm:h-16 sm:grid-cols-[1fr_auto_1fr] sm:px-6 lg:px-10">
+          <Link to="/" className="mk-focus-ring w-fit rounded-xl">
             <LandingLogo />
           </Link>
 
-          <nav className="hidden items-center justify-center gap-8 text-[13px] font-medium text-text-secondary md:flex">
+          <nav
+            className="hidden items-center justify-center gap-1 md:flex"
+            aria-label="Primary"
+          >
             {navLinks.map((link) => (
-              <a key={link.href} href={link.href} className="transition-colors hover:text-text">
-                {link.label}
-              </a>
+              <NavLink
+                key={link.href}
+                href={link.href}
+                label={link.label}
+                letterSwap
+                className="px-3.5 py-2"
+              />
             ))}
           </nav>
 
           <div className="flex items-center justify-end gap-1.5 sm:gap-2.5">
             {token ? (
               <Link to="/dashboard">
-                <Button size="sm" className="min-h-9 px-3 sm:min-h-8">
+                <Button size="sm" className="min-h-9 px-3.5 sm:min-h-9">
                   Open app <ArrowRight size={14} />
                 </Button>
               </Link>
@@ -237,13 +285,13 @@ export function LandingPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="min-h-9 text-text-secondary hover:text-text sm:min-h-8"
+                    className="min-h-9 text-text-secondary hover:text-text sm:min-h-9"
                   >
                     Sign in
                   </Button>
                 </Link>
                 <Link to="/signup">
-                  <Button size="sm" className="min-h-9 px-3 sm:min-h-8 sm:px-3">
+                  <Button size="sm" className="min-h-9 px-3.5 shadow-glow sm:min-h-9 sm:px-4">
                     <span className="sm:hidden">Start</span>
                     <span className="hidden sm:inline">Get started</span>
                     <ArrowRight size={14} />
@@ -254,7 +302,7 @@ export function LandingPage() {
 
             <button
               type="button"
-              className="mk-focus-ring inline-flex h-9 w-9 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface/50 hover:text-text md:hidden"
+              className="mk-focus-ring inline-flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-colors hover:border-white/10 hover:bg-surface/50 hover:text-text md:hidden"
               aria-expanded={menuOpen}
               aria-controls="landing-mobile-nav"
               aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -268,20 +316,19 @@ export function LandingPage() {
         <div
           id="landing-mobile-nav"
           className={cn(
-            "border-t border-primary/10 md:hidden",
+            "border-t border-primary/10 bg-bg-deep/90 backdrop-blur-xl md:hidden",
             menuOpen ? "block" : "hidden",
           )}
         >
-          <nav className="mx-auto flex max-w-7xl flex-col gap-0.5 px-4 py-3 sm:px-6">
+          <nav className="mx-auto flex max-w-7xl flex-col gap-0.5 px-4 py-3 sm:px-6" aria-label="Mobile">
             {navLinks.map((link) => (
-              <a
+              <NavLink
                 key={link.href}
                 href={link.href}
+                label={link.label}
                 className="rounded-lg px-3 py-3 text-[15px] font-medium text-text-secondary transition-colors hover:bg-surface/40 hover:text-text"
                 onClick={() => setMenuOpen(false)}
-              >
-                {link.label}
-              </a>
+              />
             ))}
             {!token && (
               <Link
@@ -320,21 +367,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="stats" className="px-4 py-16 sm:px-5 sm:py-24">
-        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-6">
-          {stats.map((stat) => (
-            <div key={stat.label} data-reveal className="text-center">
-              <p className="text-3xl font-bold tracking-tight text-text sm:text-4xl md:text-5xl">
-                <span data-count={stat.value}>0</span>
-                <span className="text-primary-light">{stat.suffix}</span>
-              </p>
-              <p className="mt-2 text-[11px] leading-snug text-text-muted sm:text-xs md:text-sm">
-                {stat.label}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <WhyMokaid />
 
       <LazyWhenVisible placeholderClassName="mk-landing-ph-agent" rootMargin="320px 0px">
         <Suspense fallback={<SectionFallback className="mk-landing-ph-agent" />}>
@@ -360,45 +393,7 @@ export function LandingPage() {
         </figure>
       </section>
 
-      <section className="px-4 pb-20 sm:px-5 sm:pb-28">
-        <div
-          data-reveal
-          className="relative mx-auto max-w-5xl overflow-hidden rounded-2xl border border-primary/25 px-5 py-12 text-center sm:px-8 sm:py-16 md:py-20"
-          style={{ background: "linear-gradient(160deg, #17122e 0%, #12121a 55%, #0e0e16 100%)" }}
-        >
-          <div
-            className="pointer-events-none absolute -top-32 left-1/2 h-72 w-[min(560px,120vw)] -translate-x-1/2 rounded-full bg-primary/25 blur-[100px]"
-            aria-hidden
-          />
-          <picture>
-            <source srcSet="/branding/logo-without-bg.webp" type="image/webp" />
-            <img
-              src="/branding/logo-without-bg.png"
-              alt=""
-              aria-hidden
-              width={56}
-              height={56}
-              decoding="async"
-              loading="lazy"
-              className="mx-auto mb-5 h-12 w-12 object-contain sm:mb-6 sm:h-14 sm:w-14"
-            />
-          </picture>
-          <h2 className="relative text-[1.65rem] font-bold tracking-tight sm:text-3xl md:text-[44px] md:leading-[1.1]">
-            Ready to meet your new teammates?
-          </h2>
-          <p className="relative mx-auto mt-4 max-w-md text-sm text-text-secondary md:text-base">
-            Spin up your workspace, invite your team and hire your first AI agent today.
-          </p>
-          <div className="relative mt-8 flex justify-center">
-            <Link to="/signup" className="w-full max-w-xs sm:w-auto sm:max-w-none">
-              <Button size="lg" className="w-full px-8 shadow-glow-strong sm:w-auto">
-                Get started now <ArrowRight size={16} />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
+      <FinalCta />
       <SiteFooter />
     </div>
   );

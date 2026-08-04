@@ -67,13 +67,16 @@ export const Footer = React.forwardRef<HTMLDivElement, FooterProps>(
     return (
       <div
         ref={ref}
-        className={cn("pb-[env(safe-area-inset-bottom)] pt-16 sm:pt-24", className)}
+        className={cn("pb-[env(safe-area-inset-bottom)]", className)}
         {...props}
       >
         <div className="mx-auto max-w-screen-xl px-4 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <Link to="/" className="text-xl font-semibold text-text">
+              <Link
+                to="/"
+                className="mk-brand-wordmark text-xl font-semibold tracking-tight text-text transition-colors hover:text-primary-light"
+              >
                 {brand.name}
               </Link>
               <p className="mt-2 max-w-sm text-sm text-text-muted">{brand.description}</p>
@@ -83,7 +86,7 @@ export const Footer = React.forwardRef<HTMLDivElement, FooterProps>(
                   <React.Fragment key={link.name}>
                     <FooterAnchor
                       href={link.href}
-                      className="transition-colors hover:text-text"
+                      className="transition-colors hover:text-primary-light"
                     >
                       {link.name}
                     </FooterAnchor>
@@ -96,15 +99,17 @@ export const Footer = React.forwardRef<HTMLDivElement, FooterProps>(
             <div className="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:mt-16 md:grid-cols-3 lg:col-span-8 lg:mt-0 lg:justify-items-end lg:gap-y-0">
               {columns.map(({ title, links }) => (
                 <div key={title} className="min-w-0">
-                  <h3 className="text-sm font-semibold text-text">{title}</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-primary-light/90">
+                    {title}
+                  </h3>
                   <ul className="mt-4 space-y-2.5">
                     {links.map(({ name, Icon, href }) => (
                       <li key={name}>
                         <FooterAnchor
                           href={href || "#"}
-                          className="group inline-flex min-h-10 items-center text-sm text-text-muted transition-all hover:text-text sm:min-h-0"
+                          className="group inline-flex min-h-10 items-center text-sm text-text-muted transition-all hover:text-primary-light sm:min-h-0"
                         >
-                          <Icon className="mr-1.5 inline h-4 w-4 shrink-0 stroke-2 text-text-muted transition-colors group-hover:text-text" />
+                          <Icon className="mr-1.5 inline h-4 w-4 shrink-0 stroke-2 text-text-muted transition-colors group-hover:text-primary-light" />
                           <span className="truncate">{name}</span>
                         </FooterAnchor>
                       </li>
@@ -116,7 +121,7 @@ export const Footer = React.forwardRef<HTMLDivElement, FooterProps>(
           </div>
 
           {copyright && (
-            <div className="mt-14 pb-8 pt-6 sm:mt-20">
+            <div className="mt-14 border-t border-white/[0.05] pb-8 pt-6 sm:mt-16">
               <p className="text-xs text-text-muted">{copyright}</p>
             </div>
           )}

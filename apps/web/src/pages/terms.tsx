@@ -1,426 +1,335 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, FileText } from "lucide-react";
-
-const EFFECTIVE_DATE = "July 6, 2026";
-const COMPANY_NAME = "Mokaid";
-const FOUNDER_NAME = "Itsaq Tom Jami";
-const CONTACT_EMAIL = "tom@yapio.io";
+import { FileText } from "lucide-react";
+import {
+  EntityContactCard,
+  LegalDocLayout,
+  Prose,
+  SectionTitle,
+  SubList,
+} from "@/components/legal/legal-doc-layout";
+import {
+  CONTACT_EMAIL,
+  GOVERNING_LAW,
+  JURISDICTION_COURTS,
+  LEGAL_ENTITY_NAME,
+  PAYMENT_PROVIDER,
+  PRODUCT_NAME,
+  SITE_DOMAIN,
+} from "@/lib/legal-config";
 
 export function TermsPage() {
   return (
-    <div className="min-h-full bg-bg-deep text-text">
-      <header className="sticky top-0 z-10 bg-bg-deep/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
-          <Link
-            to="/"
-            className="mk-focus-ring flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-text-muted transition-colors hover:text-text"
-          >
-            <ArrowLeft size={13} /> Back to site
-          </Link>
-          <Link to="/" className="flex items-center gap-2">
-            <img
-              src="/branding/logo-without-bg.png"
-              alt="mokaid"
-              className="h-7 w-7 object-contain"
-            />
-            <span className="text-sm font-bold tracking-tight text-text">mokaid</span>
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-5 py-16">
-        <div className="mb-12">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary-light">
-            <FileText size={12} />
-            Legal document
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight text-text">Terms of Service</h1>
-          <p className="mt-4 text-sm text-text-muted">Last updated: {EFFECTIVE_DATE}</p>
+    <LegalDocLayout
+      icon={FileText}
+      title="Terms of Service"
+      excludeFooterLink="/terms"
+      intro={
+        <>
           <p className="mt-3 text-sm leading-relaxed text-text-secondary">
             These Terms of Service (the &quot;Terms&quot;) govern access to and use of the{" "}
-            {COMPANY_NAME} platform, available at{" "}
-            <strong className="text-text">mokaid.io</strong>, operated by{" "}
-            <strong className="text-text">{COMPANY_NAME}</strong>.
+            {PRODUCT_NAME} platform, available at{" "}
+            <strong className="text-text">{SITE_DOMAIN}</strong>, operated by{" "}
+            <strong className="text-text">{LEGAL_ENTITY_NAME}</strong> (&quot;we&quot;,
+            &quot;us&quot;, or &quot;our&quot;). {PRODUCT_NAME} is a product of{" "}
+            {LEGAL_ENTITY_NAME}.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-            By creating an account or accessing the platform, you fully and unconditionally accept
-            these Terms. If you do not accept them, you must stop using the platform immediately.
+            By creating an account, accessing, or using the platform, you agree to these Terms. If
+            you do not accept them, you must stop using the platform immediately.
           </p>
-        </div>
+        </>
+      }
+    >
+      <section>
+        <SectionTitle index="1" title="Service overview" />
+        <Prose>
+          {PRODUCT_NAME} is a Software-as-a-Service (SaaS) platform that lets companies and teams
+          manage human collaborators and artificial intelligence (AI) agents together in a unified
+          workspace.
+        </Prose>
+        <Prose className="mt-3">The platform may include features such as:</Prose>
+        <SubList
+          items={[
+            "Creation, configuration, and supervision of AI agents.",
+            "Project, task, and mixed workflow management (humans + AI).",
+            "Team dashboards and analytics.",
+            "Shared knowledge base and document management.",
+            "Integrations with third-party services (GitHub, Google Workspace, Figma, etc.).",
+            "Internal messaging, calendar, and related productivity tools.",
+            "Billing and subscription management.",
+          ]}
+        />
+        <Prose className="mt-4">
+          We may evolve, add, or remove features at any time, subject to Section 14 (Changes) and
+          any mandatory consumer protections that apply to you.
+        </Prose>
+      </section>
 
-        <div className="space-y-12">
-          <section>
-            <SectionTitle index="1" title="Service overview" />
-            <Prose>
-              {COMPANY_NAME} is a SaaS (Software as a Service) platform that lets companies and
-              teams manage human collaborators and artificial intelligence (AI) agents together in
-              a unified workspace.
-            </Prose>
-            <Prose className="mt-3">The platform includes features such as:</Prose>
-            <SubList
-              items={[
-                "Creation, configuration, and supervision of autonomous AI agents.",
-                "Project, task, and mixed workflow management (humans + AI).",
-                "Real-time team dashboard.",
-                "Shared knowledge base and document management.",
-                "Integrations with third-party services (GitHub, Google Workspace, Figma, etc.).",
-                "Internal messaging, calendar, and analytics.",
-                "Billing and subscription management.",
-              ]}
-            />
-            <Prose className="mt-4">
-              {COMPANY_NAME} reserves the right to evolve service features at any time, with or
-              without notice, subject to Section 14 of these Terms.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="2" title="Access and account creation" />
+        <Prose>
+          Access to {PRODUCT_NAME} requires a user account. To sign up, you must:
+        </Prose>
+        <SubList
+          items={[
+            "Be a natural person at least 18 years old (or the age of majority in your jurisdiction), or act for a legally constituted entity.",
+            "Provide accurate registration information and keep it up to date.",
+            "Have legal capacity to be bound by these Terms.",
+            "Not have had an account suspended or terminated for breach.",
+          ]}
+        />
+        <Prose className="mt-4">
+          You are responsible for keeping credentials confidential. Activity under your account is
+          deemed yours. Notify us immediately of unauthorized access at{" "}
+          <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary-light hover:underline">
+            {CONTACT_EMAIL}
+          </a>
+          .
+        </Prose>
+        <Prose className="mt-3">
+          We may refuse registration or access where reasonably necessary for security, legal
+          compliance, or abuse prevention.
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="2" title="Access and account creation" />
-            <Prose>
-              Access to the {COMPANY_NAME} platform requires creating a user account. To sign up,
-              you must:
-            </Prose>
-            <SubList
-              items={[
-                "Be a natural person at least 18 years old, or a legally constituted legal entity.",
-                "Provide a valid email address and a secure password.",
-                "Have the legal capacity to be bound by these Terms.",
-                "Not have had an account suspended or terminated on the platform.",
-              ]}
-            />
-            <Prose className="mt-4">
-              You are responsible for keeping your login credentials confidential. Any use of the
-              platform through your account is deemed to be by you, and you are fully responsible
-              for it. You must immediately notify {COMPANY_NAME} of any unauthorized access at{" "}
-              <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary-light hover:underline">
-                {CONTACT_EMAIL}
-              </a>
-              .
-            </Prose>
-            <Prose className="mt-3">
-              {COMPANY_NAME} reserves the right to refuse any registration without having to
-              justify its decision.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="3" title="Workspaces" />
+        <Prose>
+          The platform is organized around workspaces. Workspace administrators typically may:
+        </Prose>
+        <SubList
+          items={[
+            "Invite and revoke members.",
+            "Configure AI agents and integrations.",
+            "Manage billing and subscriptions.",
+            "View workspace data and logs within their permissions.",
+          ]}
+        />
+        <Prose className="mt-4">
+          The administrator is responsible for ensuring workspace members comply with these Terms
+          and for obtaining any required consents from members whose data is processed in the
+          workspace.
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="3" title="Workspaces" />
-            <Prose>
-              The platform is organized around workspaces. The creator of a workspace is designated
-              as administrator and has extended rights, including:
-            </Prose>
-            <SubList
-              items={[
-                "Invite and revoke members.",
-                "Configure AI agents and integrations.",
-                "Manage billing and subscription.",
-                "View workspace data and logs.",
-              ]}
-            />
-            <Prose className="mt-4">
-              The administrator is responsible for compliance with these Terms by all members of
-              their workspace, including ensuring invited members have accepted these Terms before
-              accessing the service.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="4" title="Artificial intelligence agents" />
+        <Prose>
+          {PRODUCT_NAME} lets you create and manage AI agents. You acknowledge and agree that:
+        </Prose>
+        <SubList
+          items={[
+            "AI agents generate content and take actions based on instructions and data you provide; you are solely responsible for those instructions and for how you use the outputs.",
+            "AI outputs are provided “as is” and may contain errors, hallucinations, or omissions.",
+            "You must verify outputs before relying on them for critical purposes (including legal, medical, financial, or safety-critical use).",
+            "You must not use AI features to produce unlawful, discriminatory, misleading content, or content that infringes third-party rights.",
+            `${LEGAL_ENTITY_NAME} is not liable for decisions made by you or third parties based on AI outputs, to the fullest extent permitted by law.`,
+          ]}
+        />
+      </section>
 
-          <section>
-            <SectionTitle index="4" title="Artificial intelligence agents" />
-            <Prose>
-              The {COMPANY_NAME} platform lets you create and manage autonomous AI agents. You
-              expressly acknowledge and agree that:
-            </Prose>
-            <SubList
-              items={[
-                "AI agents generate content and take actions based on the instructions you provide. You are solely responsible for them.",
-                "Outputs produced by AI agents are provided “as is” and may contain errors, inaccuracies, or omissions.",
-                "You agree to verify AI agent outputs before using them for critical purposes (legal, medical, financial, etc.).",
-                "It is prohibited to use AI agents to produce unlawful, discriminatory, misleading content, or content that infringes third-party rights.",
-                "Mokaid shall not be liable for decisions made by you or third parties based on AI agent outputs.",
-              ]}
-            />
-          </section>
+      <section>
+        <SectionTitle index="5" title="Acceptable use" />
+        <Prose>You must not:</Prose>
+        <SubList
+          items={[
+            "Use the platform for unlawful purposes or in breach of these Terms.",
+            "Reproduce, resell, or sublicense access without prior written authorization.",
+            "Attempt unauthorized access to systems, data, or accounts.",
+            "Circumvent security measures or rate limits.",
+            "Introduce malware or interfere with service integrity.",
+            "Send spam, phishing, or unsolicited bulk communications via the service.",
+            "Scrape or automate access in ways that harm the service, outside permitted APIs.",
+            "Impersonate another person or entity.",
+            `Infringe intellectual property rights of ${LEGAL_ENTITY_NAME} or others.`,
+            "Violate privacy or data protection rights of others.",
+          ]}
+        />
+        <Prose className="mt-4">
+          Breach may lead to suspension or termination without prejudice to other remedies.
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="5" title="Acceptable use" />
-            <Prose>
-              Use of the {COMPANY_NAME} platform is subject to the following rules. You must not:
-            </Prose>
-            <SubList
-              items={[
-                "Use the platform for unlawful purposes or in breach of these Terms.",
-                "Reproduce, resell, or sublicense access to the platform without prior written authorization.",
-                "Attempt to access systems, data, or accounts you are not authorized to use.",
-                "Circumvent or attempt to circumvent platform security measures.",
-                "Introduce viruses, malware, or any malicious code.",
-                "Use the platform to send spam, phishing, or any unsolicited content.",
-                "Exploit the platform through unauthorized automated means (scraping, bots, etc.).",
-                "Impersonate another person or entity.",
-                `Infringe the intellectual property rights of ${COMPANY_NAME} or third parties.`,
-                "Violate others' privacy rights.",
-              ]}
-            />
-            <Prose className="mt-4">
-              Failure to comply may result in immediate suspension or termination of your account,
-              without prejudice to any legal action.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="6" title="Intellectual property" />
+        <Prose>
+          <strong className="text-text">{PRODUCT_NAME} and the platform.</strong> The platform,
+          source code, design, trademarks, logos, algorithms, and documentation are owned by{" "}
+          {LEGAL_ENTITY_NAME} or its licensors and protected by applicable IP laws. No license is
+          granted beyond the limited right to use the service under these Terms.
+        </Prose>
+        <Prose className="mt-4">
+          <strong className="text-text">Your content.</strong> You retain rights in content you
+          create, import, or process. You grant {LEGAL_ENTITY_NAME} a limited, worldwide,
+          non-exclusive license to host, process, transmit, and display that content solely to
+          provide and secure the service.
+        </Prose>
+        <Prose className="mt-4">
+          <strong className="text-text">AI-generated content.</strong> As between you and{" "}
+          {LEGAL_ENTITY_NAME}, rights in content generated by agents you configure are attributed
+          to you, subject to third-party model/provider terms and applicable law on AI-generated
+          works.
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="6" title="Intellectual property" />
-            <Prose>
-              <strong className="text-text">{COMPANY_NAME} and the platform.</strong> The{" "}
-              {COMPANY_NAME} platform, its source code, design, trademarks, logos, algorithms, and
-              related documentation are the exclusive property of {COMPANY_NAME} and are protected
-              by applicable intellectual property laws. No license is granted beyond the personal
-              right of use provided under these Terms.
-            </Prose>
-            <Prose className="mt-4">
-              <strong className="text-text">Your content.</strong> You retain all intellectual
-              property rights in content you create, import, or process through the platform (data,
-              documents, agent instructions, etc.). By using the platform, you grant{" "}
-              {COMPANY_NAME} a limited, non-exclusive, non-transferable license to process your
-              content solely for providing the service.
-            </Prose>
-            <Prose className="mt-4">
-              <strong className="text-text">AI-generated content.</strong> Rights in content
-              generated by AI agents you configure are attributed to you in full, subject to
-              applicable copyright law regarding AI-generated works.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="7" title="Personal data and privacy" />
+        <Prose>
+          Processing of personal data is governed by our{" "}
+          <Link to="/privacy" className="text-primary-light hover:underline">
+            Privacy Policy
+          </Link>
+          , which forms part of these Terms.
+        </Prose>
+        <Prose className="mt-3">
+          As a workspace administrator, you may be a controller of members&apos; personal data.{" "}
+          {LEGAL_ENTITY_NAME} then acts as a processor. A Data Processing Agreement is available
+          on request at{" "}
+          <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary-light hover:underline">
+            {CONTACT_EMAIL}
+          </a>
+          .
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="7" title="Personal data and privacy" />
-            <Prose>
-              Processing of your personal data is governed by our{" "}
-              <Link to="/privacy" className="text-primary-light hover:underline">
-                Privacy Policy
-              </Link>
-              , which forms an integral part of these Terms. Please read it carefully.
-            </Prose>
-            <Prose className="mt-3">
-              As a workspace administrator, you may be considered a data controller for the
-              personal data of your members. {COMPANY_NAME} then acts as a processor. A Data
-              Processing Agreement (DPA) is available on request at{" "}
-              <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary-light hover:underline">
-                {CONTACT_EMAIL}
-              </a>
-              .
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="8" title="Third-party integrations" />
+        <Prose>
+          The platform may connect to third-party services (GitHub, Google Workspace, Figma,{" "}
+          {PAYMENT_PROVIDER}, etc.). Those services are subject to their own terms and privacy
+          policies. {LEGAL_ENTITY_NAME} is not responsible for outages or changes by third parties.
+          Enabling an integration authorizes us to access that service within the permissions you
+          grant.
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="8" title="Third-party integrations" />
-            <Prose>
-              The platform can connect to third-party services (GitHub, Google Workspace, Figma,
-              Stripe, etc.). Those integrations are subject to each third party&apos;s own terms
-              and privacy policies.
-            </Prose>
-            <Prose className="mt-3">
-              {COMPANY_NAME} is not responsible for interruptions, errors, or changes made by
-              those third-party services. By enabling an integration, you authorize{" "}
-              {COMPANY_NAME} to access that service&apos;s data within the permissions you grant.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="9" title="Pricing, subscriptions, and billing" />
+        <Prose>
+          Certain features require a paid subscription or purchase of AI credit packs. By
+          subscribing or purchasing:
+        </Prose>
+        <SubList
+          items={[
+            "You accept the prices shown at checkout for the selected plan or credit pack.",
+            `Payment is processed by ${PAYMENT_PROVIDER}, our payment service provider.`,
+            "Paid subscriptions renew automatically at the end of each billing period unless canceled before renewal.",
+            "You may manage or cancel your subscription from workspace billing settings where available, or by contacting support.",
+            "Refunds and cancellations are governed by our Refund & Cancellation Policy.",
+            "Non-payment may lead to suspension or downgrade of access.",
+          ]}
+        />
+        <Prose className="mt-4">
+          Full cancellation and refund rules (including consumer cooling-off rights under Israeli
+          law where applicable) are set out in our{" "}
+          <Link to="/refund" className="text-primary-light hover:underline">
+            Refund & Cancellation Policy
+          </Link>
+          , which forms part of these Terms.
+        </Prose>
+        <Prose className="mt-3">
+          We may change prices with at least 30 days&apos; notice for recurring subscriptions. If
+          you disagree, cancel before the new prices take effect.
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="9" title="Pricing, subscriptions, and billing" />
-            <Prose>
-              Access to certain {COMPANY_NAME} features requires a paid subscription. By
-              subscribing:
-            </Prose>
-            <SubList
-              items={[
-                "You accept the prices in effect at the time of subscription, as shown on our pricing page.",
-                "Payment is processed by Stripe, our secure payment provider.",
-                "Subscriptions renew automatically at the end of each period unless canceled beforehand.",
-                "You may cancel your subscription at any time from your workspace settings.",
-                "Amounts already paid are non-refundable, except where required by law or expressly agreed by Mokaid.",
-                "In case of non-payment, Mokaid reserves the right to suspend or terminate access to the service.",
-              ]}
-            />
-            <Prose className="mt-4">
-              Prices may change with 30 days&apos; notice. If you disagree, you may cancel your
-              subscription before the new prices take effect.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="10" title="Service availability and maintenance" />
+        <Prose>
+          We aim to keep {PRODUCT_NAME} available, but we do not guarantee uninterrupted or
+          error-free operation. Interruptions may occur for maintenance, updates, force majeure, or
+          third-party infrastructure issues. We try to notify planned maintenance with reasonable
+          notice when practicable.
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="10" title="Service availability and maintenance" />
-            <Prose>
-              {COMPANY_NAME} strives to keep the platform available 24/7. However, we do not
-              guarantee uninterrupted availability. Interruptions may occur for maintenance,
-              updates, or events beyond our control (force majeure, third-party infrastructure
-              outages, etc.).
-            </Prose>
-            <Prose className="mt-3">
-              We aim to notify planned maintenance with reasonable notice via the platform or by
-              email.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="11" title="Limitation of liability" />
+        <Prose>To the fullest extent permitted by applicable law:</Prose>
+        <SubList
+          items={[
+            "The platform is provided “as is” and “as available” without warranties of merchantability, fitness for a particular purpose, or non-infringement, except warranties that cannot be excluded by law.",
+            `${LEGAL_ENTITY_NAME} is not liable for indirect, incidental, special, consequential, or punitive damages, loss of profits, data, or goodwill arising from use of the platform.`,
+            `Our aggregate liability arising out of these Terms is limited to the amounts you paid to ${LEGAL_ENTITY_NAME} for the service in the twelve (12) months preceding the claim.`,
+            "Nothing in these Terms limits liability for fraud, willful misconduct, death or personal injury caused by negligence, or any liability that cannot be limited under Israeli law or other mandatory law.",
+          ]}
+        />
+      </section>
 
-          <section>
-            <SectionTitle index="11" title="Limitation of liability" />
-            <Prose>To the fullest extent permitted by applicable law:</Prose>
-            <SubList
-              items={[
-                "The platform is provided “as is” without warranty of results or fitness for a particular purpose.",
-                "Mokaid shall not be liable for indirect, incidental, special, or consequential damages arising from use of the platform.",
-                "Mokaid’s total liability to you under these Terms is limited to the amounts you paid in the 12 months preceding the event giving rise to liability.",
-                "Mokaid is not responsible for service interruptions caused by events beyond its control (force majeure, third-party failure, etc.).",
-              ]}
-            />
-            <Prose className="mt-4">
-              These limitations apply even if {COMPANY_NAME} has been advised of the possibility
-              of such damages.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="12" title="Suspension and termination" />
+        <Prose>
+          <strong className="text-text">By you.</strong> You may close your account at any time
+          from profile/settings or by contacting support. Closing your account results in deletion
+          or anonymization of data as described in the Privacy Policy, subject to legal retention.
+        </Prose>
+        <Prose className="mt-4">
+          <strong className="text-text">By us.</strong> We may suspend or terminate access, with or
+          without notice where appropriate, for:
+        </Prose>
+        <SubList
+          items={[
+            "Breach of these Terms or the Privacy Policy.",
+            "Non-payment.",
+            "Fraudulent, abusive, or illegal use.",
+            "Legal or regulatory requirement or court order.",
+            "Permanent discontinuation of the service (with reasonable notice where practicable).",
+          ]}
+        />
+        <Prose className="mt-4">
+          Termination for your breach does not entitle you to a refund, except where mandatory law
+          requires otherwise. If we permanently discontinue the service, we will use reasonable
+          efforts to notify you in advance and help you export data.
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="12" title="Suspension and termination" />
-            <Prose>
-              <strong className="text-text">Termination by you.</strong> You may close your
-              account at any time from your profile settings or by contacting support. Closing
-              your account results in permanent deletion of your data within the timeframes set
-              out in our Privacy Policy.
-            </Prose>
-            <Prose className="mt-4">
-              <strong className="text-text">Termination by Mokaid.</strong> We reserve the right
-              to suspend or terminate your access to the platform, with or without notice, in
-              cases including:
-            </Prose>
-            <SubList
-              items={[
-                "Breach of these Terms or our Privacy Policy.",
-                "Non-payment of a subscription.",
-                "Fraudulent or abusive use of the platform.",
-                "Court order or legal obligation.",
-                "Permanent discontinuation of the service.",
-              ]}
-            />
-            <Prose className="mt-4">
-              In case of termination for breach, no refund will be due. If {COMPANY_NAME}{" "}
-              discontinues the service, we will notify you at least 30 days in advance and help you
-              export your data.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="13" title="Governing law, disputes, and consumer rights" />
+        <Prose>
+          These Terms are governed by {GOVERNING_LAW}, without regard to conflict-of-law rules.
+          Subject to mandatory protections that apply to you, disputes will be submitted to{" "}
+          {JURISDICTION_COURTS}, after good-faith attempts to resolve the matter amicably within
+          sixty (60) days of written notice of the dispute.
+        </Prose>
+        <Prose className="mt-3">
+          If you are a &quot;consumer&quot; under the Israeli Consumer Protection Law 5741-1981
+          (or equivalent mandatory consumer law in your country), nothing in these Terms limits
+          rights that cannot be waived by contract, including applicable distance-selling and
+          cancellation rights described in our{" "}
+          <Link to="/refund" className="text-primary-light hover:underline">
+            Refund & Cancellation Policy
+          </Link>
+          .
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="13" title="Governing law and jurisdiction" />
-            <Prose>
-              These Terms are governed by French law. In the event of a dispute relating to their
-              interpretation or performance, and failing amicable resolution within 60 days of
-              notice of the dispute, the parties agree to submit the matter to the competent courts
-              of Paris, France, except where mandatory rules provide otherwise.
-            </Prose>
-            <Prose className="mt-3">
-              Consumer users may also have the right to refer a dispute to a consumer mediator for
-              amicable resolution, where applicable under local consumer law.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="14" title="Changes to the Terms" />
+        <Prose>
+          We may modify these Terms. For material changes, we will provide notice by email and/or
+          in-product notification, generally at least 30 days before the changes take effect where
+          practicable. Continued use after the effective date constitutes acceptance, except where
+          mandatory law requires separate consent. If you disagree, stop using the service and
+          cancel before the effective date.
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="14" title="Changes to the Terms" />
-            <Prose>
-              {COMPANY_NAME} reserves the right to modify these Terms at any time. For material
-              changes, we will notify you:
-            </Prose>
-            <SubList
-              items={[
-                "By email to the address associated with your account.",
-                "Via a notification on the platform.",
-                "At least 30 days before the changes take effect.",
-              ]}
-            />
-            <Prose className="mt-4">
-              If you continue to use the platform after the new Terms take effect, you are deemed
-              to have accepted them. Otherwise, you may terminate your account before that date.
-            </Prose>
-          </section>
+      <section>
+        <SectionTitle index="15" title="Severability and entire agreement" />
+        <Prose>
+          If any provision is held unenforceable, the remaining provisions remain in effect. These
+          Terms, together with the Privacy Policy, Cookie Policy, Refund & Cancellation Policy, and
+          any order forms or DPA, constitute the entire agreement between you and{" "}
+          {LEGAL_ENTITY_NAME} regarding the service and supersede prior conflicting agreements on
+          the same subject.
+        </Prose>
+      </section>
 
-          <section>
-            <SectionTitle index="15" title="Severability" />
-            <Prose>
-              If any clause of these Terms is held void or unenforceable by a competent court, the
-              remaining clauses remain in full force. The void clause will be replaced by a valid
-              clause that most closely reflects the parties&apos; intent.
-            </Prose>
-          </section>
-
-          <section>
-            <SectionTitle index="16" title="Contact" />
-            <Prose>For any questions about these Terms of Service, contact us:</Prose>
-            <div className="mt-4 rounded-lg border border-border bg-surface px-5 py-4 text-sm text-text-secondary">
-              <p>
-                <strong className="text-text">{COMPANY_NAME}</strong>
-              </p>
-              <p>Attention: {FOUNDER_NAME}</p>
-              <p>
-                Email:{" "}
-                <a
-                  href={`mailto:${CONTACT_EMAIL}`}
-                  className="text-primary-light hover:underline"
-                >
-                  {CONTACT_EMAIL}
-                </a>
-              </p>
-            </div>
-          </section>
-        </div>
-
-        <div className="mt-16 flex flex-col items-center gap-3 pt-8 text-xs text-text-muted">
-          <p>
-            © {new Date().getFullYear()} {COMPANY_NAME}. All rights reserved.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-            <Link to="/privacy" className="transition-colors hover:text-text">
-              Privacy Policy
-            </Link>
-            <span>·</span>
-            <Link to="/cookies" className="transition-colors hover:text-text">
-              Cookies
-            </Link>
-            <span>·</span>
-            <Link to="/legal" className="transition-colors hover:text-text">
-              Legal Notice
-            </Link>
-            <span>·</span>
-            <Link to="/" className="transition-colors hover:text-text">
-              Back to home
-            </Link>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-}
-
-function SectionTitle({ index, title }: { index: string; title: string }) {
-  return (
-    <div className="mb-4 flex items-start gap-3">
-      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-[11px] font-bold text-primary-light">
-        {index}
-      </span>
-      <h2 className="text-lg font-semibold tracking-tight text-text">{title}</h2>
-    </div>
-  );
-}
-
-function Prose({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <p className={`text-sm leading-relaxed text-text-secondary ${className ?? ""}`}>{children}</p>
-  );
-}
-
-function SubList({ items }: { items: string[] }) {
-  return (
-    <ul className="mt-3 space-y-2">
-      {items.map((item, i) => (
-        <li key={i} className="flex gap-3 text-sm text-text-secondary">
-          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
-          <span>{item}</span>
-        </li>
-      ))}
-    </ul>
+      <section>
+        <SectionTitle index="16" title="Contact" />
+        <Prose>For questions about these Terms:</Prose>
+        <EntityContactCard />
+      </section>
+    </LegalDocLayout>
   );
 }

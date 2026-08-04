@@ -11,6 +11,25 @@
     height: 100%;
   }
 
+  /*
+   * Lenis + document scroll: fixed height:100% on html/body traps the scroller
+   * short of the real document bottom (footer unreachable on the landing).
+   * When Lenis is active it adds .lenis on <html> — allow natural document height.
+   */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  html.lenis #root {
+    height: auto;
+    min-height: 100%;
+  }
+
+  html.lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
   body {
     @apply bg-bg text-text antialiased;
     font-family: var(--mk-font-sans);
@@ -1785,6 +1804,156 @@ table tbody tr {
 
   .mk-agent-tour-detail {
     display: none;
+  }
+}
+
+/* ---------- Landing final CTA (minimal) ---------- */
+
+.mk-final-cta {
+  position: relative;
+  background: linear-gradient(180deg, #0a0a10 0%, #0c0b14 100%);
+}
+
+.mk-final-cta-glow {
+  background: radial-gradient(
+    ellipse 70% 55% at 50% 40%,
+    rgba(124, 92, 255, 0.12) 0%,
+    transparent 65%
+  );
+}
+
+.mk-final-cta-panel {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(124, 92, 255, 0.18);
+  background: rgba(18, 16, 28, 0.72);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+}
+
+/* Landing footer glass */
+.mk-site-footer {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(18, 14, 32, 0.35) 12%,
+    rgba(12, 12, 20, 0.55) 100%
+  );
+}
+
+.mk-glass-footer {
+  background: rgba(14, 13, 22, 0.55);
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+}
+
+/* Landing header (scrolled state) */
+.mk-header-scrolled {
+  background: rgba(12, 12, 20, 0.78);
+  backdrop-filter: blur(18px) saturate(1.35);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+}
+
+/* Why mokaid — editorial, brand-colored, minimal */
+.mk-why {
+  background: #09090f;
+}
+
+.mk-why-glow {
+  background:
+    radial-gradient(ellipse 90% 50% at 10% 0%, rgba(124, 92, 255, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 45% at 95% 30%, rgba(88, 150, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(124, 92, 255, 0.08) 0%, transparent 55%);
+}
+
+.mk-why-orb {
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.55;
+}
+
+.mk-why-orb--l {
+  top: 12%;
+  left: -8%;
+  width: min(420px, 55vw);
+  height: min(420px, 55vw);
+  background: rgba(124, 92, 255, 0.22);
+}
+
+.mk-why-orb--r {
+  bottom: 8%;
+  right: -6%;
+  width: min(360px, 48vw);
+  height: min(360px, 48vw);
+  background: rgba(90, 160, 255, 0.12);
+}
+
+.mk-why-accent-line {
+  color: transparent;
+  background: linear-gradient(105deg, #c8b9ff 0%, #8f72ff 45%, #7c5cff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.mk-why-manifesto {
+  padding: 1.75rem 0 1.75rem 1.25rem;
+  border-left: 2px solid rgba(124, 92, 255, 0.55);
+  background: linear-gradient(
+    90deg,
+    rgba(124, 92, 255, 0.1) 0%,
+    rgba(124, 92, 255, 0.02) 45%,
+    transparent 100%
+  );
+}
+
+@media (min-width: 640px) {
+  .mk-why-manifesto {
+    padding: 2rem 0 2rem 1.75rem;
+  }
+}
+
+.mk-why-timeline::before {
+  content: none;
+}
+
+.mk-why-row {
+  transition: color 0.2s ease;
+}
+
+.mk-why-stats {
+  border: 1px solid rgba(124, 92, 255, 0.18);
+  background: rgba(124, 92, 255, 0.06);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 24px 60px rgba(0, 0, 0, 0.25);
+}
+
+.mk-why-stat {
+  background: rgba(10, 10, 16, 0.35);
+}
+
+.mk-why-stat + .mk-why-stat {
+  box-shadow: -1px 0 0 rgba(124, 92, 255, 0.12);
+}
+
+@media (max-width: 767px) {
+  .mk-why-stat:nth-child(odd) {
+    box-shadow: none;
+  }
+  .mk-why-stat:nth-child(even) {
+    box-shadow: -1px 0 0 rgba(124, 92, 255, 0.12);
+  }
+  .mk-why-stat:nth-child(n + 3) {
+    box-shadow:
+      0 -1px 0 rgba(124, 92, 255, 0.12),
+      -1px 0 0 transparent;
+  }
+  .mk-why-stat:nth-child(4) {
+    box-shadow:
+      0 -1px 0 rgba(124, 92, 255, 0.12),
+      -1px 0 0 rgba(124, 92, 255, 0.12);
   }
 }
 

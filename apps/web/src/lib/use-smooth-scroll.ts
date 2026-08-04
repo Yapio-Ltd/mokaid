@@ -36,9 +36,13 @@ export function useSmoothScroll() {
       };
     }
 
+    // Softer damping than default landing feel (was ~1.1 + exponential ease).
     const lenis = new Lenis({
-      duration: 1.1,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      duration: 0.65,
+      easing: (t) => 1 - Math.pow(1 - t, 3),
+      wheelMultiplier: 1.05,
+      touchMultiplier: 1.15,
+      smoothWheel: true,
     });
 
     lenis.on("scroll", ScrollTrigger.update);
@@ -49,16 +53,32 @@ export function useSmoothScroll() {
     gsap.ticker.add(tick);
     gsap.ticker.lagSmoothing(0);
 
+    // Keep Lenis document bounds in sync after GSAP pin spacers / lazy sections.
+    const onStRefresh = () => {
+      lenis.resize();
+    };
+    ScrollTrigger.addEventListener("refresh", onStRefresh);
+
     let resizeTimer = 0;
     const onResize = () => {
       window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => ScrollTrigger.refresh(), 160);
+      resizeTimer = window.setTimeout(() => {
+        lenis.resize();
+        ScrollTrigger.refresh();
+      }, 160);
     };
     window.addEventListener("resize", onResize);
+
+    // Initial measure after first paint (pin/lazy layouts settle).
+    requestAnimationFrame(() => {
+      lenis.resize();
+      ScrollTrigger.refresh();
+    });
 
     return () => {
       window.clearTimeout(resizeTimer);
       window.removeEventListener("resize", onResize);
+      ScrollTrigger.removeEventListener("refresh", onStRefresh);
       gsap.ticker.remove(tick);
       lenis.destroy();
     };

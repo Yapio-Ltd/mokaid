@@ -7,6 +7,7 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 import { useAuthStore } from "@/stores/auth-store";
+import { CookieConsent } from "@/components/legal/cookie-consent";
 import { LandingPage } from "@/pages/landing";
 import { LoginPage } from "@/pages/login";
 import { SignupPage } from "@/pages/signup";
@@ -111,9 +112,21 @@ const CookiesPage = lazyPage(() =>
 const LegalPage = lazyPage(() =>
   import("@/pages/legal").then((m) => ({ default: m.LegalPage })),
 );
+const RefundPage = lazyPage(() =>
+  import("@/pages/refund").then((m) => ({ default: m.RefundPage })),
+);
+
+function RootLayout() {
+  return (
+    <>
+      <Outlet />
+      <CookieConsent />
+    </>
+  );
+}
 
 const rootRoute = createRootRoute({
-  component: () => <Outlet />,
+  component: RootLayout,
 });
 
 const landingRoute = createRoute({
@@ -253,6 +266,12 @@ const legalRoute = createRoute({
   component: LegalPage,
 });
 
+const refundRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/refund",
+  component: RefundPage,
+});
+
 const routeTree = rootRoute.addChildren([
   landingRoute,
   loginRoute,
@@ -268,6 +287,7 @@ const routeTree = rootRoute.addChildren([
   termsRoute,
   cookiesRoute,
   legalRoute,
+  refundRoute,
   appRoute.addChildren([...pageRoutes, agentsNewRoute, agentTrainingRoute]),
 ]);
 

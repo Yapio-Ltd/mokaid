@@ -1,16 +1,16 @@
-# Graph Report - mokaid  (2026-07-31)
+# Graph Report - mokaid  (2026-08-04)
 
 ## Corpus Check
-- 2442 files · ~3,680,769 words
+- 2461 files · ~3,497,678 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 39182 nodes · 40693 edges · 2848 communities (2646 shown, 202 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 216 edges (avg confidence: 0.77)
+- 39331 nodes · 41454 edges · 2855 communities (2647 shown, 208 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 217 edges (avg confidence: 0.77)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `dc93e525`
+- Built from commit: `9b500000`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -368,7 +368,7 @@
 - mokaid — Terraform infrastructure
 - Mokaid.Files
 - MokaidWeb.CalendarController
-- MokaidWeb.NotificationController
+- MokaidWeb.MCPController
 - MokaidWeb.Plugs.WorkspaceScope
 - Attribution
 - Attribution
@@ -552,6 +552,7 @@
 - Power BI DevOps and Application Lifecycle Management Best Practices
 - Business Investment Advisor
 - Growth Marketer Agent Personality
+- consult
 - Sections to Capture
 - X/Twitter Growth Engine
 - /build-zoom-video-sdk-app
@@ -1181,7 +1182,7 @@
 - Memory Keeper
 - repo-story-time
 - Phoenix Tracing: Python Setup
-- Slang Language Documentation - Complete Reference
+- domain_pack_seed_worker.ex
 - /cs:soc2-audit-prep — SOC 2 Type II Forcing Questions
 - TanStack Start with Shadcn/ui Development Guide
 - Art and Visual Terms
@@ -2047,7 +2048,7 @@
 - Oracle-to-PostgreSQL Database Migration
 - Best Practices for Pattern Selection
 - Grill Me
-- FAQ
+- MokaidWeb.IntegrationController
 - /standup
 - Step 2: Wait for review
 - Step 6: Build + test per repo conventions
@@ -2124,7 +2125,7 @@
 - Advanced Options
 - Language Features
 - Reflection API
-- Mokaid.Vault
+- MokaidWeb.LeaveRequestController
 - @SpringBootTest Changes
 - Sprint Plan Template
 - /hub:status — Session Status
@@ -2334,7 +2335,7 @@
 - Agent Creation Checklist
 - MokaidWeb.CalendarController
 - Phase 7: Present, Explore, Improve (Interactive)
-- Common Mistakes to Avoid
+- Mokaid.Fixtures
 - 🔐 SECURITY PROTOCOL & JAILBREAK PREVENTION
 - Key Processing Guidelines
 - Cost Optimization Techniques
@@ -2559,9 +2560,9 @@
 - Workflows
 - Skill Integration
 - Workflows
-- Mokaid.Billing.Workers.AutoRechargeWorker
+- 4. Repository Conversion
 - Advanced Patterns
-- Update Operations
+- MokaidWeb.WorkspaceChannel
 - Integration Patterns
 - Dashboard Design Principles
 - Three Pillars of Observability
@@ -2629,7 +2630,7 @@
 - Jumps
 - Agent domain packs
 - Additional Resources
-- Mokaid.KnowledgeTest
+- 11. Technical Question to User
 - auto.md
 - azure-functions-typescript.instructions
 - Advanced Exception Handling and Monitoring
@@ -2690,7 +2691,7 @@
 - Practical Logic App Examples
 - 8. Test Failure Output
 - 8. Test Failure Output
-- 9. Git Status/Diff Output
+- Transport Options
 - expert-cpp-software-engineer-agent.md
 - first-ask.md
 - 10. Multi-Step Task Planning
@@ -2698,7 +2699,7 @@
 - 13. File Deletion
 - 14. Complex Error Message
 - 15. Task Completion Summary
-- clsx
+- @hookform/resolvers
 - 5. Git Operation
 - 8. Test Failure Output
 - 9. Git Status/Diff Output
@@ -2744,7 +2745,7 @@
 - Module Discovery
 - Log Aggregation Patterns
 - Distributed Tracing Strategies
-- 2. File Edit Approval
+- MokaidWeb.DispatchController
 - Integration and Self-Containment
 - Attribution — media_video
 - Error Handling
@@ -2766,7 +2767,7 @@
 - skeleton-inventory.md
 - skeleton-stride-analysis.md
 - skeleton-threatmodel.md
-- Miscellaneous
+- @radix-ui/react-context-menu
 - Runbook Generation and Incident Response
 - Attribution — support_cs
 - mentor-agent.md
@@ -2807,49 +2808,59 @@
 - support-cs-playbook.md
 - boost-prompt.md
 - eslint
-- clsx
+- @radix-ui/react-tooltip
 - phoenix
+- @tanstack/react-router
 - @radix-ui/react-switch
 - MokaidWeb.Plugs.WorkspaceScope
+- Bounding Spheres
+- File Organization and Naming
+- Read Operations
 - Collision Detection with Three.js
 - Mokaid.KnowledgeTest
 - Tool Configuration
-- search_controller.ex
+- 14. Complex Error Message
+- Mokaid.Audit
 - _render-idle-preview.py
 - Cost Optimization for Observability
-- MokaidWeb.CalendarController
+- @typescript-eslint/eslint-plugin
 - Read Operations
 - 12. Package Installation
-- 6. URL Access
-- autoprefixer
-- 15. Task Completion Summary
-- Best Practices
+- CROWD_AGENT_RADIUS
+- gsap
+- @mokaid/design-tokens
+- MokaidWeb.Plugs.WorkspaceScope
 - @mokaid/shared-types
-- 7. Build Error Output
+- @radix-ui/react-progress
 - 9. Git Status/Diff Output
-- @radix-ui/react-tooltip
-- @tanstack/react-router
+- @radix-ui/react-select
+- recast-navigation
 - zod
-- Module Discovery
-- typescript
-- @typescript-eslint/eslint-plugin
+- @types/react-dom
+- @typescript-eslint/parser
+- invoice_cleanup_worker.ex
 - vitest
-- Collections
-- eslint
-- main.tsx
-- Runbook Generation and Incident Response
+- Keyboard Controls
+- 4. Repository Conversion
+- 10. Multi-Step Task Planning
+- 14. Complex Error Message
+- 12. Package Installation
+- 11. Technical Question to User
+- @mokaid/shared-types
+- Transport Options
+- @typescript-eslint/eslint-plugin
 
 ## God Nodes (most connected - your core abstractions)
-1. `cn()` - 130 edges
-2. `useAuthStore` - 57 edges
-3. `OfficeScene` - 53 edges
-4. `MokaidWeb.JSON` - 41 edges
-5. `RunRequest` - 40 edges
-6. `Button` - 40 edges
-7. `PhoenixClient` - 38 edges
-8. `RunContext` - 37 edges
-9. `Documentation Verification` - 37 edges
-10. `Mokaid.AI.Dispatcher` - 35 edges
+1. `cn()` - 146 edges
+2. `apiFetch()` - 107 edges
+3. `OfficeScene` - 78 edges
+4. `useAuthStore` - 59 edges
+5. `Button` - 47 edges
+6. `MokaidWeb.JSON` - 41 edges
+7. `RunRequest` - 40 edges
+8. `PhoenixClient` - 38 edges
+9. `RunContext` - 37 edges
+10. `Documentation Verification` - 37 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `test_looks_like_text_rejects_decoded_binary()` --calls--> `looks_like_text()`  [INFERRED]
@@ -2866,23 +2877,23 @@
 ## Import Cycles
 - None detected.
 
-## Communities (2848 total, 202 thin omitted)
+## Communities (2855 total, 208 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.09
 Nodes (46): analyze_file(), _download(), extract_document_text(), _pick_attached_file(), Any, File processing tools: image modification, analysis, audio transcription, docume, Download a file from a presigned URL., Analyze any file (image, document) using GPT-4 Vision and return a text descript (+38 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.14
-Nodes (23): useCreateWorkspace(), useDispatchConfirm(), DispatchAnalysis, DispatchFileInput, Workspace, AskBar(), makePending(), PendingFile (+15 more)
+Cohesion: 0.29
+Nodes (7): Array Types, Conventional Features, Matrix Types, Scalar Types, Structure Types, Types, Vector Types
 
 ### Community 2 - "Community 2"
-Cohesion: 0.10
-Nodes (27): _build_model(), _colleagues_block(), _conversation_block(), _deliverable_rule(), _describe_action(), _domain_expertise_block(), _Engine, execute() (+19 more)
+Cohesion: 0.35
+Nodes (10): aabb_from_points(), band_ok(), grid_boxes(), islands_of(), main(), Vector, Exhaustive obstacle dump from office.blend for runtime collision.  For every mes, Connected-component AABBs in glTF space. (+2 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.05
-Nodes (54): useAgentChatMessages(), useAgentChats(), useAgentConversations(), useMarkAgentChatRead(), useNewConversation(), useSendAgentChatMessage(), useUploadDriveFile(), AgentChatConversation (+46 more)
+Cohesion: 0.04
+Nodes (100): apiUpload(), useAgentProgression(), useAgents(), useCancelInvite(), useCreateKnowledge(), useDeleteAgent(), useInviteMember(), useKnowledgeCategories() (+92 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.05
@@ -2893,28 +2904,28 @@ Cohesion: 0.04
 Nodes (48): Argument Parsing Pattern, Arithmetic, Asset Templates, batch-files, Batch Files, Best Practices, CMD Keyboard Shortcuts, Command Interpretation (+40 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.11
-Nodes (22): DeskSeat, NavNode, NavPoint, OFFICE_POIS, buildRouteCache(), cachedDeskToPoi(), cachedPoiToDesk(), CachedRoute (+14 more)
+Cohesion: 0.25
+Nodes (3): MokaidWeb.AgentChatController, build_attachments(), create()
 
 ### Community 7 - "Community 7"
-Cohesion: 0.10
-Nodes (33): simulate(), Aabb2, cellOf(), DIRS, dist2(), findPath(), FindPathOptions, floorYAt() (+25 more)
+Cohesion: 0.06
+Nodes (57): simulate(), cellOf(), DeskSeat, DIRS, dist2(), distToAabbEdge(), findPath(), FindPathOptions (+49 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.04
-Nodes (94): useAgentProgression(), useCalendarEvents(), useKnowledgeItems(), useUploadAgentFiles(), Task, AgentAvatar(), AgentAvatarSize, AgentAvatarSource (+86 more)
+Cohesion: 0.67
+Nodes (3): Loading the Hero Image, Spawning the Hero, The Main Character Sprite
 
 ### Community 9 - "Community 9"
-Cohesion: 0.05
-Nodes (58): Agent, AgentArchetype, AgentBoostTier, AgentCapabilities, AgentCatalog, AgentCounts, AgentLearning, AgentProgression (+50 more)
+Cohesion: 0.04
+Nodes (89): MeUser, useCalendarEvents(), Agent, AgentArchetype, AgentBoostTier, AgentCapabilities, AgentCatalog, AgentChatConversation (+81 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.11
 Nodes (37): MokaidWeb.JSON, agent(), agent_chat_message(), calendar_event(), chat_attachments(), comment(), comments(), drive_item() (+29 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.10
-Nodes (6): playAgentAnimation(), poiById(), isIdleVisual(), OfficeScene, readOfficeCamOverride(), SceneCallbacks
+Cohesion: 0.09
+Nodes (6): groundAgent(), OfficeLightDef, pathForSeat(), isIdleVisual(), OfficeScene, readOfficeCamOverride()
 
 ### Community 12 - "Community 12"
 Cohesion: 0.04
@@ -2922,15 +2933,15 @@ Nodes (47): 10. Cleanup & Housekeeping, 11. Comprehensive Example: Full Workflow
 
 ### Community 13 - "Community 13"
 Cohesion: 0.08
-Nodes (27): AGENT_GLB_URL, resolveAgentGlbUrl(), AgentAnimPlayer, AgentModelTemplate, applyTint(), cacheFor(), CLIP_ALIASES, disposeAgentAnims() (+19 more)
+Nodes (28): env, envSchema, AGENT_GLB_URL, resolveAgentGlbUrl(), AgentAnimPlayer, AgentModelTemplate, applyTint(), cacheFor() (+20 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.05
-Nodes (37): devDependencies, @eslint/js, eslint-plugin-react-hooks, jsdom, postcss, prettier, tailwindcss, @testing-library/jest-dom (+29 more)
+Nodes (39): devDependencies, autoprefixer, eslint, @eslint/js, eslint-plugin-react-hooks, jsdom, playwright, @playwright/test (+31 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.35
-Nodes (10): aabb_from_points(), band_ok(), grid_boxes(), islands_of(), main(), Vector, Exhaustive obstacle dump from office.blend for runtime collision.  For every mes, Connected-component AABBs in glTF space. (+2 more)
+Cohesion: 0.16
+Nodes (11): playAgentAnimation(), setAgentCollisionsEnabled(), syncColliderToRoot(), crowdAgentIsStuck(), crowdNavTarget(), deskSocket(), floorYAt(), nearestAislePoint() (+3 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.04
@@ -2938,7 +2949,7 @@ Nodes (47): 1. Migration Strategy Planning, 2. Compatibility Analysis, 3. Rollba
 
 ### Community 17 - "Community 17"
 Cohesion: 0.06
-Nodes (66): _colleague_knowledge(), consult(), find_colleague(), Any, Agent-to-agent consultation.  Gives the running deep agent a `consult_colleague`, Retrieves the colleague's own vectorized knowledge relevant to the     question,, Runs one consultation round and posts both sides in the task thread., MissionLearnings (+58 more)
+Nodes (62): _colleague_knowledge(), consult(), find_colleague(), Any, Agent-to-agent consultation.  Gives the running deep agent a `consult_colleague`, Retrieves the colleague's own vectorized knowledge relevant to the     question,, Runs one consultation round and posts both sides in the task thread., language_for_request() (+54 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.14
@@ -2950,7 +2961,7 @@ Nodes (30): Mokaid.AI.Dispatcher, agent_score(), analyze(), apply_grants(), buil
 
 ### Community 20 - "Community 20"
 Cohesion: 0.09
-Nodes (27): useCompanyBrain(), useKnowledgeGraph(), useKnowledgeOfficeZones(), useRebuildKnowledgeGraph(), useReindexKnowledgeGraph(), KnowledgeGraphPanel(), env, envSchema (+19 more)
+Nodes (30): useCompanyBrain(), useKnowledgeGraph(), useKnowledgeOfficeZones(), useRebuildKnowledgeGraph(), useReindexKnowledgeGraph(), KnowledgeGraphPanel(), disposeOfficeHostLazy(), SceneState (+22 more)
 
 ### Community 21 - "Community 21"
 Cohesion: 0.10
@@ -2970,55 +2981,55 @@ Nodes (30): compilerOptions, allowImportingTsExtensions, baseUrl, isolatedModule
 
 ### Community 25 - "Community 25"
 Cohesion: 0.06
-Nodes (31): dependencies, @babylonjs/core, framer-motion, gsap, @hookform/resolvers, lucide-react, @mokaid/design-tokens, @mokaid/shared-types (+23 more)
+Nodes (33): dependencies, @babylonjs/core, @babylonjs/loaders, clsx, lenis, phoenix, @radix-ui/react-avatar, @radix-ui/react-dropdown-menu (+25 more)
 
 ### Community 26 - "Community 26"
 Cohesion: 0.05
 Nodes (40): 1. Gather Research Inputs, 2. Process the Research, 3. Identify Themes and Patterns, 4. Generate the Synthesis, 5. Review and Extend, Affinity Mapping, Building Evidence-Based Personas, Combining Qualitative and Quantitative Insights (+32 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.05
-Nodes (72): apiFetch(), apiUpload(), fetchWorkspaceLogoBlob(), RequestOptions, syncAuthUser(), useChangePassword(), useFigmaOauthCallback(), useGithubOauthCallback() (+64 more)
+Cohesion: 0.10
+Nodes (36): useFigmaOauthCallback(), useGithubOauthCallback(), useGoogleOauthCallback(), useLinearOauthCallback(), useNotionOauthCallback(), useSlackOauthCallback(), Logo(), Button (+28 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.09
 Nodes (15): Mokaid.Tasks, active_runs_for_task(), assign_task(), create_comment(), create_task(), detail_preloads(), get_task(), list_tasks() (+7 more)
 
 ### Community 29 - "Community 29"
-Cohesion: 0.06
-Nodes (53): useAttachTaskFile(), useCreateCalendarEvent(), useCreateKnowledge(), useCreateProject(), useCreateTask(), useDeleteProject(), useDispatchAnalyze(), useExecuteAi() (+45 more)
+Cohesion: 0.05
+Nodes (59): useAttachTaskFile(), useCreateCalendarEvent(), useCreateProject(), useCreateTask(), useDeleteProject(), useDeleteTask(), useDispatchAnalyze(), useExecuteAi() (+51 more)
 
 ### Community 30 - "Community 30"
 Cohesion: 0.14
 Nodes (27): Mokaid.AI, cancel_active_runs_for_task(), cancel_run(), chat_completion_ack(), chat_delivery_message(), chat_output_attachments(), conversation_entries(), default_input() (+19 more)
 
 ### Community 31 - "Community 31"
-Cohesion: 0.18
-Nodes (21): actionKind(), alreadyFriendly(), capitalizeSentence(), defaultEyebrow(), extractProviderMessage(), formatNotificationBody(), formatNotificationTitle(), humanizeErrorMessage() (+13 more)
+Cohesion: 0.14
+Nodes (28): useMarkNotificationRead(), useNotifications(), NotificationRow(), TONE_DOT, TONE_EYEBROW, Topbar(), actionKind(), alreadyFriendly() (+20 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.16
 Nodes (25): append_accessor(), BufferBuilder, build_clip(), finger_curl(), load_glb(), main(), make_channel(), node_index_by_name() (+17 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.04
-Nodes (98): ApiError, Asset3d, BillingPlanSummary, MeUser, useAgent(), useAgentCatalog(), useAgentMcpGrants(), useAnalyticsOverview() (+90 more)
+Cohesion: 0.07
+Nodes (50): fetchWorkspaceLogoBlob(), Asset3d, BillingPlanSummary, useAgentCatalog(), useAssets3d(), useBillingOverview(), useBillingPlans(), useConnectIntegration() (+42 more)
 
 ### Community 34 - "Community 34"
 Cohesion: 0.12
 Nodes (21): Mokaid.Knowledge, create_from_upload(), create_item(), enqueue_ingestion(), extractable_filename?(), fuse_results(), ingestable_file?(), inline_body() (+13 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.07
-Nodes (28): Mokaid.Agents.DomainPacks, attach_domain_pack_capabilities(), bool_to_int(), corpus_doc_count(), docs_for(), empty_index(), maybe_grant_mcp(), maybe_put_brief() (+20 more)
+Cohesion: 0.09
+Nodes (11): Mokaid.Members, add_owner(), count_active_owners(), create_invite(), get_role_by_name(), list_leave_requests(), maybe_filter_member(), maybe_filter_status() (+3 more)
 
 ### Community 36 - "Community 36"
 Cohesion: 0.19
 Nodes (24): append_accessor(), BufferBuilder, build_mixamo_clip(), copy_accessor(), load_glb(), main(), make_channel(), merge_walking() (+16 more)
 
 ### Community 37 - "Community 37"
-Cohesion: 0.13
-Nodes (14): Array Types, Conventional Features, Getting Started, Installation, Matrix Types, Project Overview, Scalar Types, slang-documentation-full (+6 more)
+Cohesion: 0.25
+Nodes (7): Getting Started, Installation, Project Overview, slang-documentation-full, Slang Language Documentation - Complete Reference, Table of Contents, Your First Slang Shader
 
 ### Community 38 - "Community 38"
 Cohesion: 0.11
@@ -3033,8 +3044,8 @@ Cohesion: 0.04
 Nodes (47): Audio Control, Audio Events, Authentication, Basic Pattern, CDN, Chat Events, client.init() - All Options, client.join() - All Options (+39 more)
 
 ### Community 41 - "Community 41"
-Cohesion: 0.06
-Nodes (17): MokaidWeb.WorkspaceChannel, MokaidWeb.LeaveRequestController, approve(), decide(), reject(), MokaidWeb.Plugs.Authenticate, call(), resolve_user() (+9 more)
+Cohesion: 0.05
+Nodes (18): Mokaid.AI.Workers.ConverseWorker, Mokaid.Billing.Workers.UsageAggregationWorker, Mokaid.Repo, Mokaid.Tasks.Workers.OverdueTaskWorker, MokaidWeb.TaskChannel, MokaidWeb.SearchController, Mokaid.AccountsTest, Mokaid.AgentChatTest (+10 more)
 
 ### Community 42 - "Community 42"
 Cohesion: 0.19
@@ -3057,24 +3068,24 @@ Cohesion: 0.08
 Nodes (55): get_settings(), Settings, _anthropic_chat(), _anthropic_model(), _as_vision_image_url(), chat(), chat_json(), chat_stream() (+47 more)
 
 ### Community 47 - "Community 47"
-Cohesion: 0.12
-Nodes (16): Command Line Reference, CPU Options, CUDA Options, `-cuda-sm <version>`, `-fpic`, `-fvk-use-entrypoint-name`, `-fvk-use-gl-layout`, `-g` (+8 more)
+Cohesion: 0.09
+Nodes (23): Advanced Options, `-capability <cap>`, Command Line Reference, CPU Options, CUDA Options, `-cuda-sm <version>`, `-emit-ir`, `-fpic` (+15 more)
 
 ### Community 48 - "Community 48"
 Cohesion: 0.15
 Nodes (13): MokaidWeb.WorkerResourceController, agent_chat_message(), decode_content(), explain_concept(), file_extension(), knowledge_path(), maybe_start_chat_task(), presence() (+5 more)
 
 ### Community 49 - "Community 49"
-Cohesion: 0.15
-Nodes (18): AgentAnimMap, AgentAnimName, cacheAvailable(), fetchAssetCached(), pruneStale(), readWithProgress(), OFFICE_BLOOM, OFFICE_CAMERA (+10 more)
+Cohesion: 0.13
+Nodes (21): AGENT_ELLIPSOID, AGENT_ELLIPSOID_OFFSET, createAgentCollider(), createObstacleColliders(), disposeObstacleColliders(), addCrowdAgent(), buildOfficeFloorMesh(), createOfficeCrowd() (+13 more)
 
 ### Community 50 - "Community 50"
 Cohesion: 0.04
 Nodes (46): Append Mode (Default - Preserves Guardrails), Automatic Cleanup with Using, Basic Client Setup, Best Practices, Bring Your Own Key (BYOK), Checking Connection State, Client Configuration Options, Client Initialization (+38 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.14
-Nodes (11): Mokaid.Agents, active_agent_count(), blank?(), change_status(), create_agent(), find_free_seat(), list_agents(), maybe_filter() (+3 more)
+Cohesion: 0.12
+Nodes (23): Mokaid.Agents, active_agent_count(), apply_internal_update(), blank?(), boost_training_step_ms(), broadcast_training_progress(), change_status(), climb_levels() (+15 more)
 
 ### Community 52 - "Community 52"
 Cohesion: 0.23
@@ -3093,8 +3104,8 @@ Cohesion: 0.14
 Nodes (17): make_docx(), make_pdf(), make_pptx(), make_xlsx(), Extractor tests with generated fixtures — no LLM, no network.  Each fixture is b, test_corrupt_docx_returns_none(), test_docx_extraction_headings_and_tables(), test_empty_input_returns_none() (+9 more)
 
 ### Community 56 - "Community 56"
-Cohesion: 0.21
-Nodes (11): AgentSceneLabel, stateColor, stateText, SecondaryActivity, secondaryActivityLabel(), attachOfficeHost(), createCanvas(), disposeOfficeHost() (+3 more)
+Cohesion: 0.40
+Nodes (9): find_file(), find_in_library(), load_clip_library(), _load_module(), main(), Any, Path, Return list of (anim, gltf, bin) for every source animation. (+1 more)
 
 ### Community 57 - "Community 57"
 Cohesion: 0.12
@@ -3107,6 +3118,10 @@ Nodes (17): build_acknowledgement(), _fallback_reply(), post_acknowledgement(), 
 ### Community 59 - "Community 59"
 Cohesion: 0.27
 Nodes (17): answer(), check(), Corpus, cosine(), index_documents(), main(), make_finance_xlsx(), make_legal_docx() (+9 more)
+
+### Community 60 - "Community 60"
+Cohesion: 0.33
+Nodes (8): MokaidWeb.WorkspaceController, authorize_same_workspace(), delete(), logo(), show(), update(), upload_logo(), validate_logo_file()
 
 ### Community 61 - "Community 61"
 Cohesion: 0.20
@@ -3121,8 +3136,8 @@ Cohesion: 0.20
 Nodes (15): Mokaid.Integrations.LogoAssets, content_type(), find_file(), seed_one(), upload(), Mokaid.Storage, download_url(), get_object() (+7 more)
 
 ### Community 64 - "Community 64"
-Cohesion: 0.09
-Nodes (29): useAgents(), useCancelInvite(), useDeleteAgent(), useIntegrations(), useInviteMember(), useLinkMemberAgent(), useMarkNotificationRead(), useMembers() (+21 more)
+Cohesion: 0.52
+Nodes (7): Mokaid.AI.Workers.AgentChatWorker, conversation(), current_tasks(), enrich_attachments(), member_name(), perform(), stale_trigger?()
 
 ### Community 65 - "Community 65"
 Cohesion: 0.15
@@ -3138,7 +3153,7 @@ Nodes (13): AgentAlternative, analyze(), CustomAgentSpec, DispatchAnalysis, Disp
 
 ### Community 68 - "Community 68"
 Cohesion: 0.20
-Nodes (14): Mokaid.Agents.Archetypes, blank_to_nil(), build_create_attrs(), catalog(), fetch_archetype(), fetch_boost(), get_archetype(), get_boost() (+6 more)
+Nodes (15): Mokaid.Agents.Archetypes, blank_to_nil(), build_create_attrs(), catalog(), fetch_archetype(), fetch_boost(), get_archetype(), get_boost() (+7 more)
 
 ### Community 69 - "Community 69"
 Cohesion: 0.10
@@ -3149,8 +3164,8 @@ Cohesion: 0.21
 Nodes (10): MokaidWeb.BillingController, change_plan(), checkout(), credits_checkout(), open_checkout(), overview(), put_if(), safe_return_path() (+2 more)
 
 ### Community 71 - "Community 71"
-Cohesion: 0.09
-Nodes (23): features, HeroScene(), LazyWhenVisible(), Props, SiteFooter(), Footer, FooterAnchor(), FooterColumn (+15 more)
+Cohesion: 0.05
+Nodes (59): ApiError, RequestOptions, syncAuthUser(), useAnalyticsOverview(), useChangePassword(), useMe(), useRemoveAvatar(), useUpdateMe() (+51 more)
 
 ### Community 72 - "Community 72"
 Cohesion: 0.38
@@ -3208,10 +3223,6 @@ Nodes (9): Mokaid.Integrations.GitHubOAuth, authorize_url(), config(), configure
 Cohesion: 0.33
 Nodes (9): Mokaid.Integrations.LinearOAuth, authorize_url(), config(), configured?(), ensure_configured(), exchange_code(), fetch_account(), request_tokens() (+1 more)
 
-### Community 86 - "Community 86"
-Cohesion: 0.05
-Nodes (19): Mokaid.Agents.Workers.DomainPackSeedWorker, Mokaid.AI.Workers.ConverseWorker, Mokaid.Billing.Workers.InvoiceCleanupWorker, Mokaid.Billing.Workers.SubscriptionRenewalWorker, Mokaid.Billing.Workers.UsageAggregationWorker, Mokaid.Repo, Mokaid.Tasks.Workers.OverdueTaskWorker, MokaidWeb.TaskChannel (+11 more)
-
 ### Community 87 - "Community 87"
 Cohesion: 0.18
 Nodes (3): MokaidWeb.TaskController, default_run_input(), execute_ai()
@@ -3248,25 +3259,17 @@ Nodes (9): Mokaid.MCP.FigmaOAuth, authorize_url(), config(), configured?(), ensu
 Cohesion: 0.15
 Nodes (5): MokaidWeb.AuthController, generate_slug(), register(), upload_avatar(), validate_avatar_file()
 
-### Community 96 - "Community 96"
-Cohesion: 0.33
-Nodes (8): MokaidWeb.WorkspaceController, authorize_same_workspace(), delete(), logo(), show(), update(), upload_logo(), validate_logo_file()
-
 ### Community 97 - "Community 97"
 Cohesion: 0.25
 Nodes (6): Mokaid.Assets3d, backfill_agent_avatar_ids(), default_character(), get_asset_by_slug(), migrate_legacy_slugs(), seed_catalog()
 
 ### Community 98 - "Community 98"
-Cohesion: 0.22
-Nodes (12): Pauses the run for approval when the tool is risky. Returns         (approved, e, Executes one gated tool call and records it on the run state., Approval policy — decides which tool calls require a human in the loop.  Mirrors, MCP tools default to MEDIUM; sensitive writes are gated behind approval., requires_approval(), _risk_for_mcp_tool(), risk_for_tool(), RiskLevel (+4 more)
+Cohesion: 0.26
+Nodes (17): Mokaid.Agents.DomainPacks, attach_domain_pack_capabilities(), bool_to_int(), corpus_doc_count(), docs_for(), empty_index(), maybe_grant_mcp(), maybe_put_brief() (+9 more)
 
 ### Community 99 - "Community 99"
 Cohesion: 0.40
 Nodes (9): Mokaid.Release, load_app(), migrate(), provision_dev_user(), repos(), rollback(), seed(), seed_catalogs() (+1 more)
-
-### Community 100 - "Community 100"
-Cohesion: 0.25
-Nodes (3): MokaidWeb.AgentChatController, build_attachments(), create()
 
 ### Community 101 - "Community 101"
 Cohesion: 0.19
@@ -3289,16 +3292,16 @@ Cohesion: 0.04
 Nodes (45): Append Mode (Default - Preserves Guardrails), Basic Client Setup, Best Practices, Bring Your Own Key (BYOK), Checking Connection State, Cleanup with Defer, Client Configuration Options, Client Initialization (+37 more)
 
 ### Community 106 - "Community 106"
-Cohesion: 0.52
-Nodes (7): Mokaid.AI.Workers.AgentChatWorker, conversation(), current_tasks(), enrich_attachments(), member_name(), perform(), stale_trigger?()
+Cohesion: 0.22
+Nodes (4): AgentStatusChangedPayload, PresenceMeta, TaskStatusChangedPayload, WorkspaceEvent
 
 ### Community 107 - "Community 107"
 Cohesion: 0.30
 Nodes (13): Mokaid.Billing.Credits, broadcast(), broadcast_balance(), can_start_task?(), charge_run(), cost_cents_to_credits(), do_charge(), get_subscription() (+5 more)
 
 ### Community 108 - "Community 108"
-Cohesion: 1.00
-Nodes (3): Mokaid.Tasks.Workers.StaleRunWorker, fail_run(), perform()
+Cohesion: 0.16
+Nodes (21): useCreateWorkspace(), useDispatchConfirm(), useInstallMcp(), AskBar(), makePending(), PendingFile, WorkspaceBadge(), WorkspaceProjectSwitcher() (+13 more)
 
 ### Community 109 - "Community 109"
 Cohesion: 0.04
@@ -3329,16 +3332,12 @@ Cohesion: 0.04
 Nodes (44): Basic GET Request, Capturing the Response, Chaining with andDo, Content Assertions, DELETE Request, Header Assertions, JSON Path Assertions, Key Points (+36 more)
 
 ### Community 116 - "Community 116"
-Cohesion: 0.50
-Nodes (4): Container (Collection) Creation, Database Setup for Azure Cosmos DB, Option 1: Manual Database Creation (Recommended for first run), Option 2: Automatic Creation
+Cohesion: 0.12
+Nodes (21): useApproveTaskAction(), useOnboardingSettings(), useTask(), useUpdateTask(), ReviewBanner(), ReviewGateModal(), useReviewQueueHydration(), AppShell() (+13 more)
 
 ### Community 117 - "Community 117"
 Cohesion: 0.52
 Nodes (7): Mokaid.Agents.Progression, apply_xp(), performance_score(), recent_memories(), record_completion(), snapshot(), xp_for_mission()
-
-### Community 118 - "Community 118"
-Cohesion: 0.67
-Nodes (6): Mokaid.AI.Workers.DispatchWorker, agent_persona(), cleanup_failed_run(), colleagues(), perform(), skill_names()
 
 ### Community 119 - "Community 119"
 Cohesion: 0.43
@@ -3381,8 +3380,8 @@ Cohesion: 0.60
 Nodes (4): Mokaid.Drive.DriveItem, changeset(), put_slug(), validate_storage_key()
 
 ### Community 129 - "Community 129"
-Cohesion: 0.15
-Nodes (16): _auth_headers(), is_write_tool(), McpToolbox, Any, qualified_name(), MCP client: connects to the remote MCP servers granted to an agent.  Tools are d, Returns (server_key, tool_name) for a qualified MCP tool name., Discovered MCP tools for one run, keyed by qualified name. (+8 more)
+Cohesion: 0.05
+Nodes (60): _build_model(), _colleagues_block(), _conversation_block(), _deliverable_rule(), _describe_action(), _domain_expertise_block(), _Engine, execute() (+52 more)
 
 ### Community 130 - "Community 130"
 Cohesion: 0.50
@@ -3433,8 +3432,8 @@ Cohesion: 0.67
 Nodes (3): Mokaid.Billing.UsageEvent, changeset(), put_occurred_at()
 
 ### Community 146 - "Community 146"
-Cohesion: 0.22
-Nodes (4): AgentStatusChangedPayload, PresenceMeta, TaskStatusChangedPayload, WorkspaceEvent
+Cohesion: 0.67
+Nodes (6): Mokaid.AI.Workers.DispatchWorker, agent_persona(), cleanup_failed_run(), colleagues(), perform(), skill_names()
 
 ### Community 148 - "Community 148"
 Cohesion: 0.67
@@ -3485,8 +3484,8 @@ Cohesion: 0.25
 Nodes (7): AI safety, Application hardening, Auditability, Authentication, Authorization, Security, Transport & storage
 
 ### Community 232 - "Community 232"
-Cohesion: 0.11
-Nodes (29): fetchDriveFileBlob(), useCreateFolder(), useDriveItems(), useDriveTrash(), useMoveDriveItem(), useMoveDriveItems(), useRestoreDriveItem(), useTrashDriveItem() (+21 more)
+Cohesion: 0.13
+Nodes (25): useAgentMcpGrants(), useFigmaOauthStart(), useGithubOauthStart(), useGoogleOauthStart(), useLinearOauthStart(), useMcpHub(), useNotionOauthStart(), useSetMcpGrant() (+17 more)
 
 ### Community 233 - "Community 233"
 Cohesion: 0.70
@@ -3501,24 +3500,24 @@ Cohesion: 0.29
 Nodes (6): Code review checklist, Core workflows, Debugging method, Engineering playbook, GitHub collaboration, Mission stance
 
 ### Community 236 - "Community 236"
-Cohesion: 0.07
-Nodes (34): useApproveTaskAction(), useDeleteTask(), useStopTaskAi(), useTask(), useToggleSubtask(), useUpdateTask(), TaskAttachment, TaskRunToolCall (+26 more)
+Cohesion: 0.05
+Nodes (56): useAgent(), useAgentChatMessages(), useAgentChats(), useAgentConversations(), useAgentTraining(), useLeaveRequests(), useMarkAgentChatRead(), useNewConversation() (+48 more)
 
 ### Community 237 - "Community 237"
-Cohesion: 0.67
-Nodes (3): Loading the Hero Image, Spawning the Hero, The Main Character Sprite
+Cohesion: 0.10
+Nodes (33): apiFetch(), fetchDriveFileBlob(), useChangePlan(), useCreateFolder(), useCreateLeaveRequest(), useCreateTaskComment(), useDisconnectIntegration(), useDriveItems() (+25 more)
 
 ### Community 238 - "Community 238"
 Cohesion: 0.22
-Nodes (8): 2d-platform-game, 2D Platform Game Template, Collision Detection Between Hero and Platforms, Gravity, Loading and Displaying the Background, Setting Global Gravity, The Game Loop, Understanding the Frame Cycle
+Nodes (8): 2d-platform-game, 2D Platform Game Template, Keyboard Controls, Loading and Displaying the Background, Reading Input in Update, Setting Up Input Keys, The Game Loop, Understanding the Frame Cycle
 
 ### Community 239 - "Community 239"
 Cohesion: 0.29
 Nodes (6): AI Workers, Development, Endpoints, Ingestion pipeline, Lifecycle, Tool risk model
 
 ### Community 240 - "Community 240"
-Cohesion: 0.22
-Nodes (10): SQS consumer for production dispatch.  Phoenix publishes JSON messages with a `t, bl_to_gltf(), collect_empties(), main(), mesh_world_bounds(), Vector, Dump walkable surfaces, obstacles, desk slots and named POIs from office.blend., Blender Z-up → glTF Y-up: (x, y, z) → (x, z, -y). (+2 more)
+Cohesion: 0.46
+Nodes (7): bl_to_gltf(), collect_empties(), main(), mesh_world_bounds(), Vector, Dump walkable surfaces, obstacles, desk slots and named POIs from office.blend., Blender Z-up → glTF Y-up: (x, y, z) → (x, z, -y).
 
 ### Community 241 - "Community 241"
 Cohesion: 0.29
@@ -3555,6 +3554,10 @@ Nodes (8): MokaidWeb.PaymeWebhookController, amount_matches?(), callback(), card
 ### Community 275 - "Mokaid.Knowledge.KnowledgeNode"
 Cohesion: 0.67
 Nodes (3): Mokaid.Knowledge.KnowledgeNode, changeset(), maybe_validate_lesson_status()
+
+### Community 276 - "Mokaid.Vault"
+Cohesion: 0.67
+Nodes (3): Module Discovery, Official AVM Index, Terraform Registry
 
 ### Community 277 - "graphify-setup.sh"
 Cohesion: 0.50
@@ -3869,8 +3872,8 @@ Cohesion: 0.05
 Nodes (37): 10. QUALITY.md Scenarios Reference Real Code and Label Sources, 11. RUN_CODE_REVIEW.md Is Self-Contained, 12. RUN_INTEGRATION_TESTS.md Is Executable and Field-Accurate, 13. RUN_SPEC_AUDIT.md Prompt Is Copy-Pasteable, 14. Structured Output Schemas Are Valid and Conformant, 15. Patch Validation Gate Is Executable, 16. Regression Test Skip Guards Are Present, 17. Integration Group Commands Pass Pre-Flight Discovery (+29 more)
 
 ### Community 359 - "Workflow Claude Subagents Agent"
-Cohesion: 0.50
-Nodes (4): File Organization and Naming, Naming Conventions, Organization/Enterprise-Level Agents, Repository-Level Agents
+Cohesion: 0.40
+Nodes (5): BoxHelper for Visual Debugging, Collision Detection with Three.js, Creating Bounding Volumes, Intersection Tests, Sphere vs. Box3 (Custom Patch)
 
 ### Community 360 - "Workflow Concepts Agent"
 Cohesion: 0.05
@@ -3928,10 +3931,6 @@ Nodes (5): Mokaid.Workspaces, create_workspace(), put_default_slug(), update_wor
 Cohesion: 0.06
 Nodes (33): 1. Security Scanner, 2. Vulnerability Assessor, 3. Compliance Checker, Authentication, Best Practices, compliance_checker.py, Compliance Frameworks, Core Capabilities (+25 more)
 
-### Community 374 - "MokaidWeb.NotificationController"
-Cohesion: 0.50
-Nodes (4): 2-stride-analysis.md, Anchor-Safe Headings (CRITICAL), Structure Requirements, Template
-
 ### Community 375 - "MokaidWeb.Plugs.WorkspaceScope"
 Cohesion: 0.06
 Nodes (33): 1. Current State, 2. Business Context, 3. Goals, Above the Fold, Annual vs. Monthly Toggle, Before Starting, Below the Fold, Common Value Metrics for SaaS (+25 more)
@@ -3975,6 +3974,10 @@ Nodes (4): Sciences playbook, Stance, Tools, Workflow
 ### Community 395 - "Writing playbook"
 Cohesion: 0.50
 Nodes (3): Stance, Workflow, Writing playbook
+
+### Community 396 - "Mokaid.KnowledgeTest"
+Cohesion: 0.50
+Nodes (4): Container (Collection) Creation, Database Setup for Azure Cosmos DB, Option 1: Manual Database Creation (Recommended for first run), Option 2: Automatic Creation
 
 ### Community 397 - "usage_aggregation_worker.ex"
 Cohesion: 0.06
@@ -4170,7 +4173,7 @@ Nodes (33): 1. Current State, 2. Goals, 3. Constraints, Anchor Text Rules, Befor
 
 ### Community 451 - "Advanced Options"
 Cohesion: 0.04
-Nodes (46): AgentsPage, AnalyticsPage, appRoute, AppShell, BillingPage, CalendarPage, CookiesPage, cookiesRoute (+38 more)
+Nodes (53): AgentsNewPage, agentsNewRoute, AgentsPage, AgentTrainingPage, agentTrainingRoute, AnalyticsPage, appRoute, AppShell (+45 more)
 
 ### Community 452 - "react-hook-form"
 Cohesion: 0.06
@@ -4181,8 +4184,8 @@ Cohesion: 0.06
 Nodes (33): Access Level Definitions, Anti-Patterns, Attack Path Graph Construction, Attack Path Methodology, Authorization Requirement, Choke Point Analysis, Choke Point Identification, Common Choke Points by Environment (+25 more)
 
 ### Community 454 - "2-stride-analysis.md"
-Cohesion: 0.67
-Nodes (3): Mokaid.Audit, actor_info(), log()
+Cohesion: 0.50
+Nodes (4): Best Practices, Continuous Improvement, Organizational Alignment, Technical Excellence
 
 ### Community 455 - "typescript"
 Cohesion: 0.06
@@ -4501,8 +4504,8 @@ Cohesion: 0.07
 Nodes (29): 1. Product & Customer, 2. Program Goals, 3. Current State (if optimizing), Affiliate Program Launch Checklist, Before Starting, Communication, How This Skill Works, Improving Referral Rate (+21 more)
 
 ### Community 534 - "Mokaid.Realtime"
-Cohesion: 0.53
-Nodes (5): MokaidWeb.MCPOAuthController, default_redirect_uri(), ensure_same_workspace(), figma_callback(), figma_start()
+Cohesion: 0.06
+Nodes (31): FinalCta(), features, HeroScene(), LazyWhenVisible(), Props, SiteFooter(), narrative, pillars (+23 more)
 
 ### Community 535 - "Snowflake Development"
 Cohesion: 0.07
@@ -5526,7 +5529,7 @@ Nodes (20): Best Practices, Best Practices, Best Practices, Code Examples, Code 
 
 ### Community 791 - "Noob Mode — Before & After Examples"
 Cohesion: 0.10
-Nodes (20): 11. Technical Question to User, 1. File Read Approval, 3. Bash Command — Safe Command, 4. Bash Command — Risky Command, 6. URL Access, 7. Build Error Output, glossary, Noob Mode — Before & After Examples (+12 more)
+Nodes (20): 15. Task Completion Summary, 1. File Read Approval, 3. Bash Command — Safe Command, 4. Bash Command — Risky Command, 6. URL Access, 7. Build Error Output, glossary, Noob Mode — Before & After Examples (+12 more)
 
 ### Community 792 - "Kotlin MCP Server Development Guidelines"
 Cohesion: 0.10
@@ -5678,7 +5681,7 @@ Nodes (19): agent-governance, Agent Governance Patterns, Best Practices, CrewAI,
 
 ### Community 829 - "Custom Agent File Guidelines"
 Cohesion: 0.10
-Nodes (20): Additional Resources, Agent Prompt Structure, Community Resources, Configuration Format, Custom Agent File Guidelines, Environment Variables and Secrets, GitHub.com (Coding Agent), Integration Testing (+12 more)
+Nodes (21): Agent Prompt Structure, Built-in MCP Server Tools, Configuration Format, Custom Agent File Guidelines, Environment Variables and Secrets, File Organization and Naming, GitHub.com (Coding Agent), MCP Server Configuration (Organization/Enterprise Only) (+13 more)
 
 ### Community 830 - "Official Abbreviations and Naming Rules"
 Cohesion: 0.10
@@ -5902,7 +5905,7 @@ Nodes (18): build-zoom-team-chat-app, /build-zoom-team-chat-app, Core Concepts, 
 
 ### Community 885 - "Conversion Steps"
 Cohesion: 0.11
-Nodes (19): 10. Data Seeding (If Applicable), 11. Application Profiles, 3. Entity Conversion, 4. Repository Conversion, 5. Service Layer Updates, 6. Controller Updates (If Applicable), 7. Data Mapping Utilities (If Applicable), 8. Test Updates (+11 more)
+Nodes (19): 10. Data Seeding (If Applicable), 11. Application Profiles, 2. Configuration Setup, 3. Entity Conversion, 5. Service Layer Updates, 6. Controller Updates (If Applicable), 7. Data Mapping Utilities (If Applicable), 8. Test Updates (+11 more)
 
 ### Community 886 - "Create TLDR Page"
 Cohesion: 0.11
@@ -6025,8 +6028,8 @@ Cohesion: 0.11
 Nodes (18): 1. Delivery Throughput (DORA Metrics), 2. Engineering Hiring Funnel, 3. Engineering Team Structure, 4. Production Discipline, Adjacent Skills, Core Responsibilities, Key Questions (ask these first), Keywords (+10 more)
 
 ### Community 916 - "Output Formats — Report File Templates"
-Cohesion: 0.11
-Nodes (19): 0.1-architecture.md, 1-threatmodel.md + 1.1-threatmodel.mmd, 1-threatmodel.md Content, Action Summary, Component Documentation, Content Structure, File Content Formatting — CRITICAL RULE, File List (+11 more)
+Cohesion: 0.09
+Nodes (23): 0.1-architecture.md, 1-threatmodel.md + 1.1-threatmodel.mmd, 1-threatmodel.md Content, 2-stride-analysis.md, Action Summary, Anchor-Safe Headings (CRITICAL), Component Documentation, Content Structure (+15 more)
 
 ### Community 917 - "WordPress Development — Copilot Instructions"
 Cohesion: 0.11
@@ -7022,7 +7025,7 @@ Nodes (14): 10. Full-Featured Configuration, 11. Ignore Patterns and Versioning 
 
 ### Community 1165 - "Noob Mode — Before & After Examples"
 Cohesion: 0.13
-Nodes (14): 10. Multi-Step Task Planning, 11. Technical Question to User, 14. Complex Error Message, 5. Git Operation, examples, Noob Mode — Before & After Examples, ✅ With Noob Mode, ✅ With Noob Mode (+6 more)
+Nodes (14): 10. Multi-Step Task Planning, 11. Technical Question to User, 5. Git Operation, 6. URL Access, examples, Noob Mode — Before & After Examples, ✅ With Noob Mode, ✅ With Noob Mode (+6 more)
 
 ### Community 1166 - "/cs:fda-qsr-audit-prep — FDA QSR Forcing Questions"
 Cohesion: 0.13
@@ -7111,10 +7114,6 @@ Nodes (14): Critical Final Instructions, Key Instructions, Methodology, Output F
 ### Community 1187 - "Phoenix Tracing: Python Setup"
 Cohesion: 0.13
 Nodes (14): API Reference, Auto-Instrumentation, Batch Processing (Production), Configuration, Environment Variables (Recommended), Example, Installation, Metadata (+6 more)
-
-### Community 1188 - "Slang Language Documentation - Complete Reference"
-Cohesion: 0.50
-Nodes (3): MokaidWeb.DispatchController, authorize_custom_agent(), confirm()
 
 ### Community 1189 - "/cs:soc2-audit-prep — SOC 2 Type II Forcing Questions"
 Cohesion: 0.13
@@ -7454,7 +7453,7 @@ Nodes (13): 10. Upgrade Checklist (Per Project), 11. Commit & PR Guidelines, 12.
 
 ### Community 1273 - "Noob Mode — Before & After Examples"
 Cohesion: 0.14
-Nodes (14): 10. Multi-Step Task Planning, 11. Technical Question to User, 5. Git Operation, 9. Git Status/Diff Output, Noob Mode — Before & After Examples, Reference (examples.md), ✅ With Noob Mode, ✅ With Noob Mode (+6 more)
+Nodes (14): 11. Technical Question to User, 2. File Edit Approval, 5. Git Operation, 9. Git Status/Diff Output, Noob Mode — Before & After Examples, Reference (examples.md), ✅ With Noob Mode, ✅ With Noob Mode (+6 more)
 
 ### Community 1274 - "Task playbooks"
 Cohesion: 0.14
@@ -8565,8 +8564,8 @@ Cohesion: 0.18
 Nodes (10): After the grill, cs-engineer-grill, /cs:engineer-grill — Cross-role engineering forcing-question grill, Discipline (Matt Pocock, MIT, preserved verbatim from `engineering/grill-me`), Lane: backend, Lane: frontend, Lane: fullstack, Output expectations (+2 more)
 
 ### Community 1551 - "5. CRUD Operations Best Practices"
-Cohesion: 0.18
-Nodes (11): 5. CRUD Operations Best Practices, Bulk Create (Automatically Optimized), Bulk Delete (Optimized), Bulk Update (Broadcast Same Change), Create Operations, Delete Operations, Paired Updates (1:1 Record Updates), Single Record (+3 more)
+Cohesion: 0.13
+Nodes (15): 5. CRUD Operations Best Practices, Bulk Create (Automatically Optimized), Bulk Delete (Optimized), Bulk Update (Broadcast Same Change), Create Operations, Delete Operations, Paired Updates (1:1 Record Updates), Query with Filtering & Selection (+7 more)
 
 ### Community 1552 - "Finding Defensive Patterns (Step 5)"
 Cohesion: 0.18
@@ -8887,6 +8886,10 @@ Nodes (10): Approval gates, Connector failures, Output, quarterly-review, Step 1
 ### Community 1631 - "Writing Skills"
 Cohesion: 0.18
 Nodes (10): Description Requirements, Process, Review Checklist, SKILL.md Template, Skill Structure, Tooling + Companions, When to Add Scripts, When to Split Files (+2 more)
+
+### Community 1632 - ".createAvatar"
+Cohesion: 0.40
+Nodes (3): consoleLogs, OUT, ROOT
 
 ### Community 1633 - "Instructions"
 Cohesion: 0.20
@@ -9298,7 +9301,7 @@ Nodes (9): Batch Processing, Data Masking (PII Protection), Error Handling, Meta
 
 ### Community 1735 - "Scala Best Practices"
 Cohesion: 0.20
-Nodes (9): Intercept Specific Exceptions, Miscellaneous, SBT Configuration, scala2.instructions, Scala Best Practices, Summary, Testing, URI over URL (+1 more)
+Nodes (9): Collections, Intercept Specific Exceptions, Monadic Chaining, Prefer Immutable Collections, SBT Configuration, scala2.instructions, Scala Best Practices, Summary (+1 more)
 
 ### Community 1736 - "Syntactic Style"
 Cohesion: 0.20
@@ -10814,7 +10817,7 @@ Nodes (6): Key Principles, phoenix-evals, Phoenix Evals, Quick Reference, Refere
 
 ### Community 2115 - "PHP MCP Server Development Best Practices"
 Cohesion: 0.29
-Nodes (6): Additional Resources, HTTP Transport, PHP MCP Server Development Best Practices, php-mcp-server.instructions, Stdio Transport, Transport Options
+Nodes (6): Additional Resources, Basic Prompt, PHP MCP Server Development Best Practices, php-mcp-server.instructions, Prompt Implementation, Prompt with Mixed Content
 
 ### Community 2116 - "/plan-zoom-integration"
 Cohesion: 0.29
@@ -10876,9 +10879,9 @@ Nodes (7): Associated Types, Explicit Parameter Blocks, Generics, Global-Scope G
 Cohesion: 0.29
 Nodes (7): Compiling for Reflection, Entry Point Layouts, Parameter Layouts, Reflection API, Types, Types and Variables, Variables
 
-### Community 2131 - "Mokaid.Vault"
-Cohesion: 0.83
-Nodes (4): Mokaid.Vault, decrypt(), decrypt_map(), key()
+### Community 2131 - "MokaidWeb.LeaveRequestController"
+Cohesion: 0.47
+Nodes (4): MokaidWeb.LeaveRequestController, approve(), decide(), reject()
 
 ### Community 2132 - "@SpringBootTest Changes"
 Cohesion: 0.29
@@ -11701,8 +11704,8 @@ Cohesion: 0.40
 Nodes (5): Level Transition Flow, Loading Level Data Dynamically, Passing Level Number Through init, Starting the Game at Level 0, Switching Levels
 
 ### Community 2337 - "MokaidWeb.IntegrationController"
-Cohesion: 0.40
-Nodes (9): find_file(), find_in_library(), load_clip_library(), _load_module(), main(), Any, Path, Return list of (anim, gltf, bin) for every source animation. (+1 more)
+Cohesion: 0.67
+Nodes (3): Incident Detection Patterns, Runbook Generation and Incident Response, Runbook Structure
 
 ### Community 2338 - "Agent Creation Checklist"
 Cohesion: 0.40
@@ -11716,9 +11719,9 @@ Nodes (3): Event-Driven Process with Error Handling, HTTP Request Handler with A
 Cohesion: 0.33
 Nodes (6): Executing Each Improvement Path, Iteration, Part 1: The Summary Table, Part 2: Drill-Down on Demand, Part 3: The Improvement Menu, Phase 7: Present, Explore, Improve (Interactive)
 
-### Community 2341 - "Common Mistakes to Avoid"
-Cohesion: 0.67
-Nodes (3): 2. File Edit Approval, ✅ With Noob Mode, ❌ Without Noob Mode
+### Community 2341 - "Mokaid.Fixtures"
+Cohesion: 0.47
+Nodes (6): Mokaid.AICompletionTest, setup_run!(), Mokaid.Fixtures, owner_member(), user_fixture(), workspace_fixture()
 
 ### Community 2342 - "🔐 SECURITY PROTOCOL & JAILBREAK PREVENTION"
 Cohesion: 0.40
@@ -12352,6 +12355,10 @@ Nodes (4): 1. Update Maven Dependencies, Add Azure Cosmos Dependencies, Critical
 Cohesion: 0.50
 Nodes (4): Authentication with Azure Cosmos DB, Key-Based Authentication (Local Emulator Only), RBAC Permissions Required, Using DefaultAzureCredential (Recommended)
 
+### Community 2500 - "Database Setup for Azure Cosmos DB"
+Cohesion: 0.46
+Nodes (5): CookieConsent(), mayLoadAnalytics(), CookieConsentValue, getCookieConsent(), setCookieConsent()
+
 ### Community 2501 - "Convert Spring JPA project to Spring Data Cosmos"
 Cohesion: 0.50
 Nodes (3): convert-jpa-to-spring-data-cosmos.instructions, Convert Spring JPA project to Spring Data Cosmos, High-level plan
@@ -12612,17 +12619,13 @@ Nodes (5): All Orchestrated Skills, Knowledge Bases, Python Tools, Skill Integra
 Cohesion: 0.40
 Nodes (5): Workflow 1: Research Plan Creation, Workflow 2: Persona Generation, Workflow 3: Journey Mapping, Workflow 4: Usability Test Analysis, Workflows
 
-### Community 2566 - "Mokaid.Billing.Workers.AutoRechargeWorker"
+### Community 2566 - "4. Repository Conversion"
 Cohesion: 0.67
 Nodes (3): Mokaid.Files, bucket(), create_from_upload()
 
 ### Community 2567 - "Advanced Patterns"
 Cohesion: 0.50
 Nodes (4): Advanced Patterns, Machine Learning Observability, Microservices Observability, Multi-Cloud Observability
-
-### Community 2568 - "Update Operations"
-Cohesion: 0.67
-Nodes (3): 2. File Edit Approval, ✅ With Noob Mode, ❌ Without Noob Mode
 
 ### Community 2569 - "Integration Patterns"
 Cohesion: 0.50
@@ -12836,10 +12839,6 @@ Nodes (3): Naming Patterns:, Required Properties:, Validation Rules
 Cohesion: 0.67
 Nodes (3): Formula Organization:, Performance Optimization:, Working with Formulas Best Practices
 
-### Community 2624 - "2-stride-analysis.md"
-Cohesion: 0.67
-Nodes (3): Basic Prompt, Prompt Implementation, Prompt with Mixed Content
-
 ### Community 2626 - "Backward Compatibility Guidelines"
 Cohesion: 0.67
 Nodes (3): Backward Compatibility Guidelines, Breaking Changes (Require Version Bump), Safe Changes (Non-Breaking)
@@ -12877,12 +12876,12 @@ Cohesion: 0.50
 Nodes (3): Agent domain packs, Re-harvest, Runtime
 
 ### Community 2635 - "Additional Resources"
-Cohesion: 0.40
-Nodes (5): Agent Processing and Behavior, MCP Server Processing Order, Name Conflicts, Tool Processing, Versioning
+Cohesion: 0.53
+Nodes (6): Mokaid.Calendar, create_event(), create_leave_event(), list_events(), maybe_filter(), maybe_range()
 
-### Community 2636 - "Mokaid.KnowledgeTest"
-Cohesion: 0.67
-Nodes (3): Keyboard Controls, Reading Input in Update, Setting Up Input Keys
+### Community 2636 - "11. Technical Question to User"
+Cohesion: 0.10
+Nodes (26): AgentAnimMap, AgentAnimName, AgentSceneLabel, stateColor, stateText, cacheAvailable(), fetchAssetCached(), pruneStale() (+18 more)
 
 ### Community 2639 - "Advanced Exception Handling and Monitoring"
 Cohesion: 0.67
@@ -12891,10 +12890,6 @@ Nodes (3): Advanced Exception Handling and Monitoring, Advanced Monitoring Archi
 ### Community 2640 - "Enhanced Security Practices"
 Cohesion: 0.67
 Nodes (3): Advanced Identity and Access Controls, Enhanced Security Practices, Sensitive Data Handling
-
-### Community 2641 - "Jumps"
-Cohesion: 0.67
-Nodes (3): Adding a Jump Sound Effect, Implementing the Jump Mechanic, Jumps
 
 ### Community 2642 - "Performance Optimization"
 Cohesion: 0.67
@@ -13020,6 +13015,10 @@ Nodes (3): 12. Performance Best Practices, Do's ✅, Don'ts ❌
 Cohesion: 0.67
 Nodes (3): 8. Paging & Large Result Sets, Manual Paging with Continuation Tokens, Pagination Pattern
 
+### Community 2675 - "9. File Operations"
+Cohesion: 0.67
+Nodes (3): Mokaid.Billing.Workers.AutoRechargeWorker, charge_and_credit(), perform()
+
 ### Community 2677 - "12. Package Installation"
 Cohesion: 0.67
 Nodes (3): 12. Package Installation, ✅ With Noob Mode, ❌ Without Noob Mode
@@ -13052,6 +13051,10 @@ Nodes (3): 1. File Read Approval, ✅ With Noob Mode, ❌ Without Noob Mode
 Cohesion: 0.67
 Nodes (3): 1. File Read Approval, ✅ With Noob Mode, ❌ Without Noob Mode
 
+### Community 2685 - "search_controller.ex"
+Cohesion: 0.22
+Nodes (10): collect(), main(), obstacle_rows(), Regenerate the office navigation data from office.blend.      blender --backgrou, Rasterise the room shell into boxes, keeping door openings open.      The shell, World-space bounds of one evaluated instance, in scene axes., scene_bounds(), wall_rects() (+2 more)
+
 ### Community 2686 - "2. File Edit Approval"
 Cohesion: 0.67
 Nodes (3): 2. File Edit Approval, ✅ With Noob Mode, ❌ Without Noob Mode
@@ -13081,8 +13084,8 @@ Cohesion: 0.67
 Nodes (3): 7. Build Error Output, ✅ With Noob Mode, ❌ Without Noob Mode
 
 ### Community 2694 - "Practical Logic App Examples"
-Cohesion: 0.29
-Nodes (7): Advanced Options, `-capability <cap>`, `-emit-ir`, `-load-stdlib-from <path>`, `-matrix-layout-column-major`, `-matrix-layout-row-major`, `-no-stdlib`
+Cohesion: 0.25
+Nodes (6): consoleLogs, FOOSBALL_TABLE, OUT, ROOT, SOFA_BACKREST, WATCH_SECONDS
 
 ### Community 2695 - "8. Test Failure Output"
 Cohesion: 0.67
@@ -13091,6 +13094,10 @@ Nodes (3): 8. Test Failure Output, ✅ With Noob Mode, ❌ Without Noob Mode
 ### Community 2696 - "8. Test Failure Output"
 Cohesion: 0.67
 Nodes (3): 8. Test Failure Output, ✅ With Noob Mode, ❌ Without Noob Mode
+
+### Community 2697 - "Transport Options"
+Cohesion: 0.67
+Nodes (3): Creating Platforms, Loading Platform Assets, Spawning Platforms from Level Data
 
 ### Community 2700 - "10. Multi-Step Task Planning"
 Cohesion: 0.67
@@ -13107,14 +13114,6 @@ Nodes (3): 13. File Deletion, ✅ With Noob Mode, ❌ Without Noob Mode
 ### Community 2703 - "14. Complex Error Message"
 Cohesion: 0.67
 Nodes (3): 14. Complex Error Message, ✅ With Noob Mode, ❌ Without Noob Mode
-
-### Community 2704 - "15. Task Completion Summary"
-Cohesion: 0.67
-Nodes (3): 2. Configuration Setup, Application Properties, Create Cosmos Configuration Class
-
-### Community 2705 - "clsx"
-Cohesion: 0.67
-Nodes (3): Creating Platforms, Loading Platform Assets, Spawning Platforms from Level Data
 
 ### Community 2706 - "5. Git Operation"
 Cohesion: 0.67
@@ -13216,9 +13215,9 @@ Nodes (3): Collection Architecture, Log Aggregation Patterns, Storage and Indexi
 Cohesion: 0.67
 Nodes (3): Distributed Tracing Strategies, Service Instrumentation, Trace Architecture
 
-### Community 2751 - "2. File Edit Approval"
-Cohesion: 0.53
-Nodes (6): Mokaid.Calendar, create_event(), create_leave_event(), list_events(), maybe_filter(), maybe_range()
+### Community 2751 - "MokaidWeb.DispatchController"
+Cohesion: 0.50
+Nodes (3): MokaidWeb.DispatchController, authorize_custom_agent(), confirm()
 
 ### Community 2752 - "Integration and Self-Containment"
 Cohesion: 0.67
@@ -13292,85 +13291,117 @@ Nodes (3): Cryptography, Input Validation, Security Best Practices
 Cohesion: 0.67
 Nodes (3): Development Practices, Essential Tools, Tools and Development Workflow
 
+### Community 2813 - "eslint"
+Cohesion: 0.50
+Nodes (3): MokaidWeb.Plugs.Authenticate, call(), resolve_user()
+
+### Community 2815 - "phoenix"
+Cohesion: 0.53
+Nodes (5): MokaidWeb.MCPOAuthController, default_redirect_uri(), ensure_same_workspace(), figma_callback(), figma_start()
+
 ### Community 2818 - "MokaidWeb.Plugs.WorkspaceScope"
 Cohesion: 0.40
 Nodes (5): Common Mistakes to Avoid, Frontmatter Errors, Organizational Issues, Prompt Content Problems, Tool Configuration Issues
 
+### Community 2819 - "Bounding Spheres"
+Cohesion: 0.25
+Nodes (8): EntityContactCard(), FOOTER_LINKS, LegalDocLayout(), Prose(), SectionTitle(), SubList(), COMPANY_REGISTRATION_NUMBER, LEGAL_ADDRESS_LINES
+
+### Community 2820 - "File Organization and Naming"
+Cohesion: 0.50
+Nodes (4): Additional Resources, Community Resources, Official Documentation, Related Files
+
+### Community 2821 - "Read Operations"
+Cohesion: 1.00
+Nodes (3): Mokaid.Tasks.Workers.StaleRunWorker, fail_run(), perform()
+
 ### Community 2822 - "Collision Detection with Three.js"
 Cohesion: 0.40
-Nodes (5): BoxHelper for Visual Debugging, Collision Detection with Three.js, Creating Bounding Volumes, Intersection Tests, Sphere vs. Box3 (Custom Patch)
+Nodes (5): Agent Processing and Behavior, MCP Server Processing Order, Name Conflicts, Tool Processing, Versioning
 
 ### Community 2823 - "Mokaid.KnowledgeTest"
 Cohesion: 0.67
 Nodes (3): 9. File Operations, Upload Large Files with Chunking, Upload Small Files (< 128 MB)
 
 ### Community 2824 - "Tool Configuration"
-Cohesion: 0.40
-Nodes (5): Built-in MCP Server Tools, Standard Tool Aliases, Tool Configuration, Tool Selection Best Practices, Tool Specification Strategies
-
-### Community 2825 - "search_controller.ex"
 Cohesion: 0.67
-Nodes (3): Mokaid.Billing.Workers.AutoRechargeWorker, charge_and_credit(), perform()
+Nodes (3): Adding a Jump Sound Effect, Implementing the Jump Mechanic, Jumps
 
-### Community 2830 - "Read Operations"
-Cohesion: 0.50
-Nodes (4): Query with Filtering & Selection, Read Operations, Single Record by ID, SQL Queries (Read-Only)
-
-### Community 2831 - "12. Package Installation"
-Cohesion: 0.67
-Nodes (3): 12. Package Installation, ✅ With Noob Mode, ❌ Without Noob Mode
-
-### Community 2832 - "6. URL Access"
-Cohesion: 0.67
-Nodes (3): 6. URL Access, ✅ With Noob Mode, ❌ Without Noob Mode
-
-### Community 2834 - "15. Task Completion Summary"
-Cohesion: 0.67
-Nodes (3): 15. Task Completion Summary, ✅ With Noob Mode, ❌ Without Noob Mode
-
-### Community 2835 - "Best Practices"
-Cohesion: 0.50
-Nodes (4): Best Practices, Continuous Improvement, Organizational Alignment, Technical Excellence
-
-### Community 2837 - "7. Build Error Output"
+### Community 2825 - "14. Complex Error Message"
 Cohesion: 0.67
 Nodes (3): 7. Build Error Output, ✅ With Noob Mode, ❌ Without Noob Mode
+
+### Community 2826 - "Mokaid.Audit"
+Cohesion: 0.67
+Nodes (3): Mokaid.Audit, actor_info(), log()
+
+### Community 2828 - "Cost Optimization for Observability"
+Cohesion: 0.67
+Nodes (3): 2. File Edit Approval, ✅ With Noob Mode, ❌ Without Noob Mode
+
+### Community 2829 - "@typescript-eslint/eslint-plugin"
+Cohesion: 0.83
+Nodes (4): Mokaid.Vault, decrypt(), decrypt_map(), key()
+
+### Community 2830 - "Read Operations"
+Cohesion: 0.67
+Nodes (3): Miscellaneous, URI over URL, Use nanoTime
+
+### Community 2831 - "12. Package Installation"
+Cohesion: 0.50
+Nodes (4): Integration Testing, Manual Testing, Quality Checks, Testing and Validation
 
 ### Community 2838 - "9. Git Status/Diff Output"
 Cohesion: 0.67
 Nodes (3): 9. Git Status/Diff Output, ✅ With Noob Mode, ❌ Without Noob Mode
 
-### Community 2842 - "Module Discovery"
+### Community 2846 - "Keyboard Controls"
 Cohesion: 0.67
-Nodes (3): Module Discovery, Official AVM Index, Terraform Registry
+Nodes (3): Collision Detection Between Hero and Platforms, Gravity, Setting Global Gravity
 
-### Community 2846 - "Collections"
+### Community 2847 - "4. Repository Conversion"
 Cohesion: 0.67
-Nodes (3): Collections, Monadic Chaining, Prefer Immutable Collections
+Nodes (3): 4. Repository Conversion, Key Points:, Replace Cassandra Data Access Layer with Cosmos Repositories
 
-### Community 2849 - "Runbook Generation and Incident Response"
+### Community 2848 - "10. Multi-Step Task Planning"
 Cohesion: 0.67
-Nodes (3): Incident Detection Patterns, Runbook Generation and Incident Response, Runbook Structure
+Nodes (3): 10. Multi-Step Task Planning, ✅ With Noob Mode, ❌ Without Noob Mode
+
+### Community 2849 - "14. Complex Error Message"
+Cohesion: 0.67
+Nodes (3): 14. Complex Error Message, ✅ With Noob Mode, ❌ Without Noob Mode
+
+### Community 2850 - "12. Package Installation"
+Cohesion: 0.67
+Nodes (3): 12. Package Installation, ✅ With Noob Mode, ❌ Without Noob Mode
+
+### Community 2851 - "11. Technical Question to User"
+Cohesion: 0.67
+Nodes (3): 11. Technical Question to User, ✅ With Noob Mode, ❌ Without Noob Mode
+
+### Community 2853 - "Transport Options"
+Cohesion: 0.67
+Nodes (3): HTTP Transport, Stdio Transport, Transport Options
 
 ## Knowledge Gaps
-- **27639 isolated node(s):** `MokaidWeb.Router`, `Mokaid.AccountsTest`, `MeUser`, `mainNav`, `workspaceNav` (+27634 more)
+- **27652 isolated node(s):** `deploy-ecs-service.sh script`, `run-ecs-migration.sh script`, `mokaid-ai-worker`, `Mokaid.Repo`, `MokaidWeb.Endpoint` (+27647 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **202 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **208 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Mokaid.Tasks` connect `Community 28` to `Community 86`?**
+- **Why does `useSmoothScroll()` connect `Mokaid.Realtime` to `Community 25`?**
+  _High betweenness centrality (0.001) - this node is a cross-community bridge._
+- **Why does `dependencies` connect `Community 25` to `@tanstack/react-router`, `@mokaid/shared-types`, `@radix-ui/react-select`, `15. Task Completion Summary`, `Community 81`, `@hookform/resolvers`, `gsap`, `@mokaid/design-tokens`, `@radix-ui/react-context-menu`, `@mokaid/shared-types`, `@radix-ui/react-progress`, `recast-navigation`, `2. File Edit Approval`, `vitest`?**
   _High betweenness centrality (0.000) - this node is a cross-community bridge._
-- **Why does `Mokaid.Notifications` connect `Community 57` to `Community 86`?**
+- **Why does `lenis` connect `Community 25` to `Mokaid.Realtime`?**
   _High betweenness centrality (0.000) - this node is a cross-community bridge._
-- **Are the 8 inferred relationships involving `RunRequest` (e.g. with `_Engine` and `MissionLearnings`) actually correct?**
-  _`RunRequest` has 8 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `MokaidWeb.Router`, `Mokaid.AccountsTest`, `MeUser` to the rest of the system?**
-  _27639 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `deploy-ecs-service.sh script`, `run-ecs-migration.sh script`, `mokaid-ai-worker` to the rest of the system?**
+  _27652 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.08597285067873303 - nodes in this community are weakly interconnected._
-- **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.13793103448275862 - nodes in this community are weakly interconnected._
-- **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.09759759759759759 - nodes in this community are weakly interconnected._
+- **Should `Community 3` be split into smaller, more focused modules?**
+  _Cohesion score 0.0405765503875969 - nodes in this community are weakly interconnected._
+- **Should `Community 4` be split into smaller, more focused modules?**
+  _Cohesion score 0.04850055534987042 - nodes in this community are weakly interconnected._

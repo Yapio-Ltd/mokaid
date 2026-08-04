@@ -153,6 +153,18 @@ export function SignupPage() {
             </p>
           )}
 
+          <p className="text-center text-[11px] leading-relaxed text-text-muted">
+            By creating an account you agree to our{" "}
+            <Link to="/terms" className="text-primary-light hover:underline">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" className="text-primary-light hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+
           <Button type="submit" size="lg" className="w-full shadow-glow" loading={isSubmitting}>
             <Sparkles size={15} /> Create workspace
           </Button>
@@ -168,6 +180,18 @@ export function SignupPage() {
         </div>
 
         <GoogleSignInButton intent="signup" onError={setError} />
+
+        <p className="mt-3 text-center text-[11px] leading-relaxed text-text-muted">
+          Google sign-up is also subject to our{" "}
+          <Link to="/terms" className="text-primary-light hover:underline">
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link to="/privacy" className="text-primary-light hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
 
         <p className="mt-6 text-center text-xs text-text-muted">
           Already have an account?{" "}
