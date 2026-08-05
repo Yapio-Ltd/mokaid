@@ -3,20 +3,34 @@ defmodule MokaidWeb.Plugs.Authenticate do
   Authenticates requests via Bearer token.
   - `:cognito` mode validates Cognito JWTs through JWKS and maps `sub`.
   - `:dev_fallback` mode verifies Phoenix-signed session tokens.
+  Blocks suspended/disabled/banned/anonymized users.
   """
 
   import Plug.Conn
   import Phoenix.Controller, only: [json: 2]
 
   alias Mokaid.Accounts
+  alias Mokaid.Accounts.User
 
   def init(opts), do: opts
 
   def call(conn, _opts) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         {:ok, user} <- resolve_user(token) do
+         {:ok, user} <- resolve_user(token),
+         :ok <- ensure_active(user) do
       assign(conn, :current_user, user)
     else
+      {:error, :inactive} ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{
+          error: %{
+            code: "account_inactive",
+            message: "Account is suspended, banned, or scheduled for deletion"
+          }
+        })
+        |> halt()
+
       _ ->
         conn
         |> put_status(:unauthorized)
@@ -24,6 +38,12 @@ defmodule MokaidWeb.Plugs.Authenticate do
         |> halt()
     end
   end
+
+  defp ensure_active(%User{} = user) do
+    if User.active?(user), do: :ok, else: {:error, :inactive}
+  end
+
+  defp ensure_active(_), do: {:error, :inactive}
 
   defp resolve_user(token) do
     case Application.fetch_env!(:mokaid, :auth)[:mode] do

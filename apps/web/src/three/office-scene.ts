@@ -51,7 +51,11 @@ import {
   ENERGY_TO_INTENSITY_POINT,
   OFFICE_BLOOM,
   OFFICE_CAMERA,
+  DESK_LANTERN_BULB_Y,
+  DESK_LANTERN_POINTS,
   OFFICE_LIGHTS,
+  ORPHAN_POINT_LIGHTS,
+  WARM_DESK_POINT,
   type OfficeLightDef,
 } from "./office-lighting";
 import {
@@ -224,7 +228,7 @@ interface AvatarNode {
  * office-scene-host and reported in the debug snapshot, so the number the
  * verification harness reads can never drift from the one the host compares.
  */
-export const OFFICE_SCENE_BUILD = 23;
+export const OFFICE_SCENE_BUILD = 34;
 
 export class OfficeScene {
   private engine: Engine;
@@ -649,14 +653,18 @@ export class OfficeScene {
     // Floor + wall neon strips (dark albedo; bright strip in emission map).
     base: 2.4,
     "dividing wall N": 2.0,
-    additional: 1.9,
+    // Includes the Mokaid logo wall board, sofa lamp shade and portraits.
+    // Saturated blue has low luminance, so the ring needs a high intensity
+    // to cross the bloom threshold and read as neon (GLB authors 16.3).
+    additional: 22,
     // Screens — emission map is the display content.
     Monitor: 1.35,
     "Monitor ": 1.35,
     "Lap Top": 1.4,
-    // Real fixtures.
-    Candles: 1.7,
-    "Table Light": 1.9,
+    // Real fixtures — must visibly glow + bloom like the reference render
+    // (GLB authoring values are 14.6 / 12.9; keep close so light "escapes").
+    Candles: 7,
+    "Table Light": 9,
     // Wall art / misc props share this mat (includes portraits with bright
     // backdrops). Keep far below the old 6× so frames do not halo.
     "Solo items": 0.28,
@@ -754,7 +762,7 @@ export class OfficeScene {
   private setupAmbientLight() {
     // Emulates the GI bounce the Cycles render gets from the neon strips.
     const hemi = new HemisphericLight("hemi-ambient", new Vector3(0, 1, 0), this.scene);
-    hemi.intensity = 1.05;
+    hemi.intensity = 1.3;
     hemi.diffuse = Color3.FromHexString("#8f7fc4");
     hemi.groundColor = Color3.FromHexString("#453563");
     hemi.specular = Color3.Black();
@@ -789,6 +797,8 @@ export class OfficeScene {
   /**
    * Recreate Blender point + area lights after the environment is centered.
    * AREA lights become overhead SpotLights (Babylon has no native area light).
+   * POINT lights are the desk lanterns + sofa floor lamp, used at the exact
+   * dumped positions (the artist put one per fixture — never snap/move them).
    */
   private recreateBlenderLights(centerX: number, minY: number, centerZ: number) {
     // Dispose previous point/spot lights (keep ambient hemi).
@@ -802,17 +812,24 @@ export class OfficeScene {
     let primaryShadow: ShadowGenerator | null = null;
 
     for (const def of OFFICE_LIGHTS) {
+      if (ORPHAN_POINT_LIGHTS.has(def.name)) continue; // no fixture under it
       const light = this.createLightFromDef(def, centerX, minY, centerZ);
       if (!light) continue;
       this.sceneLights.push(light);
 
-      // Use the brightest point light for soft shadows (cheap single generator).
-      if (!primaryShadow && light instanceof PointLight && def.energy >= 46) {
-        primaryShadow = new ShadowGenerator(2048, light);
+      // Soft shadows from one warm lantern.
+      if (
+        !primaryShadow &&
+        light instanceof PointLight &&
+        def.type === "POINT" &&
+        def.energy >= 46
+      ) {
+        primaryShadow = new ShadowGenerator(1024, light);
         primaryShadow.usePercentageCloserFiltering = true;
-        primaryShadow.setDarkness(0.65);
+        primaryShadow.setDarkness(0.78);
       }
     }
+
     this.shadowGenerator = primaryShadow;
   }
 
@@ -830,12 +847,18 @@ export class OfficeScene {
     const color = new Color3(def.color.r, def.color.g, def.color.b);
 
     if (def.type === "POINT") {
+      const isLantern = DESK_LANTERN_POINTS.has(def.name);
+      if (isLantern) pos.y = DESK_LANTERN_BULB_Y - minY;
       const light = new PointLight(`blend-${def.name}`, pos, this.scene);
       light.diffuse = color;
-      light.specular = color.scale(0.4);
-      light.intensity = def.energy * ENERGY_TO_INTENSITY_POINT;
-      light.range = 7;
+      light.specular = color.scale(WARM_DESK_POINT.specularScale);
+      light.intensity =
+        def.energy * ENERGY_TO_INTENSITY_POINT * WARM_DESK_POINT.intensityMul;
+      light.range = WARM_DESK_POINT.range;
       light.falloffType = PointLight.FALLOFF_STANDARD;
+      // Desk lanterns must not leak through the desktop onto the floor/walls
+      // (no shadow map): the floor pool is what reads as a misplaced light.
+      if (isLantern) this.excludeStructureFromLight(light);
       return light;
     }
 
@@ -859,6 +882,19 @@ export class OfficeScene {
     }
 
     return null;
+  }
+
+  /**
+   * Keep a light off the merged floor/wall shell (material `base`) and the
+   * partition panels. Cheaper than a shadow map per lantern and removes the
+   * floor blobs that made desk lamps look offset from their fixture.
+   */
+  private excludeStructureFromLight(light: Light) {
+    const structural = new Set(["base", "dividing wall N"]);
+    for (const mesh of this.scene.meshes) {
+      const matName = mesh.material?.name?.replace(/\s+$/, "") ?? "";
+      if (structural.has(matName)) light.excludedMeshes.push(mesh);
+    }
   }
 
   /** Shift FreeCamera from raw GLB coords into the centered world frame. */
@@ -993,8 +1029,8 @@ export class OfficeScene {
   private toneDownEmissive(mesh: AbstractMesh) {
     const apply = (mat: unknown) => {
       if (!(mat instanceof PBRMaterial)) return;
-      // Babylon defaults to 4 lights per material; the office has ~18.
-      mat.maxSimultaneousLights = 24;
+      // Desk lamps + overhead panels exceed Babylon's default 4 (and 24).
+      mat.maxSimultaneousLights = 36;
       const rawName = mat.name ?? "";
       const name = rawName.replace(/\s+$/, "").replace(/\.\d+$/, "");
       const target =

@@ -177,3 +177,21 @@ if System.get_env("TRANZILA_PUBLIC_KEY") do
     api_base_url: System.get_env("API_BASE_URL", "https://api.mokaid.com"),
     web_base_url: System.get_env("WEB_BASE_URL", "https://mokaid.com")
 end
+
+# Provider Admin keys for cost/usage sync (platform CRM). Distinct from
+# worker inference keys — never use sk-admin / sk-ant-admin for chat.
+config :mokaid, :provider_costs,
+  openai_admin_api_key: System.get_env("OPENAI_ADMIN_API_KEY"),
+  anthropic_admin_api_key: System.get_env("ANTHROPIC_ADMIN_API_KEY"),
+  aws_region: System.get_env("AWS_REGION", "il-central-1"),
+  cost_explorer_region: System.get_env("AWS_CE_REGION", "us-east-1"),
+  project_tag: System.get_env("MOKAID_COST_TAG_PROJECT", "mokaid"),
+  log_groups:
+    String.split(
+      System.get_env(
+        "MOKAID_LOG_GROUPS",
+        "/ecs/mokaid-prod-api,/ecs/mokaid-prod-ai-worker,/ecs/mokaid-prod-crm"
+      ),
+      ",",
+      trim: true
+    )

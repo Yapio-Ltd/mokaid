@@ -390,6 +390,9 @@ module "secrets" {
     worker_auth_token        = "CHANGE_ME"
     openai_api_key           = "CHANGE_ME"
     anthropic_api_key        = "CHANGE_ME"
+    # Admin API keys (costs/usage org only — never inference). Filled out-of-band.
+    openai_admin_api_key     = "CHANGE_ME"
+    anthropic_admin_api_key  = "CHANGE_ME"
     deepseek_api_key         = "CHANGE_ME"
     tranzila_public_key      = "CHANGE_ME"
     tranzila_private_key     = "CHANGE_ME"
@@ -492,6 +495,35 @@ data "aws_iam_policy_document" "api_task" {
     actions   = ["cognito-idp:AdminGetUser", "cognito-idp:AdminCreateUser"]
     resources = [module.cognito.user_pool_arn]
   }
+
+  # Platform cost sync (Cost Explorer is a global endpoint, typically us-east-1).
+  statement {
+    sid = "CostExplorerRead"
+    actions = [
+      "ce:GetCostAndUsage",
+      "ce:GetDimensionValues",
+      "ce:GetTags",
+    ]
+    resources = ["*"]
+  }
+
+  # CRM global logs — read-only filtered access to ECS service log groups.
+  statement {
+    sid = "CloudWatchLogsRead"
+    actions = [
+      "logs:FilterLogEvents",
+      "logs:DescribeLogGroups",
+      "logs:DescribeLogStreams",
+    ]
+    resources = [
+      "arn:aws:logs:${var.aws_region}:*:log-group:/ecs/${local.name}-api*",
+      "arn:aws:logs:${var.aws_region}:*:log-group:/ecs/${local.name}-api*:*",
+      "arn:aws:logs:${var.aws_region}:*:log-group:/ecs/${local.name}-ai-worker*",
+      "arn:aws:logs:${var.aws_region}:*:log-group:/ecs/${local.name}-ai-worker*:*",
+      "arn:aws:logs:${var.aws_region}:*:log-group:/ecs/${local.name}-crm*",
+      "arn:aws:logs:${var.aws_region}:*:log-group:/ecs/${local.name}-crm*:*",
+    ]
+  }
 }
 
 module "api_service" {
@@ -538,12 +570,16 @@ module "api_service" {
     TRANZILA_CURRENCY       = var.tranzila_currency
     API_BASE_URL            = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
     WEB_BASE_URL            = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
+    MOKAID_LOG_GROUPS       = "/ecs/${local.name}-api,/ecs/${local.name}-ai-worker,/ecs/${local.name}-crm"
   }
 
   secrets = {
     DATABASE_URL             = module.rds.database_url_secret_arn
     SECRET_KEY_BASE          = module.secrets.secret_arns["secret_key_base"]
     AI_WORKER_TOKEN          = module.secrets.secret_arns["worker_auth_token"]
+    # Provider Admin keys — cost/usage org only; never on the AI worker.
+    OPENAI_ADMIN_API_KEY     = module.secrets.secret_arns["openai_admin_api_key"]
+    ANTHROPIC_ADMIN_API_KEY  = module.secrets.secret_arns["anthropic_admin_api_key"]
     FIGMA_CLIENT_ID          = module.secrets.secret_arns["figma_client_id"]
     FIGMA_CLIENT_SECRET      = module.secrets.secret_arns["figma_client_secret"]
     GOOGLE_CLIENT_ID         = module.secrets.secret_arns["google_client_id"]

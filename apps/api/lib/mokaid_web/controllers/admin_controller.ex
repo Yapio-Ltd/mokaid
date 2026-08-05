@@ -10,6 +10,10 @@ defmodule MokaidWeb.AdminController do
     json(conn, %{data: Admin.metrics()})
   end
 
+  def metrics_timeseries(conn, params) do
+    json(conn, %{data: Admin.metrics_timeseries(params)})
+  end
+
   # ---------- Users ----------
 
   def list_users(conn, params) do
@@ -28,11 +32,90 @@ defmodule MokaidWeb.AdminController do
     end
   end
 
+  def user_summary(conn, %{"id" => id}) do
+    case Admin.user_summary(id) do
+      nil ->
+        {:error, :not_found}
+
+      summary ->
+        json(conn, %{
+          data: %{
+            user: admin_user(summary.user),
+            logins:
+              Enum.map(summary.logins, fn e ->
+                %{
+                  id: e.id,
+                  ip_address: e.ip_address,
+                  user_agent: e.user_agent,
+                  auth_method: e.auth_method,
+                  success: e.success,
+                  occurred_at: e.occurred_at
+                }
+              end),
+            credit_transactions: Enum.map(summary.credit_transactions, &credit_txn_json/1),
+            usage_events: Enum.map(summary.usage_events, &usage_event_json/1),
+            invoices:
+              Enum.map(summary.invoices, fn i ->
+                %{
+                  id: i.id,
+                  number: i.number,
+                  status: i.status,
+                  amount_cents: i.amount_cents,
+                  workspace_name: i.workspace && i.workspace.name,
+                  issued_at: i.issued_at
+                }
+              end),
+            subscriptions: Enum.map(summary.subscriptions, &subscription_json/1),
+            usage_cost_30d_cents: summary.usage_cost_30d_cents,
+            audit_logs: Enum.map(summary.audit_logs, &audit_log_json/1)
+          }
+        })
+    end
+  end
+
   def update_user(conn, %{"id" => id} = params) do
     actor = current_user(conn)
 
     with %{} = user <- Admin.get_user(id),
          {:ok, updated} <- Admin.update_user(user, params, actor) do
+      json(conn, %{data: admin_user(updated)})
+    end
+  end
+
+  def ban_user(conn, %{"id" => id} = params) do
+    actor = current_user(conn)
+    opts = Map.merge(params, conn_meta(conn))
+
+    with %{} = user <- Admin.get_user(id),
+         {:ok, updated} <- Admin.ban_user(user, actor, opts) do
+      json(conn, %{data: admin_user(updated)})
+    end
+  end
+
+  def unban_user(conn, %{"id" => id}) do
+    actor = current_user(conn)
+
+    with %{} = user <- Admin.get_user(id),
+         {:ok, updated} <- Admin.unban_user(user, actor, conn_meta(conn)) do
+      json(conn, %{data: admin_user(updated)})
+    end
+  end
+
+  def schedule_deletion(conn, %{"id" => id} = params) do
+    actor = current_user(conn)
+    opts = Map.merge(params, conn_meta(conn))
+
+    with %{} = user <- Admin.get_user(id),
+         {:ok, updated} <- Admin.schedule_user_deletion(user, actor, opts) do
+      json(conn, %{data: admin_user(updated)})
+    end
+  end
+
+  def cancel_deletion(conn, %{"id" => id}) do
+    actor = current_user(conn)
+
+    with %{} = user <- Admin.get_user(id),
+         {:ok, updated} <- Admin.cancel_user_deletion(user, actor, conn_meta(conn)) do
       json(conn, %{data: admin_user(updated)})
     end
   end
@@ -230,13 +313,20 @@ defmodule MokaidWeb.AdminController do
 
   def adjust_credits(conn, %{"workspace_id" => workspace_id, "amount" => amount} = params)
       when is_integer(amount) do
-    with {:ok, sub} <- Admin.adjust_credits(workspace_id, amount, current_user(conn)) do
+    reason = params["reason"] || params["description"]
+    idempotency_key = params["idempotency_key"]
+
+    with {:ok, sub} <-
+           Admin.adjust_credits(workspace_id, amount, current_user(conn),
+             reason: reason,
+             idempotency_key: idempotency_key
+           ) do
       json(conn, %{
         data: %{
           workspace_id: workspace_id,
           credits_balance: sub.credits_balance,
           included_credits_remaining: sub.included_credits_remaining,
-          description: params["description"]
+          description: reason
         }
       })
     end
@@ -263,6 +353,67 @@ defmodule MokaidWeb.AdminController do
     })
   end
 
+  # ---------- Costs ----------
+
+  def list_costs(conn, params) do
+    data = Admin.list_costs(params)
+
+    json(conn, %{
+      data: %{
+        days: data.days,
+        totals_cents: data.totals_cents,
+        total_cents: data.total_cents,
+        snapshots:
+          Enum.map(data.snapshots, fn s ->
+            %{
+              id: s.id,
+              provider: s.provider,
+              granularity: s.granularity,
+              period_start: s.period_start,
+              period_end: s.period_end,
+              amount_cents: s.amount_cents,
+              currency: s.currency,
+              breakdown: s.breakdown,
+              source: s.source,
+              fetched_at: s.fetched_at
+            }
+          end),
+        reconciliation:
+          Enum.map(data.reconciliation, fn r ->
+            %{
+              id: r.id,
+              day: r.day,
+              provider: r.provider,
+              provider_reported_cents: r.provider_reported_cents,
+              internal_usage_cents: r.internal_usage_cents,
+              delta_cents: r.delta_cents,
+              notes: r.notes
+            }
+          end)
+      }
+    })
+  end
+
+  def cost_summary(conn, params) do
+    json(conn, %{data: Admin.cost_summary(params)})
+  end
+
+  def sync_costs(conn, params) do
+    days = Map.get(params, "days", 3) |> then(fn d -> if is_binary(d), do: String.to_integer(d), else: d end)
+    days = min(max(days, 1), 90)
+
+    # Fire-and-forget Oban jobs for backfill
+    %{days: days}
+    |> Mokaid.Billing.Workers.ProviderCostSyncWorker.new()
+    |> Oban.insert()
+
+    %{days: days}
+    |> Mokaid.Billing.Workers.AwsCostSyncWorker.new()
+    |> Oban.insert()
+
+    json(conn, %{ok: true, days: days, message: "Cost sync jobs enqueued"})
+  end
+
   # ---------- Audit ----------
 
   def list_audit_logs(conn, params) do
@@ -270,6 +421,15 @@ defmodule MokaidWeb.AdminController do
 
     json(conn, %{
       data: Enum.map(result.data, &audit_log_json/1),
+      meta: page_meta(result)
+    })
+  end
+
+  def list_logs(conn, params) do
+    result = Admin.list_unified_logs(params)
+
+    json(conn, %{
+      data: result.data,
       meta: page_meta(result)
     })
   end
@@ -421,6 +581,8 @@ defmodule MokaidWeb.AdminController do
       cost_cents: txn.cost_cents,
       balance_after: txn.balance_after,
       description: txn.description,
+      reason: Map.get(txn, :reason),
+      operator_id: Map.get(txn, :operator_id),
       metadata: txn.metadata,
       inserted_at: txn.inserted_at
     }
@@ -488,4 +650,16 @@ defmodule MokaidWeb.AdminController do
 
   defp loaded(%Ecto.Association.NotLoaded{}), do: nil
   defp loaded(v), do: v
+
+  defp conn_meta(conn) do
+    ip =
+      case conn.remote_ip do
+        {a, b, c, d} -> "#{a}.#{b}.#{c}.#{d}"
+        other -> other && to_string(other)
+      end
+
+    ua = conn |> get_req_header("user-agent") |> List.first()
+
+    %{"ip" => ip, "user_agent" => ua, :ip => ip, :user_agent => ua}
+  end
 end

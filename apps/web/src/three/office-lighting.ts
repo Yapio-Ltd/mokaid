@@ -40,7 +40,50 @@ export interface OfficeCameraDef {
 /** Convert Blender wattage → Babylon PointLight intensity (calibrated vs render). */
 export const ENERGY_TO_INTENSITY_POINT = 0.06;
 /** Convert Blender wattage → Babylon intensity for overhead AREA approximations. */
-export const ENERGY_TO_INTENSITY_AREA = 0.5;
+export const ENERGY_TO_INTENSITY_AREA = 0.62;
+
+/**
+ * Warm lantern lights = the Blender POINT dump used at raw positions.
+ * The artist authored one point per lantern (incl. the sofa floor lamp);
+ * the reference render (Render_1) shows each casting a soft desk pool.
+ * Do NOT snap them onto mesh AABBs — quantized bounds are unreliable and
+ * previously dragged lights off the fixtures.
+ */
+export const WARM_DESK_POINT = {
+  /** Multiply Blender energy×ENERGY_TO_INTENSITY_POINT. */
+  intensityMul: 3.6,
+  /**
+   * Short falloff: pool stays on the desk. There are no shadows on these
+   * lights, so a long range shines through the desktop and paints a floor
+   * blob that reads as "misaligned" in the isometric view.
+   */
+  range: 1.8,
+  /** Specular contribution (lower = less specular “hotspot” on dark desks). */
+  specularScale: 0.2,
+} as const;
+
+/**
+ * Blender points with no physical fixture under them in the exported GLB.
+ * Point.005 sits over an empty desk (verified against Table Light vertex
+ * clusters) — casting it paints a lamp-less pool on the floor/chair.
+ */
+export const ORPHAN_POINT_LIGHTS = new Set(["Point.005"]);
+
+/**
+ * The 4 desk lanterns (Table Light mesh). Their Blender points sit ~0.15 m
+ * ABOVE the lampshade, so the desk pool landed lower/right of the lantern in
+ * the isometric view. Pull them into the shade and keep them off the floor
+ * mesh (no shadow maps, so light otherwise passes through the desktop).
+ */
+export const DESK_LANTERN_POINTS = new Set([
+  "Point.001",
+  "Point.002",
+  "Point.003",
+  "Point.004",
+]);
+
+/** Bulb height inside the lantern, raw GLB Y (mesh spans 0.71 → 0.96). */
+export const DESK_LANTERN_BULB_Y = 0.9;
 
 export const OFFICE_WORLD = {
   color: { r: 0, g: 0, b: 0 },
@@ -50,8 +93,8 @@ export const OFFICE_WORLD = {
 export const OFFICE_BLOOM = {
   // Bloom only for intentional emitters (neon / screens / lamps). Threshold
   // high enough that white pots and wall art diffuse do not halo.
-  threshold: 0.78,
-  weight: 0.48,
+  threshold: 0.7,
+  weight: 0.62,
   kernel: 64,
   scale: 0.5,
 } as const;

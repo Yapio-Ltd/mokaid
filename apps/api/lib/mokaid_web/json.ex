@@ -19,7 +19,13 @@ defmodule MokaidWeb.JSON do
       auth_provider: Mokaid.Accounts.User.auth_provider(user),
       # True when the account has a local password (not OAuth/Cognito-only).
       has_password: Mokaid.Accounts.User.has_password?(user),
-      inserted_at: Map.get(user, :inserted_at)
+      inserted_at: Map.get(user, :inserted_at),
+      banned_at: Map.get(user, :banned_at),
+      ban_reason: Map.get(user, :ban_reason),
+      ban_expires_at: Map.get(user, :ban_expires_at),
+      deletion_scheduled_at: Map.get(user, :deletion_scheduled_at),
+      anonymized_at: Map.get(user, :anonymized_at),
+      operator_notes: Map.get(user, :operator_notes)
     }
   end
 

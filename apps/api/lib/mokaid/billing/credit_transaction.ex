@@ -10,6 +10,7 @@ defmodule Mokaid.Billing.CreditTransaction do
     belongs_to :workspace, Mokaid.Workspaces.Workspace
     belongs_to :run, Mokaid.Tasks.TaskExecutionRun
     belongs_to :agent, Mokaid.Agents.Agent
+    belongs_to :operator, Mokaid.Accounts.User
 
     # spend | plan_grant | purchase | auto_recharge | adjustment | agent_boost
     field :kind, :string
@@ -18,6 +19,8 @@ defmodule Mokaid.Billing.CreditTransaction do
     field :balance_after, :integer, default: 0
     field :description, :string
     field :metadata, :map, default: %{}
+    field :idempotency_key, :string
+    field :reason, :string
 
     timestamps()
   end
@@ -28,17 +31,21 @@ defmodule Mokaid.Billing.CreditTransaction do
       :workspace_id,
       :run_id,
       :agent_id,
+      :operator_id,
       :kind,
       :amount,
       :cost_cents,
       :balance_after,
       :description,
-      :metadata
+      :metadata,
+      :idempotency_key,
+      :reason
     ])
     |> validate_required([:workspace_id, :kind, :amount])
     |> validate_inclusion(
       :kind,
       ~w(spend plan_grant purchase auto_recharge adjustment agent_boost)
     )
+    |> unique_constraint(:idempotency_key)
   end
 end

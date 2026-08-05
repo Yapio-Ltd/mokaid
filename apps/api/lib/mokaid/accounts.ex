@@ -29,11 +29,38 @@ defmodule Mokaid.Accounts do
   def authenticate_by_password(email, password) do
     user = get_user_by_email(email)
 
-    if user && User.valid_password?(user, password) do
-      {:ok, touch_login(user)}
-    else
-      {:error, :invalid_credentials}
+    cond do
+      is_nil(user) ->
+        {:error, :invalid_credentials}
+
+      not User.active?(user) ->
+        {:error, :inactive}
+
+      User.valid_password?(user, password) ->
+        {:ok, touch_login(user)}
+
+      true ->
+        {:error, :invalid_credentials}
     end
+  end
+
+  @doc "Record a successful login event (IP / UA optional)."
+  def record_login_event(%User{} = user, opts \\ []) do
+    attrs = %{
+      user_id: user.id,
+      ip_address: Keyword.get(opts, :ip_address) && to_string(Keyword.get(opts, :ip_address)),
+      user_agent: Keyword.get(opts, :user_agent) && String.slice(to_string(Keyword.get(opts, :user_agent)), 0, 500),
+      auth_method: Keyword.get(opts, :auth_method, "password"),
+      success: Keyword.get(opts, :success, true),
+      metadata: Keyword.get(opts, :metadata, %{}),
+      occurred_at: DateTime.utc_now()
+    }
+
+    %Mokaid.Accounts.UserLoginEvent{}
+    |> Mokaid.Accounts.UserLoginEvent.changeset(attrs)
+    |> Repo.insert()
+  rescue
+    _ -> {:error, :login_event_failed}
   end
 
   @doc """
@@ -148,14 +175,18 @@ defmodule Mokaid.Accounts do
   def upsert_from_cognito(%{sub: sub, email: email} = claims) do
     case get_user_by_cognito_sub(sub) do
       %User{} = user ->
-        {:ok, touch_login(user)}
+        if User.active?(user), do: {:ok, touch_login(user)}, else: {:error, :inactive}
 
       nil ->
         case get_user_by_email(email) do
           %User{} = user ->
-            user
-            |> Ecto.Changeset.change(cognito_sub: sub)
-            |> Repo.update()
+            if User.active?(user) do
+              user
+              |> Ecto.Changeset.change(cognito_sub: sub)
+              |> Repo.update()
+            else
+              {:error, :inactive}
+            end
 
           nil ->
             register_user(%{

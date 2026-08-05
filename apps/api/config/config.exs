@@ -27,9 +27,12 @@ config :mokaid, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"0 2 * * *", Mokaid.Billing.Workers.UsageAggregationWorker},
+       {"30 3 * * *", Mokaid.Billing.Workers.ProviderCostSyncWorker},
+       {"45 3 * * *", Mokaid.Billing.Workers.InvoiceCleanupWorker},
+       {"0 4 * * *", Mokaid.Billing.Workers.AwsCostSyncWorker},
+       {"0 5 * * *", Mokaid.Workers.UserAnonymizationWorker},
        {"0 * * * *", Mokaid.Billing.Workers.SubscriptionRenewalWorker},
        {"15 * * * *", Mokaid.Billing.Workers.MonthlyCreditsWorker},
-       {"30 3 * * *", Mokaid.Billing.Workers.InvoiceCleanupWorker},
        {"*/15 * * * *", Mokaid.Tasks.Workers.OverdueTaskWorker},
        {"*/5 * * * *", Mokaid.Tasks.Workers.StaleRunWorker},
        {"* * * * *", Mokaid.Office.Workers.ActivitySchedulerWorker}
@@ -75,6 +78,15 @@ config :mokaid, :tranzila,
   currency: "USD",
   api_base_url: "http://localhost:4000",
   web_base_url: "http://localhost:5173"
+
+# Provider cost sync defaults (overridden by runtime.exs / env in prod).
+config :mokaid, :provider_costs,
+  openai_admin_api_key: nil,
+  anthropic_admin_api_key: nil,
+  aws_region: "il-central-1",
+  cost_explorer_region: "us-east-1",
+  project_tag: "mokaid",
+  log_groups: []
 
 config :hammer,
   backend: {Hammer.Backend.ETS, [expiry_ms: 60_000 * 60 * 2, cleanup_interval_ms: 60_000 * 10]}

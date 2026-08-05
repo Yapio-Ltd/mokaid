@@ -260,8 +260,8 @@
     "semantic_hash": ""
   },
   "apps/api/config/test.exs": {
-    "mtime": 1785617402.65201,
-    "ast_hash": "4c52f6ea1029e9adda128facdadc618d",
+    "mtime": 1785937433.7094808,
+    "ast_hash": "b7ecd5720bfcb7319793b81e032d5af1",
     "semantic_hash": ""
   },
   "apps/api/lib/mix/tasks/mokaid.seed_integration_logos.ex": {
@@ -365,8 +365,8 @@
     "semantic_hash": "b2fac5bbed9c2af4a28e826b2bbb586d"
   },
   "apps/api/lib/mokaid/assets_3d.ex": {
-    "mtime": 1784418583.5777202,
-    "ast_hash": "cae488232e7a6b86b91c8cb00b5b9982",
+    "mtime": 1785937430.4328012,
+    "ast_hash": "3a5fcce2ce22236a07246d83bb8f6110",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid/assets_3d/asset.ex": {
@@ -520,8 +520,8 @@
     "semantic_hash": "7d5c573807122069598339c721748ca3"
   },
   "apps/api/lib/mokaid/integrations/logo_assets.ex": {
-    "mtime": 1785925002.323946,
-    "ast_hash": "c83773b4e41e1c44de9030c7c112f354",
+    "mtime": 1785936338.4357553,
+    "ast_hash": "68f0ed986e187cfa83545e260c459a7f",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid/integrations/notion_oauth.ex": {
@@ -560,8 +560,8 @@
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid/mcp.ex": {
-    "mtime": 1785924418.668535,
-    "ast_hash": "a0be1e380a1f3495a1fadb2da76b76a3",
+    "mtime": 1785933281.3632512,
+    "ast_hash": "de0f3dd8b319678e7531456b5d1233b2",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid/mcp/agent_grant.ex": {
@@ -685,8 +685,8 @@
     "semantic_hash": "1a60ddc416fc0c8cc57e03377d8a0d0e"
   },
   "apps/api/lib/mokaid/release.ex": {
-    "mtime": 1785844448.6799715,
-    "ast_hash": "81ea1026460abeeb46b7fbefe3490ee8",
+    "mtime": 1785936338.4355743,
+    "ast_hash": "3f4c880121047c408bcb01aa16af3523",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid/repo.ex": {
@@ -940,9 +940,9 @@
     "semantic_hash": "35fa2c512e43170c2583ddf87f774b49"
   },
   "apps/api/lib/mokaid_web/plugs/rate_limiter.ex": {
-    "mtime": 1783200796.6960275,
-    "ast_hash": "8fdb1eda62ddf4856add68c433cca69d",
-    "semantic_hash": "8fdb1eda62ddf4856add68c433cca69d"
+    "mtime": 1785932970.839133,
+    "ast_hash": "6671a27116b8d41f1cec68847d610226",
+    "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/plugs/worker_auth.ex": {
     "mtime": 1783200793.9533536,
@@ -1320,8 +1320,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/mcp/mcp-logo.tsx": {
-    "mtime": 1785925034.7094457,
-    "ast_hash": "3d51a0aa4e582c28ddb3c07463c4b08d",
+    "mtime": 1785940535.6223302,
+    "ast_hash": "2618bb69b9648713763854dd7911f603",
     "semantic_hash": ""
   },
   "apps/web/src/components/members/member-detail-panel.tsx": {
@@ -1620,8 +1620,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/pages/mcp-hub.tsx": {
-    "mtime": 1785924956.5905814,
-    "ast_hash": "5b344cf9c295c2a4b9a94208c1da7a66",
+    "mtime": 1785932974.0488307,
+    "ast_hash": "c6047f43e33c421c44749196fb8e1279",
     "semantic_hash": ""
   },
   "apps/web/src/pages/members.tsx": {
@@ -1820,8 +1820,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-lighting.ts": {
-    "mtime": 1785918575.670499,
-    "ast_hash": "54adb2a3f24d65cda47998c3139950aa",
+    "mtime": 1785940229.9867177,
+    "ast_hash": "f4526cca836ce59e5e442aa414383e55",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-navdata.test.ts": {
@@ -1845,8 +1845,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-scene.ts": {
-    "mtime": 1785925628.928024,
-    "ast_hash": "462f23a7942d50f14878b4226df89a8c",
+    "mtime": 1785940234.1162577,
+    "ast_hash": "398d507bade5c66d89a8b67d43563d1e",
     "semantic_hash": ""
   },
   "apps/web/src/three/types.ts": {
@@ -3290,8 +3290,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/environments/prod/main.tf": {
-    "mtime": 1785918597.686319,
-    "ast_hash": "13e92729d302ba1f8e4351a478b55466",
+    "mtime": 1785936876.6798062,
+    "ast_hash": "c943e55078401e0ecf01a23b425d0033",
     "semantic_hash": ""
   },
   "scripts/copy-stack-secrets.sh": {
@@ -13295,8 +13295,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/agents/new-agent-form.tsx": {
-    "mtime": 1785924418.672413,
-    "ast_hash": "d0425f9702d3b90e64e2d730b745f7f0",
+    "mtime": 1785937441.0182328,
+    "ast_hash": "b3ee7aa2ec397f894df188bc30711e8c",
     "semantic_hash": ""
   },
   "apps/web/src/pages/agent-training.tsx": {
@@ -13327,31 +13327,6 @@
   "apps/web/scripts/verify-office-loco.mjs": {
     "mtime": 1785825669.414199,
     "ast_hash": "c20febb55af53cd929a0dcc150c0783d",
-    "semantic_hash": ""
-  },
-  "apps/web/tmp-office-verify/report.json": {
-    "mtime": 1785622290.652669,
-    "ast_hash": "49b2995ac79c190b722d4efadda6c4d2",
-    "semantic_hash": ""
-  },
-  "apps/web/tmp-office-verify/console.txt": {
-    "mtime": 1785622114.4335437,
-    "ast_hash": "a2614a4dfd0f7a6b1ea5c1f819ba43fc",
-    "semantic_hash": ""
-  },
-  "apps/web/tmp-office-verify/office-fail.png": {
-    "mtime": 1785622114.433322,
-    "ast_hash": "1739966686e1a56322516e63b4d8b22b",
-    "semantic_hash": ""
-  },
-  "apps/web/tmp-office-verify/office-t0.png": {
-    "mtime": 1785622272.6671698,
-    "ast_hash": "36067bfe7a5de1259e055c00108d0ea3",
-    "semantic_hash": ""
-  },
-  "apps/web/tmp-office-verify/office-t8.png": {
-    "mtime": 1785622290.651659,
-    "ast_hash": "21901d1a529082b4ffe3ebac2c54b1d0",
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
@@ -13942,6 +13917,26 @@
   "apps/web/public/logos/mcp/togetherdotai.svg": {
     "mtime": 1783459275.2541645,
     "ast_hash": "01ba28cdbf1745732d1417ec2dd7093e",
+    "semantic_hash": ""
+  },
+  "infra/terraform/modules/secrets/main.tf": {
+    "mtime": 1783202419.2976117,
+    "ast_hash": "e488a9dbe0658d79c79c886a8da1bb72",
+    "semantic_hash": ""
+  },
+  "apps/api/priv/agent_domain_packs/developer/skills/permissions-and-tokens.md": {
+    "mtime": 1784302199.6094522,
+    "ast_hash": "4029af2769433c37e40402941e42ad9a",
+    "semantic_hash": ""
+  },
+  "apps/api/priv/agent_domain_packs/security/skills/secret-patterns.md": {
+    "mtime": 1784302199.7430818,
+    "ast_hash": "97129e539ab85dd3f9574c1aee2245b4",
+    "semantic_hash": ""
+  },
+  "apps/api/priv/agent_domain_packs/security/skills/secret-scanning.md": {
+    "mtime": 1784302199.7431905,
+    "ast_hash": "0c69b642e0dfffcecdf171e804bacd46",
     "semantic_hash": ""
   }
 }

@@ -38,6 +38,7 @@ export default function CreditsPage() {
   const [page, setPage] = useState(1);
   const [workspaceId, setWorkspaceId] = useState("");
   const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
   const [filterWs, setFilterWs] = useState("");
   const qc = useQueryClient();
 
@@ -53,13 +54,24 @@ export default function CreditsPage() {
   });
 
   const adjust = useMutation({
-    mutationFn: () =>
-      apiRequest("/api/admin/credits/adjust", {
+    mutationFn: () => {
+      if (!reason.trim()) throw new Error("Motif obligatoire");
+      const n = Number(amount);
+      if (!Number.isFinite(n) || n === 0) throw new Error("Montant invalide");
+      if (Math.abs(n) > 10_000_000) throw new Error("Montant trop élevé");
+      return apiRequest("/api/admin/credits/adjust", {
         method: "POST",
-        body: { workspace_id: workspaceId.trim(), amount: Number(amount) },
-      }),
+        body: {
+          workspace_id: workspaceId.trim(),
+          amount: n,
+          reason: reason.trim(),
+          idempotency_key: `crm-${workspaceId.trim()}-${n}-${Date.now()}`,
+        },
+      });
+    },
     onSuccess: () => {
       setAmount("");
+      setReason("");
       qc.invalidateQueries({ queryKey: ["credits"] });
     },
   });
@@ -68,7 +80,7 @@ export default function CreditsPage() {
     <div>
       <PageHeader
         title="Crédits AI"
-        description="Ledger des transactions et ajustements manuels opérateur."
+        description="Ledger des transactions et ajustements manuels opérateur (transactionnels + motif)."
       />
       <Card className="mb-4 flex flex-wrap items-end gap-3 p-4">
         <div>
@@ -89,9 +101,20 @@ export default function CreditsPage() {
             onChange={(e) => setAmount(e.target.value)}
           />
         </div>
+        <div>
+          <div className="mb-1 text-xs text-muted">Motif</div>
+          <Input
+            className="w-64"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Support ticket #…"
+          />
+        </div>
         <Button
-          onClick={() => adjust.mutate()}
-          disabled={!workspaceId || !amount || adjust.isPending}
+          onClick={() => {
+            if (confirm(`Ajuster ${amount} crédits pour ${workspaceId} ?`)) adjust.mutate();
+          }}
+          disabled={!workspaceId || !amount || !reason.trim() || adjust.isPending}
         >
           Ajuster
         </Button>

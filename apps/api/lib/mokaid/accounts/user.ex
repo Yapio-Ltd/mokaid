@@ -20,9 +20,68 @@ defmodule Mokaid.Accounts.User do
     field :mfa_enabled, :boolean, default: false
     field :is_platform_admin, :boolean, default: false
 
+    field :banned_at, :utc_datetime_usec
+    field :ban_reason, :string
+    field :ban_expires_at, :utc_datetime_usec
+    field :deletion_scheduled_at, :utc_datetime_usec
+    field :anonymized_at, :utc_datetime_usec
+    field :operator_notes, :string
+
+    belongs_to :banned_by, __MODULE__
     has_many :memberships, Mokaid.Members.Member
+    has_many :login_events, Mokaid.Accounts.UserLoginEvent
 
     timestamps()
+  end
+
+  @doc """
+  True when the account may authenticate and call APIs.
+  Suspended/disabled/banned/anonymized users are blocked.
+  Temporary bans auto-expire when `ban_expires_at` is in the past.
+  """
+  def active?(%__MODULE__{} = user) do
+    cond do
+      not is_nil(user.anonymized_at) ->
+        false
+
+      user.status in ~w(disabled) ->
+        false
+
+      user.status == "suspended" or not is_nil(user.banned_at) ->
+        case user.ban_expires_at do
+          %DateTime{} = exp ->
+            DateTime.compare(DateTime.utc_now(), exp) == :lt
+
+          _ ->
+            true
+        end
+        |> Kernel.not()
+
+      true ->
+        user.status == "active"
+    end
+  end
+
+  def active?(_), do: false
+
+  def moderation_changeset(user, attrs) do
+    user
+    |> cast(attrs, [
+      :status,
+      :banned_at,
+      :banned_by_id,
+      :ban_reason,
+      :ban_expires_at,
+      :deletion_scheduled_at,
+      :anonymized_at,
+      :operator_notes,
+      :full_name,
+      :email,
+      :avatar_url,
+      :hashed_password,
+      :cognito_sub,
+      :is_platform_admin
+    ])
   end
 
   def registration_changeset(user, attrs) do

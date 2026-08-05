@@ -33,6 +33,17 @@ defmodule MokaidWeb.FallbackController do
     |> json(%{error: %{code: "invalid_credentials", message: "Invalid email or password"}})
   end
 
+  def call(conn, {:error, :inactive}) do
+    conn
+    |> put_status(:forbidden)
+    |> json(%{
+      error: %{
+        code: "account_inactive",
+        message: "Account is suspended, banned, or scheduled for deletion"
+      }
+    })
+  end
+
   def call(conn, {:error, {:token_exchange_failed, _, _}}) do
     conn
     |> put_status(:bad_gateway)
@@ -54,6 +65,12 @@ defmodule MokaidWeb.FallbackController do
   defp humanize(:office_full), do: "All 9 office desks are occupied"
   defp humanize(:agent_limit_reached), do: "Your plan's AI employee limit has been reached"
   defp humanize(:insufficient_credits), do: "Not enough AI credits for this action"
+  defp humanize(:cannot_target_self), do: "You cannot perform this action on your own account"
+  defp humanize(:cannot_demote_self), do: "You cannot demote your own platform admin status"
+  defp humanize(:last_platform_admin), do: "Cannot remove or ban the last platform admin"
+  defp humanize(:amount_too_large), do: "Credit adjustment amount is too large"
+  defp humanize(:no_subscription), do: "Workspace has no billing subscription"
+  defp humanize(:invalid_password), do: "Password must be at least 10 characters"
 
   defp humanize(:mcp_integration_limit_reached),
     do: "Your plan's MCP integration limit has been reached — upgrade to connect more"

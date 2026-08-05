@@ -180,11 +180,17 @@ defmodule MokaidWeb.Router do
     pipe_through [:api, :authenticated, :platform_admin]
 
     get "/metrics", AdminController, :metrics
+    get "/metrics/timeseries", AdminController, :metrics_timeseries
 
     get "/users", AdminController, :list_users
     get "/users/:id", AdminController, :show_user
+    get "/users/:id/summary", AdminController, :user_summary
     patch "/users/:id", AdminController, :update_user
     post "/users/:id/reset-password", AdminController, :reset_password
+    post "/users/:id/ban", AdminController, :ban_user
+    post "/users/:id/unban", AdminController, :unban_user
+    post "/users/:id/schedule-deletion", AdminController, :schedule_deletion
+    post "/users/:id/cancel-deletion", AdminController, :cancel_deletion
 
     get "/workspaces", AdminController, :list_workspaces
     get "/workspaces/:id", AdminController, :show_workspace
@@ -209,7 +215,12 @@ defmodule MokaidWeb.Router do
     get "/usage-events", AdminController, :list_usage_events
     post "/credits/adjust", AdminController, :adjust_credits
 
+    get "/costs", AdminController, :list_costs
+    get "/costs/summary", AdminController, :cost_summary
+    post "/costs/sync", AdminController, :sync_costs
+
     get "/audit-logs", AdminController, :list_audit_logs
+    get "/logs", AdminController, :list_logs
 
     get "/members", AdminController, :list_members
     patch "/members/:id", AdminController, :update_member

@@ -44,6 +44,8 @@ crash.log
 # Logs
 *.log
 logs/
+!apps/crm/src/app/(app)/logs/
+!apps/crm/src/app/(app)/logs/**
 # Test coverage
 coverage/
 cover/
@@ -82,3 +84,4 @@ apps/web/tmp-office-verify/
 # Generated nav data dumps from scripts/dump_office_nav.py; the reviewed copy
 # lives in apps/web/src/three/office-navdata.ts.
 scripts/out/
+apps/web/src/three/graphify-out/

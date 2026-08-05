@@ -6,11 +6,14 @@ import {
   Activity,
   Building2,
   CreditCard,
+  DollarSign,
   FileText,
   LayoutDashboard,
   LogOut,
+  Mail,
   Receipt,
   ScrollText,
+  Shield,
   Users,
   Wallet,
   Package,
@@ -20,6 +23,7 @@ import { useAuthStore } from "@/lib/auth-store";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/costs", label: "Coûts", icon: DollarSign },
   { href: "/users", label: "Utilisateurs", icon: Users },
   { href: "/workspaces", label: "Workspaces", icon: Building2 },
   { href: "/subscriptions", label: "Abonnements", icon: CreditCard },
@@ -28,7 +32,9 @@ const nav = [
   { href: "/credits", label: "Crédits", icon: Wallet },
   { href: "/usage", label: "Usage AI", icon: Activity },
   { href: "/members", label: "Membres", icon: Users },
+  { href: "/invites", label: "Invitations", icon: Mail },
   { href: "/audit-logs", label: "Audit logs", icon: ScrollText },
+  { href: "/logs", label: "Logs globaux", icon: Shield },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

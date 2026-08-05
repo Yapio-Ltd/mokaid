@@ -1,3 +1,28 @@
+## Operator CRM secrets (Admin API keys)
+
+Provider **Admin** keys (OpenAI `sk-admin-…`, Anthropic `sk-ant-admin-…`) power the
+CRM cost dashboards. They are **never** used for inference and must stay on the
+API task only.
+
+```bash
+# 1) Create/rotate NEW admin keys in the OpenAI / Anthropic consoles
+#    (revoke any key that was pasted in chat or logs).
+
+# 2) Ensure Terraform secrets exist, then push values interactively:
+aws sso login --profile mokaid
+cd infra/terraform/environments/prod && terraform apply   # creates secret shells
+./scripts/push-secrets-to-aws.sh --admin-keys             # silent paste, never logged
+
+# 3) Redeploy API so the new env vars are injected:
+aws ecs update-service --cluster mokaid-prod --service mokaid-prod-api --force-new-deployment
+
+# 4) In CRM → Coûts → Synchroniser (or wait for the nightly Oban jobs).
+```
+
+Do **not** commit keys to git, Terraform state, GitHub Actions logs, or chat.
+
+---
+
 # Deployment
 
 ## Local development

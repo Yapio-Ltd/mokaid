@@ -270,6 +270,116 @@ defmodule Mokaid.Billing.Credits do
 
   ## ---------- Internals ----------
 
+  @doc """
+  Platform-admin credit adjustment with FOR UPDATE lock, ledger entry and optional
+  idempotency. Amount may be negative (debit) or positive (credit).
+  Does not go through payment flows.
+  """
+  def admin_adjust(workspace_id, amount, opts \\ [])
+      when is_integer(amount) and amount != 0 do
+    reason = Keyword.get(opts, :reason) || Keyword.get(opts, :description)
+    operator_id = Keyword.get(opts, :operator_id)
+    idempotency_key = Keyword.get(opts, :idempotency_key)
+    abs_amount = abs(amount)
+
+    if abs_amount > 10_000_000 do
+      {:error, :amount_too_large}
+    else
+      Repo.transaction(fn ->
+        if is_binary(idempotency_key) and idempotency_key != "" do
+          existing =
+            Repo.one(
+              from t in CreditTransaction,
+                where: t.idempotency_key == ^idempotency_key,
+                limit: 1
+            )
+
+          if existing do
+            case get_subscription(workspace_id) do
+              nil -> Repo.rollback(:no_subscription)
+              sub -> {:idempotent, sub, existing}
+            end
+          else
+            do_admin_adjust(workspace_id, amount, reason, operator_id, idempotency_key)
+          end
+        else
+          do_admin_adjust(workspace_id, amount, reason, operator_id, idempotency_key)
+        end
+      end)
+      |> case do
+        {:ok, {:idempotent, sub, txn}} -> {:ok, sub, txn, :idempotent}
+        {:ok, {sub, txn}} -> {:ok, sub, txn, :created}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  defp do_admin_adjust(workspace_id, amount, reason, operator_id, idempotency_key) do
+    sub =
+      case lock_subscription(workspace_id) do
+        nil ->
+          _ = Mokaid.Billing.change_plan(workspace_id, "free")
+          lock_subscription(workspace_id)
+
+        locked ->
+          locked
+      end
+
+    if is_nil(sub), do: Repo.rollback(:no_subscription)
+
+    credits = abs(amount)
+
+    {from_included, from_balance} =
+      if amount > 0 do
+        {0, amount}
+      else
+        from_included = min(sub.included_credits_remaining || 0, credits)
+        {from_included, credits - from_included}
+      end
+
+    {1, [updated]} =
+      if amount > 0 do
+        Repo.update_all(
+          from(s in Subscription, where: s.id == ^sub.id, select: s),
+          inc: [credits_balance: amount]
+        )
+      else
+        Repo.update_all(
+          from(s in Subscription, where: s.id == ^sub.id, select: s),
+          inc: [
+            included_credits_remaining: -from_included,
+            credits_balance: -from_balance
+          ]
+        )
+      end
+
+    description = reason || "Platform admin credit adjustment"
+
+    case %CreditTransaction{}
+         |> CreditTransaction.changeset(%{
+           "workspace_id" => workspace_id,
+           "kind" => "adjustment",
+           "amount" => amount,
+           "balance_after" => spendable(updated),
+           "description" => description,
+           "reason" => reason,
+           "operator_id" => operator_id,
+           "idempotency_key" => idempotency_key,
+           "metadata" => %{
+             "source" => "platform_admin",
+             "operator_id" => operator_id
+           }
+         })
+         |> Repo.insert() do
+      {:ok, txn} ->
+        broadcast(workspace_id, updated)
+        {updated, txn}
+
+      {:error, cs} ->
+        Repo.rollback(cs)
+    end
+  end
+
   defp maybe_auto_recharge(%Subscription{auto_recharge_enabled: true} = sub) do
     threshold = sub.auto_recharge_threshold || 0
 

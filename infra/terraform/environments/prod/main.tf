@@ -56,7 +56,7 @@ variable "crm_domain" {
 variable "alb_certificate_arn" {
   description = "ACM certificate (il-central-1) for the ALB HTTPS listener — must include mokaid.com and crm.mokaid.com SANs"
   type        = string
-  default     = "arn:aws:acm:il-central-1:660601648321:certificate/527d80b3-bb90-4a7d-aa35-f8adca582d28"
+  default     = "arn:aws:acm:il-central-1:660601648321:certificate/6a571d65-8eb0-4b47-b9ae-92eea282ae22"
 }
 
 variable "web_image_tag" {

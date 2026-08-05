@@ -8,6 +8,13 @@ defmodule MokaidWeb.AuthController do
 
   def login(conn, %{"email" => email, "password" => password}) do
     with {:ok, user} <- Accounts.authenticate_by_password(email, password) do
+      _ =
+        Accounts.record_login_event(user,
+          ip_address: format_ip(conn.remote_ip),
+          user_agent: conn |> get_req_header("user-agent") |> List.first(),
+          auth_method: "password"
+        )
+
       json(conn, %{
         token: Token.sign(user.id),
         user: Serializer.user(user)
@@ -20,6 +27,9 @@ defmodule MokaidWeb.AuthController do
     |> put_status(:bad_request)
     |> json(%{error: %{code: "bad_request", message: "email and password are required"}})
   end
+
+  defp format_ip({a, b, c, d}), do: "#{a}.#{b}.#{c}.#{d}"
+  defp format_ip(other), do: other && to_string(other)
 
   def logout(conn, _params) do
     json(conn, %{ok: true})

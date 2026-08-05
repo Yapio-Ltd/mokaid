@@ -23,8 +23,23 @@ defmodule Mokaid.Admin do
     now = DateTime.utc_now()
     month_ago = DateTime.add(now, -30, :day)
 
+    month_start =
+      now
+      |> Map.put(:day, 1)
+      |> Map.put(:hour, 0)
+      |> Map.put(:minute, 0)
+      |> Map.put(:second, 0)
+      |> Map.put(:microsecond, {0, 6})
+
     users_total = Repo.aggregate(User, :count)
     users_active = Repo.one(from u in User, where: u.status == "active", select: count(u.id))
+
+    users_banned =
+      Repo.one(
+        from u in User,
+          where: u.status in ["suspended", "disabled"] or not is_nil(u.banned_at),
+          select: count(u.id)
+      ) || 0
 
     workspaces_total =
       Repo.one(from w in Workspace, where: is_nil(w.deleted_at), select: count(w.id))
@@ -62,16 +77,142 @@ defmodule Mokaid.Admin do
     new_users_30d =
       Repo.one(from u in User, where: u.inserted_at >= ^month_ago, select: count(u.id))
 
+    credits_spend_30d =
+      Repo.one(
+        from t in CreditTransaction,
+          where: t.kind == "spend" and t.inserted_at >= ^month_ago,
+          select: coalesce(sum(fragment("abs(?)", t.amount)), 0)
+      ) || 0
+
+    credits_balance_total =
+      Repo.one(
+        from s in Subscription,
+          where: s.status in ["active", "past_due"],
+          select:
+            coalesce(
+              sum(s.credits_balance + s.included_credits_remaining),
+              0
+            )
+      ) || 0
+
+    internal_ai_cost_mtd_cents =
+      Repo.one(
+        from e in UsageEvent,
+          where: e.occurred_at >= ^month_start,
+          select: coalesce(sum(e.cost_cents), 0)
+      ) || 0
+
+    cost_mtd = cost_mtd_by_provider(month_start)
+
+    deletions_pending =
+      Repo.one(
+        from u in User,
+          where: not is_nil(u.deletion_scheduled_at) and is_nil(u.anonymized_at),
+          select: count(u.id)
+      ) || 0
+
+    active_subs = max(subs_active, 1)
+    arpu_cents = div(mrr_cents, active_subs)
+    arr_cents = mrr_cents * 12
+    provider_cost_mtd = Enum.reduce(cost_mtd, 0, fn {_k, v}, acc -> acc + v end)
+    gross_margin_cents = mrr_cents - provider_cost_mtd
+
     %{
       users_total: users_total,
       users_active: users_active || 0,
+      users_banned: users_banned,
       workspaces_total: workspaces_total || 0,
       mrr_cents: mrr_cents,
+      arr_cents: arr_cents,
+      arpu_cents: arpu_cents,
       subscriptions_active: subs_active,
       subscriptions_past_due: subs_past_due,
       invoices_pending: invoices_pending || 0,
-      new_users_30d: new_users_30d || 0
+      new_users_30d: new_users_30d || 0,
+      credits_spend_30d: credits_spend_30d,
+      credits_balance_total: credits_balance_total,
+      internal_ai_cost_mtd_cents: internal_ai_cost_mtd_cents,
+      provider_cost_mtd_cents: provider_cost_mtd,
+      openai_cost_mtd_cents: Map.get(cost_mtd, "openai", 0),
+      anthropic_cost_mtd_cents: Map.get(cost_mtd, "anthropic", 0),
+      aws_cost_mtd_cents: Map.get(cost_mtd, "aws", 0),
+      gross_margin_cents: gross_margin_cents,
+      deletions_pending: deletions_pending
     }
+  end
+
+  def metrics_timeseries(opts \\ %{}) do
+    days = min(parse_int(Map.get(opts, "days"), 30), 90)
+    since = DateTime.add(DateTime.utc_now(), -days, :day)
+
+    users_by_day =
+      Repo.all(
+        from u in User,
+          where: u.inserted_at >= ^since,
+          group_by: fragment("date_trunc('day', ?)", u.inserted_at),
+          order_by: fragment("date_trunc('day', ?)", u.inserted_at),
+          select: %{
+            day: fragment("date_trunc('day', ?)", u.inserted_at),
+            count: count(u.id)
+          }
+      )
+
+    usage_by_day =
+      Repo.all(
+        from e in UsageEvent,
+          where: e.occurred_at >= ^since,
+          group_by: fragment("date_trunc('day', ?)", e.occurred_at),
+          order_by: fragment("date_trunc('day', ?)", e.occurred_at),
+          select: %{
+            day: fragment("date_trunc('day', ?)", e.occurred_at),
+            cost_cents: coalesce(sum(e.cost_cents), 0),
+            events: count(e.id)
+          }
+      )
+
+    provider_by_day =
+      Repo.all(
+        from s in Mokaid.Billing.PlatformCostSnapshot,
+          where: s.period_start >= ^since and s.granularity == "day",
+          group_by: [s.provider, s.period_start],
+          order_by: s.period_start,
+          select: %{
+            day: s.period_start,
+            provider: s.provider,
+            amount_cents: coalesce(sum(s.amount_cents), 0)
+          }
+      )
+
+    credits_by_day =
+      Repo.all(
+        from t in CreditTransaction,
+          where: t.inserted_at >= ^since and t.kind == "spend",
+          group_by: fragment("date_trunc('day', ?)", t.inserted_at),
+          order_by: fragment("date_trunc('day', ?)", t.inserted_at),
+          select: %{
+            day: fragment("date_trunc('day', ?)", t.inserted_at),
+            credits: coalesce(sum(fragment("abs(?)", t.amount)), 0),
+            cost_cents: coalesce(sum(t.cost_cents), 0)
+          }
+      )
+
+    %{
+      days: days,
+      new_users: users_by_day,
+      usage: usage_by_day,
+      provider_costs: provider_by_day,
+      credits_spend: credits_by_day
+    }
+  end
+
+  defp cost_mtd_by_provider(month_start) do
+    Repo.all(
+      from s in Mokaid.Billing.PlatformCostSnapshot,
+        where: s.period_start >= ^month_start and s.granularity == "day",
+        group_by: s.provider,
+        select: {s.provider, coalesce(sum(s.amount_cents), 0)}
+    )
+    |> Map.new()
   end
 
   # ---------- Users ----------
@@ -129,7 +270,8 @@ defmodule Mokaid.Admin do
         "locale",
         "timezone",
         "status",
-        "is_platform_admin"
+        "is_platform_admin",
+        "operator_notes"
       ])
 
     with {:ok, allowed} <- guard_platform_admin_change(user, allowed, actor),
@@ -160,6 +302,226 @@ defmodule Mokaid.Admin do
   end
 
   def reset_user_password(_user, _password, _actor), do: {:error, :invalid_password}
+
+  @deletion_grace_days 30
+
+  def ban_user(%User{} = user, actor, opts \\ %{}) do
+    with :ok <- guard_self_target(user, actor),
+         :ok <- guard_last_admin_ban(user) do
+      reason = Map.get(opts, "reason") || Map.get(opts, :reason) || "Banned by operator"
+      expires = parse_datetime(Map.get(opts, "ban_expires_at") || Map.get(opts, :ban_expires_at))
+
+      attrs = %{
+        status: "suspended",
+        banned_at: DateTime.utc_now(),
+        banned_by_id: actor.id,
+        ban_reason: reason,
+        ban_expires_at: expires
+      }
+
+      case user |> User.moderation_changeset(attrs) |> Repo.update() do
+        {:ok, updated} ->
+          platform_audit(actor, "admin.user.ban", "user", updated.id, nil, %{
+            reason: reason,
+            ban_expires_at: expires
+          }, opts)
+
+          {:ok, Repo.preload(updated, memberships: [:workspace, :role])}
+
+        error ->
+          error
+      end
+    end
+  end
+
+  def unban_user(%User{} = user, actor, opts \\ %{}) do
+    attrs = %{
+      status: "active",
+      banned_at: nil,
+      banned_by_id: nil,
+      ban_reason: nil,
+      ban_expires_at: nil
+    }
+
+    case user |> User.moderation_changeset(attrs) |> Repo.update() do
+      {:ok, updated} ->
+        platform_audit(actor, "admin.user.unban", "user", updated.id, nil, %{}, opts)
+        {:ok, Repo.preload(updated, memberships: [:workspace, :role])}
+
+      error ->
+        error
+    end
+  end
+
+  def schedule_user_deletion(%User{} = user, actor, opts \\ %{}) do
+    with :ok <- guard_self_target(user, actor),
+         :ok <- guard_last_admin_ban(user) do
+      reason = Map.get(opts, "reason") || "Scheduled by operator"
+      days = parse_int(Map.get(opts, "days"), @deletion_grace_days)
+      scheduled = DateTime.add(DateTime.utc_now(), days * 24 * 3600, :second)
+
+      attrs = %{
+        status: "suspended",
+        deletion_scheduled_at: scheduled,
+        ban_reason: reason,
+        banned_at: user.banned_at || DateTime.utc_now(),
+        banned_by_id: actor.id
+      }
+
+      case user |> User.moderation_changeset(attrs) |> Repo.update() do
+        {:ok, updated} ->
+          platform_audit(actor, "admin.user.schedule_deletion", "user", updated.id, nil, %{
+            deletion_scheduled_at: scheduled,
+            reason: reason,
+            grace_days: days
+          }, opts)
+
+          {:ok, Repo.preload(updated, memberships: [:workspace, :role])}
+
+        error ->
+          error
+      end
+    end
+  end
+
+  def cancel_user_deletion(%User{} = user, actor, opts \\ %{}) do
+    attrs = %{
+      deletion_scheduled_at: nil,
+      status: if(is_nil(user.banned_at), do: "active", else: user.status)
+    }
+
+    case user |> User.moderation_changeset(attrs) |> Repo.update() do
+      {:ok, updated} ->
+        platform_audit(actor, "admin.user.cancel_deletion", "user", updated.id, nil, %{}, opts)
+        {:ok, Repo.preload(updated, memberships: [:workspace, :role])}
+
+      error ->
+        error
+    end
+  end
+
+  def user_summary(id) do
+    case get_user(id) do
+      nil ->
+        nil
+
+      user ->
+        workspace_ids =
+          Enum.map(user.memberships || [], & &1.workspace_id) |> Enum.reject(&is_nil/1)
+
+        logins =
+          Repo.all(
+            from e in Mokaid.Accounts.UserLoginEvent,
+              where: e.user_id == ^user.id,
+              order_by: [desc: e.occurred_at],
+              limit: 20
+          )
+
+        credit_txns =
+          if workspace_ids == [] do
+            []
+          else
+            Repo.all(
+              from t in CreditTransaction,
+                where: t.workspace_id in ^workspace_ids,
+                order_by: [desc: t.inserted_at],
+                limit: 30
+            )
+          end
+
+        usage =
+          if workspace_ids == [] do
+            []
+          else
+            Repo.all(
+              from e in UsageEvent,
+                where: e.workspace_id in ^workspace_ids,
+                order_by: [desc: e.occurred_at],
+                limit: 30
+            )
+          end
+
+        invoices =
+          if workspace_ids == [] do
+            []
+          else
+            Repo.all(
+              from i in Invoice,
+                where: i.workspace_id in ^workspace_ids,
+                order_by: [desc: i.issued_at],
+                limit: 20,
+                preload: [:workspace]
+            )
+          end
+
+        subscriptions =
+          if workspace_ids == [] do
+            []
+          else
+            Repo.all(
+              from s in Subscription,
+                where: s.workspace_id in ^workspace_ids,
+                preload: [:plan, :workspace]
+            )
+          end
+
+        usage_cost_30d =
+          if workspace_ids == [] do
+            0
+          else
+            since = DateTime.add(DateTime.utc_now(), -30, :day)
+
+            Repo.one(
+              from e in UsageEvent,
+                where: e.workspace_id in ^workspace_ids and e.occurred_at >= ^since,
+                select: coalesce(sum(e.cost_cents), 0)
+            ) || 0
+          end
+
+        audit_logs =
+          Repo.all(
+            from l in AuditLog,
+              where: l.resource_type == "user" and l.resource_id == ^user.id,
+              order_by: [desc: l.occurred_at],
+              limit: 30
+          )
+
+        %{
+          user: user,
+          logins: logins,
+          credit_transactions: credit_txns,
+          usage_events: usage,
+          invoices: invoices,
+          subscriptions: subscriptions,
+          usage_cost_30d_cents: usage_cost_30d,
+          audit_logs: audit_logs
+        }
+    end
+  end
+
+  defp guard_self_target(%User{id: id}, %User{id: id}), do: {:error, :cannot_target_self}
+  defp guard_self_target(_, _), do: :ok
+
+  defp guard_last_admin_ban(%User{is_platform_admin: true} = user) do
+    admins =
+      Repo.one(from u in User, where: u.is_platform_admin == true, select: count(u.id)) || 0
+
+    if admins <= 1 and user.is_platform_admin, do: {:error, :last_platform_admin}, else: :ok
+  end
+
+  defp guard_last_admin_ban(_), do: :ok
+
+  defp parse_datetime(nil), do: nil
+  defp parse_datetime(%DateTime{} = dt), do: dt
+
+  defp parse_datetime(str) when is_binary(str) do
+    case DateTime.from_iso8601(str) do
+      {:ok, dt, _} -> dt
+      _ -> nil
+    end
+  end
+
+  defp parse_datetime(_), do: nil
 
   defp guard_platform_admin_change(
          %User{id: id} = user,
@@ -197,7 +559,8 @@ defmodule Mokaid.Admin do
       :locale,
       :timezone,
       :status,
-      :is_platform_admin
+      :is_platform_admin,
+      :operator_notes
     ])
     |> Ecto.Changeset.validate_inclusion(:status, ~w(active suspended disabled))
     |> Ecto.Changeset.validate_inclusion(:locale, ~w(en fr he))
@@ -570,93 +933,220 @@ defmodule Mokaid.Admin do
   def adjust_credits(workspace_id, amount, actor, opts \\ [])
       when is_integer(amount) and amount != 0 do
     audit? = Keyword.get(opts, :audit?, true)
+    reason = Keyword.get(opts, :reason) || Keyword.get(opts, :description)
+    idempotency_key = Keyword.get(opts, :idempotency_key)
 
-    cond do
-      amount > 0 ->
-        case Billing.Credits.add_purchased(workspace_id, amount,
-               kind: "adjustment",
-               description: "Platform admin credit adjustment"
-             ) do
-          {:ok, sub} = ok ->
-            if audit?,
-              do:
-                audit(actor, workspace_id, "admin.credits.adjust", "subscription", sub.id, %{
-                  amount: amount
-                })
-
-            ok
-
-          _err ->
-            # Ensure sub exists for free workspaces
-            _ = Billing.change_plan(workspace_id, "free")
-
-            case Billing.Credits.add_purchased(workspace_id, amount,
-                   kind: "adjustment",
-                   description: "Platform admin credit adjustment"
-                 ) do
-              {:ok, sub} = ok ->
-                if audit?,
-                  do:
-                    audit(actor, workspace_id, "admin.credits.adjust", "subscription", sub.id, %{
-                      amount: amount
-                    })
-
-                ok
-
-              err2 ->
-                err2
-            end
+    case Billing.Credits.admin_adjust(workspace_id, amount,
+           reason: reason,
+           operator_id: actor && actor.id,
+           idempotency_key: idempotency_key
+         ) do
+      {:ok, sub, _txn, status} ->
+        if audit? do
+          audit(actor, workspace_id, "admin.credits.adjust", "subscription", sub.id, %{
+            amount: amount,
+            reason: reason,
+            status: status
+          })
         end
 
-      amount < 0 ->
-        case force_debit_credits(workspace_id, -amount) do
-          {:ok, sub} = ok ->
-            if audit?,
-              do:
-                audit(actor, workspace_id, "admin.credits.adjust", "subscription", sub.id, %{
-                  amount: amount
-                })
+        {:ok, sub}
 
-            ok
-
-          error ->
-            error
-        end
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  defp force_debit_credits(workspace_id, credits) when credits > 0 do
-    case Billing.get_subscription(workspace_id) do
-      nil ->
-        {:error, :no_subscription}
+  # force_debit_credits removed — admin_adjust is authoritative
 
-      sub ->
-        from_included = min(sub.included_credits_remaining || 0, credits)
-        from_balance = credits - from_included
+  # ---------- Costs ----------
 
-        {1, [updated]} =
-          Repo.update_all(
-            from(s in Subscription, where: s.id == ^sub.id, select: s),
-            inc: [
-              included_credits_remaining: -from_included,
-              credits_balance: -from_balance
-            ]
-          )
+  def list_costs(opts \\ %{}) do
+    days = min(parse_int(Map.get(opts, "days"), 30), 90)
+    provider = Map.get(opts, "provider")
+    since = DateTime.add(DateTime.utc_now(), -days, :day)
 
-        %CreditTransaction{}
-        |> CreditTransaction.changeset(%{
-          "workspace_id" => workspace_id,
-          "kind" => "adjustment",
-          "amount" => -credits,
-          "balance_after" =>
-            (updated.included_credits_remaining || 0) + (updated.credits_balance || 0),
-          "description" => "Platform admin credit adjustment"
-        })
-        |> Repo.insert()
+    base =
+      from s in Mokaid.Billing.PlatformCostSnapshot,
+        where: s.period_start >= ^since,
+        order_by: [desc: s.period_start]
 
-        {:ok, updated}
-    end
+    base =
+      if is_binary(provider) and provider != "" and provider != "all" do
+        from s in base, where: s.provider == ^provider
+      else
+        base
+      end
+
+    rows = Repo.all(base)
+
+    totals =
+      rows
+      |> Enum.group_by(& &1.provider)
+      |> Enum.map(fn {p, list} -> {p, Enum.reduce(list, 0, &(&1.amount_cents + &2))} end)
+      |> Map.new()
+
+    reconciliation =
+      Repo.all(
+        from r in Mokaid.Billing.CostReconciliationDaily,
+          where: r.day >= ^Date.add(Date.utc_today(), -days),
+          order_by: [desc: r.day]
+      )
+
+    %{
+      days: days,
+      snapshots: rows,
+      totals_cents: totals,
+      total_cents: Enum.reduce(Map.values(totals), 0, &+/2),
+      reconciliation: reconciliation
+    }
   end
+
+  def cost_summary(opts \\ %{}) do
+    data = list_costs(opts)
+    m = metrics()
+
+    %{
+      mrr_cents: m.mrr_cents,
+      internal_ai_cost_mtd_cents: m.internal_ai_cost_mtd_cents,
+      provider_cost_mtd_cents: m.provider_cost_mtd_cents,
+      openai_cost_mtd_cents: m.openai_cost_mtd_cents,
+      anthropic_cost_mtd_cents: m.anthropic_cost_mtd_cents,
+      aws_cost_mtd_cents: m.aws_cost_mtd_cents,
+      gross_margin_cents: m.gross_margin_cents,
+      window_totals_cents: data.totals_cents,
+      window_total_cents: data.total_cents,
+      days: data.days,
+      reconciliation: data.reconciliation
+    }
+  end
+
+  # ---------- Unified logs ----------
+
+  def list_unified_logs(opts \\ %{}) do
+    page = parse_int(opts["page"], 1)
+    per_page = min(parse_int(opts["per_page"], 50), 200)
+    source = Map.get(opts, "source") || "all"
+    q = Map.get(opts, "q")
+
+    audit =
+      if source in ["all", "audit"] do
+        list_audit_logs(Map.merge(opts, %{"per_page" => per_page, "page" => 1})).data
+        |> Enum.map(fn l ->
+          %{
+            id: l.id,
+            source: "audit",
+            occurred_at: l.occurred_at,
+            actor: l.actor_name || l.actor_type,
+            action: l.action,
+            resource_type: l.resource_type,
+            resource_id: l.resource_id,
+            workspace_id: l.workspace_id,
+            message: l.action,
+            metadata: redact_map(l.metadata || %{})
+          }
+        end)
+      else
+        []
+      end
+
+    platform =
+      if source in ["all", "platform_audit"] do
+        Repo.all(
+          from e in Mokaid.Audit.PlatformAuditEvent,
+            order_by: [desc: e.occurred_at],
+            limit: ^per_page
+        )
+        |> Enum.map(fn e ->
+          %{
+            id: e.id,
+            source: "platform_audit",
+            occurred_at: e.occurred_at,
+            actor: e.actor_name || e.actor_email,
+            action: e.action,
+            resource_type: e.resource_type,
+            resource_id: e.resource_id,
+            workspace_id: e.workspace_id,
+            message: e.action,
+            ip_address: e.ip_address,
+            metadata: redact_map(e.metadata || %{})
+          }
+        end)
+      else
+        []
+      end
+
+    logins =
+      if source in ["all", "logins"] do
+        Repo.all(
+          from e in Mokaid.Accounts.UserLoginEvent,
+            order_by: [desc: e.occurred_at],
+            limit: ^per_page,
+            preload: [:user]
+        )
+        |> Enum.map(fn e ->
+          %{
+            id: e.id,
+            source: "login",
+            occurred_at: e.occurred_at,
+            actor: e.user && (e.user.email || e.user.full_name),
+            action: if(e.success, do: "login.success", else: "login.failure"),
+            resource_type: "user",
+            resource_id: e.user_id,
+            message: "auth=#{e.auth_method}",
+            ip_address: e.ip_address,
+            metadata: redact_map(%{"user_agent" => e.user_agent})
+          }
+        end)
+      else
+        []
+      end
+
+    cloudwatch =
+      if source in ["all", "cloudwatch"] do
+        Mokaid.Observability.CloudWatchLogs.filter(opts)
+      else
+        []
+      end
+
+    events =
+      (audit ++ platform ++ logins ++ cloudwatch)
+      |> Enum.sort_by(& &1.occurred_at, {:desc, DateTime})
+      |> then(fn list ->
+        if is_binary(q) and String.trim(q) != "" do
+          ql = String.downcase(q)
+
+          Enum.filter(list, fn e ->
+            String.contains?(String.downcase(to_string(e[:message] || "")), ql) or
+              String.contains?(String.downcase(to_string(e[:action] || "")), ql) or
+              String.contains?(String.downcase(to_string(e[:actor] || "")), ql)
+          end)
+        else
+          list
+        end
+      end)
+
+    total = length(events)
+    offset = (page - 1) * per_page
+    data = Enum.slice(events, offset, per_page)
+    %{data: data, page: page, per_page: per_page, total: total}
+  end
+
+  defp redact_map(map) when is_map(map) do
+    sensitive = ~w(password token secret authorization api_key access_token refresh_token)
+
+    Enum.reduce(map, %{}, fn {k, v}, acc ->
+      key = to_string(k)
+
+      if Enum.any?(sensitive, &String.contains?(String.downcase(key), &1)) do
+        Map.put(acc, k, "[REDACTED]")
+      else
+        Map.put(acc, k, v)
+      end
+    end)
+  end
+
+  defp redact_map(other), do: other
 
   # ---------- Audit ----------
 
@@ -804,6 +1294,8 @@ defmodule Mokaid.Admin do
   # ---------- Helpers ----------
 
   defp audit(%User{} = actor, workspace_id, action, resource_type, resource_id, metadata) do
+    platform_audit(actor, action, resource_type, resource_id, workspace_id, metadata, %{})
+
     %AuditLog{}
     |> AuditLog.changeset(%{
       "workspace_id" => workspace_id,
@@ -818,6 +1310,34 @@ defmodule Mokaid.Admin do
     |> Repo.insert()
 
     :ok
+  end
+
+  defp platform_audit(actor, action, resource_type, resource_id, workspace_id, metadata, opts) do
+    ip = Map.get(opts, :ip) || Map.get(opts, "ip")
+    ua = Map.get(opts, :user_agent) || Map.get(opts, "user_agent")
+
+    %Mokaid.Audit.PlatformAuditEvent{}
+    |> Mokaid.Audit.PlatformAuditEvent.changeset(%{
+      actor_id: actor && actor.id,
+      actor_email: actor && actor.email,
+      actor_name: actor && (actor.full_name || actor.email),
+      action: action,
+      resource_type: resource_type,
+      resource_id: resource_id,
+      workspace_id: workspace_id,
+      ip_address: ip && to_string(ip),
+      user_agent: ua && to_string(ua) |> String.slice(0, 500),
+      metadata: metadata || %{},
+      occurred_at: DateTime.utc_now()
+    })
+    |> Repo.insert()
+
+    :ok
+  rescue
+    e ->
+      require Logger
+      Logger.warning("platform_audit insert failed: #{inspect(e)}")
+      :ok
   end
 
   defp parse_int(nil, default), do: default
