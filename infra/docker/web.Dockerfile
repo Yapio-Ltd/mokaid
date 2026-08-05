@@ -1,7 +1,11 @@
 # --- Build stage ---
-FROM node:22-slim AS build
+# Playwright image ships Chromium + system libs so prerender works without a
+# multi-minute `playwright install --with-deps` on node:slim (which hung CI).
+FROM mcr.microsoft.com/playwright:v1.62.1-jammy AS build
 
 WORKDIR /repo
+
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 COPY package.json package-lock.json* ./
 COPY apps/web/package.json ./apps/web/
@@ -18,10 +22,7 @@ ARG VITE_WS_URL=/socket
 ENV VITE_API_URL=$VITE_API_URL VITE_WS_URL=$VITE_WS_URL
 ENV NODE_OPTIONS=--max-old-space-size=1536
 
-RUN npm run build --workspace=apps/web
-
-# Prerender the public routes to static HTML (SEO: crawlers get real content).
-RUN npx playwright install --with-deps chromium \
+RUN npm run build --workspace=apps/web \
     && npm run prerender --workspace=apps/web
 
 # --- Runtime stage (static file server) ---
