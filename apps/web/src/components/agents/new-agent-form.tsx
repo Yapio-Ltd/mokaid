@@ -44,6 +44,9 @@ export function NewAgentForm() {
     data: characterAssets,
     isLoading: charactersLoading,
     isError: charactersError,
+    error: charactersErr,
+    refetch: refetchCharacters,
+    isFetching: charactersFetching,
   } = useAssets3d("character");
 
   const models = useMemo(() => characterAssets ?? [], [characterAssets]);
@@ -321,11 +324,25 @@ export function NewAgentForm() {
               Loading characters…
             </div>
           ) : charactersError || models.length === 0 ? (
-            <div className="flex h-[320px] flex-col items-center justify-center gap-1 rounded-xl bg-surface-raised/50 px-4 text-center text-xs text-text-muted">
+            <div className="flex h-[320px] flex-col items-center justify-center gap-2 rounded-xl bg-surface-raised/50 px-4 text-center text-xs text-text-muted">
               <span>No 3D characters available.</span>
+              {charactersError && (
+                <span className="text-[11px] text-danger">
+                  {(charactersErr as Error)?.message || "Failed to load characters."}
+                </span>
+              )}
               <span className="text-[11px] text-text-muted/80">
-                Refresh the page or contact support if this persists.
+                The catalog may not be seeded yet in this environment.
               </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                loading={charactersFetching}
+                onClick={() => refetchCharacters()}
+              >
+                Retry
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">

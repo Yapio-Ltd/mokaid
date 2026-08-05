@@ -150,6 +150,11 @@ defmodule Mokaid.Assets3d do
 
     backfill_agent_avatar_ids()
     :ok
+  rescue
+    e ->
+      require Logger
+      Logger.error("Assets3d.seed_catalog failed: #{Exception.format(:error, e, __STACKTRACE__)}")
+      :error
   end
 
   # Keep agent avatar_asset_id stable when a catalog slug is renamed.
@@ -182,6 +187,22 @@ defmodule Mokaid.Assets3d do
   def list_assets(opts \\ []) do
     kind = Keyword.get(opts, :kind)
 
+    case load_assets(kind) do
+      [] ->
+        if Application.get_env(:mokaid, :auto_seed_assets_3d, true) do
+          # Prod self-heal: migrate() can fail to seed while still shipping schema updates.
+          seed_catalog()
+          load_assets(kind)
+        else
+          []
+        end
+
+      assets ->
+        assets
+    end
+  end
+
+  defp load_assets(kind) do
     Asset
     |> then(fn q -> if kind, do: where(q, [a], a.kind == ^kind), else: q end)
     |> order_by([a], asc: a.kind, asc: a.slug)
