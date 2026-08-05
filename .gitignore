@@ -71,6 +71,7 @@ assets/raw/developer/
 graphify-out/cost.json
 graphify-out/cache/
 apps/web/graphify-out/
+apps/api/graphify-out/
 
 # Local skill harvest clones
 /tmp/mokaid-skill-sources/

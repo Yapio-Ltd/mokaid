@@ -38,11 +38,13 @@ put_secret() { # put_secret NAME VALUE DESCRIPTION
 
 ANTHROPIC_KEY="$(env_value "$ROOT/apps/ai-worker/.env" ANTHROPIC_API_KEY)"
 OPENAI_KEY="$(env_value "$ROOT/apps/ai-worker/.env" OPENAI_API_KEY)"
-PAYME_SELLER="$(env_value "$ROOT/apps/api/.env" PAYME_SELLER_ID)"
+TRANZILA_PUBLIC="$(env_value "$ROOT/apps/api/.env" TRANZILA_PUBLIC_KEY)"
+TRANZILA_PRIVATE="$(env_value "$ROOT/apps/api/.env" TRANZILA_PRIVATE_KEY)"
 
 put_secret "mokaid/anthropic-api-key" "$ANTHROPIC_KEY" "Anthropic API key for the Mokaid AI worker"
 put_secret "mokaid/openai-api-key" "$OPENAI_KEY" "OpenAI API key for the Mokaid AI worker"
-put_secret "mokaid/payme-seller-id" "$PAYME_SELLER" "PayMe seller id for Mokaid billing"
+put_secret "mokaid/tranzila-public-key" "$TRANZILA_PUBLIC" "Tranzila public app key for Mokaid billing"
+put_secret "mokaid/tranzila-private-key" "$TRANZILA_PRIVATE" "Tranzila private/secret key for Mokaid billing"
 
 # Terraform-managed stacks (mokaid-prod)
 # create their own suffixed secrets consumed by the ECS task definitions —
@@ -62,7 +64,8 @@ update_stack_secret() { # update_stack_secret KEY VALUE
 
 update_stack_secret "anthropic_api_key" "$ANTHROPIC_KEY"
 update_stack_secret "openai_api_key" "$OPENAI_KEY"
-update_stack_secret "payme_seller_id" "$PAYME_SELLER"
+update_stack_secret "tranzila_public_key" "$TRANZILA_PUBLIC"
+update_stack_secret "tranzila_private_key" "$TRANZILA_PRIVATE"
 
 echo "done — restart ECS services to pick up new values:"
 echo "  aws ecs update-service --cluster mokaid-prod --service mokaid-prod-api --force-new-deployment"

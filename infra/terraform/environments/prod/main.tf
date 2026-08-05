@@ -109,8 +109,11 @@ module "stack" {
   alb_certificate_arn       = var.alb_certificate_arn
   waf_allowed_country_codes = ["IL", "FR"]
 
-  auth_mode     = "dev_fallback"
-  payme_sandbox = true
+  auth_mode = "dev_fallback"
+
+  tranzila_terminal       = "fxpyapio"
+  tranzila_token_terminal = "fxpyapiotok"
+  tranzila_currency       = "USD"
 
   api_image_tag    = var.api_image_tag
   web_image_tag    = var.web_image_tag

@@ -13,7 +13,7 @@ TO_PREFIX="${2:?target prefix required (e.g. mokaid-prod)}"
 PROFILE="${AWS_PROFILE:-mokaid}"
 REGION="${AWS_REGION:-il-central-1}"
 
-KEYS="secret_key_base worker_auth_token openai_api_key anthropic_api_key deepseek_api_key payme_seller_id figma_client_id figma_client_secret google_client_id google_client_secret github_client_id github_client_secret linear_client_id linear_client_secret slack_client_id slack_client_secret slack_signing_secret slack_app_id slack_verification_token notion_client_id notion_client_secret"
+KEYS="secret_key_base worker_auth_token openai_api_key anthropic_api_key deepseek_api_key tranzila_public_key tranzila_private_key figma_client_id figma_client_secret google_client_id google_client_secret github_client_id github_client_secret linear_client_id linear_client_secret slack_client_id slack_client_secret slack_signing_secret slack_app_id slack_verification_token notion_client_id notion_client_secret"
 
 ALL_SECRETS="$(aws secretsmanager list-secrets --profile "$PROFILE" --region "$REGION" \
   --query 'SecretList[].Name' --output text | tr '\t' '\n')"

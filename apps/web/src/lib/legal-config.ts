@@ -21,7 +21,7 @@ export const LEGAL_ADDRESS_SINGLE = "Chicago 136, Haifa, Israel";
 /** Company registration number (ח.פ.) — set when available */
 export const COMPANY_REGISTRATION_NUMBER = "" as string;
 
-export const PAYMENT_PROVIDER = "PayMe";
+export const PAYMENT_PROVIDER = "Tranzila";
 export const HOSTING_PROVIDER = "Render";
 export const HOSTING_DETAILS =
   "Render Services, Inc. — cloud infrastructure. Contact us for full hosting particulars.";

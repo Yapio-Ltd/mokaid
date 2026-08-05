@@ -119,17 +119,21 @@ export interface DeskSeat extends NavPoint {
 /**
  * One chair per agent, taken from the Object_122 instances and spread across
  * the floor. `facing` looks at the paired desk.
+ *
+ * Seat **indices are fixed physical chairs** (do not reorder). Server
+ * assignment fills camera-near first via `Agents.seat_fill_order/0`:
+ * `[8,7,6,5,4,3,2,1,0]` = descending room `z` (bottom of the iso view → lounge).
  */
 export const OFFICE_DESK_SLOTS: DeskSeat[] = [
-  { x: 1.682, z: -4.243, facing: -0.0013, seatHeight: DESK_SEAT_HEIGHT }, // Object_122.009
-  { x: 5.157, z: -2.781, facing: 0.0151, seatHeight: DESK_SEAT_HEIGHT }, // Object_122.003
-  { x: -2.008, z: -2.157, facing: -3.1053, seatHeight: DESK_SEAT_HEIGHT }, // Object_122.007
-  { x: 3.252, z: -0.540, facing: -1.7097, seatHeight: DESK_SEAT_HEIGHT }, // Object_122.002
-  { x: 1.750, z: -0.520, facing: 1.7620, seatHeight: DESK_SEAT_HEIGHT }, // Object_122.001
-  { x: -6.019, z: 0.665, facing: 2.5970, seatHeight: DESK_SEAT_HEIGHT }, // Object_122.012
-  { x: -0.854, z: 1.075, facing: -3.0795, seatHeight: DESK_SEAT_HEIGHT }, // Object_122.006
-  { x: 5.163, z: 1.445, facing: 3.1329, seatHeight: DESK_SEAT_HEIGHT }, // Object_122
-  { x: 2.158, z: 3.190, facing: -3.1079, seatHeight: DESK_SEAT_HEIGHT }, // Object_122.004
+  { x: 1.682, z: -4.243, facing: -0.0013, seatHeight: DESK_SEAT_HEIGHT }, // 0 far lounge
+  { x: 5.157, z: -2.781, facing: 0.0151, seatHeight: DESK_SEAT_HEIGHT }, // 1
+  { x: -2.008, z: -2.157, facing: -3.1053, seatHeight: DESK_SEAT_HEIGHT }, // 2
+  { x: 3.252, z: -0.540, facing: -1.7097, seatHeight: DESK_SEAT_HEIGHT }, // 3
+  { x: 1.750, z: -0.520, facing: 1.7620, seatHeight: DESK_SEAT_HEIGHT }, // 4
+  { x: -6.019, z: 0.665, facing: 2.5970, seatHeight: DESK_SEAT_HEIGHT }, // 5
+  { x: -0.854, z: 1.075, facing: -3.0795, seatHeight: DESK_SEAT_HEIGHT }, // 6
+  { x: 5.163, z: 1.445, facing: 3.1329, seatHeight: DESK_SEAT_HEIGHT }, // 7
+  { x: 2.158, z: 3.190, facing: -3.1079, seatHeight: DESK_SEAT_HEIGHT }, // 8 near camera
 ];
 
 /** Flat floor height once the GLB is planted at y=0. */

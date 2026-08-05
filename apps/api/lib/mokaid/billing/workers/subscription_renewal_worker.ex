@@ -2,8 +2,8 @@ defmodule Mokaid.Billing.Workers.SubscriptionRenewalWorker do
   @moduledoc """
   Recurring billing: renews every subscription whose period has ended.
 
-  Paid plans are charged on the stored PayMe payment method (buyer key) and
-  get a paid invoice; free plans (and dev environments without PayMe) simply
+  Paid plans are charged on the stored Tranzila card token and
+  get a paid invoice; free plans (and dev environments without Tranzila) simply
   roll over. Failed charges follow the dunning flow in
   `Mokaid.Billing.renew_subscription/1` — daily retries, then downgrade to
   Free. Runs hourly so period ends are honored within the hour.

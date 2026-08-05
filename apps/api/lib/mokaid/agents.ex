@@ -50,7 +50,20 @@ defmodule Mokaid.Agents do
   defp maybe_filter(query, _field, ""), do: query
   defp maybe_filter(query, field, value), do: where(query, [a], field(a, ^field) == ^value)
 
+  # Nine physical desk chairs (indices 0..8 in the web OFFICE_DESK_SLOTS array).
   @max_office_seats 9
+
+  # Desk indices assigned first → last. Matches office-navdata OFFICE_DESK_SLOTS
+  # sorted by camera-near (highest z / bottom of the isometric map) so new
+  # agents fill the foreground first, then mid desks, then the lounge edge.
+  # Indices are physical chair slots — do not reorder unless the GLB seats change.
+  @seat_fill_order [8, 7, 6, 5, 4, 3, 2, 1, 0]
+
+  # Compile-time guard: fill order must cover every seat exactly once.
+  if length(@seat_fill_order) != @max_office_seats or
+       Enum.sort(@seat_fill_order) != Enum.to_list(0..(@max_office_seats - 1)) do
+    raise "seat_fill_order must be a permutation of 0..#{@max_office_seats - 1}"
+  end
 
   def create_agent(workspace_id, attrs, created_by \\ nil) do
     attrs = stringify_attrs(attrs)
@@ -429,7 +442,7 @@ defmodule Mokaid.Agents do
     end
   end
 
-  @doc "First free desk index 0..8 for the workspace, or :office_full."
+  @doc "Next free desk in camera-near fill order, or :office_full."
   def next_free_seat(workspace_id) do
     Repo.query!("SELECT pg_advisory_xact_lock(hashtext($1::text))", [to_string(workspace_id)])
 
@@ -438,6 +451,9 @@ defmodule Mokaid.Agents do
       seat -> {:ok, seat}
     end
   end
+
+  @doc "Seat indices from closest-to-camera (foreground) to furthest (lounge)."
+  def seat_fill_order, do: @seat_fill_order
 
   defp find_free_seat(workspace_id) do
     taken =
@@ -449,7 +465,7 @@ defmodule Mokaid.Agents do
       |> Repo.all()
       |> MapSet.new()
 
-    Enum.find(0..(@max_office_seats - 1), &(not MapSet.member?(taken, &1)))
+    Enum.find(@seat_fill_order, &(not MapSet.member?(taken, &1)))
   end
 
   def active_agent_count(workspace_id) do

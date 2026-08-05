@@ -377,7 +377,7 @@ function hexToColor3(hex: string): Color3 {
 /**
  * Legacy solid tint for untextured placeholder meshes (e.g. RobotExpressive).
  * Realistic catalog avatars keep their authored materials/textures — agent color
- * is shown via the status ring instead.
+ * is shown on the floating label, not a floor marker.
  */
 export function applyTint(meshes: AbstractMesh[], hex: string) {
   const hasAuthoringTextures = meshes.some((mesh) => {

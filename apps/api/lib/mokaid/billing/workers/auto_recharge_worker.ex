@@ -2,8 +2,8 @@ defmodule Mokaid.Billing.Workers.AutoRechargeWorker do
   @moduledoc """
   Auto-recharge: buys an AI credit pack automatically when a workspace's
   spendable balance falls below its threshold (ElevenLabs-style). Charges the
-  stored PayMe payment method via a buyer-key sale; on success the pack's
-  credits are added (settling any negative balance in the process).
+  stored Tranzila card token server-side; on success the pack's credits are
+  added (settling any negative balance in the process).
 
   Unique per workspace within a short window so a burst of spends doesn't fire
   multiple recharges.
@@ -47,12 +47,16 @@ defmodule Mokaid.Billing.Workers.AutoRechargeWorker do
   end
 
   defp charge_and_credit(workspace_id, subscription, pack) do
-    case Billing.PayMe.charge_buyer(%{
-           buyer_key: subscription.external_customer_id,
+    payment_method = subscription.payment_method || %{}
+
+    case Billing.Tranzila.charge_token(%{
+           token: subscription.external_customer_id,
+           expire_month: payment_method["expire_month"],
+           expire_year: payment_method["expire_year"],
            amount_cents: pack.price_cents,
            description: "Mokaid — auto-recharge #{pack.credits} AI credits"
          }) do
-      {:ok, sale} ->
+      {:ok, charge} ->
         Credits.add_purchased(workspace_id, pack.credits,
           kind: "auto_recharge",
           description: "Auto-recharge: #{pack.credits} credits",
@@ -63,7 +67,7 @@ defmodule Mokaid.Billing.Workers.AutoRechargeWorker do
         Billing.create_settled_invoice(workspace_id, %{
           "kind" => "credits",
           "amount_cents" => pack.price_cents,
-          "external_payment_id" => sale["payme_sale_id"],
+          "external_payment_id" => to_string(charge.transaction_id),
           "line_items" => [
             %{
               "description" => "Auto-recharge — #{pack.credits} AI credits",

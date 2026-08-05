@@ -31,7 +31,6 @@ import {
 import type { AbstractMesh, AnimationGroup, Light } from "@babylonjs/core";
 import { PBRMaterial } from "@babylonjs/core";
 import "@babylonjs/loaders/glTF";
-import { statusColors } from "@mokaid/design-tokens";
 import {
   applyTint,
   DEFAULT_AVATAR_CDN_PATH,
@@ -150,7 +149,6 @@ interface AvatarNode {
   /** Invisible Babylon collider with ellipsoid (world-space). */
   collider: Mesh;
   meshes: AbstractMesh[];
-  ring: Mesh;
   agent: SceneAgent;
   phase: number;
   baseY: number;
@@ -226,7 +224,7 @@ interface AvatarNode {
  * office-scene-host and reported in the debug snapshot, so the number the
  * verification harness reads can never drift from the one the host compares.
  */
-export const OFFICE_SCENE_BUILD = 18;
+export const OFFICE_SCENE_BUILD = 22;
 
 export class OfficeScene {
   private engine: Engine;
@@ -624,25 +622,47 @@ export class OfficeScene {
   /* ---------- setup ---------- */
 
   /** Camera distance multiplier vs the calibrated OFFICE_CAMERA position. */
-  private static readonly CAMERA_DISTANCE_SCALE = 1;
+  private static readonly CAMERA_DISTANCE_SCALE = 0.93;
+  /**
+   * Screen-space truck on the ground plane (meters). Positive moves the camera
+   * to its local right so the office slides left in frame — not world +X, which
+   * is mostly depth for this isometric angle.
+   */
+  private static readonly CAMERA_PAN_RIGHT = 0;
 
   /**
-   * Per-material emissive intensities. Emission maps are baked in the GLB;
-   * these values control how hard they drive the bloom threshold.
+   * Intentional light-source materials only (GLB ships white emissiveFactor +
+   * maps on shared names). Anything else is zeroed so white pots / portraits
+   * do not drive bloom. Values are absolute emissiveIntensity (not deltas).
    */
   private static readonly EMISSIVE_BY_MATERIAL: Record<string, number> = {
-    base: 5.0,
-    "Solo items": 6.0,
-    "dividing wall N": 5.0,
-    additional: 5.5,
-    Monitor: 2.2,
-    "Monitor ": 2.2,
-    "Lap Top": 2.4,
-    Candles: 4.5,
-    "Table Light": 4.5,
-    Sofa: 3.5,
+    // Floor + wall neon strips (dark albedo; bright strip in emission map).
+    base: 2.4,
+    "dividing wall N": 2.0,
+    additional: 1.9,
+    // Screens — emission map is the display content.
+    Monitor: 1.35,
+    "Monitor ": 1.35,
+    "Lap Top": 1.4,
+    // Real fixtures.
+    Candles: 1.7,
+    "Table Light": 1.9,
+    // Wall art / misc props share this mat (includes portraits with bright
+    // backdrops). Keep far below the old 6× so frames do not halo.
+    "Solo items": 0.28,
   };
-  private static readonly EMISSIVE_DEFAULT = 3.0;
+  /** Non-light materials must never emit (even if a stray emission map exists). */
+  private static readonly EMISSIVE_DEFAULT = 0;
+
+  /**
+   * Soften pure-white decorative albedo (no emission in GLB) so desk lamps
+   * don't push them past the bloom threshold and look self-lit.
+   */
+  private static readonly ALBEDO_SOFTEN: Record<string, number> = {
+    "plant pot N": 0.78,
+    "Material.002": 0.88,
+    "Material.003": 0.88,
+  };
 
   private setupImageProcessing() {
     // Tone mapping / vignette are owned by DefaultRenderingPipeline once created;
@@ -699,6 +719,22 @@ export class OfficeScene {
     // Pull along the view axis (dist < 1 moves closer, keeps orientation).
     const scaled = target.add(pos.subtract(target).scale(raw.dist ?? 1));
 
+    // Truck along camera-local horizontal (XZ), not world X — world X is
+    // mostly depth for this view, so ±X barely looks lateral.
+    const pan = OfficeScene.CAMERA_PAN_RIGHT;
+    if (pan !== 0) {
+      const toCamX = scaled.x - target.x;
+      const toCamZ = scaled.z - target.z;
+      const len = Math.hypot(toCamX, toCamZ) || 1;
+      // 90° on the ground plane: (x,z) → (z, -x) is local right for this rig.
+      const rx = toCamZ / len;
+      const rz = -toCamX / len;
+      scaled.x += rx * pan;
+      scaled.z += rz * pan;
+      target.x += rx * pan;
+      target.z += rz * pan;
+    }
+
     this.camera.position.copyFrom(scaled);
     this.camera.setTarget(target);
     if (raw.fov) this.camera.fov = raw.fov;
@@ -730,7 +766,8 @@ export class OfficeScene {
     pipeline.imageProcessingEnabled = true;
     pipeline.imageProcessing.toneMappingEnabled = true;
     pipeline.imageProcessing.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
-    pipeline.imageProcessing.exposure = 1.3;
+    // Keep below neon emissive so pure-white decor is not auto-bloomed.
+    pipeline.imageProcessing.exposure = 1.12;
     pipeline.imageProcessing.contrast = 1.08;
     pipeline.imageProcessing.vignetteEnabled = true;
     pipeline.imageProcessing.vignetteWeight = 1.4;
@@ -933,7 +970,10 @@ export class OfficeScene {
     }
   }
 
-  /** Apply per-material emissive caps so floor neon does not wash out bloom. */
+  /**
+   * Allowlist intentional emitters; zero emission on everything else, and
+   * slightly dim pure-white prop albedo that falsely reads as self-lit.
+   */
   private toneDownEmissive(mesh: AbstractMesh) {
     const apply = (mat: unknown) => {
       if (!(mat instanceof PBRMaterial)) return;
@@ -945,7 +985,20 @@ export class OfficeScene {
         OfficeScene.EMISSIVE_BY_MATERIAL[name] ??
         OfficeScene.EMISSIVE_BY_MATERIAL[rawName] ??
         OfficeScene.EMISSIVE_DEFAULT;
-      mat.emissiveIntensity = target;
+
+      if (target <= 0) {
+        // Hard kill: stray emission maps (e.g. coffee table) must not bloom.
+        mat.emissiveIntensity = 0;
+        mat.emissiveColor = Color3.Black();
+      } else {
+        mat.emissiveIntensity = target;
+      }
+
+      const soften =
+        OfficeScene.ALBEDO_SOFTEN[name] ?? OfficeScene.ALBEDO_SOFTEN[rawName];
+      if (soften != null && soften < 1 && mat.albedoColor) {
+        mat.albedoColor = mat.albedoColor.scale(soften);
+      }
     };
 
     const mat = mesh.material;
@@ -1071,15 +1124,6 @@ export class OfficeScene {
     const path = pathForSeat(seatIndex, this.paths);
     const pathIndex = staggeredWaypointIndex(path, slot.x, slot.z, seatIndex);
 
-    const ring = MeshBuilder.CreateTorus(
-      `avatar-ring-${agent.id}`,
-      { diameter: 1.05, thickness: 0.06, tessellation: 24 },
-      this.scene,
-    );
-    ring.position.y = 0.06;
-    ring.parent = root;
-    ring.isPickable = false;
-
     const collider = createAgentCollider(this.scene, agent.id);
     syncColliderToRoot(collider, root);
 
@@ -1087,7 +1131,6 @@ export class OfficeScene {
       root,
       collider,
       meshes: spawned.meshes,
-      ring,
       agent,
       phase: Math.random() * Math.PI * 2,
       baseY: root.position.y,
@@ -1164,11 +1207,7 @@ export class OfficeScene {
   }
 
   private applyStatusVisual(avatar: AvatarNode) {
-    const statusColor =
-      (statusColors as Record<string, string>)[avatar.agent.status] ?? statusColors.offline;
-
-    avatar.ring.material = this.material(`ring-${avatar.agent.status}`, statusColor, 0.6);
-
+    // Status color was previously a floor torus under the agent; labels own status now.
     const isOffline = ["offline", "archived"].includes(avatar.agent.status);
     const alpha = isOffline ? 0.35 : 1;
     for (const mesh of avatar.meshes) {
@@ -1967,7 +2006,6 @@ export class OfficeScene {
   ) {
     // Detour must not exist while held on a socket (root is off-mesh for sits).
     this.detachCrowdAgent(avatar);
-    avatar.ring.setEnabled(false);
     avatar.root.rotation.x = 0;
     avatar.root.rotation.z = 0;
     // Pin XZ to the socket every frame so separation cannot drift them away.
@@ -2185,7 +2223,6 @@ export class OfficeScene {
     avatar.baseY = avatar.root.position.y;
     avatar.socketLocked = true;
     avatar.socketId = socket.id;
-    avatar.ring.setEnabled(true);
     playAgentAnimation(avatar, state as AgentAnimName);
     syncColliderToRoot(avatar.collider, avatar.root);
     this.reportActivity(avatar, null);
@@ -2227,7 +2264,6 @@ export class OfficeScene {
     };
     avatar.socketLocked = false;
     avatar.socketId = null;
-    avatar.ring.setEnabled(socket.kind === "desk");
     // Keep walking until we are nearly at the socket — avoids foosball pose in the aisle.
     playAgentAnimation(avatar, "walking");
     this.reportActivity(avatar, "walking");
@@ -2299,7 +2335,6 @@ export class OfficeScene {
     avatar.socketDriftTimer = 0;
     // Crowd owns loco → keep collisions off. Fallback A* needs them on.
     setAgentCollisionsEnabled(avatar.collider, !avatar.crowdAgent);
-    avatar.ring.setEnabled(true);
     this.plantFeet(avatar);
     syncColliderToRoot(avatar.collider, avatar.root);
   }

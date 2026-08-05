@@ -28,7 +28,8 @@ defmodule Mokaid.AgentsTest do
       assert agent.kind == "ai"
       assert agent.linked_user_id == nil
       assert agent.slug =~ "data-analyst"
-      assert agent.seat_index == 0
+      # First free desk is the camera-nearest chair (fill order, not index 0).
+      assert agent.seat_index == hd(Agents.seat_fill_order())
       assert agent.level == 1
       assert Enum.any?(agent.skills, &(&1["name"] == "data-analysis"))
     end
@@ -88,18 +89,22 @@ defmodule Mokaid.AgentsTest do
                })
     end
 
-    test "professional assigns unique seats and blocks the tenth agent" do
+    test "professional assigns unique seats front-to-back and blocks the tenth agent" do
       {workspace, _owner} = workspace_fixture()
       subscribe!(workspace.id, "professional")
 
-      for i <- 0..8 do
+      order = Agents.seat_fill_order()
+      assert length(order) == 9
+      assert order == Enum.uniq(order)
+
+      for {expected_seat, i} <- Enum.with_index(order) do
         assert {:ok, agent} =
                  Agents.create_agent(workspace.id, %{
                    "kind" => "ai",
                    "display_name" => "Bot #{i}"
                  })
 
-        assert agent.seat_index == i
+        assert agent.seat_index == expected_seat
       end
 
       assert {:error, :agent_limit_reached} =
@@ -141,13 +146,14 @@ defmodule Mokaid.AgentsTest do
       {:ok, first} =
         Agents.create_agent(workspace.id, %{"kind" => "ai", "display_name" => "One"})
 
-      assert first.seat_index == 0
+      first_seat = hd(Agents.seat_fill_order())
+      assert first.seat_index == first_seat
       assert {:ok, _} = Agents.archive_agent(first)
 
       {:ok, again} =
         Agents.create_agent(workspace.id, %{"kind" => "ai", "display_name" => "Two"})
 
-      assert again.seat_index == 0
+      assert again.seat_index == first_seat
     end
 
     test "applies a paid boost atomically and rejects insufficient credits" do

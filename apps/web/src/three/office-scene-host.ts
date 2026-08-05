@@ -107,6 +107,8 @@ export function bindOfficeDebugGlobal() {
 bindOfficeDebugGlobal();
 
 // Hot reload: drop the singleton so the next attach gets fresh collision/socket code.
+// React re-attaches when OFFICE_SCENE_BUILD bumps; office-canvas also re-pushes agents
+// on attach + officeReady so HMR never leaves an empty avatars map.
 if (import.meta.hot) {
   import.meta.hot.accept(() => {
     disposeOfficeHost();
@@ -121,6 +123,9 @@ if (import.meta.hot) {
     disposeOfficeHost();
   });
   import.meta.hot.accept("./office-crowd", () => {
+    disposeOfficeHost();
+  });
+  import.meta.hot.accept("./office-lighting", () => {
     disposeOfficeHost();
   });
 }

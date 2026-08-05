@@ -40,8 +40,8 @@ defmodule MokaidWeb.Router do
     post "/auth/google/start", AuthController, :google_start
     post "/auth/google/callback", AuthController, :google_callback
 
-    # PayMe posts payment results here (reconciled by invoice id).
-    post "/payme/callback", PaymeWebhookController, :callback
+    # Tranzila posts payment results here (reconciled by invoice id).
+    post "/tranzila/notify", TranzilaWebhookController, :notify
   end
 
   scope "/api", MokaidWeb do

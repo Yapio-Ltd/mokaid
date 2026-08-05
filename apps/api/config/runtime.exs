@@ -165,13 +165,15 @@ if config_env() == :dev do
   end
 end
 
-# PayMe hosted payments — seller id comes from the environment (AWS Secrets
+# Tranzila hosted payments — API keys come from the environment (AWS Secrets
 # Manager in deployed environments, .env locally); never from the repo.
-if System.get_env("PAYME_SELLER_ID") do
-  config :mokaid, :payme,
-    seller_id: System.get_env("PAYME_SELLER_ID"),
-    sandbox: System.get_env("PAYME_SANDBOX", "false") == "true",
-    currency: System.get_env("PAYME_CURRENCY", "USD"),
+if System.get_env("TRANZILA_PUBLIC_KEY") do
+  config :mokaid, :tranzila,
+    app_key: System.get_env("TRANZILA_PUBLIC_KEY"),
+    secret: System.get_env("TRANZILA_PRIVATE_KEY"),
+    terminal: System.get_env("TRANZILA_TERMINAL"),
+    token_terminal: System.get_env("TRANZILA_TOKEN_TERMINAL"),
+    currency: System.get_env("TRANZILA_CURRENCY", "USD"),
     api_base_url: System.get_env("API_BASE_URL", "https://api.mokaid.com"),
     web_base_url: System.get_env("WEB_BASE_URL", "https://mokaid.com")
 end

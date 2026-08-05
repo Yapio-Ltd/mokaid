@@ -8,7 +8,6 @@ import {
   FolderKanban,
   FolderOpen,
   LayoutDashboard,
-  Library,
   Plug,
   Settings,
   Users,
@@ -25,7 +24,6 @@ const mainNav = [
   { to: "/agents", label: "Agents", icon: Bot },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/projects", label: "Projects", icon: FolderKanban },
-  { to: "/knowledge", label: "Knowledge", icon: Library },
   { to: "/drive", label: "Drive", icon: FolderOpen },
   { to: "/calendar", label: "Calendar", icon: Calendar },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
@@ -44,37 +42,33 @@ function NavItem({
   icon: Icon,
   active,
   collapsed,
+  index,
 }: {
   to: string;
   label: string;
   icon: typeof LayoutDashboard;
   active: boolean;
   collapsed: boolean;
+  index: number;
 }) {
   return (
     <Link
       to={to}
       data-tour={`nav-${to.slice(1)}`}
       title={collapsed ? label : undefined}
+      style={{ animationDelay: `${index * 45}ms` }}
       className={cn(
-        "group relative flex items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium transition-all duration-150 mk-focus-ring active:scale-[0.98]",
-        active
-          ? "bg-primary-muted text-primary-light"
-          : "text-text-secondary hover:bg-surface-hover hover:text-text",
-        collapsed && "justify-center px-2",
+        "mk-snav group relative flex items-center gap-3 rounded-lg px-2.5 py-[7px] text-[13px] font-medium mk-focus-ring active:scale-[0.98]",
+        active ? "is-active text-text" : "text-text-secondary hover:text-text",
+        collapsed && "justify-center px-1.5",
       )}
     >
-      {active && !collapsed && (
-        <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary" aria-hidden />
-      )}
-      <Icon
-        size={17}
-        className={cn(
-          "transition-transform duration-150 group-hover:scale-105",
-          active ? "text-primary-light" : "text-text-muted group-hover:text-text",
-        )}
-      />
-      {!collapsed && <span className="truncate">{label}</span>}
+      {active && !collapsed && <span className="mk-snav-rail" aria-hidden />}
+      <span className="mk-snav-icon" aria-hidden>
+        <Icon size={16} strokeWidth={active ? 2.1 : 1.8} />
+      </span>
+      {!collapsed && <span className="mk-snav-label truncate">{label}</span>}
+      {active && !collapsed && <span className="mk-snav-spark" aria-hidden />}
     </Link>
   );
 }
@@ -94,49 +88,71 @@ export function Sidebar() {
   return (
     <nav
       className={cn(
-        "flex h-full shrink-0 flex-col bg-bg-deep transition-[width] duration-200",
+        "mk-side flex h-full shrink-0 flex-col transition-[width] duration-200",
         collapsed ? "w-[68px]" : "w-60",
       )}
     >
-      <div className={cn("flex h-[60px] items-center px-4", collapsed && "justify-center px-2")}>
+      <div className="mk-side-aura" aria-hidden />
+      <div className="mk-side-aura mk-side-aura--bottom" aria-hidden />
+
+      <div
+        className={cn(
+          "relative z-10 flex h-[60px] items-center px-4",
+          collapsed && "justify-center px-2",
+        )}
+      >
         <Link to="/dashboard" className="mk-focus-ring rounded-md">
           <Logo collapsed={collapsed} />
         </Link>
       </div>
 
-      <div className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
-        <div className="space-y-0.5">
-          {mainNav.map((item) => (
-            <NavItem key={item.to} {...item} active={isActive(item.to)} collapsed={collapsed} />
+      <div className="relative z-10 flex-1 space-y-6 overflow-y-auto px-3 py-4">
+        <div className="space-y-1">
+          {mainNav.map((item, i) => (
+            <NavItem
+              key={item.to}
+              {...item}
+              index={i}
+              active={isActive(item.to)}
+              collapsed={collapsed}
+            />
           ))}
         </div>
 
         <div>
           {!collapsed && (
-            <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
+            <p className="mk-side-section mb-2 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-text-muted">
               Workspace
             </p>
           )}
-          <div className="space-y-0.5">
-            {workspaceNav.map((item) => (
-              <NavItem key={item.to} {...item} active={isActive(item.to)} collapsed={collapsed} />
+          <div className="space-y-1">
+            {workspaceNav.map((item, i) => (
+              <NavItem
+                key={item.to}
+                {...item}
+                index={mainNav.length + i}
+                active={isActive(item.to)}
+                collapsed={collapsed}
+              />
             ))}
           </div>
         </div>
       </div>
 
-      <div className={cn("space-y-1 border-t border-border/40 p-3", collapsed && "flex flex-col items-center")}>
+      <div className={cn("relative z-10 space-y-1.5 p-3", collapsed && "flex flex-col items-center")}>
         <OnboardingChecklist collapsed={collapsed} />
         <Link
           to="/profile"
           title={collapsed ? user?.full_name ?? "Profile" : undefined}
           className={cn(
-            "flex items-center gap-2.5 rounded-md px-3 py-2 transition-colors hover:bg-surface-hover mk-focus-ring",
-            isActive("/profile") && "bg-primary-muted",
-            collapsed && "justify-center px-2",
+            "mk-side-profile flex items-center gap-2.5 rounded-xl px-2.5 py-2 mk-focus-ring",
+            isActive("/profile") && "is-active",
+            collapsed && "justify-center px-1.5",
           )}
         >
-          <Avatar name={user?.full_name} src={user?.avatar_url} size="sm" color="#5936d1" />
+          <span className="mk-side-avatar-ring shrink-0">
+            <Avatar name={user?.full_name} src={user?.avatar_url} size="sm" color="#5936d1" />
+          </span>
           {!collapsed && (
             <div className="min-w-0">
               <p className="truncate text-[13px] font-semibold text-text">{user?.full_name}</p>

@@ -5,7 +5,7 @@ defmodule Mokaid.Billing do
 
   require Logger
 
-  alias Mokaid.Billing.{BillingPlan, Credits, Invoice, PayMe, Subscription, UsageEvent}
+  alias Mokaid.Billing.{BillingPlan, Credits, Invoice, Subscription, Tranzila, UsageEvent}
   alias Mokaid.Repo
 
   # Renewals are retried once a day, at most this many times, before the
@@ -109,7 +109,7 @@ defmodule Mokaid.Billing do
   Renews a subscription whose period has ended: charges the stored payment
   method for paid plans (creating a paid invoice), rolls the billing period
   and refreshes the monthly credit grant. Free plans (and dev environments
-  without PayMe) roll over without a charge.
+  without Tranzila) roll over without a charge.
 
   On payment failure the subscription goes `past_due` and admins are
   notified; after #{@max_renewal_failures} consecutive failures the
@@ -122,7 +122,7 @@ defmodule Mokaid.Billing do
     amount = if plan, do: plan_amount_for_cycle(plan, cycle), else: 0
 
     cond do
-      amount <= 0 or not PayMe.enabled?() ->
+      amount <= 0 or not Tranzila.enabled?() ->
         roll_period(subscription)
 
       subscription.external_customer_id in [nil, ""] ->
@@ -134,16 +134,20 @@ defmodule Mokaid.Billing do
   end
 
   defp charge_renewal(subscription, plan, cycle, amount) do
-    case PayMe.charge_buyer(%{
-           buyer_key: subscription.external_customer_id,
+    payment_method = subscription.payment_method || %{}
+
+    case Tranzila.charge_token(%{
+           token: subscription.external_customer_id,
+           expire_month: payment_method["expire_month"],
+           expire_year: payment_method["expire_year"],
            amount_cents: amount,
            description: "Mokaid #{plan.name} plan renewal (#{cycle})"
          }) do
-      {:ok, sale} ->
+      {:ok, charge} ->
         create_settled_invoice(subscription.workspace_id, %{
           "kind" => "subscription",
           "amount_cents" => amount,
-          "external_payment_id" => sale["payme_sale_id"],
+          "external_payment_id" => to_string(charge.transaction_id),
           "line_items" => [
             %{
               "description" => "#{plan.name} plan renewal — #{cycle}",
@@ -380,7 +384,7 @@ defmodule Mokaid.Billing do
     :ok
   end
 
-  ## ---------- Payments (PayMe hosted checkout) ----------
+  ## ---------- Payments (Tranzila hosted checkout) ----------
 
   def get_invoice(workspace_id, invoice_id) do
     Repo.one(from i in Invoice, where: i.workspace_id == ^workspace_id and i.id == ^invoice_id)

@@ -2,7 +2,7 @@ defmodule MokaidWeb.BillingController do
   use MokaidWeb, :controller
 
   alias Mokaid.Billing
-  alias Mokaid.Billing.{Credits, PayMe}
+  alias Mokaid.Billing.{Credits, Tranzila}
   alias MokaidWeb.JSON, as: Serializer
 
   def overview(conn, _params) do
@@ -90,8 +90,8 @@ defmodule MokaidWeb.BillingController do
 
   # Direct plan switching is only allowed for free plans (downgrades) — any
   # paid plan must go through the hosted checkout so the payment actually
-  # happens. Without a configured PayMe seller (local dev) everything stays
-  # switchable so the flow remains testable.
+  # happens. Without configured Tranzila credentials (local dev) everything
+  # stays switchable so the flow remains testable.
   def change_plan(conn, %{"plan_key" => plan_key} = params) do
     cycle = if params["billing_cycle"] == "yearly", do: "yearly", else: "monthly"
 
@@ -99,7 +99,7 @@ defmodule MokaidWeb.BillingController do
          %{} = plan <- Billing.get_plan_by_key(plan_key) do
       amount = if cycle == "yearly", do: plan.price_cents_yearly, else: plan.price_cents_monthly
 
-      if amount > 0 and PayMe.enabled?() do
+      if amount > 0 and Tranzila.enabled?() do
         conn
         |> put_status(:payment_required)
         |> json(%{
@@ -122,10 +122,11 @@ defmodule MokaidWeb.BillingController do
     end
   end
 
-  # Opens a PayMe hosted checkout for a paid plan. Free plans switch
-  # directly; Enterprise goes through sales. Without a configured PayMe
-  # seller (local dev) the plan change applies immediately so the whole
-  # flow stays testable.
+  # Opens a Tranzila hosted checkout for a paid plan (token terminal, so the
+  # card is tokenized for recurring renewals). Free plans switch directly;
+  # Enterprise goes through sales. Without configured Tranzila credentials
+  # (local dev) the plan change applies immediately so the whole flow stays
+  # testable.
   def checkout(conn, %{"plan_key" => plan_key} = params) do
     cycle = if params["billing_cycle"] == "yearly", do: "yearly", else: "monthly"
 
@@ -140,7 +141,7 @@ defmodule MokaidWeb.BillingController do
           |> put_status(:unprocessable_entity)
           |> json(%{error: %{code: "contact_sales", message: "Enterprise is a custom contract."}})
 
-        amount <= 0 or not PayMe.enabled?() ->
+        amount <= 0 or not Tranzila.enabled?() ->
           with {:ok, subscription} <- Billing.change_plan(workspace_id(conn), plan.key, cycle) do
             json(conn, %{
               data: %{
@@ -170,11 +171,12 @@ defmodule MokaidWeb.BillingController do
     end
   end
 
-  # Opens a PayMe hosted checkout for an AI credits pack.
+  # Opens a Tranzila hosted checkout for an AI credits pack (one-time sale
+  # on the standard terminal).
   def credits_checkout(conn, %{"pack_key" => pack_key} = params) do
     with :ok <- Permissions.authorize(current_member(conn), "billing.manage"),
          %{} = pack <- Billing.get_credit_pack(pack_key) do
-      if PayMe.enabled?() do
+      if Tranzila.enabled?() do
         open_checkout(conn, %{
           "kind" => "credits",
           "amount_cents" => pack.price_cents,
@@ -199,6 +201,10 @@ defmodule MokaidWeb.BillingController do
     end
   end
 
+  # Subscriptions go through the token terminal (tranmode=AK) so the card is
+  # tokenized for recurring charges; one-time purchases use the standard
+  # terminal. Our invoice id travels with the checkout and comes back in the
+  # notify webhook for reconciliation.
   defp open_checkout(conn, attrs) do
     user = current_user(conn)
 
@@ -207,18 +213,19 @@ defmodule MokaidWeb.BillingController do
              "kind" => attrs["kind"],
              "amount_cents" => attrs["amount_cents"],
              "line_items" => attrs["line_items"]
-           }),
-         {:ok, sale} <-
-           PayMe.generate_hosted_sale(%{
-             amount_cents: attrs["amount_cents"],
-             description: attrs["description"],
-             transaction_id: invoice.id,
-             return_path: safe_return_path(attrs["return_path"]),
-             buyer_email: user && user.email,
-             buyer_name: user && user.full_name
            }) do
-      Billing.attach_payment_reference(invoice, sale.payme_sale_id)
-      json(conn, %{data: %{sale_url: sale.sale_url, invoice_id: invoice.id}})
+      checkout_url =
+        Tranzila.checkout_url(%{
+          mode: if(attrs["kind"] == "subscription", do: :tokenize, else: :one_time),
+          amount_cents: attrs["amount_cents"],
+          description: attrs["description"],
+          invoice_id: invoice.id,
+          return_path: safe_return_path(attrs["return_path"]),
+          buyer_email: user && user.email,
+          buyer_name: user && user.full_name
+        })
+
+      json(conn, %{data: %{sale_url: checkout_url, invoice_id: invoice.id}})
     end
   end
 

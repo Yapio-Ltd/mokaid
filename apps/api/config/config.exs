@@ -62,11 +62,15 @@ config :mokaid, :ai_worker,
   url: "http://localhost:8100",
   token: "dev-worker-token"
 
-# PayMe hosted payments. seller_id empty => payments disabled (dev fallback
+# Tranzila hosted payments. Empty keys => payments disabled (dev fallback
 # activates plans/credits directly). Overridden per env / runtime.exs.
-config :mokaid, :payme,
-  seller_id: nil,
-  sandbox: true,
+# `terminal` clears one-time sales; `token_terminal` clears subscription
+# sales (tranmode=AK) and server-side token charges.
+config :mokaid, :tranzila,
+  app_key: nil,
+  secret: nil,
+  terminal: nil,
+  token_terminal: nil,
   currency: "USD",
   api_base_url: "http://localhost:4000",
   web_base_url: "http://localhost:5173"

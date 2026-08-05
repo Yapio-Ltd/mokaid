@@ -283,7 +283,7 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
   const [step, setStep] = useState(() => consumeOnboardingRestoreStep() ?? 0);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
 
-  // Back from a PayMe checkout started inside the wizard: the restore-step
+  // Back from a Tranzila checkout started inside the wizard: the restore-step
   // mechanism already re-opened us at the right step — confirm the payment.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -370,7 +370,7 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
       setStep(6);
       return;
     }
-    // Paid plan → PayMe checkout (redirects; in dev it activates directly).
+    // Paid plan → Tranzila checkout (redirects; in dev it activates directly).
     // Before redirecting, remember to reopen the wizard on the next step so
     // the user lands back exactly where they left off.
     setOauthReturn("/dashboard", 6);

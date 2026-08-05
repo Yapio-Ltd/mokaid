@@ -48,17 +48,20 @@ export const OFFICE_WORLD = {
 } as const;
 
 export const OFFICE_BLOOM = {
-  // Artist asked to enable bloom in the web app (Eevee bloom was off in the file).
-  threshold: 0.45,
-  weight: 0.8,
-  kernel: 96,
-  scale: 0.6,
+  // Bloom only for intentional emitters (neon / screens / lamps). Threshold
+  // high enough that white pots and wall art diffuse do not halo.
+  threshold: 0.78,
+  weight: 0.48,
+  kernel: 64,
+  scale: 0.5,
 } as const;
 
 export const OFFICE_CAMERA: OfficeCameraDef = {
   // Calibrated visually against the artist's Render_1.png (the viewport camera
   // stored in the .blend didn't match the render). Elevation ~22°, framed so
   // the office fills the canvas with minimal empty background.
+  // Lateral framing is applied in office-scene (CAMERA_PAN_RIGHT), not here —
+  // world ±X is nearly the view depth axis on this isometric angle.
   position: { x: 7.11, y: 6.96, z: 12.9 },
   // Target lowered (~4° downward tilt) so the office bottom edge stays in
   // frame and no empty background shows above the back walls. Raised a touch

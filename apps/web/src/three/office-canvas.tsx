@@ -322,9 +322,17 @@ export function OfficeCanvas({
           applyLabelPositions(labelRefs.current, positions);
         },
         onLoadProgress: (progress) => setLoadProgress(progress),
-        onOfficeReady: (ok) => setOfficeReady(ok),
+        onOfficeReady: (ok) => {
+          setOfficeReady(ok);
+          // Re-push agents whenever the office becomes ready — after a build bump
+          // or HMR dispose, the agents effect may not re-run if sceneAgents is
+          // unchanged, leaving lastAgents empty and zero avatars.
+          if (ok) updateOfficeHostAgents(sceneAgents);
+        },
         onAgentActivity,
       });
+      // Always seed lastAgents on the (possibly brand-new) host.
+      updateOfficeHostAgents(sceneAgents);
       if (scene.isReady()) {
         setOfficeReady(true);
         setLoadProgress(1);
@@ -337,14 +345,17 @@ export function OfficeCanvas({
     return () => {
       detachOfficeHost(container);
     };
+    // sceneAgents intentionally omitted from deps — push runs on ready/attach;
+    // the dedicated agents effect handles ongoing updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disable3d, workspaceId, OFFICE_SCENE_BUILD]);
 
   // Push agent updates into the running scene (singleton survives remounts).
+  // Include OFFICE_SCENE_BUILD so a scene recreation always re-hydrates avatars.
   useEffect(() => {
     if (disable3d) return;
     updateOfficeHostAgents(sceneAgents);
-  }, [sceneAgents, disable3d]);
+  }, [sceneAgents, disable3d, OFFICE_SCENE_BUILD]);
 
   if (disable3d) {
     return (

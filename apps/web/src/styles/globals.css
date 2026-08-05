@@ -158,6 +158,292 @@
   }
 }
 
+/* ---------- App sidebar (mk-side) — dark glass, violet neon accents ---------- */
+
+.mk-side {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0d0b16 0%, #0a0910 48%, #0c0a14 100%);
+}
+
+/* Living edge — thin gradient seam on the right that breathes */
+.mk-side::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(124, 92, 255, 0.35) 16%,
+    rgba(124, 92, 255, 0.08) 52%,
+    rgba(124, 92, 255, 0.3) 84%,
+    transparent 100%
+  );
+  animation: mk-side-edge 6.5s ease-in-out infinite;
+}
+
+@keyframes mk-side-edge {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Ambient drifting auras behind the nav */
+.mk-side-aura {
+  position: absolute;
+  left: 50%;
+  top: -70px;
+  z-index: 0;
+  width: 280px;
+  height: 280px;
+  translate: -50% 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(124, 92, 255, 0.16) 0%,
+    rgba(124, 92, 255, 0.05) 45%,
+    transparent 70%
+  );
+  filter: blur(22px);
+  animation: mk-side-aura 9s ease-in-out infinite;
+}
+
+.mk-side-aura--bottom {
+  top: auto;
+  bottom: -90px;
+  width: 240px;
+  height: 240px;
+  animation-delay: -4.5s;
+  background: radial-gradient(
+    circle at 50% 60%,
+    rgba(124, 92, 255, 0.1) 0%,
+    rgba(88, 50, 200, 0.04) 50%,
+    transparent 72%
+  );
+}
+
+@keyframes mk-side-aura {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.14) translateY(12px);
+  }
+}
+
+/* Nav items — staggered entrance */
+.mk-snav {
+  overflow: hidden;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.15s var(--mk-ease-spring, ease);
+  animation: mk-snav-in 0.5s var(--mk-ease) both;
+}
+
+@keyframes mk-snav-in {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Light sweep on hover */
+.mk-snav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    rgba(170, 130, 255, 0.09) 50%,
+    transparent 75%
+  );
+  transform: translateX(-130%);
+}
+
+.mk-snav:hover::before {
+  transition: transform 0.65s var(--mk-ease);
+  transform: translateX(130%);
+}
+
+.mk-snav:hover {
+  background: rgba(124, 92, 255, 0.06);
+}
+
+/* Icon tile */
+.mk-snav-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  color: var(--mk-text-muted);
+  border: 1px solid transparent;
+  transition:
+    color 0.22s ease,
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s var(--mk-ease);
+}
+
+.mk-snav:hover .mk-snav-icon {
+  color: var(--mk-text);
+  background: rgba(124, 92, 255, 0.1);
+  border-color: rgba(124, 92, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+/* Active state — glowing tile + gradient wash */
+.mk-snav.is-active {
+  background: linear-gradient(
+    90deg,
+    rgba(124, 92, 255, 0.16) 0%,
+    rgba(124, 92, 255, 0.05) 55%,
+    transparent 100%
+  );
+}
+
+.mk-snav.is-active .mk-snav-icon {
+  color: #c8b9ff;
+  background: rgba(124, 92, 255, 0.18);
+  border-color: rgba(150, 115, 255, 0.5);
+  animation: mk-snav-icon-glow 3.2s ease-in-out infinite;
+}
+
+@keyframes mk-snav-icon-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 10px rgba(124, 92, 255, 0.28),
+      inset 0 0 6px rgba(124, 92, 255, 0.12);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(150, 115, 255, 0.5),
+      inset 0 0 10px rgba(124, 92, 255, 0.24);
+  }
+}
+
+/* Glowing rail on the active item */
+.mk-snav-rail {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 58%;
+  translate: 0 -50%;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, rgba(210, 185, 255, 0.95), rgba(124, 92, 255, 0.75));
+  box-shadow: 0 0 12px rgba(150, 110, 255, 0.85);
+  animation: mk-snav-rail-in 0.4s var(--mk-ease) both;
+}
+
+@keyframes mk-snav-rail-in {
+  from {
+    height: 0%;
+    opacity: 0;
+  }
+  to {
+    height: 58%;
+    opacity: 1;
+  }
+}
+
+/* Tiny pulsing spark at the far end of the active row */
+.mk-snav-spark {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  translate: 0 -50%;
+  border-radius: 999px;
+  background: #c8b9ff;
+  box-shadow: 0 0 8px rgba(180, 140, 255, 0.9);
+  animation: mk-ring-pulse 2.2s ease-in-out infinite;
+}
+
+/* Label micro-shift on hover */
+.mk-snav-label {
+  transition: transform 0.25s var(--mk-ease);
+}
+
+.mk-snav:hover .mk-snav-label {
+  transform: translateX(2px);
+}
+
+/* Section heading with gradient hairline */
+.mk-side-section {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.mk-side-section::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(124, 92, 255, 0.35), transparent);
+}
+
+/* Profile card — quiet glass, glows on hover */
+.mk-side-profile {
+  border: 1px solid rgba(124, 92, 255, 0.1);
+  background: rgba(124, 92, 255, 0.04);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.mk-side-profile:hover,
+.mk-side-profile.is-active {
+  border-color: rgba(124, 92, 255, 0.32);
+  background: rgba(124, 92, 255, 0.09);
+  box-shadow: 0 0 18px rgba(124, 92, 255, 0.14);
+}
+
+.mk-side-avatar-ring {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 1.5px;
+  background: linear-gradient(135deg, rgba(200, 170, 255, 0.75), rgba(124, 92, 255, 0.25));
+  box-shadow: 0 0 10px rgba(124, 92, 255, 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-side::after,
+  .mk-side-aura,
+  .mk-snav,
+  .mk-snav::before,
+  .mk-snav-rail,
+  .mk-snav-spark,
+  .mk-snav.is-active .mk-snav-icon {
+    animation: none !important;
+  }
+}
+
 /* Soft floating animation used on the landing and login pages */
 @keyframes mk-float {
   0%,

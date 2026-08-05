@@ -1105,7 +1105,7 @@ export function useCreditPacks() {
   });
 }
 
-/** Plan purchase — either activates directly or returns a PayMe checkout URL. */
+/** Plan purchase — either activates directly or returns a Tranzila checkout URL. */
 export function usePlanCheckout() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -178,10 +178,22 @@ variable "auth_mode" {
   default     = "cognito"
 }
 
-variable "payme_sandbox" {
-  description = "Use the PayMe sandbox (true) or live payments (false)"
-  type        = bool
-  default     = true
+variable "tranzila_terminal" {
+  description = "Tranzila terminal (masof) for one-time transactions"
+  type        = string
+  default     = "fxpyapio"
+}
+
+variable "tranzila_token_terminal" {
+  description = "Tranzila terminal (masof) for recurring/tokenized transactions"
+  type        = string
+  default     = "fxpyapiotok"
+}
+
+variable "tranzila_currency" {
+  description = "Currency Tranzila charges in (USD, ILS, EUR, GBP)"
+  type        = string
+  default     = "USD"
 }
 
 variable "db_snapshot_identifier" {
@@ -379,7 +391,8 @@ module "secrets" {
     openai_api_key           = "CHANGE_ME"
     anthropic_api_key        = "CHANGE_ME"
     deepseek_api_key         = "CHANGE_ME"
-    payme_seller_id          = "CHANGE_ME"
+    tranzila_public_key      = "CHANGE_ME"
+    tranzila_private_key     = "CHANGE_ME"
     figma_client_id          = "CHANGE_ME"
     figma_client_secret      = "CHANGE_ME"
     google_client_id         = "CHANGE_ME"
@@ -519,10 +532,12 @@ module "api_service" {
     LINEAR_REDIRECT_URI   = var.app_domain != "" ? "https://${var.app_domain}/oauth/linear/callback" : "https://mokaid.com/oauth/linear/callback"
     SLACK_REDIRECT_URI    = var.app_domain != "" ? "https://${var.app_domain}/oauth/slack/callback" : "https://mokaid.com/oauth/slack/callback"
     NOTION_REDIRECT_URI   = var.app_domain != "" ? "https://${var.app_domain}/auth/notion/callback" : "https://mokaid.com/auth/notion/callback"
-    # PayMe hosted checkout: callback goes to the API, customers return to the app.
-    PAYME_SANDBOX = var.payme_sandbox ? "true" : "false"
-    API_BASE_URL  = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
-    WEB_BASE_URL  = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
+    # Tranzila hosted checkout: notify goes to the API, customers return to the app.
+    TRANZILA_TERMINAL       = var.tranzila_terminal
+    TRANZILA_TOKEN_TERMINAL = var.tranzila_token_terminal
+    TRANZILA_CURRENCY       = var.tranzila_currency
+    API_BASE_URL            = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
+    WEB_BASE_URL            = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
   }
 
   secrets = {
@@ -544,7 +559,8 @@ module "api_service" {
     SLACK_VERIFICATION_TOKEN = module.secrets.secret_arns["slack_verification_token"]
     NOTION_CLIENT_ID         = module.secrets.secret_arns["notion_client_id"]
     NOTION_CLIENT_SECRET     = module.secrets.secret_arns["notion_client_secret"]
-    PAYME_SELLER_ID          = module.secrets.secret_arns["payme_seller_id"]
+    TRANZILA_PUBLIC_KEY      = module.secrets.secret_arns["tranzila_public_key"]
+    TRANZILA_PRIVATE_KEY     = module.secrets.secret_arns["tranzila_private_key"]
   }
 
   task_policy_json   = data.aws_iam_policy_document.api_task.json
