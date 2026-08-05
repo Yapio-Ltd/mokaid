@@ -27,6 +27,18 @@ defmodule Mokaid.MCP do
   end
 
   def list_servers do
+    case load_enabled_servers() do
+      [] ->
+        # Self-heal empty prod DBs (migrate without seed, or fresh restore).
+        seed_catalog()
+        load_enabled_servers()
+
+      servers ->
+        servers
+    end
+  end
+
+  defp load_enabled_servers do
     Repo.all(from s in Server, where: s.enabled, order_by: [desc: s.featured, asc: s.name])
   end
 

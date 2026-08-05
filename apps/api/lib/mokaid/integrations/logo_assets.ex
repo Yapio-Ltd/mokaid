@@ -15,7 +15,6 @@ defmodule Mokaid.Integrations.LogoAssets do
   alias Mokaid.Repo
   alias Mokaid.Storage
 
-  @priv_dir Path.join(:code.priv_dir(:mokaid), "integration-logos")
   @extensions ~w(svg png jpg webp)
 
   @doc "Uploads bundled logos and stamps `logo_storage_key` on every matching catalog row."
@@ -81,9 +80,14 @@ defmodule Mokaid.Integrations.LogoAssets do
 
   defp read_bundled(_), do: :error
 
+  # Runtime path (not compile-time): release priv lives under the app dir.
+  defp priv_dir do
+    Application.app_dir(:mokaid, "priv/integration-logos")
+  end
+
   defp find_file(key) do
     Enum.find_value(@extensions, fn ext ->
-      path = Path.join(@priv_dir, "#{key}.#{ext}")
+      path = Path.join(priv_dir(), "#{key}.#{ext}")
       if File.exists?(path), do: {path, ext}
     end)
   end

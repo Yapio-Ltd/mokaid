@@ -23,8 +23,9 @@ defmodule Mokaid.Release do
 
     {:ok, _, _} =
       Ecto.Migrator.with_repo(Mokaid.Repo, fn _repo ->
-        Mokaid.Integrations.LogoAssets.seed_all()
+        # Catalog rows first so logo stamp can match keys.
         Mokaid.MCP.seed_catalog()
+        Mokaid.Integrations.LogoAssets.seed_all()
         Mokaid.Assets3d.seed_catalog()
       end)
   end

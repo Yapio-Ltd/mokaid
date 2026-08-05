@@ -442,7 +442,7 @@ function InstallPanel({
 }
 
 export function McpHubPage() {
-  const { data, isLoading } = useMcpHub();
+  const { data, isLoading, isError, error, refetch, isFetching } = useMcpHub();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -452,7 +452,9 @@ export function McpHubPage() {
 
   const installationByServer = useMemo(() => {
     const map = new Map<string, McpInstallation>();
-    installations.forEach((i) => map.set(i.server_key, i));
+    installations.forEach((i) => {
+      if (i.server_key) map.set(i.server_key, i);
+    });
     return map;
   }, [installations]);
 
@@ -513,6 +515,15 @@ export function McpHubPage() {
 
         {isLoading ? (
           <SkeletonRows rows={6} />
+        ) : isError ? (
+          <div className="space-y-3 py-12 text-center">
+            <p className="text-xs text-danger">
+              {(error as Error)?.message || "Failed to load the MCP catalog."}
+            </p>
+            <Button size="sm" variant="secondary" loading={isFetching} onClick={() => refetch()}>
+              Retry
+            </Button>
+          </div>
         ) : (
           <>
             {featured.length > 0 && (
@@ -559,7 +570,9 @@ export function McpHubPage() {
 
             {filtered.length === 0 && (
               <p className="py-12 text-center text-xs text-text-muted">
-                No MCP server matches your search.
+                {servers.length === 0
+                  ? "No MCP servers in the catalog yet. Try Retry, or contact support if this persists."
+                  : "No MCP server matches your search."}
               </p>
             )}
           </>

@@ -12,7 +12,6 @@ RUN npm install
 
 COPY packages ./packages
 COPY apps/web ./apps/web
-# nginx conf is only needed at runtime, but keep this stage pure web sources
 
 ARG VITE_API_URL=
 ARG VITE_WS_URL=/socket
@@ -31,7 +30,9 @@ COPY --from=assets /repo/apps/web/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 
-# --- SEO prerender (deploy only): Chromium+deps preinstalled ---
+# --- SEO prerender (deploy): Chromium+deps preinstalled ---
+# Deploy builds linux/arm64 via QEMU on amd64 runners; Chromium can crash under
+# qemu (GPU/signal 5). Fail soft so the image still ships the SPA shell.
 FROM mcr.microsoft.com/playwright:v1.62.1-jammy AS seo
 
 WORKDIR /repo
@@ -40,9 +41,11 @@ ENV NODE_OPTIONS=--max-old-space-size=1536
 
 COPY --from=assets /repo /repo
 
-RUN npm run prerender --workspace=apps/web
+RUN npm run prerender --workspace=apps/web \
+    || (echo "WARNING: prerender failed — shipping SPA shell only" && \
+        test -f apps/web/dist/spa.html)
 
-# --- Production runtime (default): prerendered marketing HTML + SPA fallback ---
+# --- Production runtime (default) ---
 FROM nginx:1.27-alpine AS runtime
 
 COPY infra/docker/nginx.conf /etc/nginx/conf.d/default.conf

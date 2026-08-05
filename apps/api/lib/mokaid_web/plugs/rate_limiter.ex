@@ -6,10 +6,24 @@ defmodule MokaidWeb.Plugs.RateLimiter do
 
   @limit 300
   @window_ms 60_000
+  # Public static logos are bursty when the MCP Hub loads ~90 cards at once.
+  @exempt_prefixes ["/api/mcp/logos/", "/api/integrations/logos/"]
 
   def init(opts), do: opts
 
   def call(conn, _opts) do
+    if exempt?(conn.request_path) do
+      conn
+    else
+      check(conn)
+    end
+  end
+
+  defp exempt?(path) do
+    Enum.any?(@exempt_prefixes, &String.starts_with?(path, &1))
+  end
+
+  defp check(conn) do
     ip = conn.remote_ip |> :inet.ntoa() |> to_string()
 
     case Hammer.check_rate("api:#{ip}", @window_ms, @limit) do
