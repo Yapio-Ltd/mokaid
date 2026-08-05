@@ -852,7 +852,7 @@ defmodule Mokaid.AI do
     :ok
   end
 
-  defp recover_lost_run(run_id, decision, payload \\ nil) do
+  defp recover_lost_run(run_id, decision, payload) do
     with %{} = run <- Tasks.get_run(run_id) do
       task = Tasks.get_task(run.workspace_id, run.task_id)
       restart? = decision in ["approved", "edited"] and task != nil
