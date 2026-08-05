@@ -93,8 +93,8 @@ export const OFFICE_WORLD = {
 export const OFFICE_BLOOM = {
   // Bloom only for intentional emitters (neon / screens / lamps). Threshold
   // high enough that white pots and wall art diffuse do not halo.
-  threshold: 0.7,
-  weight: 0.62,
+  threshold: 0.82,
+  weight: 0.58,
   kernel: 64,
   scale: 0.5,
 } as const;

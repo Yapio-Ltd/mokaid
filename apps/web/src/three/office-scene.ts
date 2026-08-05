@@ -20,11 +20,13 @@ import {
   MeshBuilder,
   PointLight,
   PointerEventTypes,
+  RawTexture,
   Scene,
   SceneLoader,
   ShadowGenerator,
   SpotLight,
   StandardMaterial,
+  Texture,
   TransformNode,
   Vector3,
 } from "@babylonjs/core";
@@ -228,7 +230,7 @@ interface AvatarNode {
  * office-scene-host and reported in the debug snapshot, so the number the
  * verification harness reads can never drift from the one the host compares.
  */
-export const OFFICE_SCENE_BUILD = 34;
+export const OFFICE_SCENE_BUILD = 42;
 
 export class OfficeScene {
   private engine: Engine;
@@ -653,9 +655,8 @@ export class OfficeScene {
     // Floor + wall neon strips (dark albedo; bright strip in emission map).
     base: 2.4,
     "dividing wall N": 2.0,
-    // Includes the Mokaid logo wall board, sofa lamp shade and portraits.
-    // Saturated blue has low luminance, so the ring needs a high intensity
-    // to cross the bloom threshold and read as neon (GLB authors 16.3).
+    // Mokaid logo wall board (+ sofa shade, candles tray props on same atlas).
+    // Saturated purple has low luminance — intensity must cross bloom threshold.
     additional: 22,
     // Screens — emission map is the display content.
     Monitor: 1.35,
@@ -665,21 +666,25 @@ export class OfficeScene {
     // (GLB authoring values are 14.6 / 12.9; keep close so light "escapes").
     Candles: 7,
     "Table Light": 9,
-    // Wall art / misc props share this mat (includes portraits with bright
-    // backdrops). Keep far below the old 6× so frames do not halo.
-    "Solo items": 0.28,
+    // Shared atlas: wall art / photocopier / meeting UI / frames. Emission map
+    // is nearly black — any residual intensity + pure-white portrait albedo
+    // still drove bloom (the right portrait "neon" that should stay dark).
+    "Solo items": 0,
   };
   /** Non-light materials must never emit (even if a stray emission map exists). */
   private static readonly EMISSIVE_DEFAULT = 0;
 
   /**
-   * Soften pure-white decorative albedo (no emission in GLB) so desk lamps
-   * don't push them past the bloom threshold and look self-lit.
+   * Soften pure-white decorative albedo so desk lamps / area lights don't push
+   * them past the bloom threshold and look self-lit.
    */
   private static readonly ALBEDO_SOFTEN: Record<string, number> = {
     "plant pot N": 0.78,
     "Material.002": 0.88,
     "Material.003": 0.88,
+    // Portrait frames on "wall 1" use pure white photo backdrops that
+    // easily cross the bloom threshold under area lights.
+    "Solo items": 0.28,
   };
 
   private setupImageProcessing() {
@@ -955,6 +960,11 @@ export class OfficeScene {
         }
       }
 
+      // Portrait frame shares "additional" emission atlas with the logo: strip
+      // cyan portrait texels so only the purple neon (and warm shades) remain.
+      // Also damp pure-white albedo on the same atlas (suit portrait backdrop).
+      await this.sanitizeAdditionalMaterial();
+
       this.applyAnisotropicFiltering(16);
 
       // Center footprint on XZ and plant the floor at y=0.
@@ -1015,6 +1025,195 @@ export class OfficeScene {
     }
   }
 
+  /**
+   * "additional" atlas carries the purple logo + a cyan halo and pure-white
+   * photo for the man-in-suit portrait on the same texture. Keep purple neon
+   * and warm shades on the emission map; kill cyan emission and soft-dampen
+   * pure white base pixels so the portrait no longer reads as a light.
+   */
+  private async sanitizeAdditionalMaterial() {
+    if (this.disposed) return;
+    const seen = new Set<PBRMaterial>();
+    for (const mat of this.scene.materials) {
+      if (!(mat instanceof PBRMaterial)) continue;
+      const name = (mat.name ?? "").replace(/\s+$/, "").replace(/\.\d+$/, "");
+      if (name !== "additional") continue;
+      if (seen.has(mat)) continue;
+      seen.add(mat);
+      await this.filterAdditionalEmissiveTexture(mat);
+      if (this.disposed) return;
+      await this.dampenAdditionalWhiteAlbedo(mat);
+      if (this.disposed) return;
+      // White portrait paper sat on a metallic atlas — kill specular so area
+      // lights cannot re-light the face as a bright ball.
+      mat.metallic = 0;
+      mat.roughness = 1;
+      mat.specularIntensity = 0;
+      mat.environmentIntensity = 0;
+      if (typeof mat.directIntensity === "number") mat.directIntensity = 0.7;
+    }
+  }
+
+  private async readTextureRgba(src: Texture): Promise<{
+    w: number;
+    h: number;
+    out: Uint8Array;
+  } | null> {
+    if (!src.isReady()) {
+      await new Promise<void>((resolve) => {
+        src.onLoadObservable.addOnce(() => resolve());
+        setTimeout(resolve, 8000);
+      });
+    }
+    if (this.disposed || !src.isReady()) return null;
+
+    let data: ArrayBufferView | null = null;
+    try {
+      data = await src.readPixels();
+    } catch {
+      return null;
+    }
+    if (!data || this.disposed) return null;
+
+    const size = src.getSize();
+    const w = size.width;
+    const h = size.height;
+    if (!(w > 0 && h > 0)) return null;
+
+    const isFloat = data instanceof Float32Array;
+    const srcArr = isFloat
+      ? (data as Float32Array)
+      : data instanceof Uint8Array
+        ? data
+        : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    const channels = srcArr.length >= w * h * 4 ? 4 : 3;
+    const out = new Uint8Array(w * h * 4);
+
+    for (let i = 0; i < w * h; i++) {
+      const si = i * channels;
+      let r: number;
+      let g: number;
+      let b: number;
+      let a = 255;
+      if (isFloat) {
+        r = Math.min(255, Math.round((srcArr as Float32Array)[si] * 255));
+        g = Math.min(255, Math.round((srcArr as Float32Array)[si + 1] * 255));
+        b = Math.min(255, Math.round((srcArr as Float32Array)[si + 2] * 255));
+        if (channels === 4)
+          a = Math.min(255, Math.round((srcArr as Float32Array)[si + 3] * 255));
+      } else {
+        r = (srcArr as Uint8Array)[si];
+        g = (srcArr as Uint8Array)[si + 1];
+        b = (srcArr as Uint8Array)[si + 2];
+        if (channels === 4) a = (srcArr as Uint8Array)[si + 3];
+      }
+      const oi = i * 4;
+      out[oi] = r;
+      out[oi + 1] = g;
+      out[oi + 2] = b;
+      out[oi + 3] = a;
+    }
+    return { w, h, out };
+  }
+
+  private applyTextureUvState(src: Texture, raw: Texture) {
+    raw.wrapU = src.wrapU;
+    raw.wrapV = src.wrapV;
+    raw.uOffset = src.uOffset;
+    raw.vOffset = src.vOffset;
+    raw.uScale = src.uScale;
+    raw.vScale = src.vScale;
+    raw.uAng = src.uAng;
+    raw.vAng = src.vAng;
+    raw.wAng = src.wAng;
+    raw.coordinatesIndex = src.coordinatesIndex;
+    raw.level = src.level;
+  }
+
+  private async dampenAdditionalWhiteAlbedo(mat: PBRMaterial) {
+    const base = mat.albedoTexture;
+    if (!(base instanceof Texture)) return;
+    const decoded = await this.readTextureRgba(base);
+    if (!decoded || this.disposed) return;
+    const { w, h, out } = decoded;
+    // Pure-white photo backs (the suit portrait circle) get dimmed so they
+    // no longer sit above the bloom threshold under area lights.
+    for (let i = 0; i < w * h; i++) {
+      const oi = i * 4;
+      const r = out[oi];
+      const g = out[oi + 1];
+      const b = out[oi + 2];
+      const minc = Math.min(r, g, b);
+      const maxc = Math.max(r, g, b);
+      // Near-neutral white / light grey photo paper.
+      if (maxc > 180 && minc > 140 && maxc - minc < 50) {
+        out[oi] = Math.round(r * 0.28);
+        out[oi + 1] = Math.round(g * 0.28);
+        out[oi + 2] = Math.round(b * 0.28);
+      }
+    }
+    const raw = RawTexture.CreateRGBATexture(
+      out,
+      w,
+      h,
+      this.scene,
+      false,
+      false,
+      Texture.BILINEAR_SAMPLINGMODE,
+    );
+    raw.name = "additional-albedo-soft-whites";
+    this.applyTextureUvState(base, raw);
+    mat.albedoTexture = raw;
+  }
+
+  private async filterAdditionalEmissiveTexture(mat: PBRMaterial) {
+    const base = mat.emissiveTexture;
+    if (!(base instanceof Texture)) return;
+    const decoded = await this.readTextureRgba(base);
+    if (!decoded || this.disposed) return;
+    const { w, h, out } = decoded;
+
+    for (let i = 0; i < w * h; i++) {
+      const oi = i * 4;
+      const r = out[oi];
+      const g = out[oi + 1];
+      const b = out[oi + 2];
+      const a = out[oi + 3];
+      const L = Math.max(r, g, b);
+      // Purple / magenta logo ring (high R+B, low G).
+      const purple = r > 40 && b > 80 && g < Math.max(r, b) * 0.55;
+      // Warm sofa-shade / candle accents on the same atlas.
+      const warm = r > 80 && g > 40 && b < Math.max(r, g) * 0.45;
+      // Explicitly reject cyan/teal (portrait frame glow: high G+B).
+      const cyan = g > 90 && b > 90 && g > r * 0.85;
+      const keep = L >= 24 && !cyan && (purple || warm);
+      if (keep) {
+        out[oi] = r;
+        out[oi + 1] = g;
+        out[oi + 2] = b;
+        out[oi + 3] = a;
+      } else {
+        out[oi] = 0;
+        out[oi + 1] = 0;
+        out[oi + 2] = 0;
+        out[oi + 3] = 255;
+      }
+    }
+
+    const raw = RawTexture.CreateRGBATexture(
+      out,
+      w,
+      h,
+      this.scene,
+      false,
+      false,
+      Texture.BILINEAR_SAMPLINGMODE,
+    );
+    raw.name = "additional-emis-neon-only";
+    this.applyTextureUvState(base, raw);
+    mat.emissiveTexture = raw;
+  }
+
   /** Keep textures crisp when viewed at grazing angles (desks, neon strips). */
   private applyAnisotropicFiltering(level: number) {
     for (const texture of this.scene.textures) {
@@ -1039,17 +1238,38 @@ export class OfficeScene {
         OfficeScene.EMISSIVE_DEFAULT;
 
       if (target <= 0) {
-        // Hard kill: stray emission maps (e.g. coffee table) must not bloom.
+        // Hard kill: stray emission maps (e.g. coffee table / white portraits)
+        // must not bloom from residual texture or factor.
         mat.emissiveIntensity = 0;
         mat.emissiveColor = Color3.Black();
+        if (mat.emissiveTexture) {
+          mat.emissiveTexture = null;
+        }
       } else {
         mat.emissiveIntensity = target;
       }
 
+      // Portraits / misc props must stay matte and dim: pure-white photo backs
+      // on the Solo items atlas still crossed bloom under area lights even with
+      // emission fully killed (read as a cyan halo around the right frame).
+      if (name === "Solo items" || rawName === "Solo items") {
+        mat.metallic = 0;
+        mat.roughness = 1;
+        mat.specularIntensity = 0;
+        mat.environmentIntensity = 0;
+        // Receive lamps / panels softly — not blown out like self-emission.
+        if (typeof mat.directIntensity === "number") mat.directIntensity = 0.45;
+      }
+
       const soften =
         OfficeScene.ALBEDO_SOFTEN[name] ?? OfficeScene.ALBEDO_SOFTEN[rawName];
-      if (soften != null && soften < 1 && mat.albedoColor) {
-        mat.albedoColor = mat.albedoColor.scale(soften);
+      if (soften != null && soften < 1) {
+        if (mat.albedoColor) mat.albedoColor = mat.albedoColor.scale(soften);
+        // Texture-driven pure whites (portraits) need the texture level lowered
+        // too — albedoColor alone still left them past the bloom threshold.
+        if (mat.albedoTexture && typeof mat.albedoTexture.level === "number") {
+          mat.albedoTexture.level = soften;
+        }
       }
     };
 

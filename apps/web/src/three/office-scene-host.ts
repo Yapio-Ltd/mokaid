@@ -102,6 +102,42 @@ export function bindOfficeDebugGlobal() {
   (
     window as unknown as { __mokaidOfficeMark?: (x: number, z: number, hex?: string) => void }
   ).__mokaidOfficeMark = (x, z, hex) => host?.scene.debugMarker(x, z, hex);
+
+  (
+    window as unknown as { __mokaidOfficeMats?: () => unknown }
+  ).__mokaidOfficeMats = () => {
+    if (!host) return null;
+    // OfficeScene private `scene` accessed for diagnostics only.
+    const babylonScene = (host.scene as unknown as { scene: import("@babylonjs/core").Scene }).scene;
+    if (!babylonScene) return { err: "no babylon scene" };
+    const out: Array<Record<string, unknown>> = [];
+    for (const m of babylonScene.materials) {
+      const pm = m as {
+        name?: string;
+        emissiveIntensity?: number;
+        emissiveColor?: { r: number; g: number; b: number };
+        albedoColor?: { r: number; g: number; b: number };
+        albedoTexture?: { level?: number; name?: string } | null;
+        emissiveTexture?: { name?: string } | null;
+        metallic?: number;
+        roughness?: number;
+      };
+      if (!/solo|additional|table light|candle/i.test(pm.name ?? "")) continue;
+      out.push({
+        name: pm.name,
+        emisI: pm.emissiveIntensity,
+        emisC: pm.emissiveColor,
+        alb: pm.albedoColor,
+        albLvl: pm.albedoTexture?.level,
+        hasEmisTex: !!pm.emissiveTexture,
+        emisTexName: pm.emissiveTexture?.name,
+        albTexName: pm.albedoTexture?.name,
+        metallic: pm.metallic,
+        roughness: pm.roughness,
+      });
+    }
+    return out;
+  };
 }
 
 bindOfficeDebugGlobal();

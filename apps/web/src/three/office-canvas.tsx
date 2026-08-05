@@ -290,6 +290,11 @@ export function OfficeCanvas({
     () => toSceneAgents(agents, typingAgentIds, assetCdnById, localActivities),
     [agents, typingAgentIds, assetCdnById, localActivities],
   );
+  // Always read the latest list from ready/attach callbacks — the attach effect
+  // intentionally omits sceneAgents from its deps, so capturing sceneAgents
+  // directly freezes an early empty [] and wipes avatars on officeReady.
+  const sceneAgentsRef = useRef(sceneAgents);
+  sceneAgentsRef.current = sceneAgents;
   const disable3d = env.VITE_DISABLE_3D || webglFailed || !workspaceId;
 
   const registerLabel = useCallback((agentId: string, node: HTMLButtonElement | null) => {
@@ -324,18 +329,21 @@ export function OfficeCanvas({
         onLoadProgress: (progress) => setLoadProgress(progress),
         onOfficeReady: (ok) => {
           setOfficeReady(ok);
-          // Re-push agents whenever the office becomes ready — after a build bump
-          // or HMR dispose, the agents effect may not re-run if sceneAgents is
-          // unchanged, leaving lastAgents empty and zero avatars.
-          if (ok) updateOfficeHostAgents(sceneAgents);
+          // Re-push the *current* agents whenever the office becomes ready.
+          // Using a ref avoids the race where attach captured [] while agents
+          // were still loading, then ready wiped lastAgents + avatars.
+          if (ok) updateOfficeHostAgents(sceneAgentsRef.current);
         },
         onAgentActivity,
       });
       // Always seed lastAgents on the (possibly brand-new) host.
-      updateOfficeHostAgents(sceneAgents);
+      updateOfficeHostAgents(sceneAgentsRef.current);
       if (scene.isReady()) {
         setOfficeReady(true);
         setLoadProgress(1);
+        // Re-hydrate in case attach restored a host that became ready before
+        // agents arrived (same empty-list race as onOfficeReady).
+        updateOfficeHostAgents(sceneAgentsRef.current);
       }
     } catch (error) {
       console.warn("[3d] WebGL initialization failed, using fallback", error);
@@ -345,8 +353,8 @@ export function OfficeCanvas({
     return () => {
       detachOfficeHost(container);
     };
-    // sceneAgents intentionally omitted from deps — push runs on ready/attach;
-    // the dedicated agents effect handles ongoing updates.
+    // sceneAgents intentionally omitted from deps — push runs on ready/attach
+    // via sceneAgentsRef; the dedicated agents effect handles ongoing updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disable3d, workspaceId, OFFICE_SCENE_BUILD]);
 
