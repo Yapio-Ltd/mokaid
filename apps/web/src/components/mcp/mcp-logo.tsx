@@ -45,14 +45,15 @@ export function McpLogo({
   const imgClass = size === "sm" ? "h-6 w-6" : size === "lg" ? "h-9 w-9" : "h-7 w-7";
   const color = categoryColor(category);
 
-  // Prefer static SPA assets (`public/logos/mcp/<slug>.svg`) so the Hub works
-  // even when API/S3 logos 404 (unseeded object storage in production). Fall back
-  // to logoUrl for any remaining sources.
+  // Prefer API logos (`/api/mcp/logos/...`) — full-color brand assets from
+  // `priv/integration-logos/`. Static `/logos/mcp/*.svg` are monochrome white
+  // Simple Icons used only for the marketing landing (dark marks on dark UI);
+  // use them as fallback, then initials.
   const candidates = useMemo(() => {
     const urls: string[] = [];
+    if (logoUrl) urls.push(logoUrl);
     const staticUrl = staticMcpLogoUrl(logoSlug);
-    if (staticUrl) urls.push(staticUrl);
-    if (logoUrl && logoUrl !== staticUrl) urls.push(logoUrl);
+    if (staticUrl && staticUrl !== logoUrl) urls.push(staticUrl);
     return urls;
   }, [logoSlug, logoUrl]);
 
