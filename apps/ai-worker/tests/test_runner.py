@@ -118,6 +118,7 @@ async def test_deep_website_forces_generate_and_completes(phoenix, monkeypatch):
         input={
             "instruction": "Créer un site internet pour résumer la semaine",
             "mission_kind": "website",
+            "delivery": "html",
             "language": "fr",
             "chat_task": True,
         },
@@ -153,6 +154,7 @@ async def test_deep_producer_without_artifact_fails(phoenix, monkeypatch):
         input={
             "instruction": "Build a landing page",
             "mission_kind": "website",
+            "delivery": "html",
             "language": "en",
         },
     )
