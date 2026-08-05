@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { DetailPanel } from "@/components/ui/detail-panel";
+import { PageHeader } from "@/components/ui/page-header";
 import { SearchInput } from "@/components/ui/search-input";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -72,17 +73,15 @@ export function KnowledgePage() {
   return (
     <div className="flex h-full gap-5">
       <div className="min-w-0 flex-1 space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-text">Knowledge</h1>
-            <p className="text-xs text-text-muted">
-              Documents, links and notes your agents can learn from
-            </p>
-          </div>
-          <Button onClick={() => setShowAddKnowledge(true)}>
-            <Plus size={14} /> Add Knowledge
-          </Button>
-        </div>
+        <PageHeader
+          title="Knowledge"
+          subtitle="Documents, links and notes your agents can learn from"
+          actions={
+            <Button onClick={() => setShowAddKnowledge(true)}>
+              <Plus size={14} /> Add Knowledge
+            </Button>
+          }
+        />
 
         <div className="flex flex-wrap items-center gap-2">
           <button

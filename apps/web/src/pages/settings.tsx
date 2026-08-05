@@ -4,6 +4,7 @@ import { Compass } from "lucide-react";
 import { useUpdateWorkspace, useWorkspace } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { LogoMark } from "@/components/brand/logo";
 import { useAuthStore } from "@/stores/auth-store";
@@ -81,7 +82,7 @@ export function SettingsPage() {
   if (isLoading || !workspace) {
     return (
       <div className="space-y-5">
-        <h1 className="text-xl font-bold text-text">Workspace Settings</h1>
+        <PageHeader title="Workspace Settings" />
         <SkeletonRows rows={5} />
       </div>
     );
@@ -100,12 +101,9 @@ export function SettingsPage() {
 
   return (
     <div className="max-w-3xl space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-text">Workspace Settings</h1>
-        <p className="text-xs text-text-muted">General preferences and feature toggles</p>
-      </div>
+      <PageHeader title="Workspace Settings" subtitle="General preferences and feature toggles" />
 
-      <Card>
+      <Card className="mk-fade-up">
         <CardHeader>
           <CardTitle>General</CardTitle>
         </CardHeader>
@@ -152,7 +150,7 @@ export function SettingsPage() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="mk-fade-up" style={{ animationDelay: "60ms" }}>
         <CardHeader>
           <CardTitle>Localization</CardTitle>
         </CardHeader>
@@ -184,7 +182,7 @@ export function SettingsPage() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="mk-fade-up" style={{ animationDelay: "120ms" }}>
         <CardHeader>
           <CardTitle>Preferences</CardTitle>
         </CardHeader>
@@ -198,7 +196,7 @@ export function SettingsPage() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="mk-fade-up" style={{ animationDelay: "180ms" }}>
         <CardHeader>
           <CardTitle>Features</CardTitle>
         </CardHeader>
@@ -215,7 +213,7 @@ export function SettingsPage() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="mk-fade-up" style={{ animationDelay: "240ms" }}>
         <CardHeader>
           <CardTitle>Help & onboarding</CardTitle>
         </CardHeader>

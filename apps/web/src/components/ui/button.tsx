@@ -13,13 +13,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-primary text-white border border-transparent shadow-sm hover:bg-primary-dark hover:shadow-glow active:bg-primary-dark",
+    "bg-primary text-white border-0 shadow-sm hover:bg-primary-dark hover:shadow-glow active:bg-primary-dark",
+  // Soft violet wash — no hard outline (avoids the white cord look on dark UI)
   secondary:
-    "bg-surface-raised text-text border border-border-strong/35 hover:bg-surface-hover hover:border-border-strong/55",
-  ghost: "bg-transparent text-text-secondary hover:bg-surface-hover hover:text-text",
-  danger: "bg-danger/10 text-danger border border-danger/30 hover:bg-danger/20",
+    "border-0 bg-primary/[0.1] text-text hover:bg-primary/[0.16] hover:text-primary-light",
+  ghost: "border-0 bg-transparent text-text-secondary hover:bg-primary/[0.08] hover:text-text",
+  danger: "border-0 bg-danger/10 text-danger hover:bg-danger/18",
   outline:
-    "bg-transparent text-text border border-border-strong/35 hover:bg-surface-hover hover:border-border-strong/55",
+    "border-0 bg-primary/[0.06] text-text-secondary shadow-[inset_0_0_0_1px_rgba(124,92,255,0.22)] hover:bg-primary/[0.12] hover:text-primary-light hover:shadow-[inset_0_0_0_1px_rgba(124,92,255,0.4)]",
 };
 
 const sizeClasses: Record<Size, string> = {

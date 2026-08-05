@@ -107,6 +107,32 @@ class PhoenixClient:
     async def fail_run(self, run_id: str, error: str) -> None:
         await self._post(f"/api/worker/runs/{run_id}/fail", {"error": error})
 
+    async def report_usage(
+        self,
+        workspace_id: str,
+        source: str,
+        cost_cents: int,
+        token_usage: dict[str, int] | None = None,
+        agent_id: str | None = None,
+    ) -> None:
+        """Meters LLM usage outside of runs (chat replies, ingestion) so
+        Phoenix records it and charges the workspace's AI credits.
+
+        source ∈ {"converse", "agent_chat", "knowledge_ingest"} (whitelisted
+        server-side)."""
+        if cost_cents <= 0 and not token_usage:
+            return
+        await self._post(
+            "/api/worker/usage",
+            {
+                "workspace_id": workspace_id,
+                "source": source,
+                "cost_cents": cost_cents,
+                "token_usage": token_usage or {},
+                "agent_id": agent_id,
+            },
+        )
+
     # ---------- Workspace resources ----------
 
 

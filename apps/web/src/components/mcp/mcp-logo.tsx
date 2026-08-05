@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 
 const categoryColors: Record<string, string> = {
@@ -22,21 +22,45 @@ export function categoryColor(category: string): string {
   return categoryColors[category] ?? "#7c5cff";
 }
 
+/** Catalog logos bundled in `public/logos/mcp/<slug>.svg` (always available in prod). */
+export function staticMcpLogoUrl(slug: string | null | undefined): string | null {
+  if (!slug) return null;
+  return `/logos/mcp/${slug}.svg`;
+}
+
 export function McpLogo({
   logoUrl,
+  logoSlug,
   name,
   category,
   size = "md",
 }: {
-  logoUrl: string | null;
+  logoUrl?: string | null;
+  logoSlug?: string | null;
   name: string;
   category: string;
   size?: "sm" | "md" | "lg";
 }) {
-  const [failed, setFailed] = useState(false);
   const sizeClass = size === "sm" ? "h-8 w-8" : size === "lg" ? "h-12 w-12" : "h-10 w-10";
   const imgClass = size === "sm" ? "h-6 w-6" : size === "lg" ? "h-9 w-9" : "h-7 w-7";
   const color = categoryColor(category);
+
+  // Prefer static SPA assets (`public/logos/mcp/<slug>.svg`) so the Hub works
+  // even when API/S3 logos 404 (unseeded object storage in production). Fall back
+  // to logoUrl for any remaining sources.
+  const candidates = useMemo(() => {
+    const urls: string[] = [];
+    const staticUrl = staticMcpLogoUrl(logoSlug);
+    if (staticUrl) urls.push(staticUrl);
+    if (logoUrl && logoUrl !== staticUrl) urls.push(logoUrl);
+    return urls;
+  }, [logoSlug, logoUrl]);
+
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [candidates]);
 
   const initials = useMemo(
     () =>
@@ -49,7 +73,7 @@ export function McpLogo({
     [name],
   );
 
-  if (!logoUrl || failed) {
+  if (index >= candidates.length) {
     return (
       <span
         className={cn(
@@ -66,10 +90,10 @@ export function McpLogo({
   return (
     <span className={cn("flex shrink-0 items-center justify-center", sizeClass)}>
       <img
-        src={logoUrl}
+        src={candidates[index]}
         alt={name}
         className={cn(imgClass, "object-contain")}
-        onError={() => setFailed(true)}
+        onError={() => setIndex((i) => i + 1)}
       />
     </span>
   );

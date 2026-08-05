@@ -444,6 +444,262 @@
   }
 }
 
+/* ---------- App chrome: topbar, content aura, page entrance, headers ---------- */
+
+/* Topbar — glass with a breathing gradient seam underneath */
+.mk-topbar {
+  position: relative;
+  z-index: 20;
+  background: rgba(12, 11, 20, 0.55);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+}
+
+.mk-topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(124, 92, 255, 0.28) 22%,
+    rgba(124, 92, 255, 0.08) 60%,
+    rgba(124, 92, 255, 0.2) 85%,
+    transparent 100%
+  );
+  animation: mk-side-edge 7s ease-in-out infinite;
+}
+
+/* Ambient aura floating behind the page content */
+.mk-main-aura {
+  position: absolute;
+  top: -140px;
+  right: -100px;
+  z-index: 0;
+  width: 520px;
+  height: 520px;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(124, 92, 255, 0.09) 0%,
+    rgba(124, 92, 255, 0.03) 45%,
+    transparent 70%
+  );
+  filter: blur(30px);
+  animation: mk-side-aura 11s ease-in-out infinite;
+}
+
+/* Every routed page slides up softly on navigation */
+.mk-page {
+  animation: mk-page-in 0.4s var(--mk-ease) both;
+}
+
+@keyframes mk-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Page header — neon title with a glowing underline that grows in */
+.mk-page-head {
+  animation: mk-page-in 0.45s var(--mk-ease) both;
+}
+
+.mk-page-title {
+  text-shadow: 0 0 26px rgba(124, 92, 255, 0.3);
+}
+
+.mk-page-title::after {
+  content: "";
+  display: block;
+  margin-top: 5px;
+  height: 2px;
+  width: 2.4rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8f72ff 0%, rgba(124, 92, 255, 0.2) 80%, transparent 100%);
+  box-shadow: 0 0 10px rgba(124, 92, 255, 0.55);
+  transform-origin: left center;
+  animation: mk-page-underline 0.65s 0.1s var(--mk-ease) both;
+}
+
+@keyframes mk-page-underline {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* Cards inherit a faint luminous top hairline (KpiCard-style, quieter) */
+.mk-card,
+.mk-card-raised {
+  position: relative;
+}
+
+.mk-card::before,
+.mk-card-raised::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14%;
+  right: 14%;
+  height: 1px;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(124, 92, 255, 0.16), transparent);
+}
+
+.mk-card-interactive:hover {
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.25),
+    0 0 22px rgba(124, 92, 255, 0.1);
+}
+
+/* Neon panel — for auth boxes, OAuth callbacks, focal empty states */
+.mk-neon-panel {
+  position: relative;
+  border-radius: var(--mk-radius-xl);
+  border: 1px solid rgba(124, 92, 255, 0.16);
+  background: rgba(16, 14, 26, 0.72);
+  backdrop-filter: blur(16px) saturate(1.25);
+  -webkit-backdrop-filter: blur(16px) saturate(1.25);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.3),
+    0 0 32px rgba(124, 92, 255, 0.08);
+  animation: mk-page-in 0.45s var(--mk-ease) both;
+}
+
+.mk-neon-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(160, 120, 255, 0.45), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-topbar::after,
+  .mk-main-aura,
+  .mk-page,
+  .mk-page-head,
+  .mk-page-title::after,
+  .mk-neon-panel {
+    animation: none !important;
+  }
+}
+
+/* ---------- Page-content vocabulary: tiles, chips, rows, kanban, calendar ---------- */
+
+/* Interactive tile — folders, files, project cards, kanban cards */
+.mk-tile {
+  position: relative;
+  border: 1px solid rgba(124, 92, 255, 0.07);
+  background:
+    linear-gradient(180deg, rgba(124, 92, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 42%),
+    var(--mk-surface);
+  transition:
+    transform 0.2s var(--mk-ease),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.mk-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16%;
+  right: 16%;
+  height: 1px;
+  pointer-events: none;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(124, 92, 255, 0.2), transparent);
+  opacity: 0.6;
+  transition: opacity 0.25s ease;
+}
+
+.mk-tile:hover {
+  transform: translateY(-2px);
+  border-color: rgba(124, 92, 255, 0.3);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.3),
+    0 0 22px rgba(124, 92, 255, 0.13);
+}
+
+.mk-tile:hover::before {
+  opacity: 1;
+}
+
+/* Filter chips / segmented controls */
+.mk-chip {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.25s ease;
+}
+
+.mk-chip-active {
+  background: rgba(124, 92, 255, 0.16);
+  color: #c8b9ff;
+  box-shadow:
+    inset 0 0 0 1px rgba(124, 92, 255, 0.35),
+    0 0 12px rgba(124, 92, 255, 0.16);
+}
+
+/* Table / list rows — violet wash on hover */
+.mk-row {
+  transition: background-color 0.15s ease, box-shadow 0.2s ease;
+}
+
+.mk-row:hover {
+  background: rgba(124, 92, 255, 0.06);
+  box-shadow: inset 2px 0 0 rgba(140, 105, 255, 0.55);
+}
+
+/* Kanban column — whisper of a panel with a glowing header dot */
+.mk-kanban-col {
+  border-radius: var(--mk-radius-xl);
+  background:
+    linear-gradient(180deg, rgba(124, 92, 255, 0.05) 0%, transparent 26%),
+    rgba(255, 255, 255, 0.015);
+}
+
+.mk-glow-dot {
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* Calendar cells */
+.mk-cal-cell {
+  transition: background-color 0.15s ease, box-shadow 0.2s ease;
+}
+
+.mk-cal-cell:hover {
+  background: rgba(124, 92, 255, 0.05);
+}
+
+.mk-cal-today {
+  background: radial-gradient(circle at 50% 0%, rgba(124, 92, 255, 0.13), transparent 72%);
+  box-shadow:
+    inset 0 0 0 1px rgba(124, 92, 255, 0.35),
+    0 0 18px rgba(124, 92, 255, 0.1);
+}
+
 /* Soft floating animation used on the landing and login pages */
 @keyframes mk-float {
   0%,
@@ -2241,6 +2497,94 @@ table tbody tr {
       0 -1px 0 rgba(124, 92, 255, 0.12),
       -1px 0 0 rgba(124, 92, 255, 0.12);
   }
+}
+
+/* ---------------------------------------------------------------------------
+   SEO / marketing content pages (blog, AI employees, use cases, compare)
+   --------------------------------------------------------------------------- */
+
+.mk-seo-display {
+  font-family: "Space Grotesk", var(--mk-font-sans), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.mk-prose {
+  color: var(--mk-text-secondary);
+  line-height: 1.75;
+}
+.mk-prose h2,
+.mk-prose h3,
+.mk-prose h4 {
+  color: var(--mk-text);
+  font-family: "Space Grotesk", var(--mk-font-sans), sans-serif;
+  letter-spacing: -0.01em;
+  margin-top: 2.25rem;
+  margin-bottom: 0.75rem;
+}
+.mk-prose h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.mk-prose h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+.mk-prose p {
+  margin-bottom: 1rem;
+}
+.mk-prose a {
+  color: var(--mk-primary-300);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.mk-prose a:hover {
+  color: var(--mk-primary-200);
+}
+.mk-prose ul,
+.mk-prose ol {
+  margin: 1rem 0 1rem 1.5rem;
+}
+.mk-prose ul {
+  list-style: disc;
+}
+.mk-prose ol {
+  list-style: decimal;
+}
+.mk-prose li {
+  margin-bottom: 0.4rem;
+}
+.mk-prose strong {
+  color: var(--mk-text);
+}
+.mk-prose blockquote {
+  border-left: 3px solid var(--mk-primary-500);
+  padding-left: 1rem;
+  margin: 1.25rem 0;
+  color: var(--mk-text);
+  font-style: italic;
+}
+.mk-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.925rem;
+}
+.mk-prose th,
+.mk-prose td {
+  border: 1px solid var(--mk-border-strong);
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+}
+.mk-prose th {
+  color: var(--mk-text);
+  background: var(--mk-surface-raised);
+}
+.mk-prose code {
+  font-family: var(--mk-font-mono);
+  font-size: 0.875em;
+  background: var(--mk-surface-raised);
+  border-radius: 6px;
+  padding: 0.15em 0.4em;
 }
 
 @media (prefers-reduced-motion: reduce) {

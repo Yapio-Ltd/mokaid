@@ -97,7 +97,7 @@ export function SlackCallbackPage() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 bg-bg-deep px-6">
       <Logo />
-      <div className="mk-card-raised flex w-full max-w-sm flex-col items-center gap-4 p-8 text-center">
+      <div className="mk-neon-panel flex w-full max-w-sm flex-col items-center gap-4 p-8 text-center">
         {status === "working" && <Loader2 size={28} className="animate-spin text-primary-light" />}
         {status === "success" && <CheckCircle2 size={28} className="text-success" />}
         {status === "error" && <XCircle size={28} className="text-danger" />}

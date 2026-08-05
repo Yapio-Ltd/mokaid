@@ -10,9 +10,9 @@
   --mk-surface-overlay: #1c1c26;
   --mk-surface-hover: #20202c;
 
-  /* Borders — light purple shade, consistent with primary accent */
-  --mk-border: rgba(124, 92, 255, 0.12);
-  --mk-border-strong: rgba(124, 92, 255, 0.24);
+  /* Borders — soft primary tint only (never grey / white cord lines) */
+  --mk-border: rgba(124, 92, 255, 0.1);
+  --mk-border-strong: rgba(124, 92, 255, 0.2);
   --mk-border-focus: #7c5cff;
 
   /* Brand, purple accent */

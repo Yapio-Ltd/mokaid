@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   BillingCycleToggle,
   PlanPicker,
@@ -102,7 +103,7 @@ export function BillingPage() {
   if (isLoading || !overviewData) {
     return (
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
-        <h1 className="text-2xl font-bold text-text">Billing</h1>
+        <PageHeader title="Billing" />
         <SkeletonRows rows={5} />
       </div>
     );
@@ -141,16 +142,18 @@ export function BillingPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 py-8">
       {/* ── Page Header ── */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-text">Billing & Plans</h1>
-        <p className="text-sm text-text-muted">
-          Manage your subscription, AI credits, and invoices. See our{" "}
-          <Link to="/refund" className="text-primary-light hover:underline">
-            Refund & Cancellation Policy
-          </Link>
-          .
-        </p>
-      </div>
+      <PageHeader
+        title="Billing & Plans"
+        subtitle={
+          <>
+            Manage your subscription, AI credits, and invoices. See our{" "}
+            <Link to="/refund" className="text-primary-light hover:underline">
+              Refund & Cancellation Policy
+            </Link>
+            .
+          </>
+        }
+      />
 
       {/* ── Dunning banner ── */}
       {isPastDue && (

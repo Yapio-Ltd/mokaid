@@ -10,6 +10,8 @@ import { SiteFooter } from "@/components/landing/site-footer";
 import { WhyMokaid } from "@/components/landing/why-mokaid";
 import { RandomLetterSwap } from "@/components/ui/random-letter-swap";
 import { cn } from "@/lib/cn";
+import { ORGANIZATION_JSONLD, SITE, SOFTWARE_JSONLD } from "@/lib/seo";
+import { useSeo } from "@/lib/use-seo";
 import { useSmoothScroll } from "@/lib/use-smooth-scroll";
 import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
@@ -102,6 +104,22 @@ function NavLink({
 }
 
 export function LandingPage() {
+  useSeo({
+    title: SITE.defaultTitle,
+    description: SITE.defaultDescription,
+    path: "/",
+    jsonLd: [
+      SOFTWARE_JSONLD,
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": `${SITE.url}/#website`,
+        name: SITE.name,
+        url: SITE.url,
+        publisher: ORGANIZATION_JSONLD["@id"] ? { "@id": ORGANIZATION_JSONLD["@id"] } : undefined,
+      },
+    ],
+  });
   useSmoothScroll();
 
   const rootRef = useRef<HTMLDivElement>(null);

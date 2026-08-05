@@ -246,6 +246,24 @@ defmodule Mokaid.Billing do
     end
   end
 
+  @doc """
+  Subscriptions whose monthly credit grant is due for a refresh *inside* the
+  billing period — i.e. yearly subscriptions, whose period only rolls every
+  365 days but whose credits are granted monthly. Monthly cycles refresh at
+  renewal (`roll_period`), so they are excluded here.
+  """
+  def list_subscriptions_due_for_credit_refresh(now \\ DateTime.utc_now()) do
+    refresh_cutoff = DateTime.add(now, -30, :day)
+
+    Repo.all(
+      from s in Subscription,
+        where: s.status == "active" and s.billing_cycle == "yearly",
+        where: s.monthly_credits > 0,
+        where: not is_nil(s.current_period_end) and s.current_period_end > ^now,
+        where: is_nil(s.credits_period_start) or s.credits_period_start <= ^refresh_cutoff
+    )
+  end
+
   @doc "Subscriptions whose billing period has ended and are due for renewal."
   def list_subscriptions_due_for_renewal(now \\ DateTime.utc_now()) do
     retry_cutoff = DateTime.add(now, -20, :hour)
@@ -306,6 +324,27 @@ defmodule Mokaid.Billing do
       ]
     },
     %{
+      key: "team",
+      name: "Team",
+      price_cents_monthly: 8_900,
+      price_cents_yearly: 89_000,
+      limits: %{
+        "agents" => 6,
+        "credits_monthly" => 10_000,
+        "mcp_integrations" => 10,
+        "knowledge_graph" => "workspace"
+      },
+      features: [
+        "6 AI employees",
+        "10,000 AI credits / month",
+        "Live Preview & versions",
+        "10 MCP integrations",
+        "Workspace Knowledge Graph",
+        "Team collaboration",
+        "Auto-recharge available"
+      ]
+    },
+    %{
       key: "professional",
       name: "Professional",
       price_cents_monthly: 14_900,
@@ -345,6 +384,24 @@ defmodule Mokaid.Billing do
     case Enum.find(@plan_seeds, &(&1.key == "free")) do
       %{limits: %{"agents" => n}} when is_integer(n) -> n
       _ -> 1
+    end
+  end
+
+  @doc """
+  Max MCP server installations for the workspace's current plan
+  (-1 = unlimited). Workspaces without a subscription are treated as Free.
+  """
+  def mcp_integration_limit(workspace_id) do
+    case get_subscription(workspace_id) do
+      %{plan: %{limits: %{"mcp_integrations" => n}}} when is_integer(n) -> n
+      _ -> free_mcp_limit()
+    end
+  end
+
+  defp free_mcp_limit do
+    case Enum.find(@plan_seeds, &(&1.key == "free")) do
+      %{limits: %{"mcp_integrations" => n}} when is_integer(n) -> n
+      _ -> 0
     end
   end
 

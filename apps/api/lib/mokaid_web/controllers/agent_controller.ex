@@ -102,6 +102,30 @@ defmodule MokaidWeb.AgentController do
     end
   end
 
+  @doc """
+  Paid cross-workspace copy: clones the agent and its knowledge into another
+  workspace of the same user, debiting the target workspace one agent's price.
+  Permission checks for both workspaces happen inside Transfer.copy_agent.
+  """
+  def transfer(conn, %{"id" => id, "target_workspace_id" => target_workspace_id}) do
+    with {:ok, clone} <-
+           Mokaid.Agents.Transfer.copy_agent(
+             workspace_id(conn),
+             id,
+             target_workspace_id,
+             conn.assigns.current_user
+           ) do
+      clone = Agents.get_agent(clone.workspace_id, clone.id) || clone
+
+      conn
+      |> put_status(:created)
+      |> json(%{
+        data: Serializer.agent(clone),
+        meta: %{knowledge_copy: "queued", credits_charged: Mokaid.Agents.Transfer.transfer_credits()}
+      })
+    end
+  end
+
   def assign_task(conn, %{"id" => id, "task_id" => task_id}) do
     with :ok <- Permissions.authorize(current_member(conn), "agents.assign_task"),
          %{} = task <- Tasks.get_task(workspace_id(conn), task_id),

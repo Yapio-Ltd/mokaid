@@ -9,6 +9,7 @@ import {
   COMPANY_REGISTRATION_NUMBER,
   PRODUCT_DISPLAY,
 } from "@/lib/legal-config";
+import { useSeo } from "@/lib/use-seo";
 
 const FOOTER_LINKS = [
   { to: "/privacy" as const, label: "Privacy Policy" },
@@ -32,6 +33,12 @@ export function LegalDocLayout({
   /** Path already open — omit from footer cross-links */
   excludeFooterLink?: (typeof FOOTER_LINKS)[number]["to"];
 }) {
+  useSeo({
+    title: `${title} | mokaid`,
+    description: `${title} for ${PRODUCT_DISPLAY}, the AI Workforce OS.`,
+    path: excludeFooterLink ?? "/legal",
+  });
+
   return (
     <div className="min-h-full bg-bg-deep text-text">
       <header className="sticky top-0 z-10 bg-bg-deep/80 backdrop-blur-md">
@@ -55,13 +62,13 @@ export function LegalDocLayout({
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-5 py-16">
+      <main className="mk-fade-up mx-auto max-w-3xl px-5 py-16">
         <div className="mb-12">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary-light">
             <Icon size={12} />
             Legal document
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-text">{title}</h1>
+          <h1 className="mk-page-title text-4xl font-bold tracking-tight text-text">{title}</h1>
           <p className="mt-4 text-sm text-text-muted">Last updated: {EFFECTIVE_DATE}</p>
           {intro}
         </div>

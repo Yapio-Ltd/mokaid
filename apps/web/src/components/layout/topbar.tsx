@@ -53,7 +53,6 @@ export function Topbar() {
   const queryClient = useQueryClient();
   const { data: notifications } = useNotifications();
   const markRead = useMarkNotificationRead();
-  const selectTask = useUiStore((s) => s.selectTask);
   const soundEnabled = useChatStore((s) => s.soundEnabled);
   const setSoundEnabled = useChatStore((s) => s.setSoundEnabled);
   const [showNewTask, setShowNewTask] = useState(false);
@@ -78,8 +77,12 @@ export function Topbar() {
         useChatStore.getState().openChat(n.agent.id);
         return;
       }
-      selectTask(n.resource_id);
-      navigate({ to: "/tasks" });
+      // Queue first so AppShell’s route-change cleanup opens (not closes) the panel.
+      useUiStore.getState().requestOpenTask(n.resource_id);
+      void navigate({ to: "/tasks" }).then(() => {
+        // Same-route navigations skip the pathname effect — consume here.
+        useUiStore.getState().consumePendingTask();
+      });
     }
   };
 
@@ -116,7 +119,7 @@ export function Topbar() {
   };
 
   return (
-    <header className="flex h-[60px] shrink-0 items-center gap-4 bg-bg px-4">
+    <header className="mk-topbar flex h-[60px] shrink-0 items-center gap-4 px-4">
       <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Toggle sidebar">
         <PanelLeft size={17} />
       </Button>

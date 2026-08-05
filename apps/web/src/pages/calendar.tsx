@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DetailPanel } from "@/components/ui/detail-panel";
 import { NewEventModal } from "@/components/modals/new-event-modal";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/cn";
 
 type ViewMode = "month" | "week";
@@ -81,43 +82,43 @@ export function CalendarPage() {
   return (
     <div className="flex h-full gap-5">
       <div className="flex min-w-0 flex-1 flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-text">Calendar</h1>
-          <p className="text-xs text-text-muted">Deadlines, meetings, schedules and time off</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex rounded-md bg-surface-raised p-0.5">
-            {(["month", "week"] as ViewMode[]).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setView(mode)}
-                className={cn(
-                  "rounded px-3 py-1.5 text-xs font-medium capitalize transition-colors",
-                  view === mode ? "bg-primary-muted text-primary-light" : "text-text-muted hover:text-text",
-                )}
-              >
-                {mode}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Previous">
-              <ChevronLeft size={16} />
+      <PageHeader
+        title="Calendar"
+        subtitle="Deadlines, meetings, schedules and time off"
+        actions={
+          <>
+            <div className="flex rounded-md bg-surface-raised p-0.5">
+              {(["month", "week"] as ViewMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setView(mode)}
+                  className={cn(
+                    "mk-chip rounded px-3 py-1.5 text-xs font-medium capitalize",
+                    view === mode ? "mk-chip-active" : "text-text-muted hover:text-text",
+                  )}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Previous">
+                <ChevronLeft size={16} />
+              </Button>
+              <span className="min-w-36 text-center text-sm font-semibold text-text">{monthLabel}</span>
+              <Button variant="ghost" size="icon" onClick={() => navigate(1)} aria-label="Next">
+                <ChevronRight size={16} />
+              </Button>
+            </div>
+            <Button variant="secondary" size="sm" onClick={() => setCursor(new Date())}>
+              Today
             </Button>
-            <span className="min-w-36 text-center text-sm font-semibold text-text">{monthLabel}</span>
-            <Button variant="ghost" size="icon" onClick={() => navigate(1)} aria-label="Next">
-              <ChevronRight size={16} />
+            <Button size="sm" onClick={() => setShowNewEvent(true)}>
+              <Plus size={14} /> New Event
             </Button>
-          </div>
-          <Button variant="secondary" size="sm" onClick={() => setCursor(new Date())}>
-            Today
-          </Button>
-          <Button size="sm" onClick={() => setShowNewEvent(true)}>
-            <Plus size={14} /> New Event
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="mk-card flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="grid grid-cols-7 px-2 pt-3">
@@ -145,15 +146,19 @@ export function CalendarPage() {
               <div
                 key={day.toISOString()}
                 className={cn(
-                  "group min-h-24 rounded-md p-1.5 transition-colors duration-150 hover:bg-surface-hover/60",
+                  "mk-cal-cell group min-h-24 rounded-md p-1.5",
                   !inMonth && view === "month" && "opacity-45",
-                  isToday && "bg-primary-muted/40 ring-1 ring-inset ring-primary/25",
+                  isToday && "mk-cal-today",
                 )}
               >
                 <span
                   className={cn(
                     "mb-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium transition-colors",
-                    isToday ? "bg-primary text-white" : inMonth ? "text-text" : "text-text-disabled",
+                    isToday
+                      ? "bg-primary text-white shadow-[0_0_10px_rgba(124,92,255,0.55)]"
+                      : inMonth
+                        ? "text-text"
+                        : "text-text-disabled",
                   )}
                 >
                   {day.getDate()}
@@ -197,11 +202,21 @@ export function CalendarPage() {
 
       <div className="flex flex-wrap items-center gap-3 text-[11px] text-text-muted">
         <span className="font-medium">Legend:</span>
-        <Badge tone="primary">Meeting</Badge>
-        <Badge tone="danger">Deadline</Badge>
-        <Badge tone="success">Milestone</Badge>
-        <Badge tone="warning">Time off</Badge>
-        <Badge tone="info">Schedule</Badge>
+        <Badge tone="primary" dot>
+          Meeting
+        </Badge>
+        <Badge tone="danger" dot>
+          Deadline
+        </Badge>
+        <Badge tone="success" dot>
+          Milestone
+        </Badge>
+        <Badge tone="warning" dot>
+          Time off
+        </Badge>
+        <Badge tone="info" dot>
+          Schedule
+        </Badge>
       </div>
       </div>
 

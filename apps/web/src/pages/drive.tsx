@@ -35,6 +35,7 @@ import type { DriveItem } from "@/api/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DetailPanel } from "@/components/ui/detail-panel";
+import { PageHeader } from "@/components/ui/page-header";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/cn";
@@ -105,14 +106,14 @@ function DriveThumbnail({ item, size }: { item: DriveItem; size: number }) {
   }
 
   const Icon = fileIcon(item);
-  return (
-    <Icon
-      size={size}
-      className={item.kind === "folder" ? "text-primary-light" : "text-text-muted"}
-      fill={item.kind === "folder" ? "currentColor" : "none"}
-      fillOpacity={item.kind === "folder" ? 0.2 : 0}
-    />
-  );
+  if (item.kind === "folder") {
+    return (
+      <span className="flex items-center justify-center rounded-lg bg-primary/10 p-2 text-primary-light">
+        <Icon size={size - 8} fill="currentColor" fillOpacity={0.2} />
+      </span>
+    );
+  }
+  return <Icon size={size} className="text-text-muted" />;
 }
 
 const contextMenuContentClass = "z-50 w-48 rounded-lg bg-surface-overlay p-1.5 shadow-lg";
@@ -123,6 +124,7 @@ const contextMenuDangerItemClass =
 
 interface DriveGridItemProps {
   item: DriveItem;
+  index: number;
   isSelected: boolean;
   selectionCount: number;
   draggedIds: string[] | null;
@@ -138,6 +140,7 @@ interface DriveGridItemProps {
 
 function DriveGridItem({
   item,
+  index,
   isSelected,
   selectionCount,
   draggedIds,
@@ -196,10 +199,11 @@ function DriveGridItem({
           onClick={(e) => onClick(item, e)}
           onDoubleClick={() => onDoubleClick(item)}
           className={cn(
-            "mk-card flex flex-col items-center gap-2 p-4 text-center transition-shadow hover:shadow-glow mk-focus-ring",
+            "mk-tile mk-fade-up flex flex-col items-center gap-2 rounded-xl p-4 text-center mk-focus-ring",
             isSelected && "border-primary/50 bg-primary-muted/30",
             isDropTarget && "border-primary bg-primary-muted/50 ring-2 ring-primary/40",
           )}
+          style={{ animationDelay: `${Math.min(index, 10) * 30}ms` }}
         >
           <DriveThumbnail item={item} size={32} />
           <span className="w-full truncate text-xs font-medium text-text">{item.name}</span>
@@ -387,52 +391,52 @@ export function DrivePage() {
   return (
     <div className="flex h-full gap-5">
       <div className="min-w-0 flex-1 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-text">Drive</h1>
-            <p className="text-xs text-text-muted">Workspace files, folders and agent outputs</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {selectedIds.length > 1 && !showTrash && (
-              <>
-                <span className="text-xs text-text-muted">{selectedIds.length} selected</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="bg-surface-raised hover:bg-surface-hover"
-                  onClick={() => setShowMoveModal(true)}
-                >
-                  <FolderInput size={14} /> Move
-                </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  loading={trashItems.isPending}
-                  onClick={handleBulkDelete}
-                >
-                  <Trash2 size={14} /> Delete
-                </Button>
-              </>
-            )}
-            <Button variant="secondary" size="sm" onClick={() => setShowNewFolder(true)}>
-              <FolderPlus size={14} /> New Folder
-            </Button>
-            <Button
-              size="sm"
-              loading={uploadFile.isPending}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload size={14} /> Upload
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => handleUploadChange(e.target.files)}
-            />
-          </div>
-        </div>
+        <PageHeader
+          title="Drive"
+          subtitle="Workspace files, folders and agent outputs"
+          actions={
+            <>
+              {selectedIds.length > 1 && !showTrash && (
+                <>
+                  <span className="text-xs text-text-muted">{selectedIds.length} selected</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="bg-surface-raised hover:bg-surface-hover"
+                    onClick={() => setShowMoveModal(true)}
+                  >
+                    <FolderInput size={14} /> Move
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    loading={trashItems.isPending}
+                    onClick={handleBulkDelete}
+                  >
+                    <Trash2 size={14} /> Delete
+                  </Button>
+                </>
+              )}
+              <Button variant="secondary" size="sm" onClick={() => setShowNewFolder(true)}>
+                <FolderPlus size={14} /> New Folder
+              </Button>
+              <Button
+                size="sm"
+                loading={uploadFile.isPending}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload size={14} /> Upload
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => handleUploadChange(e.target.files)}
+              />
+            </>
+          }
+        />
 
         <div className="flex items-center justify-between gap-3">
           {/* Breadcrumbs */}
@@ -460,10 +464,10 @@ export function DrivePage() {
                       handleDropOnBreadcrumb(crumb.id);
                     }}
                     className={cn(
-                      "flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors hover:bg-surface-hover",
+                      "mk-chip flex items-center gap-1 rounded-md px-2 py-1",
                       index === crumbs.length - 1
-                        ? "font-semibold text-text"
-                        : "text-text-muted hover:text-text",
+                        ? "mk-chip-active font-semibold"
+                        : "text-text-muted hover:bg-surface-hover hover:text-text",
                       breadcrumbDropId === (crumb.id ?? "root") &&
                         "bg-primary-muted/50 text-primary-light ring-2 ring-primary/40",
                     )}
@@ -483,9 +487,9 @@ export function DrivePage() {
                 setSelectedIds([]);
               }}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                "mk-chip flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
                 showTrash
-                  ? "bg-danger/10 text-danger"
+                  ? "mk-chip-active"
                   : "text-text-muted hover:bg-surface-hover hover:text-text",
               )}
             >
@@ -496,8 +500,8 @@ export function DrivePage() {
                 onClick={() => setView("grid")}
                 aria-label="Grid view"
                 className={cn(
-                  "rounded p-1.5 transition-colors",
-                  view === "grid" ? "bg-primary-muted text-primary-light" : "text-text-muted",
+                  "mk-chip rounded p-1.5",
+                  view === "grid" ? "mk-chip-active" : "text-text-muted hover:text-text",
                 )}
               >
                 <LayoutGrid size={14} />
@@ -506,8 +510,8 @@ export function DrivePage() {
                 onClick={() => setView("list")}
                 aria-label="List view"
                 className={cn(
-                  "rounded p-1.5 transition-colors",
-                  view === "list" ? "bg-primary-muted text-primary-light" : "text-text-muted",
+                  "mk-chip rounded p-1.5",
+                  view === "list" ? "mk-chip-active" : "text-text-muted hover:text-text",
                 )}
               >
                 <List size={14} />
@@ -526,10 +530,11 @@ export function DrivePage() {
           />
         ) : view === "grid" ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {items.map((item) => (
+            {items.map((item, index) => (
               <DriveGridItem
                 key={item.id}
                 item={item}
+                index={index}
                 isSelected={selectedIds.includes(item.id)}
                 selectionCount={selectedIds.length}
                 draggedIds={draggedIds}
@@ -575,7 +580,7 @@ export function DrivePage() {
                       }}
                       onDoubleClick={() => !showTrash && openFolder(item)}
                       className={cn(
-                        "cursor-pointer border-b border-border/50 transition-colors last:border-0 hover:bg-surface-hover",
+                        "mk-row cursor-pointer border-b border-border/50 last:border-0",
                         selectedIds.includes(item.id) && "bg-primary-muted/30",
                       )}
                     >

@@ -150,6 +150,35 @@ export function useDeleteAgent() {
   });
 }
 
+/**
+ * Paid cross-workspace copy: clones the agent (and its knowledge, copied in
+ * the background) into another workspace of the current user. The target
+ * workspace is debited one agent's price in credits.
+ */
+export function useTransferAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      agentId,
+      targetWorkspaceId,
+    }: {
+      agentId: string;
+      targetWorkspaceId: string;
+    }) =>
+      apiFetch<{
+        data: Agent;
+        meta: { knowledge_copy: string; credits_charged: number };
+      }>(`/api/agents/${agentId}/transfer`, {
+        method: "POST",
+        body: { target_workspace_id: targetWorkspaceId },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+      queryClient.invalidateQueries({ queryKey: ["billing"] });
+    },
+  });
+}
+
 export function useUploadAgentFiles() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -366,6 +395,29 @@ export function useUpdateProject() {
   return useMutation({
     mutationFn: ({ id, ...body }: Partial<Project> & { id: string }) =>
       apiFetch<Envelope<Project>>(`/api/projects/${id}`, { method: "PATCH", body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
+export function useAddProjectAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, agentId }: { projectId: string; agentId: string }) =>
+      apiFetch<Envelope<Project>>(`/api/projects/${projectId}/agents`, {
+        method: "POST",
+        body: { agent_id: agentId },
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
+export function useRemoveProjectAgent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, agentId }: { projectId: string; agentId: string }) =>
+      apiFetch<Envelope<Project>>(`/api/projects/${projectId}/agents/${agentId}`, {
+        method: "DELETE",
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
   });
 }

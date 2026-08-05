@@ -53,7 +53,16 @@ defmodule MokaidWeb.FallbackController do
 
   defp humanize(:office_full), do: "All 9 office desks are occupied"
   defp humanize(:agent_limit_reached), do: "Your plan's AI employee limit has been reached"
-  defp humanize(:insufficient_credits), do: "Not enough AI credits for this boost"
+  defp humanize(:insufficient_credits), do: "Not enough AI credits for this action"
+
+  defp humanize(:mcp_integration_limit_reached),
+    do: "Your plan's MCP integration limit has been reached — upgrade to connect more"
+  defp humanize(:same_workspace), do: "The agent already belongs to this workspace"
+  defp humanize(:only_ai_agents_transferable), do: "Only AI agents can be copied to another workspace"
+  defp humanize(:agent_in_training), do: "Wait for the agent to finish training before copying it"
+
+  defp humanize(:not_a_member_of_target_workspace),
+    do: "You are not a member of the destination workspace"
   defp humanize(:invalid_archetype), do: "Unknown agent archetype"
   defp humanize(:invalid_boost), do: "Unknown agent boost"
 

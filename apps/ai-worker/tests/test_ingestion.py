@@ -66,6 +66,9 @@ class RecordingPhoenix:
         self.chunks.append({"item_id": item_id, "chunks": chunks, "graph": graph})
         return True
 
+    async def report_usage(self, workspace_id, source, cost_cents, token_usage=None, agent_id=None):
+        return None
+
 
 async def test_ingest_document_from_file_url_docx(monkeypatch):
     """Binary knowledge item: download from presigned URL, extract, chunk."""

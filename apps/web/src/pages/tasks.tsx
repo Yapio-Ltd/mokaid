@@ -17,6 +17,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NewTaskModal } from "@/components/modals/new-task-modal";
+import { PageHeader } from "@/components/ui/page-header";
 import { useAuthStore } from "@/stores/auth-store";
 import { useActiveProjectId } from "@/stores/project-store";
 import { useUiStore } from "@/stores/ui-store";
@@ -25,19 +26,22 @@ import { formatRelative } from "@/lib/format";
 
 type ViewMode = "kanban" | "list";
 
+// Text color drives the mk-glow-dot halo (box-shadow: currentColor).
 const columnAccent: Record<string, string> = {
-  to_do: "bg-text-muted",
-  in_progress: "bg-info",
-  completed: "bg-success",
+  to_do: "bg-text-muted text-text-muted",
+  in_progress: "bg-info text-info",
+  completed: "bg-success text-success",
 };
 
 function KanbanCard({
   task,
+  index,
   flashed,
   onSelect,
   onDragStart,
 }: {
   task: Task;
+  index: number;
   flashed: boolean;
   onSelect: () => void;
   onDragStart: (e: DragEvent) => void;
@@ -47,8 +51,10 @@ function KanbanCard({
       draggable
       onDragStart={onDragStart}
       onClick={onSelect}
+      // Cap the stagger so deep columns don't feel sluggish.
+      style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
       className={cn(
-        "mk-card-raised w-full cursor-grab space-y-2.5 p-3 text-left transition-shadow hover:shadow-glow active:cursor-grabbing mk-focus-ring",
+        "mk-tile mk-fade-up w-full cursor-grab space-y-2.5 rounded-xl p-3 text-left active:cursor-grabbing mk-focus-ring",
         // Just-finished run: pulse so the eye lands on what moved.
         flashed && "animate-pulse ring-2 ring-primary shadow-glow",
       )}
@@ -136,25 +142,27 @@ export function TasksPage() {
   return (
     <div className="flex h-full gap-5">
       <div className="flex min-w-0 flex-1 flex-col gap-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-text">Tasks</h1>
-            <p className="text-xs text-text-muted">
+        <PageHeader
+          title="Tasks"
+          subtitle={
+            <>
               {tasks.length} tasks · {data?.meta.completed_today ?? 0} completed today
-            </p>
-          </div>
-          <Button onClick={() => setShowNewTask(true)} data-tour="new-task">
-            <Plus size={14} /> New Task
-          </Button>
-        </div>
+            </>
+          }
+          actions={
+            <Button onClick={() => setShowNewTask(true)} data-tour="new-task">
+              <Plus size={14} /> New Task
+            </Button>
+          }
+        />
 
-        <div className="flex items-center gap-3">
-          <div className="flex rounded-md bg-surface-raised p-0.5">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex shrink-0 gap-0.5 rounded-lg bg-white/[0.03] p-0.5">
             <button
               onClick={() => setView("kanban")}
               className={cn(
-                "flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors",
-                view === "kanban" ? "bg-primary-muted text-primary-light" : "text-text-muted hover:text-text",
+                "mk-chip flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium mk-focus-ring",
+                view === "kanban" ? "mk-chip-active" : "text-text-muted hover:text-text",
               )}
             >
               <LayoutGrid size={13} /> Board
@@ -162,8 +170,8 @@ export function TasksPage() {
             <button
               onClick={() => setView("list")}
               className={cn(
-                "flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors",
-                view === "list" ? "bg-primary-muted text-primary-light" : "text-text-muted hover:text-text",
+                "mk-chip flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium mk-focus-ring",
+                view === "list" ? "mk-chip-active" : "text-text-muted hover:text-text",
               )}
             >
               <List size={13} /> List
@@ -173,7 +181,7 @@ export function TasksPage() {
             placeholder="Search tasks…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-64"
+            className="min-w-0 w-full flex-1 sm:max-w-xs sm:flex-none sm:w-64"
           />
         </div>
 
@@ -191,8 +199,8 @@ export function TasksPage() {
             }
           />
         ) : view === "kanban" ? (
-          <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto pb-2">
-            {KANBAN_COLUMNS.map((status) => {
+          <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
+            {KANBAN_COLUMNS.map((status, columnIndex) => {
               const columnTasks = byColumn.get(status) ?? [];
               return (
                 <div
@@ -203,25 +211,28 @@ export function TasksPage() {
                   }}
                   onDragLeave={() => setDragOver(null)}
                   onDrop={handleDrop(status)}
+                  style={{ animationDelay: `${columnIndex * 60}ms` }}
                   className={cn(
-                    "flex w-72 shrink-0 flex-col rounded-lg bg-bg-deep/60 transition-colors",
-                    dragOver === status && "border-primary/50 bg-primary-muted/20",
+                    "mk-fade-up mk-kanban-col flex min-h-[220px] min-w-0 flex-col p-2 transition-shadow md:min-h-0 md:h-full",
+                    dragOver === status &&
+                      "bg-primary-muted/20 shadow-[inset_0_0_0_1px_rgba(124,92,255,0.35),0_0_18px_rgba(124,92,255,0.12)]",
                   )}
                 >
-                  <div className="flex items-center gap-2 px-3 py-2.5">
-                    <span className={cn("h-2 w-2 rounded-full", columnAccent[status])} />
+                  <div className="flex items-center gap-2 px-2 pb-2 pt-1.5">
+                    <span className={cn("mk-glow-dot h-2 w-2 rounded-full", columnAccent[status])} />
                     <span className="text-xs font-semibold text-text">
                       {KANBAN_COLUMN_LABELS[status]}
                     </span>
-                    <span className="rounded-full bg-surface-overlay px-1.5 text-[10px] font-medium text-text-muted">
+                    <span className="rounded-full bg-white/[0.05] px-1.5 py-px text-[10px] font-medium text-text-muted">
                       {columnTasks.length}
                     </span>
                   </div>
-                  <div className="flex-1 space-y-2.5 overflow-y-auto px-2.5 pb-3 pt-2">
-                    {columnTasks.map((task) => (
+                  <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-1">
+                    {columnTasks.map((task, taskIndex) => (
                       <KanbanCard
                         key={task.id}
                         task={task}
+                        index={taskIndex}
                         flashed={flashedTaskIds.includes(task.id)}
                         onSelect={() => setSelectedId(task.id)}
                         onDragStart={(e) => e.dataTransfer.setData("text/task-id", task.id)}
@@ -233,8 +244,8 @@ export function TasksPage() {
             })}
           </div>
         ) : (
-          <div className="mk-card overflow-hidden">
-            <table className="w-full text-left text-xs">
+          <div className="mk-card min-w-0 overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-xs">
               <thead>
                 <tr className="text-[11px] uppercase tracking-wide text-text-muted">
                   <th className="px-5 py-3 font-medium">Task</th>
@@ -251,7 +262,7 @@ export function TasksPage() {
                     key={task.id}
                     onClick={() => setSelectedId(task.id)}
                     className={cn(
-                      "cursor-pointer transition-colors hover:bg-surface-hover",
+                      "mk-row cursor-pointer",
                       flashedTaskIds.includes(task.id) && "animate-pulse bg-primary/10",
                     )}
                   >

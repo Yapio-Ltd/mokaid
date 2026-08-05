@@ -32,18 +32,46 @@ defmodule Mokaid.Workspaces do
     )
   end
 
-  def create_workspace(attrs, owner_user) do
+  @doc """
+  Creates a workspace with its owner membership, an explicit Free
+  subscription and a first AI employee — a workspace without an agent cannot
+  exist. Everything is atomic: if any step fails, nothing is created.
+
+  Pass `bootstrap: false` to skip the subscription/agent bootstrap (tests
+  that need a bare workspace).
+  """
+  def create_workspace(attrs, owner_user, opts \\ []) do
     attrs = put_default_slug(attrs)
+    bootstrap? = Keyword.get(opts, :bootstrap, true)
 
     Repo.transaction(fn ->
       with {:ok, workspace} <- %Workspace{} |> Workspace.changeset(attrs) |> Repo.insert(),
            {:ok, _roles} <- Members.seed_system_roles(workspace.id),
-           {:ok, _member} <- Members.add_owner(workspace.id, owner_user.id) do
+           {:ok, _member} <- Members.add_owner(workspace.id, owner_user.id),
+           :ok <- if(bootstrap?, do: bootstrap_workspace(workspace), else: :ok) do
         workspace
       else
         {:error, changeset} -> Repo.rollback(changeset)
       end
     end)
+  end
+
+  # Every workspace starts life billable and staffed: an explicit Free
+  # subscription (no lazy "nil subscription = free" states) and a default
+  # AI employee the owner can meet in the office right away.
+  defp bootstrap_workspace(workspace) do
+    case Mokaid.Billing.change_plan(workspace.id, "free") do
+      {:ok, _subscription} -> :ok
+      # Plan catalog not seeded yet (fresh dev database) — the subscription
+      # will be created lazily on the first plan choice or credit grant.
+      {:error, :not_found} -> :ok
+      {:error, other} -> Repo.rollback(other)
+    end
+
+    case Mokaid.Agents.create_bootstrap_agent(workspace.id) do
+      {:ok, _agent} -> :ok
+      {:error, reason} -> Repo.rollback(reason)
+    end
   end
 
   def update_workspace(%Workspace{} = workspace, attrs) do

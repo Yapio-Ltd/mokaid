@@ -67,12 +67,12 @@ defmodule MokaidWeb.MCPController do
   end
 
   @doc """
-  Serves the official MCP server logo from S3. Public catalog asset (no auth).
+  Serves the official MCP server logo (S3, with bundled priv fallback).
+  Public catalog asset (no auth).
   """
   def logo(conn, %{"key" => key}) do
     with %{} = server <- MCP.get_server_by_key(key),
-         sk when is_binary(sk) and sk != "" <- server.logo_storage_key,
-         {:ok, body, content_type} <- Mokaid.Storage.get_object(sk) do
+         {:ok, body, content_type} <- Mokaid.Integrations.LogoAssets.fetch_for(server) do
       conn
       |> put_resp_content_type(content_type)
       |> put_resp_header("cache-control", "public, max-age=3600, must-revalidate")

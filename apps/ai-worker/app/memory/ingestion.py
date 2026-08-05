@@ -166,12 +166,23 @@ async def ingest_document(
         }
 
     embed_inputs = contextualize(chunks, payload.get("title"))
+    usage = llm.UsageTracker()
+
+    async def report_usage() -> None:
+        """Meters embedding/graph LLM cost, even on partial failure."""
+        if phoenix is not None and workspace_id:
+            await phoenix.report_usage(
+                workspace_id,
+                "knowledge_ingest",
+                usage.cost_cents,
+                token_usage=usage.as_dict(),
+            )
 
     try:
         embeddings: list[list[float]] = []
         for start in range(0, len(embed_inputs), EMBED_BATCH_SIZE):
             batch = embed_inputs[start : start + EMBED_BATCH_SIZE]
-            embeddings.extend(await llm.embed(batch))
+            embeddings.extend(await llm.embed(batch, usage=usage))
 
         if len(embeddings) != len(chunks):
             raise RuntimeError(
@@ -180,6 +191,7 @@ async def ingest_document(
     except Exception as exc:
         error = f"embedding failed: {exc}"
         log.error("ingest_embed_failed", item_id=item_id, error=str(exc))
+        await report_usage()
         if phoenix is not None:
             await phoenix.mark_knowledge_failed(item_id, workspace_id, error)
         return {
@@ -194,7 +206,7 @@ async def ingest_document(
 
     graph: dict[str, Any] | None = None
     try:
-        graph = await extract_graph(text, title=payload.get("title"), chunks=chunks)
+        graph = await extract_graph(text, title=payload.get("title"), chunks=chunks, usage=usage)
         log.info(
             "document_graph_extracted",
             item_id=item_id,
@@ -204,6 +216,8 @@ async def ingest_document(
     except Exception as exc:
         log.warning("document_graph_failed", item_id=item_id, error=str(exc))
         graph = None
+
+    await report_usage()
 
     stored = False
     if phoenix is not None:

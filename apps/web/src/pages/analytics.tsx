@@ -18,6 +18,7 @@ import { chartPalette, colors } from "@mokaid/design-tokens";
 import { useAnalyticsOverview } from "@/api/hooks";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Avatar } from "@/components/ui/avatar";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -28,6 +29,22 @@ const tooltipStyle = {
   borderRadius: 8,
   fontSize: 12,
   color: colors.text,
+  boxShadow: "0 0 18px rgba(124, 92, 255, 0.14), 0 8px 24px rgba(0, 0, 0, 0.4)",
+};
+
+/* Violet family — brighter/deeper for higher priority */
+const priorityColors: Record<string, string> = {
+  urgent: "#6f4cff",
+  high: "#8f72ff",
+  medium: "#ab95ff",
+  low: "#c8b9ff",
+};
+
+/* AI = light violet, Human-linked = deep violet, Hybrid = mid */
+const splitColors: Record<string, string> = {
+  "AI Agents": "#c8b9ff",
+  "Human-linked": "#6f4cff",
+  Hybrid: "#8f72ff",
 };
 
 export function AnalyticsPage() {
@@ -36,7 +53,7 @@ export function AnalyticsPage() {
   if (isLoading || !data) {
     return (
       <div className="space-y-5">
-        <h1 className="text-xl font-bold text-text">Analytics</h1>
+        <PageHeader title="Analytics" />
         <SkeletonRows rows={6} />
       </div>
     );
@@ -67,10 +84,7 @@ export function AnalyticsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-text">Analytics</h1>
-        <p className="text-xs text-text-muted">Workspace performance over the last 30 days</p>
-      </div>
+      <PageHeader title="Analytics" subtitle="Workspace performance over the last 30 days" />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <KpiCard
@@ -100,7 +114,7 @@ export function AnalyticsPage() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <Card>
+        <Card className="mk-fade-up">
           <CardHeader>
             <CardTitle>Tasks Completed Over Time</CardTitle>
           </CardHeader>
@@ -123,7 +137,7 @@ export function AnalyticsPage() {
           </CardBody>
         </Card>
 
-        <Card>
+        <Card className="mk-fade-up" style={{ animationDelay: "60ms" }}>
           <CardHeader>
             <CardTitle>Tasks by Status</CardTitle>
           </CardHeader>
@@ -153,7 +167,7 @@ export function AnalyticsPage() {
           </CardBody>
         </Card>
 
-        <Card>
+        <Card className="mk-fade-up" style={{ animationDelay: "120ms" }}>
           <CardHeader>
             <CardTitle>Tasks by Priority</CardTitle>
           </CardHeader>
@@ -166,18 +180,7 @@ export function AnalyticsPage() {
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(124,92,255,0.06)" }} />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                   {prioritySeries.map((entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={
-                        entry.name === "urgent"
-                          ? colors.danger
-                          : entry.name === "high"
-                            ? colors.warning
-                            : entry.name === "medium"
-                              ? colors.info
-                              : colors.textMuted
-                      }
-                    />
+                    <Cell key={index} fill={priorityColors[entry.name] ?? "#8f72ff"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -185,7 +188,7 @@ export function AnalyticsPage() {
           </CardBody>
         </Card>
 
-        <Card>
+        <Card className="mk-fade-up" style={{ animationDelay: "180ms" }}>
           <CardHeader>
             <CardTitle>AI vs Human Output</CardTitle>
           </CardHeader>
@@ -193,8 +196,8 @@ export function AnalyticsPage() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={splitSeries} dataKey="value" nameKey="name" outerRadius={85}>
-                  {splitSeries.map((_, index) => (
-                    <Cell key={index} fill={chartPalette[index % chartPalette.length]} stroke="none" />
+                  {splitSeries.map((entry, index) => (
+                    <Cell key={index} fill={splitColors[entry.name] ?? "#8f72ff"} stroke="none" />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} />
@@ -209,7 +212,7 @@ export function AnalyticsPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="mk-fade-up" style={{ animationDelay: "240ms" }}>
         <CardHeader>
           <CardTitle>Top Performing Agents</CardTitle>
         </CardHeader>

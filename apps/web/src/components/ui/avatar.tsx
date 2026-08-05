@@ -25,7 +25,7 @@ export function Avatar({ name, src, size = "md", isAi, color, className }: Avata
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border-strong font-semibold text-white select-none",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border-0 ring-1 ring-primary/25 font-semibold text-white select-none",
         sizeClasses[size],
         className,
       )}

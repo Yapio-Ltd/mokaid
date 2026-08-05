@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { Check, ExternalLink, Plug, Star, Trash2 } from "lucide-react";
 import {
   useFigmaOauthStart,
@@ -19,6 +19,7 @@ import { Field } from "@/components/ui/field";
 import { SearchInput } from "@/components/ui/search-input";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { McpLogo } from "@/components/mcp/mcp-logo";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/cn";
 import { formatRelative } from "@/lib/format";
 
@@ -78,23 +79,31 @@ function ServerCard({
   installation,
   selected,
   onSelect,
+  style,
 }: {
   server: McpServer;
   installation: McpInstallation | undefined;
   selected: boolean;
   onSelect: () => void;
+  style?: CSSProperties;
 }) {
   const isConnected = installation?.status === "connected";
 
   return (
     <button
       onClick={onSelect}
+      style={style}
       className={cn(
-        "mk-card flex items-start gap-3 p-4 text-left transition-shadow hover:shadow-glow mk-focus-ring",
-        selected && "border-primary/50",
+        "mk-card-interactive mk-fade-up flex items-start gap-3 p-4 text-left mk-focus-ring",
+        selected && "ring-1 ring-primary/50",
       )}
     >
-      <McpLogo logoUrl={server.logo_url} name={server.name} category={server.category} />
+      <McpLogo
+        logoUrl={server.logo_url}
+        logoSlug={server.logo_slug}
+        name={server.name}
+        category={server.category}
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <p className="flex items-center gap-1.5 truncate text-xs font-semibold text-text">
@@ -241,7 +250,13 @@ function InstallPanel({
   return (
     <div className="space-y-5 px-5 py-4">
       <div className="flex items-center gap-3">
-        <McpLogo logoUrl={server.logo_url} name={server.name} category={server.category} size="lg" />
+        <McpLogo
+          logoUrl={server.logo_url}
+          logoSlug={server.logo_slug}
+          name={server.name}
+          category={server.category}
+          size="lg"
+        />
         <div>
           <h3 className="flex items-center gap-1.5 text-sm font-bold text-text">
             {server.name}
@@ -461,21 +476,23 @@ export function McpHubPage() {
   return (
     <div className="flex h-full gap-5">
       <div className="min-w-0 flex-1 space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-text">MCP Hub</h1>
-            <p className="text-xs text-text-muted">
+        <PageHeader
+          title="MCP Hub"
+          subtitle={
+            <>
               Connect your tools, then decide which agent can use which. {installedCount} installed
               · {servers.length} available
-            </p>
-          </div>
-          <SearchInput
-            placeholder="Search servers…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-64"
-          />
-        </div>
+            </>
+          }
+          actions={
+            <SearchInput
+              placeholder="Search servers…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64"
+            />
+          }
+        />
 
         <div className="flex flex-wrap gap-1.5">
           {categories.map((c) => (
@@ -504,13 +521,14 @@ export function McpHubPage() {
                   <Star size={11} className="fill-warning text-warning" /> Featured
                 </h2>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {featured.map((server) => (
+                  {featured.map((server, index) => (
                     <ServerCard
                       key={server.key}
                       server={server}
                       installation={installationByServer.get(server.key)}
                       selected={selectedKey === server.key}
                       onSelect={() => setSelectedKey(server.key)}
+                      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
                     />
                   ))}
                 </div>
@@ -525,13 +543,14 @@ export function McpHubPage() {
                   </h2>
                 )}
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {rest.map((server) => (
+                  {rest.map((server, index) => (
                     <ServerCard
                       key={server.key}
                       server={server}
                       installation={installationByServer.get(server.key)}
                       selected={selectedKey === server.key}
                       onSelect={() => setSelectedKey(server.key)}
+                      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
                     />
                   ))}
                 </div>

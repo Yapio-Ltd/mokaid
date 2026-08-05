@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import {
+  ArrowRightLeft,
   Check,
+  Coins,
   FileUp,
   Link2,
   Pencil,
@@ -12,8 +14,10 @@ import {
 } from "lucide-react";
 import type { Agent } from "@/api/types";
 import {
+  useAgentCatalog,
   useAgentProgression,
   useTasks,
+  useTransferAgent,
   useUpdateAgent,
   useUploadAgentFiles,
   useDeleteAgent,
@@ -21,12 +25,16 @@ import {
 import { DetailPanel } from "@/components/ui/detail-panel";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { AgentStatusBadge, TaskStatusBadge } from "@/components/ui/status";
+import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
 import { AgentMcpMatrix } from "@/components/mcp/agent-mcp-matrix";
 import { formatRelative } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { ApiError } from "@/api/client";
 import { toast } from "@/stores/toast-store";
+import { useAuthStore } from "@/stores/auth-store";
 import { useUiStore } from "@/stores/ui-store";
 
 const tabClass =
@@ -308,6 +316,90 @@ function ProgressionTab({ agent }: { agent: Agent }) {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Paid cross-workspace copy: clones the agent and all of its knowledge into
+ * another workspace of the user, charging the destination one agent's price.
+ */
+function TransferSection({ agent }: { agent: Agent }) {
+  const workspaces = useAuthStore((s) => s.workspaces);
+  const currentWorkspaceId = useAuthStore((s) => s.workspaceId);
+  const transferAgent = useTransferAgent();
+  const { data: catalogData } = useAgentCatalog();
+  const [targetId, setTargetId] = useState("");
+
+  const otherWorkspaces = workspaces.filter((w) => w.id !== currentWorkspaceId);
+  if (agent.kind !== "ai" || otherWorkspaces.length === 0) return null;
+
+  const credits = catalogData?.data.specialist_credits ?? 5000;
+  const targetName = otherWorkspaces.find((w) => w.id === targetId)?.name ?? "";
+
+  const handleTransfer = () => {
+    if (!targetId) return;
+    const confirmed = window.confirm(
+      `Copy "${agent.display_name}" and all of its knowledge to "${targetName}"?\n\n` +
+        `The destination workspace will be charged ${credits.toLocaleString()} credits ` +
+        `(one agent's price). The original stays here.`,
+    );
+    if (!confirmed) return;
+
+    transferAgent.mutate(
+      { agentId: agent.id, targetWorkspaceId: targetId },
+      {
+        onSuccess: () => {
+          setTargetId("");
+          toast({
+            tone: "success",
+            title: "Agent copied",
+            description: `"${agent.display_name}" now works in ${targetName} too. Its knowledge is being copied in the background.`,
+          });
+        },
+        onError: (error) =>
+          toast({
+            tone: "error",
+            title: "Could not copy agent",
+            description:
+              error instanceof ApiError ? error.message : "Something went wrong. Try again.",
+          }),
+      },
+    );
+  };
+
+  return (
+    <div className="mx-5 mb-3 space-y-3 rounded-xl border border-border/60 bg-surface-raised/40 p-4">
+      <div className="flex items-start gap-2">
+        <ArrowRightLeft size={14} className="mt-0.5 shrink-0 text-primary-light" />
+        <div className="space-y-1">
+          <p className="text-xs font-semibold text-text">Copy to another workspace</p>
+          <p className="text-[11px] leading-relaxed text-text-muted">
+            Clones this agent with its level, skills and full knowledge into another
+            workspace you belong to. The original stays here.
+          </p>
+        </div>
+      </div>
+
+      <Select
+        value={targetId || undefined}
+        onValueChange={setTargetId}
+        placeholder="Choose destination workspace…"
+        options={otherWorkspaces.map((w) => ({ value: w.id, label: w.name }))}
+        disabled={transferAgent.isPending}
+      />
+
+      <Button
+        variant="secondary"
+        size="sm"
+        className="w-full"
+        disabled={!targetId || transferAgent.isPending}
+        loading={transferAgent.isPending}
+        onClick={handleTransfer}
+      >
+        <Coins size={13} />
+        Copy agent — {credits.toLocaleString()} credits
+      </Button>
     </div>
   );
 }
@@ -621,6 +713,8 @@ export function AgentProfilePanel({
               </Tabs.Content>
             )}
           </Tabs.Root>
+
+          <TransferSection agent={agent} />
 
           {/* Delete action */}
           <div className="mt-auto px-5 pb-5 pt-3">

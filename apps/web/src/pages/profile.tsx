@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
+import { PageHeader } from "@/components/ui/page-header";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/format";
@@ -83,7 +84,7 @@ export function ProfilePage() {
   if (isLoading || !user) {
     return (
       <div className="max-w-3xl space-y-5">
-        <h1 className="text-xl font-bold text-text">Profile</h1>
+        <PageHeader title="Profile" />
         <SkeletonRows rows={6} />
       </div>
     );
@@ -176,13 +177,10 @@ export function ProfilePage() {
 
   return (
     <div className="max-w-3xl space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-text">Profile</h1>
-        <p className="text-xs text-text-muted">Your personal account, preferences and security</p>
-      </div>
+      <PageHeader title="Profile" subtitle="Your personal account, preferences and security" />
 
       {/* Identity */}
-      <Card>
+      <Card className="mk-fade-up">
         <CardHeader>
           <CardTitle>Identity</CardTitle>
         </CardHeader>
@@ -265,7 +263,7 @@ export function ProfilePage() {
       </Card>
 
       {/* Preferences */}
-      <Card>
+      <Card className="mk-fade-up" style={{ animationDelay: "60ms" }}>
         <CardHeader>
           <CardTitle>Preferences</CardTitle>
         </CardHeader>
@@ -315,7 +313,7 @@ export function ProfilePage() {
       </Card>
 
       {/* Security */}
-      <Card>
+      <Card className="mk-fade-up" style={{ animationDelay: "120ms" }}>
         <CardHeader>
           <CardTitle>Security</CardTitle>
         </CardHeader>

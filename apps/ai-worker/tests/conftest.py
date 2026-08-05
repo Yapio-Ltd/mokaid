@@ -115,6 +115,26 @@ class FakePhoenixClient:
             )
         )
 
+    async def report_usage(
+        self,
+        workspace_id: str,
+        source: str,
+        cost_cents: int,
+        token_usage: dict | None = None,
+        agent_id: str | None = None,
+    ) -> None:
+        self.calls.append(
+            (
+                "usage",
+                {
+                    "source": source,
+                    "cost_cents": cost_cents,
+                    "token_usage": token_usage,
+                    "agent_id": agent_id,
+                },
+            )
+        )
+
 
 @pytest.fixture
 def phoenix() -> FakePhoenixClient:

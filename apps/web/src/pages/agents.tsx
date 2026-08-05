@@ -11,15 +11,16 @@ import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { AgentProfilePanel } from "@/components/agents/agent-profile-panel";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/cn";
 import { formatRelative } from "@/lib/format";
 
 const kindFilters = [
   { value: "", label: "All" },
   { value: "ai", label: "AI Agents" },
-  { value: "human_linked", label: "Human-linked" },
-  { value: "hybrid", label: "Hybrid" },
-];
+  { value: "human_linked", label: "Human-linked", soon: true },
+  { value: "hybrid", label: "Hybrid", soon: true },
+] as const;
 
 const statusFilters = ["", "active", "busy", "idle", "waiting", "training", "offline"];
 
@@ -53,10 +54,10 @@ export function AgentsPage() {
   return (
     <div className="flex h-full gap-5">
       <div className="min-w-0 flex-1 space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-text">Agents</h1>
-            <p className="text-xs text-text-muted">
+        <PageHeader
+          title="Agents"
+          subtitle={
+            <>
               Manage your AI, human-linked and hybrid workforce
               {counts?.limit != null && (
                 <>
@@ -64,55 +65,80 @@ export function AgentsPage() {
                   · {counts.total}/{counts.limit} seats used
                 </>
               )}
-            </p>
-          </div>
-          {atLimit ? (
-            <Link
-              to="/billing"
-              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-semibold text-white shadow-sm shadow-primary/25 hover:bg-primary/90"
-            >
-              <Plus size={14} /> Upgrade for more seats
-            </Link>
-          ) : (
-            <Button onClick={goNewAgent} data-tour="new-agent">
-              <Plus size={14} /> New Agent
-            </Button>
-          )}
-        </div>
+            </>
+          }
+          actions={
+            atLimit ? (
+              <Link
+                to="/billing"
+                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-semibold text-white shadow-sm shadow-primary/25 hover:bg-primary/90"
+              >
+                <Plus size={14} /> Upgrade for more seats
+              </Link>
+            ) : (
+              <Button onClick={goNewAgent} data-tour="new-agent">
+                <Plus size={14} /> New Agent
+              </Button>
+            )
+          }
+        />
 
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <KpiCard
-            label="Active seats"
-            value={`${counts?.total ?? "·"}/${counts?.limit ?? "·"}`}
-            icon={<Bot size={20} />}
-            tone="primary"
-          />
-          <KpiCard label="AI Agents" value={counts?.ai ?? "·"} icon={<Bot size={20} />} tone="info" />
-          <KpiCard
-            label="Human-linked"
-            value={counts?.human_linked ?? "·"}
-            icon={<Users size={20} />}
-            tone="success"
-          />
-          <KpiCard label="Active Now" value={counts?.active ?? "·"} icon={<Users size={20} />} tone="warning" />
+          <div className="mk-fade-up">
+            <KpiCard
+              label="Active seats"
+              value={`${counts?.total ?? "·"}/${counts?.limit ?? "·"}`}
+              icon={<Bot size={20} />}
+              tone="primary"
+            />
+          </div>
+          <div className="mk-fade-up" style={{ animationDelay: "60ms" }}>
+            <KpiCard label="AI Agents" value={counts?.ai ?? "·"} icon={<Bot size={20} />} tone="info" />
+          </div>
+          <div className="mk-fade-up" style={{ animationDelay: "120ms" }}>
+            <KpiCard
+              label="Human-linked"
+              value={counts?.human_linked ?? "·"}
+              icon={<Users size={20} />}
+              tone="success"
+            />
+          </div>
+          <div className="mk-fade-up" style={{ animationDelay: "180ms" }}>
+            <KpiCard label="Active Now" value={counts?.active ?? "·"} icon={<Users size={20} />} tone="warning" />
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex rounded-md bg-surface-raised p-0.5">
-            {kindFilters.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setKind(f.value)}
-                className={cn(
-                  "rounded px-3 py-1.5 text-xs font-medium transition-colors",
-                  kind === f.value
-                    ? "bg-primary-muted text-primary-light"
-                    : "text-text-muted hover:text-text",
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
+            {kindFilters.map((f) => {
+              const soon = "soon" in f && f.soon;
+              return (
+                <button
+                  key={f.value}
+                  type="button"
+                  disabled={soon}
+                  title={soon ? "Coming soon" : undefined}
+                  onClick={() => {
+                    if (!soon) setKind(f.value);
+                  }}
+                  className={cn(
+                    "mk-chip inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium",
+                    soon
+                      ? "cursor-not-allowed text-text-muted/55"
+                      : kind === f.value
+                        ? "mk-chip-active"
+                        : "text-text-muted hover:text-text",
+                  )}
+                >
+                  {f.label}
+                  {soon && (
+                    <span className="rounded px-1 py-px text-[9px] font-semibold uppercase tracking-wider text-primary-light/90 bg-primary/15">
+                      Soon
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <select
@@ -178,7 +204,7 @@ export function AgentsPage() {
                       setSelectedId(agent.id);
                     }}
                     className={cn(
-                      "cursor-pointer transition-colors hover:bg-surface-hover",
+                      "mk-row cursor-pointer",
                       selectedId === agent.id && "bg-primary-muted/40",
                     )}
                   >

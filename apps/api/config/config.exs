@@ -28,6 +28,7 @@ config :mokaid, Oban,
      crontab: [
        {"0 2 * * *", Mokaid.Billing.Workers.UsageAggregationWorker},
        {"0 * * * *", Mokaid.Billing.Workers.SubscriptionRenewalWorker},
+       {"15 * * * *", Mokaid.Billing.Workers.MonthlyCreditsWorker},
        {"30 3 * * *", Mokaid.Billing.Workers.InvoiceCleanupWorker},
        {"*/15 * * * *", Mokaid.Tasks.Workers.OverdueTaskWorker},
        {"*/5 * * * *", Mokaid.Tasks.Workers.StaleRunWorker},

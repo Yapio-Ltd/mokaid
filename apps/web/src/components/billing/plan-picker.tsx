@@ -1,18 +1,22 @@
-import { Check, Coins, Crown, Star, Zap } from "lucide-react";
+import { Check, Coins, Crown, Star, Users, Zap } from "lucide-react";
 import type { BillingPlanSummary } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { formatCents, formatNumber } from "@/lib/format";
 
+const PLAN_ORDER = ["free", "starter", "team", "professional"] as const;
+
 const tagline: Record<string, string> = {
   free: "Try your first AI employee",
   starter: "For solo builders",
+  team: "For growing teams",
   professional: "Fill the 9-desk office",
 };
 
 const planIcon: Record<string, typeof Zap> = {
   free: Zap,
   starter: Star,
+  team: Users,
   professional: Crown,
 };
 
@@ -72,22 +76,23 @@ export function PlanPicker({
   cycle?: BillingCycle;
 }) {
   const sorted = [...plans]
-    .filter((p) => ["free", "starter", "professional"].includes(p.key))
-    .sort((a, b) => {
-      const order = ["free", "starter", "professional"];
-      return order.indexOf(a.key) - order.indexOf(b.key);
-    });
+    .filter((p) => (PLAN_ORDER as readonly string[]).includes(p.key))
+    .sort(
+      (a, b) =>
+        (PLAN_ORDER as readonly string[]).indexOf(a.key) -
+        (PLAN_ORDER as readonly string[]).indexOf(b.key),
+    );
 
   return (
     <div
       className={cn(
         "grid gap-4",
-        compact ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2 xl:grid-cols-3",
+        compact ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 xl:grid-cols-4",
       )}
     >
       {sorted.map((plan) => {
         const isCurrent = plan.key === currentKey;
-        const featured = plan.key === "professional";
+        const featured = plan.key === "team";
         const credits = plan.limits?.credits_monthly ?? 0;
         const agents = plan.limits?.agents ?? 0;
         const Icon = planIcon[plan.key] ?? Zap;

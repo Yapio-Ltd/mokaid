@@ -12,6 +12,7 @@ import { MemberDetailPanel } from "@/components/members/member-detail-panel";
 import { StatusAvatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/cn";
@@ -89,37 +90,39 @@ export function MembersPage() {
   return (
     <div className="flex h-full gap-5">
       <div className="min-w-0 flex-1 space-y-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-text">Members</h1>
-            <p className="text-xs text-text-muted">
+        <PageHeader
+          title="Members"
+          subtitle={
+            <>
               {members.length} members · {invites.length} pending invites
               {workspaces.find((w) => w.id === workspaceId)?.name
                 ? ` · ${workspaces.find((w) => w.id === workspaceId)?.name}`
                 : ""}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendInvite()}
-              placeholder="colleague@company.com"
-              className="mk-input h-9 w-56"
-            />
-            <Button size="sm" onClick={sendInvite} loading={inviteMember.isPending}>
-              <Plus size={13} /> Invite
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+          actions={
+            <>
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendInvite()}
+                placeholder="colleague@company.com"
+                className="mk-input h-9 w-56"
+              />
+              <Button size="sm" onClick={sendInvite} loading={inviteMember.isPending}>
+                <Plus size={13} /> Invite
+              </Button>
+            </>
+          }
+        />
 
         {isLoading ? (
           <SkeletonRows rows={6} />
         ) : members.length === 0 && invites.length === 0 ? (
           <EmptyState icon={<Users size={24} />} title="No members yet" />
         ) : (
-          <div className="overflow-hidden rounded-lg bg-surface">
+          <div className="mk-fade-up overflow-hidden rounded-lg bg-surface">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="text-[11px] uppercase tracking-wide text-text-muted">

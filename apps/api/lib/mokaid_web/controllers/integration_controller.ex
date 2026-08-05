@@ -50,12 +50,12 @@ defmodule MokaidWeb.IntegrationController do
   end
 
   @doc """
-  Serves the official integration logo from S3. Public catalog asset (no auth).
+  Serves the official integration logo (S3, with bundled priv fallback).
+  Public catalog asset (no auth).
   """
   def logo(conn, %{"key" => key}) do
     with %{} = provider <- Integrations.get_provider_by_key(key),
-         sk when is_binary(sk) and sk != "" <- provider.logo_storage_key,
-         {:ok, body, content_type} <- Mokaid.Storage.get_object(sk) do
+         {:ok, body, content_type} <- Mokaid.Integrations.LogoAssets.fetch_for(provider) do
       conn
       |> put_resp_content_type(content_type)
       |> put_resp_header("cache-control", "public, max-age=3600, must-revalidate")

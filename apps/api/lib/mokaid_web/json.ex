@@ -530,14 +530,22 @@ defmodule MokaidWeb.JSON do
     }
   end
 
-  defp mcp_logo_url(%{logo_storage_key: key, key: server_key} = server)
-       when is_binary(key) and key != "" do
-    version =
-      server.updated_at
-      |> DateTime.to_unix()
-      |> Integer.to_string()
+  defp mcp_logo_url(%{key: server_key} = server)
+       when is_binary(server_key) and server_key != "" do
+    has_storage =
+      is_binary(Map.get(server, :logo_storage_key)) and server.logo_storage_key != ""
 
-    "/api/mcp/logos/#{server_key}?v=#{version}"
+    has_bundled = Mokaid.Integrations.LogoAssets.bundled?(server_key)
+
+    if has_storage or has_bundled do
+      version =
+        case Map.get(server, :updated_at) do
+          %DateTime{} = dt -> dt |> DateTime.to_unix() |> Integer.to_string()
+          _ -> "0"
+        end
+
+      "/api/mcp/logos/#{server_key}?v=#{version}"
+    end
   end
 
   defp mcp_logo_url(_), do: nil
@@ -592,14 +600,22 @@ defmodule MokaidWeb.JSON do
     }
   end
 
-  defp integration_logo_url(%{logo_storage_key: key, key: provider_key} = provider)
-       when is_binary(key) and key != "" do
-    version =
-      provider.updated_at
-      |> DateTime.to_unix()
-      |> Integer.to_string()
+  defp integration_logo_url(%{key: provider_key} = provider)
+       when is_binary(provider_key) and provider_key != "" do
+    has_storage =
+      is_binary(Map.get(provider, :logo_storage_key)) and provider.logo_storage_key != ""
 
-    "/api/integrations/logos/#{provider_key}?v=#{version}"
+    has_bundled = Mokaid.Integrations.LogoAssets.bundled?(provider_key)
+
+    if has_storage or has_bundled do
+      version =
+        case Map.get(provider, :updated_at) do
+          %DateTime{} = dt -> dt |> DateTime.to_unix() |> Integer.to_string()
+          _ -> "0"
+        end
+
+      "/api/integrations/logos/#{provider_key}?v=#{version}"
+    end
   end
 
   defp integration_logo_url(_), do: nil

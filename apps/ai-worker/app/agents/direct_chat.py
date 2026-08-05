@@ -246,6 +246,7 @@ async def _stream_reply(
     workspace_id: str,
     agent_id: str,
     stream_id: str,
+    usage: llm.UsageTracker | None = None,
 ) -> str:
     """Streams a pure chat reply (no control header) and returns the full text."""
     text_parts: list[str] = []
@@ -265,6 +266,7 @@ async def _stream_reply(
         async for delta in llm.chat_stream(
             system=system,
             user=user,
+            usage=usage,
             max_tokens=800,
             quality="fast",
         ):
@@ -350,7 +352,9 @@ def _render_pdf_page_png(data: bytes, page_index: int) -> bytes | None:
         return None
 
 
-async def _vision_pdf_signature_pages(name: str, data: bytes) -> str:
+async def _vision_pdf_signature_pages(
+    name: str, data: bytes, usage: llm.UsageTracker | None = None
+) -> str:
     """Vision-read PDF pages that contain images/signature fields (max 2)."""
     pages = _pdf_pages_needing_vision(data)
     if not pages:
@@ -378,6 +382,7 @@ async def _vision_pdf_signature_pages(name: str, data: bytes) -> str:
                 image_url="page.png",
                 image_bytes=png,
                 mime_type="image/png",
+                usage=usage,
                 max_tokens=900,
             )
             if description and description.strip():
@@ -390,7 +395,9 @@ async def _vision_pdf_signature_pages(name: str, data: bytes) -> str:
     return "### Visual signature scan\n" + "\n\n".join(chunks)
 
 
-async def _load_attachment_previews(attachments: list[dict[str, Any]]) -> str:
+async def _load_attachment_previews(
+    attachments: list[dict[str, Any]], usage: llm.UsageTracker | None = None
+) -> str:
     """Downloads each attachment and returns a bounded text preview the LLM
     can reason over inline (questions like "who signed this?"). Images go
     through vision; documents through extractors. Failures are soft."""
@@ -432,6 +439,7 @@ async def _load_attachment_previews(attachments: list[dict[str, Any]]) -> str:
                     image_url=url,
                     image_bytes=data,
                     mime_type=mime or None,
+                    usage=usage,
                     max_tokens=1000,
                 )
                 parts.append(f"### {name} (image)\n{(description or '(empty)').strip()}")
@@ -456,7 +464,7 @@ async def _load_attachment_previews(attachments: list[dict[str, Any]]) -> str:
                 from app.config import get_settings
 
                 if get_settings().openai_api_key:
-                    vision_extra = await _vision_pdf_signature_pages(name, data)
+                    vision_extra = await _vision_pdf_signature_pages(name, data, usage=usage)
                     if vision_extra:
                         block_parts.append(vision_extra)
 
@@ -518,6 +526,7 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
     agent = payload.get("agent") or {}
     conversation = payload.get("conversation") or []
     attachments = payload.get("attachments") or []
+    usage = llm.UsageTracker()
 
     thread = "\n".join(
         f"- {entry.get('author', '?')}: {entry.get('body', '')}"
@@ -529,14 +538,16 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
     file_context = _format_attachments(attachments)
     # Bound content preview so questions about a PDF/image can be answered
     # inline without spinning up a task.
-    file_preview = await _load_attachment_previews(attachments) if attachments else ""
+    file_preview = (
+        await _load_attachment_previews(attachments, usage=usage) if attachments else ""
+    )
     decide_thread = thread
     if file_context:
         decide_thread = f"{decide_thread}\n{file_context}"
     if file_preview:
         decide_thread = f"{decide_thread}\n\n{file_preview}"
 
-    decision = await _decide(decide_thread, latest)
+    decision = await _decide(decide_thread, latest, usage=usage)
     start_task = decision["kind"] == "task"
     instruction = decision["instruction"]
     language = decision["language"]
@@ -608,7 +619,19 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
         workspace_id=workspace_id,
         agent_id=agent_id,
         stream_id=stream_id,
+        usage=usage,
     )
+
+    # Meter the whole DM turn (decision + attachment vision + streamed reply)
+    # even when the reply came out empty — the LLM cost is already incurred.
+    await phoenix.report_usage(
+        workspace_id,
+        "agent_chat",
+        usage.cost_cents,
+        token_usage=usage.as_dict(),
+        agent_id=agent_id,
+    )
+
     if not text:
         return False
 

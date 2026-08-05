@@ -116,6 +116,38 @@ const RefundPage = lazyPage(() =>
   import("@/pages/refund").then((m) => ({ default: m.RefundPage })),
 );
 
+// Public SEO/content pages (prerendered post-build for search engines).
+const AiEmployeesIndexPage = lazyPage(() =>
+  import("@/pages/seo/ai-employees-index").then((m) => ({ default: m.AiEmployeesIndexPage })),
+);
+const AiEmployeeRolePage = lazyPage(() =>
+  import("@/pages/seo/ai-employee-role").then((m) => ({ default: m.AiEmployeeRolePage })),
+);
+const UseCasesIndexPage = lazyPage(() =>
+  import("@/pages/seo/use-cases-index").then((m) => ({ default: m.UseCasesIndexPage })),
+);
+const UseCaseDetailPage = lazyPage(() =>
+  import("@/pages/seo/use-case-detail").then((m) => ({ default: m.UseCaseDetailPage })),
+);
+const CompareIndexPage = lazyPage(() =>
+  import("@/pages/seo/compare-index").then((m) => ({ default: m.CompareIndexPage })),
+);
+const CompareDetailPage = lazyPage(() =>
+  import("@/pages/seo/compare-detail").then((m) => ({ default: m.CompareDetailPage })),
+);
+const BlogIndexPage = lazyPage(() =>
+  import("@/pages/seo/blog-index").then((m) => ({ default: m.BlogIndexPage })),
+);
+const BlogPostPage = lazyPage(() =>
+  import("@/pages/seo/blog-post").then((m) => ({ default: m.BlogPostPage })),
+);
+const GlossaryPage = lazyPage(() =>
+  import("@/pages/seo/glossary").then((m) => ({ default: m.GlossaryPage })),
+);
+const PricingPage = lazyPage(() =>
+  import("@/pages/seo/pricing").then((m) => ({ default: m.PricingPage })),
+);
+
 function RootLayout() {
   return (
     <>
@@ -272,6 +304,23 @@ const refundRoute = createRoute({
   component: RefundPage,
 });
 
+const seoPages = [
+  { path: "/ai-employees", component: AiEmployeesIndexPage },
+  { path: "/ai-employees/$slug", component: AiEmployeeRolePage },
+  { path: "/use-cases", component: UseCasesIndexPage },
+  { path: "/use-cases/$slug", component: UseCaseDetailPage },
+  { path: "/compare", component: CompareIndexPage },
+  { path: "/compare/$slug", component: CompareDetailPage },
+  { path: "/blog", component: BlogIndexPage },
+  { path: "/blog/$slug", component: BlogPostPage },
+  { path: "/glossary", component: GlossaryPage },
+  { path: "/pricing", component: PricingPage },
+] as const;
+
+const seoRoutes = seoPages.map(({ path, component }) =>
+  createRoute({ getParentRoute: () => rootRoute, path, component }),
+);
+
 const routeTree = rootRoute.addChildren([
   landingRoute,
   loginRoute,
@@ -288,6 +337,7 @@ const routeTree = rootRoute.addChildren([
   cookiesRoute,
   legalRoute,
   refundRoute,
+  ...seoRoutes,
   appRoute.addChildren([...pageRoutes, agentsNewRoute, agentTrainingRoute]),
 ]);
 

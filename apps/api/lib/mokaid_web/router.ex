@@ -71,6 +71,7 @@ defmodule MokaidWeb.Router do
 
     get "/agents/catalog", AgentController, :catalog
     resources "/agents", AgentController, only: [:index, :create, :show, :update, :delete]
+    post "/agents/:id/transfer", AgentController, :transfer
     post "/agents/:id/link-user", AgentController, :link_user
     post "/agents/:id/unlink-user", AgentController, :unlink_user
     post "/agents/:id/assign-task", AgentController, :assign_task
@@ -96,6 +97,8 @@ defmodule MokaidWeb.Router do
     post "/tasks/:id/approve-action", TaskController, :approve_action
 
     resources "/projects", ProjectController, only: [:index, :create, :show, :update, :delete]
+    post "/projects/:id/agents", ProjectController, :add_agent
+    delete "/projects/:id/agents/:agent_id", ProjectController, :remove_agent
 
     resources "/knowledge", KnowledgeController, only: [:index, :create, :show, :update]
     get "/knowledge-categories", KnowledgeController, :categories
@@ -223,6 +226,7 @@ defmodule MokaidWeb.Router do
     post "/runs/:run_id/approval", WorkerCallbackController, :approval_request
     post "/runs/:run_id/complete", WorkerCallbackController, :complete
     post "/runs/:run_id/fail", WorkerCallbackController, :fail
+    post "/usage", WorkerCallbackController, :usage
 
     post "/knowledge/search", WorkerResourceController, :search_knowledge
     post "/agents/domain-skill", WorkerResourceController, :load_domain_skill

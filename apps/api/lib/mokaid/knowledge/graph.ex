@@ -29,20 +29,16 @@ defmodule Mokaid.Knowledge.Graph do
   @doc """
   Whether the workspace plan includes the knowledge graph.
 
-  Free → false; Starter → project-scoped only; Professional → full workspace.
+  Driven by the plan's `limits["knowledge_graph"]` ("project" | "workspace"),
+  so new plans are covered without touching this module. Free → false.
   """
-  def enabled?(workspace_id) do
-    case Mokaid.Billing.get_subscription(workspace_id) do
-      %{plan: %{key: key}} when key in ["starter", "professional"] -> true
-      _ -> false
-    end
-  end
+  def enabled?(workspace_id), do: scope_level(workspace_id) != :none
 
-  @doc "Starter is project-scoped; Professional gets workspace-wide graph tools."
+  @doc "Project-scoped ('project') or workspace-wide ('workspace') graph tools."
   def scope_level(workspace_id) do
     case Mokaid.Billing.get_subscription(workspace_id) do
-      %{plan: %{key: "professional"}} -> :workspace
-      %{plan: %{key: "starter"}} -> :project
+      %{plan: %{limits: %{"knowledge_graph" => "workspace"}}} -> :workspace
+      %{plan: %{limits: %{"knowledge_graph" => "project"}}} -> :project
       _ -> :none
     end
   end

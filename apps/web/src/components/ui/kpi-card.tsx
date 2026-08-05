@@ -56,7 +56,7 @@ export function KpiCard({ label, value, icon, trend, tone = "default", className
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-2xl border border-white/[0.06]",
+        "group relative overflow-hidden rounded-2xl border border-primary/15",
         "bg-surface/50 backdrop-blur-md",
         "transition-all duration-300 ease-out",
         "hover:-translate-y-0.5",

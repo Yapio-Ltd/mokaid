@@ -42,6 +42,24 @@ defmodule MokaidWeb.ProjectController do
     end
   end
 
+  def add_agent(conn, %{"id" => id, "agent_id" => agent_id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "projects.update"),
+         %{} = project <- Projects.get_project(workspace_id(conn), id),
+         {:ok, _} <- Projects.add_agent(project, agent_id) do
+      project = Projects.get_project(workspace_id(conn), id)
+      json(conn, %{data: Serializer.project(project)})
+    end
+  end
+
+  def remove_agent(conn, %{"id" => id, "agent_id" => agent_id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "projects.update"),
+         %{} = project <- Projects.get_project(workspace_id(conn), id),
+         :ok <- Projects.remove_agent(project, agent_id) do
+      project = Projects.get_project(workspace_id(conn), id)
+      json(conn, %{data: Serializer.project(project)})
+    end
+  end
+
   def delete(conn, %{"id" => id}) do
     with :ok <- Permissions.authorize(current_member(conn), "projects.delete"),
          %{} = project <- Projects.get_project(workspace_id(conn), id),

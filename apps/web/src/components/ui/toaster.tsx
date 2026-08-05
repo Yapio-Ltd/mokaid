@@ -25,7 +25,6 @@ const toneClasses: Record<ToastTone, string> = {
 export function Toaster() {
   const toasts = useToastStore((s) => s.toasts);
   const dismiss = useToastStore((s) => s.dismiss);
-  const selectTask = useUiStore((s) => s.selectTask);
   const openReview = useReviewQueueStore((s) => s.open);
   const enqueueReview = useReviewQueueStore((s) => s.enqueue);
   const navigate = useNavigate();
@@ -64,8 +63,11 @@ export function Toaster() {
                       }
                       return;
                     }
-                    selectTask(taskId);
-                    navigate({ to: "/tasks" });
+                    // Queue first so AppShell’s route-change cleanup opens (not closes) the panel.
+                    useUiStore.getState().requestOpenTask(taskId);
+                    void navigate({ to: "/tasks" }).then(() => {
+                      useUiStore.getState().consumePendingTask();
+                    });
                   }
                 : undefined
             }

@@ -20,6 +20,10 @@ ENV NODE_OPTIONS=--max-old-space-size=1536
 
 RUN npm run build --workspace=apps/web
 
+# Prerender the public routes to static HTML (SEO: crawlers get real content).
+RUN npx playwright install --with-deps chromium \
+    && npm run prerender --workspace=apps/web
+
 # --- Runtime stage (static file server) ---
 FROM nginx:1.27-alpine AS runtime
 

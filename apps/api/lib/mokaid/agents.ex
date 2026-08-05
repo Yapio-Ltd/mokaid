@@ -92,6 +92,13 @@ defmodule Mokaid.Agents do
           active = active_agent_count(workspace_id)
           limit = Billing.agent_limit(workspace_id)
 
+          # At the limit, an untouched bootstrap placeholder steps aside so
+          # the user's own first employee can take its desk.
+          active =
+            if active >= limit and release_bootstrap_placeholder(workspace_id) == :released,
+              do: active - 1,
+              else: active
+
           if active >= limit do
             Repo.rollback(:agent_limit_reached)
           end
@@ -157,6 +164,64 @@ defmodule Mokaid.Agents do
         {:error, changeset} ->
           {:error, changeset}
       end
+    end
+  end
+
+  @doc """
+  The first AI employee every new workspace ships with (see
+  `Mokaid.Workspaces.create_workspace/3`). Flagged as `bootstrap` in its
+  capabilities so `create_agent/3` can silently replace it with the user's
+  own first custom agent when the plan's agent limit is reached.
+  """
+  def create_bootstrap_agent(workspace_id) do
+    with {:ok, agent} <-
+           create_agent(workspace_id, %{
+             "kind" => "ai",
+             "display_name" => "Moka",
+             "role_title" => "Generalist Assistant",
+             "archetype_key" => "blank"
+           }) do
+      agent
+      |> Agent.internal_changeset(%{
+        "capabilities" => Map.put(agent.capabilities || %{}, "bootstrap", true)
+      })
+      |> Repo.update()
+    end
+  end
+
+  # An untouched bootstrap placeholder (never ran a mission, no task in
+  # flight) is archived to free its quota slot and desk. Returns :released
+  # or :none.
+  defp release_bootstrap_placeholder(workspace_id) do
+    placeholder =
+      Repo.one(
+        from a in Agent,
+          where: a.workspace_id == ^workspace_id and is_nil(a.archived_at),
+          where: fragment("?->>'bootstrap' = 'true'", a.capabilities),
+          where: a.missions_completed == 0 and is_nil(a.current_task_id),
+          limit: 1
+      )
+
+    case placeholder do
+      nil ->
+        :none
+
+      agent ->
+        {:ok, _} =
+          agent
+          |> Ecto.Changeset.change(
+            archived_at: DateTime.utc_now(),
+            status: "archived",
+            seat_index: nil,
+            office_activity: nil,
+            office_poi_id: nil,
+            office_slot_id: nil,
+            office_activity_phase: nil,
+            office_activity_ends_at: nil
+          )
+          |> Repo.update()
+
+        :released
     end
   end
 

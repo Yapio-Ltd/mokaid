@@ -68,7 +68,8 @@ defmodule Mokaid.MCP do
     token via `store_credentials/3` and flips it to connected.
   """
   def install(workspace_id, server_key, member, params \\ %{}) do
-    with %Server{} = server <- get_server_by_key(server_key) do
+    with %Server{} = server <- get_server_by_key(server_key),
+         :ok <- check_integration_limit(workspace_id, server.id) do
       member = member && Repo.preload(member, :user)
       credentials = params["credentials"] || %{}
       settings = Map.take(params, ["server_url"]) |> compact()
@@ -108,7 +109,37 @@ defmodule Mokaid.MCP do
       end
     else
       nil -> {:error, :server_not_found}
+      {:error, reason} -> {:error, reason}
     end
+  end
+
+  # Plan tiering: each plan caps how many distinct MCP servers a workspace may
+  # install (-1 = unlimited). Reconnecting an already-installed server never
+  # counts as a new integration.
+  defp check_integration_limit(workspace_id, server_id) do
+    limit = Mokaid.Billing.mcp_integration_limit(workspace_id)
+
+    cond do
+      limit < 0 ->
+        :ok
+
+      Repo.exists?(
+        from i in Installation,
+          where: i.workspace_id == ^workspace_id and i.server_id == ^server_id
+      ) ->
+        :ok
+
+      installation_count(workspace_id) >= limit ->
+        {:error, :mcp_integration_limit_reached}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp installation_count(workspace_id) do
+    from(i in Installation, where: i.workspace_id == ^workspace_id)
+    |> Repo.aggregate(:count)
   end
 
   @doc "Encrypts and stores credentials, marking the installation connected."

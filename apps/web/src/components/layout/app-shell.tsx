@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Outlet } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Outlet, useRouterState } from "@tanstack/react-router";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { useWorkspaceChannel } from "@/realtime/use-workspace-channel";
@@ -35,15 +35,33 @@ export function AppShell() {
   // (dashboard rows, agent panel, toasts, kanban) via useUiStore.selectTask.
   const selectedTaskId = useUiStore((s) => s.selectedTaskId);
   const selectTask = useUiStore((s) => s.selectTask);
+  const selectAgent = useUiStore((s) => s.selectAgent);
+
+  // Re-trigger the page entrance animation on top-level route changes only
+  // (switching tabs inside a page must not replay the transition).
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const routeKey = pathname.split("/")[1] ?? "";
+
+  // Side panels are shell-global: dismiss them on route change, unless a
+  // toast/notification queued a task to open after landing on /tasks.
+  useEffect(() => {
+    if (!useUiStore.getState().consumePendingTask()) {
+      selectTask(null);
+    }
+    selectAgent(null);
+  }, [pathname, selectTask, selectAgent]);
 
   return (
     <div className="flex h-full overflow-hidden">
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-w-0 flex-1 flex-col">
+        <div className="mk-main-aura" aria-hidden />
         <Topbar />
         <ReviewBanner />
-        <main className="min-h-0 flex-1 overflow-y-auto p-5">
-          <Outlet />
+        <main className="relative min-h-0 flex-1 overflow-y-auto p-5">
+          <div key={routeKey} className="mk-page h-full">
+            <Outlet />
+          </div>
         </main>
       </div>
       <TaskDetailPanel taskId={selectedTaskId} onClose={() => selectTask(null)} overlay />

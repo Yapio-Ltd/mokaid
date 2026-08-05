@@ -172,7 +172,10 @@ export function AgentTrainingPage() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-light">
           Head start training
         </p>
-        <h1 className="mt-2 text-2xl font-bold text-text">
+        <h1
+          className="mt-2 text-2xl font-bold text-text"
+          style={{ textShadow: "0 0 26px rgba(124, 92, 255, 0.35)" }}
+        >
           {agent?.display_name ?? snapshot?.display_name ?? "Your agent"}
         </h1>
         <p className="mt-1 text-sm text-text-muted">{phaseLabel}</p>

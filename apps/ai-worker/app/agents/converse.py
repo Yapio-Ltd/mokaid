@@ -38,6 +38,7 @@ async def converse(payload: dict[str, Any], phoenix: PhoenixClient | None = None
 
     phoenix = phoenix or PhoenixClient()
     conversation = payload.get("conversation") or []
+    usage = llm.UsageTracker()
     thread = "\n".join(
         f"- {entry.get('author', '?')}: {entry.get('body', '')}"
         for entry in conversation[-10:]
@@ -53,11 +54,20 @@ async def converse(payload: dict[str, Any], phoenix: PhoenixClient | None = None
                 f"Task status: {payload.get('task_status') or 'unknown'}\n"
                 f"Thread (most recent last — reply to the last human message):\n{thread}"
             ),
+            usage=usage,
             max_tokens=300,
         )
     except Exception as exc:  # noqa: BLE001 — a missing reply is acceptable
         log.warning("converse_llm_failed", error=str(exc))
         return False
+
+    await phoenix.report_usage(
+        payload["workspace_id"],
+        "converse",
+        usage.cost_cents,
+        token_usage=usage.as_dict(),
+        agent_id=payload.get("agent_id"),
+    )
 
     reply = (reply or "").strip()
     if not reply:

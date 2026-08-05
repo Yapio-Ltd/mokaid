@@ -1,18 +1,13 @@
 defmodule Mokaid.Integrations.LogoAssets do
   @moduledoc """
-  Uploads official full-color brand logos from `priv/integration-logos/`
-  into S3/MinIO under `static/integration-logos/`, and stamps
-  `logo_storage_key` on every catalog row that matches a file.
+  Official full-color brand logos for the MCP Hub and integrations catalog.
 
-  This is the single source of truth for logos across the app: the MCP Hub
-  catalog (`Mokaid.MCP.Server`, 92+ entries) and the legacy workspace
-  integrations list (`Mokaid.Integrations.IntegrationProvider`) both read
-  from the same uploaded assets, keyed by provider/server `key`.
+  Source files live in `priv/integration-logos/` (keyed by server/provider `key`).
+  Optionally uploaded to S3/MinIO under `static/integration-logos/` via
+  `seed_all/0` / `mix mokaid.seed_integration_logos`.
 
-  Source files are committed in the repo (Wikimedia Commons / official brand
-  assets). Every key is matched against `<key>.svg`, `<key>.png`, `<key>.jpg`
-  or `<key>.webp` in that directory — whichever exists is uploaded. Run via
-  seeds or `mix mokaid.seed_integration_logos`.
+  Serving always falls back to the bundled priv files so logos work even when
+  object storage was never seeded (common in production).
   """
 
   alias Mokaid.Integrations.IntegrationProvider
@@ -31,12 +26,60 @@ defmodule Mokaid.Integrations.LogoAssets do
     :ok
   end
 
+  @doc """
+  Loads a catalog logo by server/provider key.
+
+  Prefers the object already in S3/MinIO; falls back to the file bundled in
+  `priv/integration-logos/` so production still serves logos when object
+  storage was never seeded.
+  """
+  def fetch(key) when is_binary(key) do
+    storage_key_candidates = Enum.map(@extensions, &"static/integration-logos/#{key}.#{&1}")
+
+    Enum.find_value(storage_key_candidates, fn storage_key ->
+      case Storage.get_object(storage_key) do
+        {:ok, body, content_type} -> {:ok, body, content_type}
+        _ -> nil
+      end
+    end) || read_bundled(key)
+  end
+
+  def fetch(_), do: :error
+
+  def fetch_for(%{logo_storage_key: sk, key: key}) when is_binary(sk) and sk != "" do
+    case Storage.get_object(sk) do
+      {:ok, body, content_type} -> {:ok, body, content_type}
+      _ -> read_bundled(key)
+    end
+  end
+
+  def fetch_for(%{key: key}), do: read_bundled(key)
+  def fetch_for(_), do: :error
+
+  def bundled?(key) when is_binary(key), do: match?({_, _}, find_file(key))
+  def bundled?(_), do: false
+
   defp seed_one(%{key: key} = record) do
     case find_file(key) do
       nil -> :skipped
       {path, ext} -> upload(record, key, path, ext)
     end
   end
+
+  defp read_bundled(key) when is_binary(key) do
+    case find_file(key) do
+      {path, ext} ->
+        case File.read(path) do
+          {:ok, body} -> {:ok, body, content_type(ext)}
+          _ -> :error
+        end
+
+      nil ->
+        :error
+    end
+  end
+
+  defp read_bundled(_), do: :error
 
   defp find_file(key) do
     Enum.find_value(@extensions, fn ext ->

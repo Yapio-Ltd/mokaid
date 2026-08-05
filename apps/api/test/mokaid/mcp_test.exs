@@ -1,12 +1,17 @@
 defmodule Mokaid.MCPTest do
   use Mokaid.DataCase, async: true
 
-  alias Mokaid.{Agents, Fixtures, MCP}
+  alias Mokaid.{Agents, Billing, Fixtures, MCP}
 
   setup do
     MCP.seed_catalog()
+    Billing.seed_plans()
     {workspace, owner} = Fixtures.workspace_fixture()
     member = Fixtures.owner_member(workspace, owner)
+
+    # Professional: unlimited MCP integrations — the limit itself is covered
+    # by the "plan limit gates installs" tests below.
+    {:ok, _} = Billing.change_plan(workspace.id, "professional")
 
     {:ok, agent} =
       Agents.create_agent(
@@ -61,6 +66,40 @@ defmodule Mokaid.MCPTest do
 
   test "install unknown server fails", %{workspace: workspace, member: member} do
     assert {:error, :server_not_found} = MCP.install(workspace.id, "does-not-exist", member)
+  end
+
+  test "free plan cannot install any MCP server", %{member: member} do
+    {workspace, _} = Fixtures.workspace_fixture()
+
+    assert {:error, :mcp_integration_limit_reached} =
+             MCP.install(workspace.id, "notion", member, %{
+               "credentials" => %{"api_key" => "k"}
+             })
+  end
+
+  test "plan limit gates installs but reconnecting an installed server stays allowed", %{
+    member: member
+  } do
+    {workspace, _} = Fixtures.workspace_fixture()
+    {:ok, _} = Billing.change_plan(workspace.id, "starter")
+    limit = Billing.mcp_integration_limit(workspace.id)
+    assert limit == 3
+
+    servers = ["notion", "linear", "github"]
+
+    for key <- servers do
+      assert {:ok, _} =
+               MCP.install(workspace.id, key, member, %{"credentials" => %{"api_key" => "k"}})
+    end
+
+    assert {:error, :mcp_integration_limit_reached} =
+             MCP.install(workspace.id, "figma", member)
+
+    # Reconnecting one of the three does not consume a new slot.
+    assert {:ok, _} =
+             MCP.install(workspace.id, "notion", member, %{
+               "credentials" => %{"api_key" => "rotated"}
+             })
   end
 
   test "agent grants gate authorized_servers_for_agent", %{

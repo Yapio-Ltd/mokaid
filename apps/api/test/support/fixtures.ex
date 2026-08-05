@@ -16,6 +16,9 @@ defmodule Mokaid.Fixtures do
     user
   end
 
+  # Bare workspace (no bootstrap agent/subscription) so tests control their
+  # own agent counts and billing state. Use `bootstrapped_workspace_fixture`
+  # to exercise the production signup path.
   def workspace_fixture(owner \\ nil) do
     owner = owner || user_fixture()
 
@@ -24,6 +27,22 @@ defmodule Mokaid.Fixtures do
         %{
           "name" => "Test Workspace",
           "slug" => "test-#{System.unique_integer([:positive])}"
+        },
+        owner,
+        bootstrap: false
+      )
+
+    {workspace, owner}
+  end
+
+  def bootstrapped_workspace_fixture(owner \\ nil) do
+    owner = owner || user_fixture()
+
+    {:ok, workspace} =
+      Workspaces.create_workspace(
+        %{
+          "name" => "Bootstrapped Workspace",
+          "slug" => "boot-#{System.unique_integer([:positive])}"
         },
         owner
       )

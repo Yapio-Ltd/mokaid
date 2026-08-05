@@ -119,14 +119,83 @@ defmodule Mokaid.Projects do
     end)
   end
 
+  @doc """
+  Assigns an agent to a project. The agent must belong to the same workspace
+  and not be archived. Idempotent — re-adding an assigned agent is a no-op.
+  """
   def add_agent(%Project{} = project, agent_id) do
-    %ProjectAgent{}
-    |> ProjectAgent.changeset(%{
-      "workspace_id" => project.workspace_id,
-      "project_id" => project.id,
-      "agent_id" => agent_id
+    case fetch_assignable_agent(project.workspace_id, agent_id) do
+      nil ->
+        {:error, :agent_not_found}
+
+      _agent ->
+        already_assigned? =
+          Repo.exists?(
+            from pa in ProjectAgent,
+              where: pa.project_id == ^project.id and pa.agent_id == ^agent_id
+          )
+
+        result =
+          %ProjectAgent{}
+          |> ProjectAgent.changeset(%{
+            "workspace_id" => project.workspace_id,
+            "project_id" => project.id,
+            "agent_id" => agent_id
+          })
+          |> Repo.insert(on_conflict: :nothing)
+
+        with {:ok, _} <- result do
+          unless already_assigned? do
+            Realtime.broadcast_workspace(project.workspace_id, "project.updated", %{
+              project_id: project.id
+            })
+          end
+
+          result
+        end
+    end
+  end
+
+  @doc """
+  Convenience for task flows: links an agent to a project by ids without
+  loading the project's heavy preloads. No-op when the project is missing.
+  """
+  def link_agent(workspace_id, project_id, agent_id)
+      when is_binary(project_id) and is_binary(agent_id) do
+    case Repo.one(
+           from p in Project,
+             where: p.workspace_id == ^workspace_id and p.id == ^project_id
+         ) do
+      nil -> {:error, :project_not_found}
+      project -> add_agent(project, agent_id)
+    end
+  end
+
+  def link_agent(_workspace_id, _project_id, _agent_id), do: :ok
+
+  @doc "Removes an agent from a project. Succeeds even if not assigned."
+  def remove_agent(%Project{} = project, agent_id) do
+    Repo.delete_all(
+      from pa in ProjectAgent,
+        where: pa.project_id == ^project.id and pa.agent_id == ^agent_id
+    )
+
+    Realtime.broadcast_workspace(project.workspace_id, "project.updated", %{
+      project_id: project.id
     })
-    |> Repo.insert(on_conflict: :nothing)
+
+    :ok
+  end
+
+  defp fetch_assignable_agent(workspace_id, agent_id) do
+    with {:ok, _} <- Ecto.UUID.cast(agent_id) do
+      Repo.one(
+        from a in Mokaid.Agents.Agent,
+          where: a.workspace_id == ^workspace_id and a.id == ^agent_id and is_nil(a.archived_at)
+      )
+    else
+      _ -> nil
+    end
   end
 
   def add_member(%Project{} = project, member_id, role \\ "contributor") do

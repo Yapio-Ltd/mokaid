@@ -3,8 +3,10 @@ defmodule Mokaid.Billing.Credits do
   AI credits — the metered currency users spend (ElevenLabs-style).
 
   Conversion: real LLM cost (`cost_cents`) → credits via a fixed margin
-  multiplier. At 10x, 1 cent of real cost bills as 1 credit; a 1000-credit
-  pack sells for $19, so 1 credit ≈ $0.019 sold vs $0.001 cost — ~90% margin.
+  multiplier. At 10 credits per cent, 1 cent of real cost bills as 10
+  credits; a 1000-credit pack sells for $19 and covers $1 of real cost, so
+  1 credit ≈ $0.019 sold vs $0.001 cost — ~95% gross margin on packs and
+  87–90% on plan grants at full utilization.
 
   Balance model:
   - `included_credits_remaining` — the plan's monthly grant, reset each period.
@@ -21,10 +23,10 @@ defmodule Mokaid.Billing.Credits do
   alias Mokaid.Realtime
   alias Mokaid.Repo
 
-  # Credits billed per cent of real LLM cost. 10 credits ≈ $0.19 sold for
-  # ~$0.10 cost tier — but since cost_cents is already the real cost in cents,
-  # ratio 1.0 means 1 credit per cent (10x margin on the $19/1000 pack).
-  @credits_per_cent 1.0
+  # Credits billed per cent of real LLM cost. At 10.0, one cent of real cost
+  # bills as 10 credits — so the $19/1000 pack covers $1 of real cost (~95%
+  # margin) and the plan grants stay profitable at full utilization.
+  @credits_per_cent 10.0
 
   # Minimum credits charged for any billable run, so trivial runs still meter.
   @min_run_credits 1
@@ -67,9 +69,12 @@ defmodule Mokaid.Billing.Credits do
   grant first, then the purchased balance (which may go negative). Returns the
   number of credits charged.
   """
-  def charge_run(workspace_id, run_id, agent_id, cost_cents) do
+  def charge_run(workspace_id, run_id, agent_id, cost_cents, opts \\ []) do
     credits = cost_cents_to_credits(cost_cents)
-    if credits <= 0, do: :ok, else: do_charge(workspace_id, run_id, agent_id, credits, cost_cents)
+
+    if credits <= 0,
+      do: :ok,
+      else: do_charge(workspace_id, run_id, agent_id, credits, cost_cents, opts)
   end
 
   @doc """
@@ -133,7 +138,9 @@ defmodule Mokaid.Billing.Credits do
     end
   end
 
-  defp do_charge(workspace_id, run_id, agent_id, credits, cost_cents) do
+  defp do_charge(workspace_id, run_id, agent_id, credits, cost_cents, opts) do
+    description = Keyword.get(opts, :description)
+
     case get_subscription(workspace_id) do
       nil ->
         {:ok, 0}
@@ -144,6 +151,7 @@ defmodule Mokaid.Billing.Credits do
           run_id: run_id,
           agent_id: agent_id,
           cost_cents: cost_cents,
+          description: description,
           metered_only: true
         )
 
@@ -166,7 +174,8 @@ defmodule Mokaid.Billing.Credits do
         record(workspace_id, "spend", -credits, updated,
           run_id: run_id,
           agent_id: agent_id,
-          cost_cents: cost_cents
+          cost_cents: cost_cents,
+          description: description
         )
 
         broadcast(workspace_id, updated)

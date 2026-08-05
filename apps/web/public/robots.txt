@@ -1,0 +1,24 @@
+# mokaid.com
+User-agent: *
+Allow: /
+
+# AI crawlers are welcome (GEO: ChatGPT, Perplexity, Claude, Gemini)
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://mokaid.com/sitemap.xml

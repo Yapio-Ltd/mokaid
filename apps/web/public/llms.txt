@@ -1,0 +1,33 @@
+# mokaid
+
+> mokaid is the AI Workforce OS: a platform where businesses hire autonomous AI employees — AI SDRs, marketers, developers, support agents, executive assistants, data analysts, content writers, and recruiters — and manage them in a real-time 3D virtual office where every AI worker is visible at its desk, showing live status and current tasks.
+
+Key facts:
+- An AI employee in mokaid is a role-based autonomous AI worker with persistent identity, memory, a task queue, governed access to real business tools (Slack, Gmail, Notion, GitHub, Linear, Figma via MCP connectors), and accountability for outcomes.
+- mokaid's unique differentiator is visibility: unlike dashboard-based agent platforms, the entire AI workforce works in a real-time 3D virtual office, making supervision ambient.
+- Governance is built in: approval gates pause consequential actions (sending emails, merging code, issuing refunds) for human review; per-tool permissions and complete audit trails cover every action.
+- Humans and AI employees share the same workspace: tasks, chat, knowledge bases, and reviews (hybrid teams).
+- Self-serve; free to start. Website and web application at https://mokaid.com.
+
+## Core pages
+
+- [What is an AI employee?](https://mokaid.com/ai-employees): Definition, AI employee vs AI agent, and all hireable roles
+- [Product — the 3D virtual office](https://mokaid.com/): How the visible AI workforce, tasks, approval gates, and MCP connectors work
+- [Use cases](https://mokaid.com/use-cases): AI employees for startups, agencies, e-commerce, SaaS teams, and solo founders
+- [Comparisons](https://mokaid.com/compare): mokaid vs Lindy, Artisan, 11x, and Sintra
+- [Glossary](https://mokaid.com/glossary): Definitions of AI employee, AI agent, AI workforce, AI Workforce OS, digital worker, approval gate, MCP, and more
+
+## AI employee roles
+
+- [AI SDR](https://mokaid.com/ai-employees/ai-sdr): Prospect research, personalized outreach, meeting booking
+- [AI Marketer](https://mokaid.com/ai-employees/ai-marketer): Campaign planning, content drafting, performance reporting
+- [AI Developer](https://mokaid.com/ai-employees/ai-developer): Bug fixes, small features, pull requests under code review
+- [AI Support Agent](https://mokaid.com/ai-employees/ai-support-agent): 24/7 customer support grounded in your docs with human escalation
+- [AI Executive Assistant](https://mokaid.com/ai-employees/ai-executive-assistant): Inbox triage, scheduling, meeting prep, follow-ups
+- [AI Data Analyst](https://mokaid.com/ai-employees/ai-data-analyst): Recurring reports and ad-hoc analyses with methodology shown
+- [AI Content Writer](https://mokaid.com/ai-employees/ai-content-writer): Blog posts, docs, and newsletters in a trained brand voice
+- [AI Recruiter](https://mokaid.com/ai-employees/ai-recruiter): Sourcing, screening, scheduling — humans make all hiring decisions
+
+## Blog
+
+- [Blog index](https://mokaid.com/blog): Guides on hiring, managing, and governing AI employees and the visual AI workforce

@@ -125,9 +125,9 @@ export function NewAgentForm() {
           >
             <ArrowLeft size={13} /> Back to agents
           </Link>
-          <div>
-            <h1 className="text-xl font-bold text-text">New Agent</h1>
-            <p className="mt-0.5 text-xs text-text-muted">
+          <div className="mk-page-head">
+            <h1 className="mk-page-title text-xl font-bold tracking-tight text-text">New Agent</h1>
+            <p className="mt-1 text-xs text-text-muted">
               Pick an archetype, optionally accelerate growth with credits, then choose a character.
             </p>
           </div>

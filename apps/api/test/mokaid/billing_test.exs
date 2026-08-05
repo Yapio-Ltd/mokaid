@@ -10,12 +10,87 @@ defmodule Mokaid.BillingTest do
     :ok
   end
 
-  test "catalog only exposes free, starter and professional" do
+  test "catalog exposes free, starter, team and professional" do
     keys = Billing.list_plans() |> Enum.map(& &1.key) |> Enum.sort()
-    assert keys == ["free", "professional", "starter"]
+    assert keys == ["free", "professional", "starter", "team"]
 
     pro = Billing.get_plan_by_key("professional")
     assert pro.limits["agents"] == 9
+
+    team = Billing.get_plan_by_key("team")
+    assert team.limits["agents"] == 6
+    assert team.limits["credits_monthly"] == 10_000
+    assert team.limits["knowledge_graph"] == "workspace"
+    assert team.price_cents_monthly == 8_900
+    # Ladder stays strictly increasing between Starter and Professional.
+    starter = Billing.get_plan_by_key("starter")
+    assert starter.price_cents_monthly < team.price_cents_monthly
+    assert team.price_cents_monthly < pro.price_cents_monthly
+  end
+
+  test "yearly subscriptions get their monthly grant refreshed mid-period" do
+    {workspace, _} = workspace_fixture()
+    assert {:ok, sub} = Billing.change_plan(workspace.id, "starter", "yearly")
+
+    # Burn part of the grant, then age the credits period past 30 days while
+    # the yearly billing period is still running.
+    assert {:ok, 500} = Credits.charge_run(workspace.id, nil, nil, 50)
+
+    stale = DateTime.add(DateTime.utc_now(), -31, :day)
+
+    {1, _} =
+      Mokaid.Repo.update_all(
+        Ecto.Query.from(s in Mokaid.Billing.Subscription, where: s.id == ^sub.id),
+        set: [credits_period_start: stale]
+      )
+
+    due = Billing.list_subscriptions_due_for_credit_refresh()
+    assert Enum.any?(due, &(&1.id == sub.id))
+
+    assert :ok = Mokaid.Billing.Workers.MonthlyCreditsWorker.perform(%Oban.Job{args: %{}})
+
+    assert Credits.summary(workspace.id).included_remaining == 5_000
+    # Refreshed subscriptions are no longer due.
+    refute Enum.any?(Billing.list_subscriptions_due_for_credit_refresh(), &(&1.id == sub.id))
+  end
+
+  test "monthly subscriptions are never picked up by the credit refresh" do
+    {workspace, _} = workspace_fixture()
+    assert {:ok, sub} = Billing.change_plan(workspace.id, "starter", "monthly")
+
+    stale = DateTime.add(DateTime.utc_now(), -31, :day)
+
+    {1, _} =
+      Mokaid.Repo.update_all(
+        Ecto.Query.from(s in Mokaid.Billing.Subscription, where: s.id == ^sub.id),
+        set: [credits_period_start: stale]
+      )
+
+    refute Enum.any?(Billing.list_subscriptions_due_for_credit_refresh(), &(&1.id == sub.id))
+  end
+
+  test "cost_cents_to_credits bills 10 credits per cent of real cost" do
+    assert Credits.cost_cents_to_credits(1) == 10
+    assert Credits.cost_cents_to_credits(37) == 370
+    # Trivial runs still meter at least 1 credit; zero/invalid cost bills nothing.
+    assert Credits.cost_cents_to_credits(0) == 0
+    assert Credits.cost_cents_to_credits(nil) == 0
+  end
+
+  test "charge_run draws from the monthly grant and records a described spend" do
+    {workspace, _} = workspace_fixture()
+    assert {:ok, _} = Billing.change_plan(workspace.id, "starter")
+
+    # 12 cents of real LLM cost → 120 credits at the 10x rate.
+    assert {:ok, 120} =
+             Credits.charge_run(workspace.id, nil, nil, 12, description: "Direct chat reply")
+
+    assert Credits.summary(workspace.id).included_remaining == 4_880
+
+    [txn | _] = Credits.recent_transactions(workspace.id)
+    assert txn.kind == "spend"
+    assert txn.amount == -120
+    assert txn.description == "Direct chat reply"
   end
 
   test "agent_limit defaults to free without a subscription" do

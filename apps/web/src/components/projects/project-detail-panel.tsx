@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Trash2 } from "lucide-react";
+import { AlertTriangle, Plus, Trash2, X } from "lucide-react";
 import type { Project } from "@/api/types";
-import { useDeleteProject, useUpdateProject } from "@/api/hooks";
+import {
+  useAddProjectAgent,
+  useAgents,
+  useDeleteProject,
+  useRemoveProjectAgent,
+  useUpdateProject,
+} from "@/api/hooks";
+import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DetailPanel } from "@/components/ui/detail-panel";
@@ -63,6 +70,9 @@ export function ProjectDetailPanel({
 }) {
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
+  const addProjectAgent = useAddProjectAgent();
+  const removeProjectAgent = useRemoveProjectAgent();
+  const { data: agentsData } = useAgents();
   const workspaceId = useAuthStore((s) => s.workspaceId);
   const setActiveProject = useProjectStore((s) => s.setActiveProject);
 
@@ -72,6 +82,7 @@ export function ProjectDetailPanel({
   const [priority, setPriority] = useState("medium");
   const [dueAt, setDueAt] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [agentToAdd, setAgentToAdd] = useState("");
 
   useEffect(() => {
     if (!project) return;
@@ -81,7 +92,49 @@ export function ProjectDetailPanel({
     setPriority(project.priority);
     setDueAt(toDateInput(project.due_at));
     setDeleteConfirm("");
+    setAgentToAdd("");
   }, [project?.id, project?.name, project?.description, project?.status, project?.priority, project?.due_at]);
+
+  const allAgents = agentsData?.data ?? [];
+  const assignedAgents = useMemo(
+    () => allAgents.filter((a) => project?.agent_ids.includes(a.id)),
+    [allAgents, project?.agent_ids],
+  );
+  const availableAgents = useMemo(
+    () => allAgents.filter((a) => !project?.agent_ids.includes(a.id)),
+    [allAgents, project?.agent_ids],
+  );
+
+  const handleAddAgent = () => {
+    if (!project || !agentToAdd) return;
+    addProjectAgent.mutate(
+      { projectId: project.id, agentId: agentToAdd },
+      {
+        onSuccess: () => setAgentToAdd(""),
+        onError: () =>
+          toast({
+            tone: "error",
+            title: "Could not add agent",
+            description: "Check your permissions and try again.",
+          }),
+      },
+    );
+  };
+
+  const handleRemoveAgent = (agentId: string) => {
+    if (!project) return;
+    removeProjectAgent.mutate(
+      { projectId: project.id, agentId },
+      {
+        onError: () =>
+          toast({
+            tone: "error",
+            title: "Could not remove agent",
+            description: "Check your permissions and try again.",
+          }),
+      },
+    );
+  };
 
   const expectedDeletePhrase = project ? `delete ${project.name}` : "";
   const canDelete = useMemo(
@@ -285,6 +338,67 @@ export function ProjectDetailPanel({
               <span className="text-text-muted">Due</span>
               <span className="tabular-nums text-text">{formatDate(project.due_at)}</span>
             </div>
+          </div>
+
+          <div>
+            <p className="mb-2.5 text-[10px] font-medium uppercase tracking-wider text-text-muted">
+              Agents
+            </p>
+            {assignedAgents.length > 0 ? (
+              <div className="mb-3 space-y-2">
+                {assignedAgents.map((agent) => (
+                  <div key={agent.id} className="flex items-center gap-2.5">
+                    <AgentAvatar agent={agent} size="sm" showBadge={false} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs text-text">{agent.display_name}</p>
+                      <p className="truncate text-[10px] text-text-muted">
+                        {agent.role_title ?? "Agent"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAgent(agent.id)}
+                      disabled={removeProjectAgent.isPending}
+                      className="rounded p-1 text-text-muted transition-colors hover:bg-surface-raised hover:text-danger"
+                      aria-label={`Remove ${agent.display_name} from project`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mb-3 text-[11px] text-text-muted">
+                No agents assigned yet. Agents join automatically when a project task is
+                assigned to them.
+              </p>
+            )}
+            {availableAgents.length > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <Select
+                    value={agentToAdd || undefined}
+                    onValueChange={setAgentToAdd}
+                    placeholder="Add an agent…"
+                    options={availableAgents.map((a) => ({
+                      value: a.id,
+                      label: a.display_name,
+                    }))}
+                    disabled={addProjectAgent.isPending}
+                  />
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={!agentToAdd || addProjectAgent.isPending}
+                  loading={addProjectAgent.isPending}
+                  onClick={handleAddAgent}
+                >
+                  <Plus size={13} />
+                  Add
+                </Button>
+              </div>
+            )}
           </div>
 
           {project.members.length > 0 && (

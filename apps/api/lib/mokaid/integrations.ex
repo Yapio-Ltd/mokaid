@@ -83,7 +83,10 @@ defmodule Mokaid.Integrations do
          {:ok, _} <- MCP.store_credentials(installation, mcp_credentials, account) do
       {:ok, :synced}
     else
+      # Mirroring into the MCP Hub is best-effort: a missing catalog entry or
+      # a plan without MCP slots must not break the base OAuth connection.
       {:error, :server_not_found} -> {:ok, :synced}
+      {:error, :mcp_integration_limit_reached} -> {:ok, :synced}
       other -> other
     end
   end
@@ -118,7 +121,10 @@ defmodule Mokaid.Integrations do
          {:ok, _} <- MCP.store_credentials(installation, mcp_credentials, account) do
       {:ok, :synced}
     else
+      # Mirroring into the MCP Hub is best-effort: a missing catalog entry or
+      # a plan without MCP slots must not break the base OAuth connection.
       {:error, :server_not_found} -> {:ok, :synced}
+      {:error, :mcp_integration_limit_reached} -> {:ok, :synced}
       other -> other
     end
   end
@@ -153,7 +159,10 @@ defmodule Mokaid.Integrations do
          {:ok, _} <- MCP.store_credentials(installation, mcp_credentials, account) do
       {:ok, :synced}
     else
+      # Mirroring into the MCP Hub is best-effort: a missing catalog entry or
+      # a plan without MCP slots must not break the base OAuth connection.
       {:error, :server_not_found} -> {:ok, :synced}
+      {:error, :mcp_integration_limit_reached} -> {:ok, :synced}
       other -> other
     end
   end
@@ -187,7 +196,10 @@ defmodule Mokaid.Integrations do
          {:ok, _} <- MCP.store_credentials(installation, mcp_credentials, account) do
       {:ok, :synced}
     else
+      # Mirroring into the MCP Hub is best-effort: a missing catalog entry or
+      # a plan without MCP slots must not break the base OAuth connection.
       {:error, :server_not_found} -> {:ok, :synced}
+      {:error, :mcp_integration_limit_reached} -> {:ok, :synced}
       other -> other
     end
   end

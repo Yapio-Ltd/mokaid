@@ -94,6 +94,7 @@ defmodule Mokaid.Tasks do
 
     with {:ok, task} <- result do
       record_activity(task, created_by, "task.created")
+      maybe_link_agent_to_project(task)
       task = Repo.preload(task, @preloads)
       agent = loaded_assoc(task.assigned_agent)
 
@@ -115,6 +116,7 @@ defmodule Mokaid.Tasks do
   def update_task(%Task{} = task, attrs, actor \\ nil) do
     old_status = task.status
     old_agent_id = task.assigned_agent_id
+    old_project_id = task.project_id
 
     result =
       task
@@ -154,11 +156,25 @@ defmodule Mokaid.Tasks do
           })
       end
 
+      if updated.assigned_agent_id != old_agent_id or updated.project_id != old_project_id do
+        maybe_link_agent_to_project(updated)
+      end
+
       sync_ai_with_pipeline(updated, old_status, old_agent_id)
 
       {:ok, Repo.preload(updated, @preloads, force: true)}
     end
   end
+
+  # Assigning an agent to a task inside a project makes it part of the
+  # project's team. Idempotent; missing project or agent is a silent no-op.
+  defp maybe_link_agent_to_project(%Task{project_id: project_id, assigned_agent_id: agent_id} = task)
+       when is_binary(project_id) and is_binary(agent_id) do
+    Mokaid.Projects.link_agent(task.workspace_id, project_id, agent_id)
+    :ok
+  end
+
+  defp maybe_link_agent_to_project(_task), do: :ok
 
   # The pipeline drives the agents: moving a task changes what its agent is
   # actually doing. Reassigning stops the previous agent; dragging out of
@@ -219,6 +235,7 @@ defmodule Mokaid.Tasks do
            |> Ecto.Changeset.change(assigned_agent_id: agent.id)
            |> Repo.update() do
       record_activity(updated, actor, "task.assigned", %{agent_id: agent.id})
+      maybe_link_agent_to_project(updated)
 
       Realtime.broadcast_workspace(task.workspace_id, "task.assigned", %{
         task_id: task.id,

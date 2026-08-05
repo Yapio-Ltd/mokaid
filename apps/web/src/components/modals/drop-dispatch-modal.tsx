@@ -135,7 +135,6 @@ export function DropDispatchModal({
   const workspaceId = useAuthStore((s) => s.workspaceId);
   const activeProjectId = useActiveProjectId(workspaceId);
   const setActiveProject = useProjectStore((s) => s.setActiveProject);
-  const selectTask = useUiStore((s) => s.selectTask);
 
   const [step, setStep] = useState<Step>("describe");
   const [instruction, setInstruction] = useState("");
@@ -656,9 +655,11 @@ export function DropDispatchModal({
               if (workspaceId && result.projectId !== activeProjectId) {
                 setActiveProject(workspaceId, result.projectId);
               }
-              selectTask(result.taskId);
+              useUiStore.getState().requestOpenTask(result.taskId);
               onOpenChange(false);
-              navigate({ to: "/tasks" });
+              void navigate({ to: "/tasks" }).then(() => {
+                useUiStore.getState().consumePendingTask();
+              });
             }}
           >
             View task

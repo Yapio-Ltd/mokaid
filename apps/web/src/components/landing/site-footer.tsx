@@ -1,14 +1,20 @@
 import {
+  BadgeDollarSign,
   Blocks,
+  BookOpen,
+  BookText,
   Bot,
   Building2,
   Cookie,
+  GitCompare,
   Handshake,
+  Lightbulb,
   LogIn,
   Rocket,
   RotateCcw,
   Scale,
   Sparkles,
+  Users,
   Webhook,
 } from "lucide-react";
 import { Footer } from "@/components/ui/footer";
@@ -66,6 +72,41 @@ export function SiteFooter() {
                 name: "Why mokaid",
                 Icon: Sparkles,
                 href: "#why",
+              },
+              {
+                name: "Pricing",
+                Icon: BadgeDollarSign,
+                href: "/pricing",
+              },
+            ],
+          },
+          {
+            title: "Resources",
+            links: [
+              {
+                name: "AI Employees",
+                Icon: Users,
+                href: "/ai-employees",
+              },
+              {
+                name: "Use Cases",
+                Icon: Lightbulb,
+                href: "/use-cases",
+              },
+              {
+                name: "Compare",
+                Icon: GitCompare,
+                href: "/compare",
+              },
+              {
+                name: "Blog",
+                Icon: BookOpen,
+                href: "/blog",
+              },
+              {
+                name: "Glossary",
+                Icon: BookText,
+                href: "/glossary",
               },
             ],
           },
