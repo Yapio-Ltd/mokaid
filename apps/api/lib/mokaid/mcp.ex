@@ -29,9 +29,14 @@ defmodule Mokaid.MCP do
   def list_servers do
     case load_enabled_servers() do
       [] ->
-        # Self-heal empty prod DBs (migrate without seed, or fresh restore).
-        seed_catalog()
-        load_enabled_servers()
+        if Application.get_env(:mokaid, :auto_seed_mcp_catalog, true) do
+          # Prod/release: fill mcp_servers if migrate ran without catalog seed.
+          # Disabled in test.exs — concurrent Sandbox tests deadlock on bulk seed.
+          seed_catalog()
+          load_enabled_servers()
+        else
+          []
+        end
 
       servers ->
         servers

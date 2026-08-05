@@ -37,6 +37,10 @@ config :mokaid, :ai_worker, dispatch: :none, url: nil, token: "test-token"
 
 config :mokaid, :cors_origins, ["http://localhost:5173"]
 
+# Avoid bulk mcp_servers seed inside list_servers/0 — concurrent Sandbox tests
+# deadlock when multiple suites re-insert 90+ catalog rows at once.
+config :mokaid, :auto_seed_mcp_catalog, false
+
 config :bcrypt_elixir, :log_rounds, 1
 
 config :logger, level: :warning
