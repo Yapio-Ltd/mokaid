@@ -168,7 +168,9 @@ defmodule Mokaid.Tasks do
 
   # Assigning an agent to a task inside a project makes it part of the
   # project's team. Idempotent; missing project or agent is a silent no-op.
-  defp maybe_link_agent_to_project(%Task{project_id: project_id, assigned_agent_id: agent_id} = task)
+  defp maybe_link_agent_to_project(
+         %Task{project_id: project_id, assigned_agent_id: agent_id} = task
+       )
        when is_binary(project_id) and is_binary(agent_id) do
     Mokaid.Projects.link_agent(task.workspace_id, project_id, agent_id)
     :ok

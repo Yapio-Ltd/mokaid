@@ -121,7 +121,10 @@ defmodule MokaidWeb.AgentController do
       |> put_status(:created)
       |> json(%{
         data: Serializer.agent(clone),
-        meta: %{knowledge_copy: "queued", credits_charged: Mokaid.Agents.Transfer.transfer_credits()}
+        meta: %{
+          knowledge_copy: "queued",
+          credits_charged: Mokaid.Agents.Transfer.transfer_credits()
+        }
       })
     end
   end

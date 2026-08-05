@@ -86,8 +86,7 @@ defmodule Mokaid.Agents.Transfer do
   defp fetch_member(workspace_id, %{id: user_id}, side) do
     case Members.get_member_for_user(workspace_id, user_id) do
       nil ->
-        {:error,
-         if(side == :target, do: :not_a_member_of_target_workspace, else: :forbidden)}
+        {:error, if(side == :target, do: :not_a_member_of_target_workspace, else: :forbidden)}
 
       member ->
         {:ok, member}
@@ -117,7 +116,9 @@ defmodule Mokaid.Agents.Transfer do
 
         clone =
           case %Agent{}
-               |> Agent.internal_changeset(clone_attrs(agent, target_workspace_id, target_member, seat))
+               |> Agent.internal_changeset(
+                 clone_attrs(agent, target_workspace_id, target_member, seat)
+               )
                |> Repo.insert() do
             {:ok, clone} -> clone
             {:error, changeset} -> Repo.rollback(changeset)
@@ -297,7 +298,12 @@ defmodule Mokaid.Agents.Transfer do
     end
   end
 
-  defp insert_item_copy(%KnowledgeItem{} = item, target_workspace_id, target_agent_id, category_id) do
+  defp insert_item_copy(
+         %KnowledgeItem{} = item,
+         target_workspace_id,
+         target_agent_id,
+         category_id
+       ) do
     metadata = Map.put(item.metadata || %{}, "transferred_from_item_id", item.id)
 
     %KnowledgeItem{}

@@ -520,9 +520,9 @@
     "semantic_hash": "7d5c573807122069598339c721748ca3"
   },
   "apps/api/lib/mokaid/integrations/logo_assets.ex": {
-    "mtime": 1783458667.0743358,
-    "ast_hash": "5fb37f6ca49f7e841b14088e68c87321",
-    "semantic_hash": "5fb37f6ca49f7e841b14088e68c87321"
+    "mtime": 1785925002.323946,
+    "ast_hash": "c83773b4e41e1c44de9030c7c112f354",
+    "semantic_hash": ""
   },
   "apps/api/lib/mokaid/integrations/notion_oauth.ex": {
     "mtime": 1783376896.6267586,
@@ -850,9 +850,9 @@
     "semantic_hash": "4b515b4873e7fe2d27e57d8884d23275"
   },
   "apps/api/lib/mokaid_web/controllers/integration_controller.ex": {
-    "mtime": 1783376896.6286545,
-    "ast_hash": "183c008bb4e3666dee317028e622a8c5",
-    "semantic_hash": "183c008bb4e3666dee317028e622a8c5"
+    "mtime": 1785924977.036041,
+    "ast_hash": "011556d4ef2176ce5adfc2a472dd9ac1",
+    "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex": {
     "mtime": 1783357343.4198565,
@@ -870,9 +870,9 @@
     "semantic_hash": "27aa546bd0848c5199e3d6364e9d303a"
   },
   "apps/api/lib/mokaid_web/controllers/mcp_controller.ex": {
-    "mtime": 1783458620.9504364,
-    "ast_hash": "86e1f73687b8f9233f34f437e346bb0f",
-    "semantic_hash": "86e1f73687b8f9233f34f437e346bb0f"
+    "mtime": 1785924973.0037026,
+    "ast_hash": "e7076925be7342c19f23ccdefea81786",
+    "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/controllers/mcp_oauth_controller.ex": {
     "mtime": 1783249022.3658752,
@@ -930,8 +930,8 @@
     "semantic_hash": "a0a255004966023e3af867c841e38e96"
   },
   "apps/api/lib/mokaid_web/json.ex": {
-    "mtime": 1785853822.7541704,
-    "ast_hash": "4deab1fca133f63b7d5460d78c19536f",
+    "mtime": 1785924978.7191858,
+    "ast_hash": "0be6a5b3a021dba7f4491515cee4bd50",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/plugs/authenticate.ex": {
@@ -1315,14 +1315,14 @@
     "semantic_hash": "9d7d0d07dc9635d7d108c61f2a7f260e"
   },
   "apps/web/src/components/mcp/agent-mcp-matrix.tsx": {
-    "mtime": 1783458867.7939076,
-    "ast_hash": "c33aad59d94e330a5d1cd705db95b50c",
-    "semantic_hash": "c33aad59d94e330a5d1cd705db95b50c"
+    "mtime": 1785924966.1980114,
+    "ast_hash": "ed33a87dd6ea2efafb7d3882e82854cc",
+    "semantic_hash": ""
   },
   "apps/web/src/components/mcp/mcp-logo.tsx": {
-    "mtime": 1783461514.1165946,
-    "ast_hash": "325663bc734203ec3f7284f5cbfa75cd",
-    "semantic_hash": "325663bc734203ec3f7284f5cbfa75cd"
+    "mtime": 1785925034.7094457,
+    "ast_hash": "3d51a0aa4e582c28ddb3c07463c4b08d",
+    "semantic_hash": ""
   },
   "apps/web/src/components/members/member-detail-panel.tsx": {
     "mtime": 1784028298.4694839,
@@ -1620,8 +1620,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/pages/mcp-hub.tsx": {
-    "mtime": 1785924418.6781607,
-    "ast_hash": "24ab489303806228717acc8857908503",
+    "mtime": 1785924956.5905814,
+    "ast_hash": "5b344cf9c295c2a4b9a94208c1da7a66",
     "semantic_hash": ""
   },
   "apps/web/src/pages/members.tsx": {
@@ -13887,6 +13887,61 @@
   "apps/web/src/pages/seo/pricing.tsx": {
     "mtime": 1785924714.0184276,
     "ast_hash": "e038fe24037607d5d466337a88ef5c4b",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/mcp/browserbase.svg": {
+    "mtime": 1783459723.1806571,
+    "ast_hash": "903a3978210a0dd1255eb8bb631b329e",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/mcp/exa.svg": {
+    "mtime": 1783459568.8848896,
+    "ast_hash": "9727dbd3587f8b94420a42059af3837a",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/mcp/firecrawl.svg": {
+    "mtime": 1783459531.4304743,
+    "ast_hash": "d1dd7eaa1559282708919d22bc008285",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/mcp/groq.svg": {
+    "mtime": 1783462254.0196943,
+    "ast_hash": "71b8bbccf5a96d7cde1f07ebe90d077e",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/mcp/lovable.svg": {
+    "mtime": 1783460502.155245,
+    "ast_hash": "ff8f594f41ad1e000bbcf6cb15806154",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/mcp/mondaydotcom.svg": {
+    "mtime": 1783458436.612939,
+    "ast_hash": "6acb7145d1b1de681e9991ee59f125f5",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/mcp/pennylane.svg": {
+    "mtime": 1783460502.1168234,
+    "ast_hash": "9bff63921f972e81bd639d7d4f3b1382",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/mcp/pipedrive.svg": {
+    "mtime": 1783462235.5485137,
+    "ast_hash": "7876e1b120873881171b67d395bb6710",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/mcp/serpapi.svg": {
+    "mtime": 1783459531.435384,
+    "ast_hash": "80c20f0dc175a6d5ab4677098424ce80",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/mcp/tavily.svg": {
+    "mtime": 1783462136.2193909,
+    "ast_hash": "09b97a12f03f13b8f9d7c8af95067c25",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/mcp/togetherdotai.svg": {
+    "mtime": 1783459275.2541645,
+    "ast_hash": "01ba28cdbf1745732d1417ec2dd7093e",
     "semantic_hash": ""
   }
 }
