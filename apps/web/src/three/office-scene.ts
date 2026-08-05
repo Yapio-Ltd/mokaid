@@ -224,7 +224,7 @@ interface AvatarNode {
  * office-scene-host and reported in the debug snapshot, so the number the
  * verification harness reads can never drift from the one the host compares.
  */
-export const OFFICE_SCENE_BUILD = 22;
+export const OFFICE_SCENE_BUILD = 23;
 
 export class OfficeScene {
   private engine: Engine;
@@ -257,6 +257,10 @@ export class OfficeScene {
   private slotClaims = new Map<string, string>();
   private renderQuality: RenderQuality = "high";
   private lowFpsFrames = 0;
+  /** Consecutive frames at healthy FPS used to recover quality (hysteresis). */
+  private goodFpsFrames = 0;
+  /** Don't degrade until this many ms after construction (load/spawn burst). */
+  private readonly qualityGraceUntil = performance.now() + 12_000;
   /**
    * Native Retina scale set by Engine(adaptToDeviceRatio): typically 1/dpr
    * (e.g. 0.5 on a 2× display). Quality tiers are multiples of this base.
@@ -539,6 +543,9 @@ export class OfficeScene {
     officeReady: boolean;
     crowdReady: boolean;
     buildHint: number;
+    renderQuality: RenderQuality;
+    hardwareScale: number;
+    fps: number;
     centerOffset: { x: number; z: number };
     agents: Array<{
       name: string;
@@ -592,6 +599,9 @@ export class OfficeScene {
       officeReady: this.officeReady,
       crowdReady: Boolean(this.officeCrowd),
       buildHint: OFFICE_SCENE_BUILD,
+      renderQuality: this.renderQuality,
+      hardwareScale: +this.engine.getHardwareScalingLevel().toFixed(3),
+      fps: Math.round(this.engine.getFps()),
       centerOffset: {
         x: +this.centerOffset.x.toFixed(3),
         z: +this.centerOffset.z.toFixed(3),
@@ -946,6 +956,12 @@ export class OfficeScene {
       this.officeReady = true;
       this.callbacks.onLoadProgress?.(1);
       this.callbacks.onOfficeReady?.(true);
+      // Prefer sharp Retina after the heaviest I/O; recover even if a prior host
+      // left a lower hardware scale in mind (fresh scene starts high).
+      this.renderQuality = "high";
+      this.lowFpsFrames = 0;
+      this.goodFpsFrames = 0;
+      this.applyRenderQuality("high");
 
       // Bake Recast navmesh + crowd (async); agents fall back to A* until ready.
       void this.bakeOfficeCrowd();
@@ -2629,36 +2645,75 @@ export class OfficeScene {
     return Math.max(0, 1 - Math.abs(delta) / Math.PI);
   }
 
-  /** Drop bloom / resolution when FPS stays low to keep the office responsive. */
+  /**
+   * Drop bloom / resolution only under sustained low FPS, with hysteresis so a
+   * load spike (office GLB + avatar import) doesn't leave the scene stuck in a
+   * blurry low-res tier. Recovery is sticky: need many good frames to climb.
+   */
   private adaptQuality() {
+    if (!this.pipeline) return;
+    // Engine.getFps() is noisy in the first seconds and during mesh import.
+    if (performance.now() < this.qualityGraceUntil) return;
+
     const fps = this.engine.getFps();
-    if (fps > 0 && fps < 40) this.lowFpsFrames += 1;
-    else this.lowFpsFrames = Math.max(0, this.lowFpsFrames - 2);
+    if (fps <= 0) return;
+
+    if (fps < 32) {
+      this.lowFpsFrames += 1;
+      this.goodFpsFrames = 0;
+    } else if (fps < 45) {
+      // Borderline: neither climb nor drop hard.
+      this.lowFpsFrames = Math.max(0, this.lowFpsFrames - 1);
+      this.goodFpsFrames = Math.max(0, this.goodFpsFrames - 1);
+    } else {
+      this.lowFpsFrames = Math.max(0, this.lowFpsFrames - 3);
+      this.goodFpsFrames += 1;
+    }
 
     let next: RenderQuality = this.renderQuality;
-    if (this.lowFpsFrames > 90) next = "low";
-    else if (this.lowFpsFrames > 45) next = "medium";
-    else if (fps > 55 && this.lowFpsFrames === 0) next = "high";
-    if (next === this.renderQuality || !this.pipeline) return;
-    this.renderQuality = next;
+    // Hysteresis: harder to leave high than to stay degraded.
+    if (this.renderQuality === "high") {
+      if (this.lowFpsFrames > 120) next = "medium";
+      if (this.lowFpsFrames > 240) next = "low";
+    } else if (this.renderQuality === "medium") {
+      if (this.lowFpsFrames > 150) next = "low";
+      if (this.goodFpsFrames > 90) next = "high";
+    } else {
+      // low → medium or high
+      if (this.goodFpsFrames > 60) next = "medium";
+      if (this.goodFpsFrames > 120) next = "high";
+    }
 
-    if (next === "high") {
+    if (next === this.renderQuality) return;
+    this.renderQuality = next;
+    // Reset counters so we don't thrash tiers every few frames.
+    this.lowFpsFrames = 0;
+    this.goodFpsFrames = 0;
+    this.applyRenderQuality(next);
+  }
+
+  private applyRenderQuality(tier: RenderQuality) {
+    if (!this.pipeline) return;
+    if (tier === "high") {
       this.pipeline.bloomEnabled = true;
       this.pipeline.bloomWeight = OFFICE_BLOOM.weight;
       this.pipeline.samples = 4;
       this.pipeline.fxaaEnabled = false;
       this.engine.setHardwareScalingLevel(this.baseScale);
-    } else if (next === "medium") {
+    } else if (tier === "medium") {
       this.pipeline.bloomEnabled = true;
-      this.pipeline.bloomWeight = OFFICE_BLOOM.weight * 0.65;
+      this.pipeline.bloomWeight = OFFICE_BLOOM.weight * 0.75;
       this.pipeline.samples = 2;
       this.pipeline.fxaaEnabled = false;
-      this.engine.setHardwareScalingLevel(this.baseScale * 1.3);
+      // Cap worse than high Retina, but avoid the old ×1.3 mush on 2× displays.
+      this.engine.setHardwareScalingLevel(Math.min(1, this.baseScale * 1.15));
     } else {
-      this.pipeline.bloomEnabled = false;
-      this.pipeline.samples = 1;
+      // Keep light MSAA + modest bloom; old ×1.7 + FXAA-only looked pixelated.
+      this.pipeline.bloomEnabled = true;
+      this.pipeline.bloomWeight = OFFICE_BLOOM.weight * 0.45;
+      this.pipeline.samples = 2;
       this.pipeline.fxaaEnabled = true;
-      this.engine.setHardwareScalingLevel(this.baseScale * 1.7);
+      this.engine.setHardwareScalingLevel(Math.min(1, this.baseScale * 1.35));
     }
     this.lastClientW = 0;
     this.lastClientH = 0;
