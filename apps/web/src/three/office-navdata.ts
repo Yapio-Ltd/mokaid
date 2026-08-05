@@ -434,6 +434,16 @@ export const OFFICE_NAV_NODES: NavNode[] = [
   { id: "foosball_s", x: -1.85, z: 3.6 },
   { id: "foosball_w", x: -2.85, z: 4.67 },
   { id: "sw", x: -3.7, z: 3.2 },
+  // East / south expansion (2026-08-05): stops recover+patrol clumping in NW lounge.
+  { id: "ne", x: 4.5, z: -3.5 },
+  { id: "n_mid_e", x: 3.2, z: -4.4 },
+  { id: "mid_ne", x: 3.5, z: -2.5 },
+  { id: "mid_e2", x: 5.0, z: -0.4 },
+  { id: "e_far", x: 6.4, z: 2.0 },
+  { id: "e_south", x: 5.6, z: 3.2 },
+  { id: "se_corner", x: 6.0, z: 4.5 },
+  { id: "s_mid_e", x: 2.8, z: 4.0 },
+  { id: "s_far", x: 1.2, z: 5.0 },
 ];
 
 /**
@@ -817,6 +827,20 @@ export function nearestAislePoint(from: NavPoint): NavPoint {
   if (best) return best;
   const cell = nearestFreeCell(from, 40);
   return cell ? pointOf(cell.i, cell.j) : { x: from.x, z: from.z };
+}
+
+/**
+ * Prefer one of the k nearest aisle anchors (seeded) so recover/escape does not
+ * funnel every stuck agent onto the single closest lounge node.
+ */
+export function preferAislePoint(from: NavPoint, seed = 0, k = 3): NavPoint {
+  const ranked = OFFICE_NAV_NODES.filter((n) => isWalkable(n))
+    .map((n) => ({ x: n.x, z: n.z, d: dist2(from, n) }))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, Math.max(1, k));
+  if (ranked.length === 0) return nearestAislePoint(from);
+  const idx = ((seed % ranked.length) + ranked.length) % ranked.length;
+  return { x: ranked[idx].x, z: ranked[idx].z };
 }
 
 export function poiById(id: string): OfficePoi | undefined {

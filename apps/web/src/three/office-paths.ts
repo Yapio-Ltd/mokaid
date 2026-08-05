@@ -98,19 +98,32 @@ export const OFFICE_PATHS: OfficePath[] = [
   loopPath("mid-aisle-rev", [
     "mid_e", "mid_c", "mid_w", "w_aisle", "mid_w", "mid_c", "mid_e",
   ]),
-  loopPath("south-aisle", ["sw", "foosball_s", "s_mid", "s_mid", "foosball_s", "sw"]),
+  loopPath("south-aisle", ["sw", "foosball_s", "s_mid", "s_mid_e", "foosball_s", "sw"]),
+  // North corridor spreads east instead of ping-ponging coffee↔sofa only.
   loopPath("north-aisle", [
-    "n_sofa", "n_coffee", "n_east", "n_coffee", "n_sofa",
+    "n_east", "ne", "n_mid_e", "n_sofa", "n_coffee", "n_east",
   ]),
   loopPath("west-loop", ["w_aisle", "mid_w", "sw", "mid_w", "w_aisle"]),
   loopPath("center-loop", ["mid_w", "mid_c", "mid_e", "s_mid", "mid_c", "mid_w"]),
-  loopPath("east-loop", ["mid_e", "n_east", "n_coffee", "mid_c", "mid_e"]),
+  loopPath("east-loop", ["mid_e", "mid_e2", "ne", "n_east", "mid_ne", "mid_e"]),
   loopPath("foosball-circuit", [
     "s_mid", "foosball_s", "foosball_w", "foosball_s", "sw", "mid_w", "mid_c", "s_mid",
   ]),
-  loopPath("coffee-sofa", ["n_coffee", "n_sofa", "w_aisle", "mid_w", "mid_c", "n_coffee"]),
+  loopPath("coffee-sofa", [
+    "n_coffee", "n_sofa", "mid_ne", "mid_c", "mid_w", "w_aisle", "n_coffee",
+  ]),
   loopPath("cross-office", [
-    "sw", "mid_w", "mid_c", "n_sofa", "n_coffee", "mid_e", "s_mid", "sw",
+    "sw", "mid_w", "mid_c", "mid_ne", "mid_e", "s_mid", "sw",
+  ]),
+  // East + south lanes use the expanded anchors (avoids NW lounge hub).
+  loopPath("east-south", [
+    "mid_e", "mid_e2", "e_far", "e_south", "se_corner", "s_mid_e", "s_mid", "mid_e",
+  ]),
+  loopPath("south-east-circuit", [
+    "s_mid", "s_mid_e", "s_far", "e_south", "e_far", "mid_e2", "mid_e", "s_mid",
+  ]),
+  loopPath("north-east-loop", [
+    "n_east", "ne", "n_mid_e", "mid_ne", "mid_e", "mid_e2", "n_east",
   ]),
 ];
 

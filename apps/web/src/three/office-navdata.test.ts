@@ -14,12 +14,14 @@ import {
   isWalkable,
   NAV_CLEARANCE,
   NAV_OBSTACLES,
+  nearestAislePoint,
   OFFICE_DESK_SLOTS,
   OFFICE_NAV_NODES,
   OFFICE_OBSTACLES,
   OFFICE_POIS,
   poiSlotSocket,
   pointHitsObstacle,
+  preferAislePoint,
   resolveCollision,
   segmentIsWalkable,
 } from "./office-navdata";
@@ -55,6 +57,36 @@ describe("office-navdata", () => {
     for (const n of OFFICE_NAV_NODES) {
       expect(isWalkable(n), `anchor ${n.id} blocked`).toBe(true);
     }
+  });
+
+  it("spreads recover anchors by seat seed (preferAislePoint)", () => {
+    const from = { x: 1.99, z: -5.05 }; // lounge north
+    const strict = nearestAislePoint(from);
+    const set = new Set<string>();
+    for (let seed = 0; seed < 9; seed++) {
+      const p = preferAislePoint(from, seed, 3);
+      expect(isWalkable(p)).toBe(true);
+      set.add(`${p.x.toFixed(2)},${p.z.toFixed(2)}`);
+    }
+    // At least two distinct anchors across seeds (no single hub).
+    expect(set.size).toBeGreaterThanOrEqual(2);
+    // Each pick is one of the 3 closest walkable anchors.
+    const ranked = OFFICE_NAV_NODES.filter((n) => isWalkable(n))
+      .map((n) => ({ x: n.x, z: n.z, d: (n.x - from.x) ** 2 + (n.z - from.z) ** 2 }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 3);
+    for (const key of set) {
+      const [xs, zs] = key.split(",").map(Number);
+      expect(ranked.some((r) => Math.hypot(r.x - xs, r.z - zs) < 0.05)).toBe(true);
+    }
+    expect(isWalkable(strict)).toBe(true);
+  });
+
+  it("covers east and south anchors so paths are not lounge-only", () => {
+    const eastSouth = OFFICE_NAV_NODES.filter(
+      (n) => n.x >= 2.5 || n.z >= 3.5,
+    );
+    expect(eastSouth.length).toBeGreaterThanOrEqual(5);
   });
 
   it("covers the full furniture inventory (walls, desks, chairs, planters…)", () => {

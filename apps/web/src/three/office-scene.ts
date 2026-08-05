@@ -94,7 +94,7 @@ import {
   isWalkable,
   MAX_OFFICE_SEATS,
   NAV_CLEARANCE,
-  nearestAislePoint,
+  preferAislePoint,
   OFFICE_OBSTACLES,
   poiById,
   poiSlotSocket,
@@ -208,6 +208,16 @@ interface AvatarNode {
   crowdTargetKey: string | null;
   /** Perf.now() until which recover is suppressed (stops thrash loops). */
   recoverUntil: number;
+  /** Consecutive recovers on the same mission key (circuit-breaker). */
+  recoverCount: number;
+  /** Last mission key recover counted against. */
+  recoverMissionKey: string | null;
+  /** Accumulated seconds Detour reported invalid/stuck (debounce). */
+  stuckInvalidTimer: number;
+  /** Seconds held socket drifted > threshold (debounce re-route). */
+  socketDriftTimer: number;
+  /** Perf.now() until which server POI re-assign is ignored after abandon. */
+  poiAbandonUntil: number;
 }
 
 /**
@@ -216,7 +226,7 @@ interface AvatarNode {
  * office-scene-host and reported in the debug snapshot, so the number the
  * verification harness reads can never drift from the one the host compares.
  */
-export const OFFICE_SCENE_BUILD = 17;
+export const OFFICE_SCENE_BUILD = 18;
 
 export class OfficeScene {
   private engine: Engine;
@@ -353,7 +363,12 @@ export class OfficeScene {
     avatar.activePath = { id: `debug-sit-${slot.id}`, loop: false, waypoints: [] };
     avatar.pathIndex = 0;
     this.lastPoiKey.set(avatar.agent.id, `${poi.id}:${slot.id}`);
-    this.blendToSocket(avatar, socket, "sitting", 0.2);
+    this.blendToSocket(avatar, socket, "sitting", 0.05);
+    // Force-complete into hold so Y + clip diagnostics are meaningful.
+    avatar.socketBlend = null;
+    avatar.socketLocked = true;
+    avatar.socketId = socket.id;
+    this.holdPoiSocket(avatar, socket, "sitting_sofa", 0);
     this.reportActivity(avatar, slot.animation);
 
     const seatY = (slot.seatHeight ?? 0.48) - this.centerOffset.y;
@@ -1110,9 +1125,14 @@ export class OfficeScene {
       crowdAgent: null,
       crowdTargetKey: null,
       recoverUntil: 0,
+      recoverCount: 0,
+      recoverMissionKey: null,
+      stuckInvalidTimer: 0,
+      socketDriftTimer: 0,
+      poiAbandonUntil: 0,
     };
-    this.attachCrowdAgent(avatar);
-
+    // Spawn sitting: do not leave a Detour agent on the aisle while the body
+    // is pinned to the desk chair (that desync causes a teleport on first walk).
     this.avatars.set(agent.id, avatar);
     if (isIdleVisual(agent.visualState)) {
       // Default idle: sit at the assigned desk seat, not stand/patrol.
@@ -1175,6 +1195,12 @@ export class OfficeScene {
       }
 
       const state = avatar.agent.visualState;
+
+      // Server POI missions take priority over residual desk_sit idle.
+      if (avatar.idleBehavior === "poi") {
+        this.animateIdle(avatar, t, dt);
+        continue;
+      }
 
       if (avatar.deskRouteBusy || avatar.idleBehavior === "desk_sit") {
         this.animateDeskSit(avatar, t, dt);
@@ -1243,19 +1269,40 @@ export class OfficeScene {
   }
 
   private attachCrowdAgent(avatar: AvatarNode) {
-    if (!this.officeCrowd || avatar.crowdAgent) return;
+    if (!this.officeCrowd) return;
+
     let x = avatar.root.position.x;
     let z = avatar.root.position.z;
     // Spawn seats sit inside desks — snap onto the navmesh before adding.
     if (crowdPointInFurniture(x, z, this.centerOffset)) {
-      const raw = nearestAislePoint({
-        x: x + this.centerOffset.x,
-        z: z + this.centerOffset.z,
-      });
+      const raw = preferAislePoint(
+        {
+          x: x + this.centerOffset.x,
+          z: z + this.centerOffset.z,
+        },
+        avatar.seatIndex,
+      );
       x = raw.x - this.centerOffset.x;
       z = raw.z - this.centerOffset.z;
     }
     const snapped = crowdClosestPoint(this.officeCrowd.query, x, z);
+
+    if (avatar.crowdAgent) {
+      // Resync Detour to the mesh (or its nearest walkable) so the next frame
+      // does not yank the root back to a stale aisle position.
+      crowdTeleport(avatar.crowdAgent, this.officeCrowd.query, snapped.x, snapped.z);
+      avatar.root.position.x = snapped.x;
+      avatar.root.position.z = snapped.z;
+      this.plantFeet(avatar);
+      avatar.immobileAnchorX = snapped.x;
+      avatar.immobileAnchorZ = snapped.z;
+      avatar.noMoveTimer = 0;
+      avatar.stuckInvalidTimer = 0;
+      avatar.crowdTargetKey = null;
+      setAgentCollisionsEnabled(avatar.collider, false);
+      return;
+    }
+
     const agent = addCrowdAgent(
       this.officeCrowd.crowd,
       this.officeCrowd.query,
@@ -1273,6 +1320,7 @@ export class OfficeScene {
       avatar.immobileAnchorX = snapped.x;
       avatar.immobileAnchorZ = snapped.z;
       avatar.noMoveTimer = 0;
+      avatar.stuckInvalidTimer = 0;
     }
   }
 
@@ -1360,6 +1408,9 @@ export class OfficeScene {
    * reached its current move target.
    */
   private syncFromCrowd(avatar: AvatarNode, dt: number, reach = 0.4): boolean {
+    // Never overwrite a locked sit / mid-blend with Detour's aisle position.
+    if (avatar.socketLocked || avatar.socketBlend) return false;
+
     const agent = avatar.crowdAgent;
     if (!agent || !this.officeCrowd) return false;
 
@@ -1371,9 +1422,15 @@ export class OfficeScene {
     this.plantFeet(avatar);
     syncColliderToRoot(avatar.collider, avatar.root);
 
-    // Trust the navmesh. Only recover on Detour invalid state or true immobility.
-    // Do NOT use padded furniture AABBs here — they thrash recover in narrow aisles.
-    if (crowdAgentIsStuck(agent) || this.tickImmobile(avatar, dt)) {
+    // Debounce invalid Detour state — a single frame of state===0 is common
+    // during retargets and must not trigger a visible teleport recover.
+    if (crowdAgentIsStuck(agent)) {
+      avatar.stuckInvalidTimer += dt;
+    } else {
+      avatar.stuckInvalidTimer = 0;
+    }
+    const detourStuck = avatar.stuckInvalidTimer >= OfficeScene.STUCK_INVALID_DEBOUNCE;
+    if (detourStuck || this.tickImmobile(avatar, dt)) {
       this.recoverCrowdAgent(avatar);
       return false;
     }
@@ -1412,10 +1469,57 @@ export class OfficeScene {
     return dist < reach && speed < CROWD_MOVE_EPS * 1.5;
   }
 
+  private missionKey(avatar: AvatarNode): string {
+    if (avatar.idleBehavior === "poi" && avatar.agent.officePoiId && avatar.agent.officeSlotId) {
+      return `poi:${avatar.agent.officePoiId}:${avatar.agent.officeSlotId}`;
+    }
+    if (avatar.deskRouteBusy || avatar.idleBehavior === "desk_sit") {
+      return `desk:${avatar.seatIndex}`;
+    }
+    return `patrol:${avatar.seatIndex}`;
+  }
+
   private recoverCrowdAgent(avatar: AvatarNode) {
+    if (avatar.socketLocked || avatar.socketBlend) return;
+
     const now = performance.now();
     if (now < avatar.recoverUntil) return;
-    avatar.recoverUntil = now + 2500;
+
+    const key = this.missionKey(avatar);
+    if (avatar.recoverMissionKey === key) {
+      avatar.recoverCount += 1;
+    } else {
+      avatar.recoverMissionKey = key;
+      avatar.recoverCount = 1;
+    }
+
+    // Backoff: 5s / 10s / 20s after successive recovers on the same mission.
+    const backoffMs =
+      OfficeScene.RECOVER_BACKOFF_MS[
+        Math.min(avatar.recoverCount - 1, OfficeScene.RECOVER_BACKOFF_MS.length - 1)
+      ];
+    avatar.recoverUntil = now + backoffMs;
+
+    // After N failed attempts, abandon wander POI/patrol and sit at the desk.
+    if (avatar.recoverCount >= OfficeScene.MAX_RECOVERS_PER_MISSION) {
+      if (import.meta.env.DEV) {
+        console.info(
+          "[OfficeScene] recover circuit-break → desk_sit",
+          avatar.agent.name,
+          key,
+        );
+      }
+      avatar.recoverCount = 0;
+      avatar.recoverMissionKey = null;
+      avatar.stuckInvalidTimer = 0;
+      if (avatar.agent.officePoiId) {
+        avatar.poiAbandonUntil = now + OfficeScene.POI_ABANDON_MS;
+        this.lastPoiKey.delete(avatar.agent.id);
+      }
+      this.releaseSlot(avatar);
+      this.beginDeskSitRoute(avatar, "sitting");
+      return;
+    }
 
     if (!this.officeCrowd || !avatar.crowdAgent) {
       this.escapeToAisle(avatar);
@@ -1425,7 +1529,7 @@ export class OfficeScene {
       x: avatar.root.position.x + this.centerOffset.x,
       z: avatar.root.position.z + this.centerOffset.z,
     };
-    const safe = nearestAislePoint(fromRaw);
+    const safe = preferAislePoint(fromRaw, avatar.seatIndex);
     const jig = ((avatar.seatIndex % 5) - 2) * 0.18;
     const centered = crowdClosestPoint(
       this.officeCrowd.query,
@@ -1438,15 +1542,17 @@ export class OfficeScene {
     this.plantFeet(avatar);
     avatar.crowdTargetKey = null;
     avatar.noMoveTimer = 0;
+    avatar.stuckInvalidTimer = 0;
     avatar.immobileAnchorX = centered.x;
     avatar.immobileAnchorZ = centered.z;
     avatar.stuckTimer = 0;
     if (import.meta.env.DEV) {
       console.info("[OfficeScene] crowd recover → aisle", avatar.agent.name, centered);
     }
-    // Re-issue mission from the safe point.
-    if (avatar.idleBehavior === "poi") this.beginPoiRoute(avatar);
-    else if (avatar.deskRouteBusy || avatar.idleBehavior === "desk_sit") {
+    // Re-issue mission from the safe point (unless we just abandoned).
+    if (avatar.idleBehavior === "poi" && now >= avatar.poiAbandonUntil) {
+      this.beginPoiRoute(avatar);
+    } else if (avatar.deskRouteBusy || avatar.idleBehavior === "desk_sit") {
       this.beginDeskSitRoute(avatar, avatar.pendingDeskState ?? this.defaultDeskAnim(avatar));
     } else if (isIdleVisual(avatar.agent.visualState)) {
       this.beginDeskSitRoute(avatar, "sitting");
@@ -1585,6 +1691,13 @@ export class OfficeScene {
     // Drive POI from slot assignment — not from secondaryActivity, which the
     // React layer may rewrite to "walking" while approaching.
     if (agent.officePoiId && agent.officeSlotId) {
+      if (performance.now() < avatar.poiAbandonUntil) {
+        // Circuit-break cool-down: stay at the desk instead of re-thrashing the POI.
+        if (avatar.idleBehavior !== "desk_sit" && !avatar.deskRouteBusy) {
+          this.beginDeskSitRoute(avatar, "sitting");
+        }
+        return;
+      }
       const key = `${agent.officePoiId}:${agent.officeSlotId}`;
       const prev = this.lastPoiKey.get(agent.id);
       if (avatar.idleBehavior !== "poi" || prev !== key) {
@@ -1695,10 +1808,10 @@ export class OfficeScene {
     const socket = slot ? this.resolveSocket(slot.id) : null;
     if (!poi || !slot || !socket) return;
 
-    // Someone else is already using this exact spot — roam instead of
-    // stacking two bodies on one socket.
+    // Someone else is already using this exact spot — sit at desk instead of
+    // stacking two bodies or wandering without an idleBehavior.
     if (!this.claimSlot(avatar, slot.id)) {
-      this.assignPatrolLane(avatar);
+      this.beginDeskSitRoute(avatar, "sitting");
       return;
     }
 
@@ -1714,8 +1827,12 @@ export class OfficeScene {
     const alreadyThere = distSocket < 0.55 || distNav < 0.45;
 
     avatar.idleBehavior = "poi";
+    avatar.deskRouteBusy = false;
+    avatar.pendingDeskState = null;
     avatar.behaviorEnd = 0;
     avatar.stuckTimer = 0;
+    avatar.stuckInvalidTimer = 0;
+    avatar.socketDriftTimer = 0;
     avatar.lastProgressDist = Infinity;
     avatar.crowdTargetKey = null;
     this.reportActivity(avatar, "walking");
@@ -1771,11 +1888,17 @@ export class OfficeScene {
     // Only hold POI pose when physically at the socket — never in the aisle.
     if (avatar.socketLocked && avatar.socketId === socket.id) {
       if (distToSocket > 0.85) {
-        avatar.socketLocked = false;
-        avatar.socketId = null;
-        setAgentCollisionsEnabled(avatar.collider, !avatar.crowdAgent);
-        this.beginPoiRoute(avatar);
-        return;
+        avatar.socketDriftTimer += dt;
+        if (avatar.socketDriftTimer >= OfficeScene.SOCKET_DRIFT_DEBOUNCE) {
+          avatar.socketDriftTimer = 0;
+          avatar.socketLocked = false;
+          avatar.socketId = null;
+          setAgentCollisionsEnabled(avatar.collider, !avatar.crowdAgent);
+          this.beginPoiRoute(avatar);
+          return;
+        }
+      } else {
+        avatar.socketDriftTimer = 0;
       }
       this.holdPoiSocket(avatar, socket, slot.animation, t);
       this.reportActivity(avatar, slot.animation);
@@ -1842,6 +1965,8 @@ export class OfficeScene {
     animation: SecondaryActivity,
     t: number,
   ) {
+    // Detour must not exist while held on a socket (root is off-mesh for sits).
+    this.detachCrowdAgent(avatar);
     avatar.ring.setEnabled(false);
     avatar.root.rotation.x = 0;
     avatar.root.rotation.z = 0;
@@ -1849,6 +1974,8 @@ export class OfficeScene {
     const dest = this.toCentered(socket.position.x, socket.position.z);
     avatar.root.position.x = dest.x;
     avatar.root.position.z = dest.z;
+    avatar.socketLocked = true;
+    avatar.socketId = socket.id;
 
     if (animation === "playing_foosball") {
       playAgentAnimation(avatar, "playing_foosball" as AgentAnimName);
@@ -1862,11 +1989,15 @@ export class OfficeScene {
       avatar.facing = avatar.root.rotation.y;
     } else if (animation === "sitting_sofa") {
       playAgentAnimation(avatar, "sitting" as AgentAnimName);
+      if (import.meta.env.DEV && !avatar.anims.sitting) {
+        console.warn("[OfficeScene] missing sitting clip on sofa hold", avatar.agent.name);
+      }
       const seatY = (socket.seatHeight || 0.48) - this.centerOffset.y;
       avatar.root.position.y = seatY - avatar.sitPelvisHeight;
       avatar.baseY = avatar.root.position.y;
       avatar.root.rotation.y = socket.facing;
       avatar.facing = socket.facing;
+      // Never plantFeet here — that re-ground on the floor and looks "standing on sofa".
     } else {
       playAgentAnimation(avatar, "idle");
       this.plantFeet(avatar);
@@ -1878,13 +2009,14 @@ export class OfficeScene {
   private beginDeskSitRoute(avatar: AvatarNode, state: AgentAnimName | string) {
     // Heading back to the desk frees whatever lounge/foosball spot was held.
     this.releaseSlot(avatar);
+    this.standFromSocket(avatar);
     avatar.pendingDeskState = state;
     avatar.deskRouteBusy = true;
     avatar.idleBehavior = "desk_sit";
     avatar.routeBusy = true;
-    avatar.socketLocked = false;
-    avatar.socketId = null;
     avatar.crowdTargetKey = null;
+    avatar.stuckInvalidTimer = 0;
+    avatar.socketDriftTimer = 0;
     this.attachCrowdAgent(avatar);
 
     const dist = Math.hypot(
@@ -2013,6 +2145,7 @@ export class OfficeScene {
   private holdDeskSocket(avatar: AvatarNode, state: AgentAnimName | string, t: number) {
     const socket = deskSocket(avatar.seatIndex);
     if (!socket) return;
+    this.detachCrowdAgent(avatar);
     const dest = this.toCentered(socket.position.x, socket.position.z);
     avatar.root.position.x = dest.x;
     avatar.root.position.z = dest.z;
@@ -2038,6 +2171,7 @@ export class OfficeScene {
   private snapToDeskSocket(avatar: AvatarNode, state: AgentAnimName | string) {
     const socket = deskSocket(avatar.seatIndex);
     if (!socket) return;
+    this.detachCrowdAgent(avatar);
     setAgentCollisionsEnabled(avatar.collider, false);
     const dest = this.toCentered(socket.position.x, socket.position.z);
     avatar.root.position.x = dest.x;
@@ -2068,6 +2202,8 @@ export class OfficeScene {
     duration = 0.45,
   ) {
     this.pauseCrowdAgent(avatar);
+    // Detach before seat pin so Detour cannot yank through the blend.
+    this.detachCrowdAgent(avatar);
     setAgentCollisionsEnabled(avatar.collider, false);
     const dest = this.toCentered(socket.position.x, socket.position.z);
     const toY = socket.sits
@@ -2137,21 +2273,30 @@ export class OfficeScene {
     avatar.baseY = blend.toY;
     avatar.facing = blend.toYaw;
     avatar.root.rotation.y = blend.toYaw;
+    this.detachCrowdAgent(avatar);
     playAgentAnimation(avatar, blend.anim as AgentAnimName);
 
+    // Prefer actual sitting_sofa when the locked slot is a sofa cushion.
     const slot = avatar.agent.officeSlotId
       ? poiById(avatar.agent.officePoiId ?? "")?.slots.find((s) => s.id === avatar.agent.officeSlotId)
       : null;
-    if (slot?.animation) this.reportActivity(avatar, slot.animation);
-    else this.reportActivity(avatar, null);
+    if (slot?.animation === "sitting_sofa") {
+      playAgentAnimation(avatar, "sitting");
+      this.reportActivity(avatar, "sitting_sofa");
+    } else if (slot?.animation) {
+      this.reportActivity(avatar, slot.animation);
+    } else {
+      this.reportActivity(avatar, null);
+    }
   }
 
-  /** Leave a socket; crowd agents stay on navmesh (no ellipsoid furniture checks). */
+  /** Leave a socket; re-ground feet so the next attachCrowd resyncs from the body. */
   private standFromSocket(avatar: AvatarNode) {
     avatar.socketBlend = null;
     if (!avatar.socketLocked && !avatar.crowdAgent && avatar.collider.checkCollisions) return;
     avatar.socketLocked = false;
     avatar.socketId = null;
+    avatar.socketDriftTimer = 0;
     // Crowd owns loco → keep collisions off. Fallback A* needs them on.
     setAgentCollisionsEnabled(avatar.collider, !avatar.crowdAgent);
     avatar.ring.setEnabled(true);
@@ -2198,7 +2343,17 @@ export class OfficeScene {
   /** Reset immobility anchor only after this much real travel (m). */
   private static readonly IMMOBILE_ANCHOR_R = 0.55;
   /** Yank to nearest aisle after this many seconds near the anchor. */
-  private static readonly NO_MOVE_ESCAPE = 2.4;
+  private static readonly NO_MOVE_ESCAPE = 4.5;
+  /** Require Detour invalid state for this long before recover (s). */
+  private static readonly STUCK_INVALID_DEBOUNCE = 0.4;
+  /** Socket XZ drift before we unlock and re-approach (s). */
+  private static readonly SOCKET_DRIFT_DEBOUNCE = 0.6;
+  /** Consecutive recovers on one mission before desk abandon. */
+  private static readonly MAX_RECOVERS_PER_MISSION = 3;
+  /** Recover cool-downs (ms) by successive attempt. */
+  private static readonly RECOVER_BACKOFF_MS = [5000, 10000, 20000] as const;
+  /** Ignore server POI reissue after circuit-break (ms). */
+  private static readonly POI_ABANDON_MS = 15000;
 
   /**
    * Fallback step when Recast Crowd is unavailable.
@@ -2345,13 +2500,13 @@ export class OfficeScene {
     return avatar.noMoveTimer >= OfficeScene.NO_MOVE_ESCAPE;
   }
 
-  /** Teleport out of a dead-end pinch onto the nearest open aisle anchor. */
+  /** Teleport out of a dead-end pinch onto a seeded aisle anchor. */
   private escapeToAisle(avatar: AvatarNode) {
     const fromRaw = {
       x: avatar.root.position.x + this.centerOffset.x,
       z: avatar.root.position.z + this.centerOffset.z,
     };
-    const safe = nearestAislePoint(fromRaw);
+    const safe = preferAislePoint(fromRaw, avatar.seatIndex);
     // Slight seat-based offset so two stuck agents don't re-stack on the same cell.
     const jig = ((avatar.seatIndex % 5) - 2) * 0.18;
     const dest = resolveCollision(
@@ -2365,19 +2520,25 @@ export class OfficeScene {
     syncColliderToRoot(avatar.collider, avatar.root);
     avatar.noMoveTimer = 0;
     avatar.stuckTimer = 0;
+    avatar.stuckInvalidTimer = 0;
     avatar.lastProgressDist = Infinity;
     avatar.immobileAnchorX = avatar.root.position.x;
     avatar.immobileAnchorZ = avatar.root.position.z;
     avatar.crowdTargetKey = null;
     if (avatar.crowdAgent && this.officeCrowd) {
-      crowdTeleport(avatar.crowdAgent, this.officeCrowd.query, dest.x - this.centerOffset.x, dest.z - this.centerOffset.z);
+      crowdTeleport(
+        avatar.crowdAgent,
+        this.officeCrowd.query,
+        dest.x - this.centerOffset.x,
+        dest.z - this.centerOffset.z,
+      );
     }
 
     if (import.meta.env.DEV) {
       console.info("[OfficeScene] escaped pinch → aisle", avatar.agent.name, dest);
     }
 
-    if (avatar.idleBehavior === "poi") {
+    if (avatar.idleBehavior === "poi" && performance.now() >= avatar.poiAbandonUntil) {
       this.beginPoiRoute(avatar);
     } else if (avatar.deskRouteBusy || avatar.idleBehavior === "desk_sit") {
       this.beginDeskSitRoute(avatar, avatar.pendingDeskState ?? this.defaultDeskAnim(avatar));
