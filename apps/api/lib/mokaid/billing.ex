@@ -307,18 +307,20 @@ defmodule Mokaid.Billing do
       key: "starter",
       name: "Starter",
       price_cents_monthly: 4_900,
+      # ~17% off vs 12× monthly (2 months free). UI rounds the /mo equivalent.
       price_cents_yearly: 49_000,
       limits: %{
         "agents" => 3,
         "credits_monthly" => 5_000,
-        "mcp_integrations" => 3,
+        # -1 = unlimited MCP; only Free is capped at 0.
+        "mcp_integrations" => -1,
         "knowledge_graph" => "project"
       },
       features: [
         "3 AI employees",
         "5,000 AI credits / month",
         "Live Preview & versions",
-        "3 MCP integrations",
+        "Unlimited MCP integrations",
         "Project Knowledge Graph",
         "Buy extra credits anytime"
       ]
@@ -331,14 +333,14 @@ defmodule Mokaid.Billing do
       limits: %{
         "agents" => 6,
         "credits_monthly" => 10_000,
-        "mcp_integrations" => 10,
+        "mcp_integrations" => -1,
         "knowledge_graph" => "workspace"
       },
       features: [
         "6 AI employees",
         "10,000 AI credits / month",
         "Live Preview & versions",
-        "10 MCP integrations",
+        "Unlimited MCP integrations",
         "Workspace Knowledge Graph",
         "Team collaboration",
         "Auto-recharge available"
@@ -358,7 +360,7 @@ defmodule Mokaid.Billing do
       features: [
         "9 AI employees (full office)",
         "20,000 AI credits / month",
-        "All MCP integrations",
+        "Unlimited MCP integrations",
         "Workspace Knowledge Graph + path/explain",
         "GitHub & Figma, deployment",
         "Team collaboration",

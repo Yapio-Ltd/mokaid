@@ -77,29 +77,20 @@ defmodule Mokaid.MCPTest do
              })
   end
 
-  test "plan limit gates installs but reconnecting an installed server stays allowed", %{
-    member: member
-  } do
-    {workspace, _} = Fixtures.workspace_fixture()
-    {:ok, _} = Billing.change_plan(workspace.id, "starter")
-    limit = Billing.mcp_integration_limit(workspace.id)
-    assert limit == 3
+  test "paid plans have unlimited MCP; free stays locked out", %{member: member} do
+    for plan_key <- ["starter", "team", "professional"] do
+      {workspace, _} = Fixtures.workspace_fixture()
+      {:ok, _} = Billing.change_plan(workspace.id, plan_key)
+      assert Billing.mcp_integration_limit(workspace.id) == -1
 
-    servers = ["notion", "linear", "github"]
-
-    for key <- servers do
       assert {:ok, _} =
-               MCP.install(workspace.id, key, member, %{"credentials" => %{"api_key" => "k"}})
+               MCP.install(workspace.id, "figma", member, %{
+                 "credentials" => %{"api_key" => "k"}
+               })
     end
 
-    assert {:error, :mcp_integration_limit_reached} =
-             MCP.install(workspace.id, "figma", member)
-
-    # Reconnecting one of the three does not consume a new slot.
-    assert {:ok, _} =
-             MCP.install(workspace.id, "notion", member, %{
-               "credentials" => %{"api_key" => "rotated"}
-             })
+    {free_ws, _} = Fixtures.workspace_fixture()
+    assert Billing.mcp_integration_limit(free_ws.id) == 0
   end
 
   test "agent grants gate authorized_servers_for_agent", %{

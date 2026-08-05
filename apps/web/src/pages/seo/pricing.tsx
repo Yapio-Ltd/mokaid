@@ -22,6 +22,7 @@ const plans = [
     tagline: "Try your first AI employee",
     monthly: 0,
     yearly: 0,
+    yearlyPerMonth: 0,
     credits: "300 credits / month",
     agents: "1 AI employee",
     features: ["3D office", "Chat & tasks", "Community support"],
@@ -35,11 +36,12 @@ const plans = [
     tagline: "For solo builders",
     monthly: 49,
     yearly: 490,
+    yearlyPerMonth: 41,
     credits: "5,000 credits / month",
     agents: "3 AI employees",
     features: [
       "Live Preview & versions",
-      "3 MCP integrations",
+      "Unlimited MCP integrations",
       "Project Knowledge Graph",
       "Auto-recharge available",
     ],
@@ -53,11 +55,12 @@ const plans = [
     tagline: "For growing teams",
     monthly: 89,
     yearly: 890,
+    yearlyPerMonth: 74,
     credits: "10,000 credits / month",
     agents: "6 AI employees",
     features: [
       "Live Preview & versions",
-      "10 MCP integrations",
+      "Unlimited MCP integrations",
       "Workspace Knowledge Graph",
       "Team collaboration",
       "Auto-recharge available",
@@ -72,6 +75,7 @@ const plans = [
     tagline: "Fill the 9-desk office",
     monthly: 149,
     yearly: 1490,
+    yearlyPerMonth: 124,
     credits: "20,000 credits / month",
     agents: "9 AI employees",
     features: [
@@ -105,7 +109,7 @@ const faqs = [
   {
     question: "Do you offer yearly billing?",
     answer:
-      "Yes — pay for 10 months, get 12 (about 17% off). Monthly credit grants still refresh every month on yearly billing.",
+      "Yes — yearly billing saves about 17% (2 months free). We show rounded monthly equivalents ($41, $74, $124) so prices stay easy to read; you are billed the exact yearly total.",
   },
   {
     question: "Is there a free trial?",
@@ -218,7 +222,7 @@ export function PricingPage() {
                         </span>
                       </p>
                       <p className="mt-0.5 text-xs text-text-muted">
-                        or ${plan.yearly} / year (2 months free)
+                        or ${plan.yearlyPerMonth}/mo billed yearly (${plan.yearly})
                       </p>
                     </>
                   )}

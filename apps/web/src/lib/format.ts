@@ -53,6 +53,21 @@ export function formatCents(cents: number, currency = "USD"): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
 }
 
+/**
+ * Plan/price display: always whole dollars, no cents
+ * (e.g. $41 for yearly/12 of $490, $1,490 for a yearly total).
+ * Billing still uses exact cents; only the UI is rounded.
+ */
+export function formatCentsWhole(cents: number, currency = "USD"): string {
+  const dollars = Math.round(cents / 100);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(dollars);
+}
+
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }

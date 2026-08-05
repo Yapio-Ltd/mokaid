@@ -48,7 +48,7 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { toast } from "@/stores/toast-store";
 import { cn } from "@/lib/cn";
-import { formatCents, formatDate, formatNumber } from "@/lib/format";
+import { formatCents, formatCentsWhole, formatDate, formatNumber } from "@/lib/format";
 
 function downloadInvoice(invoice: Invoice, workspaceName: string) {
   const rows = invoice.line_items
@@ -229,8 +229,8 @@ export function BillingPage() {
               <p className="mt-0.5 text-xs text-text-muted">
                 {plan && plan.price_cents_monthly > 0
                   ? subscription?.billing_cycle === "yearly"
-                    ? `${formatCents(plan.price_cents_yearly)} / year`
-                    : `${formatCents(plan.price_cents_monthly)} / month`
+                    ? `${formatCentsWhole(plan.price_cents_yearly)} / year`
+                    : `${formatCentsWhole(plan.price_cents_monthly)} / month`
                   : "Free forever"}
               </p>
             </div>

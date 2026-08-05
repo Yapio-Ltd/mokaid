@@ -2,7 +2,7 @@ import { Check, Coins, Crown, Star, Users, Zap } from "lucide-react";
 import type { BillingPlanSummary } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { formatCents, formatNumber } from "@/lib/format";
+import { formatCentsWhole, formatNumber } from "@/lib/format";
 
 const PLAN_ORDER = ["free", "starter", "team", "professional"] as const;
 
@@ -146,19 +146,19 @@ export function PlanPicker({
                 <div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-bold text-text">
-                      {formatCents(Math.round(plan.price_cents_yearly / 12))}
+                      {formatCentsWhole(Math.round(plan.price_cents_yearly / 12))}
                     </span>
                     <span className="text-xs text-text-muted">/mo</span>
                   </div>
                   <p className="mt-0.5 text-[10px] text-text-muted">
-                    {formatCents(plan.price_cents_yearly)} billed yearly
+                    {formatCentsWhole(plan.price_cents_yearly)} billed yearly
                   </p>
                 </div>
               ) : (
                 <div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-bold text-text">
-                      {formatCents(plan.price_cents_monthly)}
+                      {formatCentsWhole(plan.price_cents_monthly)}
                     </span>
                     <span className="text-xs text-text-muted">/mo</span>
                   </div>
