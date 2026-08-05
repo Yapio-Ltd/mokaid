@@ -14,7 +14,9 @@ defmodule Mokaid.Release do
       {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :up, all: true))
     end
 
-    seed_catalogs()
+    # Catalog/logo seeds must never block a schema migration: S3 may be
+    # misconfigured for one-shot ECS tasks, logo upload can fail, etc.
+    seed_catalogs_safe()
   end
 
   @doc "Seeds integration logos, MCP catalog and 3D asset catalog (idempotent)."
@@ -27,7 +29,27 @@ defmodule Mokaid.Release do
         Mokaid.MCP.seed_catalog()
         Mokaid.Integrations.LogoAssets.seed_all()
         Mokaid.Assets3d.seed_catalog()
+        :ok
       end)
+  end
+
+  defp seed_catalogs_safe do
+    require Logger
+
+    try do
+      seed_catalogs()
+    rescue
+      e ->
+        Logger.error(
+          "seed_catalogs failed (non-fatal): #{Exception.format(:error, e, __STACKTRACE__)}"
+        )
+
+        :error
+    catch
+      kind, reason ->
+        Logger.error("seed_catalogs failed (non-fatal): #{inspect({kind, reason})}")
+        :error
+    end
   end
 
   def seed_integration_logos do

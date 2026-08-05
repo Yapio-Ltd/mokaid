@@ -19,10 +19,23 @@ defmodule Mokaid.Integrations.LogoAssets do
 
   @doc "Uploads bundled logos and stamps `logo_storage_key` on every matching catalog row."
   def seed_all do
-    Repo.all(MCPServer) |> Enum.each(&seed_one/1)
-    Repo.all(IntegrationProvider) |> Enum.each(&seed_one/1)
+    Enum.each(Repo.all(MCPServer), &seed_one_safe/1)
+    Enum.each(Repo.all(IntegrationProvider), &seed_one_safe/1)
 
     :ok
+  end
+
+  defp seed_one_safe(record) do
+    seed_one(record)
+  rescue
+    e ->
+      require Logger
+
+      Logger.warning(
+        "logo seed failed for #{inspect(Map.get(record, :key))}: #{Exception.message(e)}"
+      )
+
+      :error
   end
 
   @doc """
