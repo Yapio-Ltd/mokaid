@@ -102,6 +102,8 @@ jobs:
         with:
           context: .
           file: infra/docker/web.Dockerfile
+          # Default target is `runtime` (Playwright prerender for SEO).
+          target: runtime
           push: true
           platforms: linux/arm64
           build-args: |

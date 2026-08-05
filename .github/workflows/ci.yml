@@ -192,6 +192,8 @@ jobs:
         with:
           context: .
           file: infra/docker/web.Dockerfile
+          # Skip Playwright SEO stage so this job stays under a couple of minutes.
+          target: runtime-ci
           push: false
           cache-from: type=gha,scope=web
           cache-to: type=gha,scope=web,mode=max
