@@ -300,7 +300,7 @@
     "semantic_hash": "5cbfa1a17dc9fe33fe238a94cf26e196"
   },
   "apps/api/lib/mokaid/agents.ex": {
-    "mtime": 1785924420.2717965,
+    "mtime": 1785944629.4167066,
     "ast_hash": "d8d2c4d366270ecb949a0a8b955512ed",
     "semantic_hash": ""
   },
@@ -1100,7 +1100,7 @@
     "semantic_hash": ""
   },
   "apps/api/test/mokaid/agents_test.exs": {
-    "mtime": 1785917504.8053715,
+    "mtime": 1785944629.4396124,
     "ast_hash": "89c252518a9221232a2e2174ecca87a4",
     "semantic_hash": ""
   },
@@ -1815,13 +1815,13 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-canvas.tsx": {
-    "mtime": 1785918856.2273655,
-    "ast_hash": "99580ad9b12558ac38297d1b271ceb90",
+    "mtime": 1785944743.5955913,
+    "ast_hash": "e6c401521c1fd2daa8cd8fbd43be4dd6",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-lighting.ts": {
-    "mtime": 1785943190.226237,
-    "ast_hash": "f1a008a4cf914fe19a15796ce4c1e89c",
+    "mtime": 1785944932.2541637,
+    "ast_hash": "0d4f55df1d7c8017a6abe412f73b4b1b",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-navdata.test.ts": {
@@ -1830,7 +1830,7 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-navdata.ts": {
-    "mtime": 1785917505.3092732,
+    "mtime": 1785944629.2839217,
     "ast_hash": "91002756a78949028690e31bbc6bf78a",
     "semantic_hash": ""
   },
@@ -1840,13 +1840,13 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-scene-host.ts": {
-    "mtime": 1785918860.7817564,
-    "ast_hash": "6428d67589f6f6b247938f03a71529b4",
+    "mtime": 1785944629.3505685,
+    "ast_hash": "3aef5815602c777b29391ec7d053be24",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-scene.ts": {
-    "mtime": 1785943195.8247588,
-    "ast_hash": "ea081818e0c46512029e92219e40d2d6",
+    "mtime": 1785944750.176812,
+    "ast_hash": "d02c5a2b18345cc9f4bc4de67b182c69",
     "semantic_hash": ""
   },
   "apps/web/src/three/types.ts": {
@@ -13310,22 +13310,22 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-collisions.ts": {
-    "mtime": 1785825669.414753,
+    "mtime": 1785944629.332017,
     "ast_hash": "c2a02069a137ae8a12fd4647efea13b9",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-crowd.test.ts": {
-    "mtime": 1785825669.4148533,
+    "mtime": 1785944629.3861277,
     "ast_hash": "9210ca06d30f8a08400b07084d35bb20",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-crowd.ts": {
-    "mtime": 1785825669.4169552,
+    "mtime": 1785944629.368705,
     "ast_hash": "b386db053b438615ccdb9eebfe474c6a",
     "semantic_hash": ""
   },
   "apps/web/scripts/verify-office-loco.mjs": {
-    "mtime": 1785825669.414199,
+    "mtime": 1785944629.4052317,
     "ast_hash": "c20febb55af53cd929a0dcc150c0783d",
     "semantic_hash": ""
   },

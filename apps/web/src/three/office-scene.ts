@@ -230,7 +230,7 @@ interface AvatarNode {
  * office-scene-host and reported in the debug snapshot, so the number the
  * verification harness reads can never drift from the one the host compares.
  */
-export const OFFICE_SCENE_BUILD = 42;
+export const OFFICE_SCENE_BUILD = 43;
 
 export class OfficeScene {
   private engine: Engine;
@@ -654,7 +654,8 @@ export class OfficeScene {
   private static readonly EMISSIVE_BY_MATERIAL: Record<string, number> = {
     // Floor + wall neon strips (dark albedo; bright strip in emission map).
     base: 2.4,
-    "dividing wall N": 2.0,
+    // Meeting room blue neon frames (dividing glass panels around the board).
+    "dividing wall N": 2.8,
     // Mokaid logo wall board (+ sofa shade, candles tray props on same atlas).
     // Saturated purple has low luminance — intensity must cross bloom threshold.
     additional: 22,
@@ -666,9 +667,10 @@ export class OfficeScene {
     // (GLB authoring values are 14.6 / 12.9; keep close so light "escapes").
     Candles: 7,
     "Table Light": 9,
-    // Shared atlas: wall art / photocopier / meeting UI / frames. Emission map
-    // is nearly black — any residual intensity + pure-white portrait albedo
-    // still drove bloom (the right portrait "neon" that should stay dark).
+    // Shared atlas: meeting-room UI / rack / fotocopieuse / some frames.
+    // Emission map is nearly black — meeting-room brilliance comes from
+    // full albedo under area lights. Portrait whites are pixel-damped in
+    // sanitizeSoloItemsMaterial (do NOT dim the whole atlas).
     "Solo items": 0,
   };
   /** Non-light materials must never emit (even if a stray emission map exists). */
@@ -682,9 +684,6 @@ export class OfficeScene {
     "plant pot N": 0.78,
     "Material.002": 0.88,
     "Material.003": 0.88,
-    // Portrait frames on "wall 1" use pure white photo backdrops that
-    // easily cross the bloom threshold under area lights.
-    "Solo items": 0.28,
   };
 
   private setupImageProcessing() {
@@ -962,8 +961,10 @@ export class OfficeScene {
 
       // Portrait frame shares "additional" emission atlas with the logo: strip
       // cyan portrait texels so only the purple neon (and warm shades) remain.
-      // Also damp pure-white albedo on the same atlas (suit portrait backdrop).
+      // Solo items: damp pure-white photo paper only — keep meeting-room screen
+      // and props at full albedo so the room stays lit like the reference.
       await this.sanitizeAdditionalMaterial();
+      await this.sanitizeSoloItemsMaterial();
 
       this.applyAnisotropicFiltering(16);
 
@@ -1026,6 +1027,31 @@ export class OfficeScene {
   }
 
   /**
+   * Solo items atlas drives the meeting-room board + miscellaneous props.
+   * Only damp near-white photo paper; leave UI blues / greys at full strength
+   * so the meeting room reads lit again.
+   */
+  private async sanitizeSoloItemsMaterial() {
+    if (this.disposed) return;
+    const seen = new Set<PBRMaterial>();
+    for (const mat of this.scene.materials) {
+      if (!(mat instanceof PBRMaterial)) continue;
+      const name = (mat.name ?? "").replace(/\s+$/, "").replace(/\.\d+$/, "");
+      if (name !== "Solo items") continue;
+      if (seen.has(mat)) continue;
+      seen.add(mat);
+      await this.dampenNearWhiteAlbedo(mat, "solo-items-albedo-soft-whites", 0.35);
+      if (this.disposed) return;
+      await this.boostSoloItemsScreenEmissive(mat);
+      if (this.disposed) return;
+      // Matte only — keep full direct light so the meeting board stays bright.
+      mat.metallic = 0;
+      mat.roughness = 1;
+      mat.specularIntensity = 0.15;
+    }
+  }
+
+  /**
    * "additional" atlas carries the purple logo + a cyan halo and pure-white
    * photo for the man-in-suit portrait on the same texture. Keep purple neon
    * and warm shades on the emission map; kill cyan emission and soft-dampen
@@ -1042,7 +1068,7 @@ export class OfficeScene {
       seen.add(mat);
       await this.filterAdditionalEmissiveTexture(mat);
       if (this.disposed) return;
-      await this.dampenAdditionalWhiteAlbedo(mat);
+      await this.dampenNearWhiteAlbedo(mat, "additional-albedo-soft-whites", 0.28);
       if (this.disposed) return;
       // White portrait paper sat on a metallic atlas — kill specular so area
       // lights cannot re-light the face as a bright ball.
@@ -1130,14 +1156,20 @@ export class OfficeScene {
     raw.level = src.level;
   }
 
-  private async dampenAdditionalWhiteAlbedo(mat: PBRMaterial) {
+  /**
+   * Dim near-neutral white / photo-paper pixels on an albedo atlas without
+   * crushing colored UIs (meeting-room board, neon props).
+   */
+  private async dampenNearWhiteAlbedo(
+    mat: PBRMaterial,
+    rawName: string,
+    factor: number,
+  ) {
     const base = mat.albedoTexture;
     if (!(base instanceof Texture)) return;
     const decoded = await this.readTextureRgba(base);
     if (!decoded || this.disposed) return;
     const { w, h, out } = decoded;
-    // Pure-white photo backs (the suit portrait circle) get dimmed so they
-    // no longer sit above the bloom threshold under area lights.
     for (let i = 0; i < w * h; i++) {
       const oi = i * 4;
       const r = out[oi];
@@ -1145,11 +1177,11 @@ export class OfficeScene {
       const b = out[oi + 2];
       const minc = Math.min(r, g, b);
       const maxc = Math.max(r, g, b);
-      // Near-neutral white / light grey photo paper.
+      // Near-neutral white / light grey photo paper only.
       if (maxc > 180 && minc > 140 && maxc - minc < 50) {
-        out[oi] = Math.round(r * 0.28);
-        out[oi + 1] = Math.round(g * 0.28);
-        out[oi + 2] = Math.round(b * 0.28);
+        out[oi] = Math.round(r * factor);
+        out[oi + 1] = Math.round(g * factor);
+        out[oi + 2] = Math.round(b * factor);
       }
     }
     const raw = RawTexture.CreateRGBATexture(
@@ -1161,9 +1193,68 @@ export class OfficeScene {
       false,
       Texture.BILINEAR_SAMPLINGMODE,
     );
-    raw.name = "additional-albedo-soft-whites";
+    raw.name = rawName;
     this.applyTextureUvState(base, raw);
     mat.albedoTexture = raw;
+  }
+
+  /**
+   * Meeting-room monitor lives on Solo items base color (cool UI blues). Bake
+   * those texels into a soft emission map so the board self-glows again like
+   * the reference, without re-igniting pure-white photo frames.
+   */
+  private async boostSoloItemsScreenEmissive(mat: PBRMaterial) {
+    const base = mat.albedoTexture;
+    if (!(base instanceof Texture)) return;
+    const decoded = await this.readTextureRgba(base);
+    if (!decoded || this.disposed) return;
+    const { w, h, out: alb } = decoded;
+    const emis = new Uint8Array(w * h * 4);
+    let lit = 0;
+    for (let i = 0; i < w * h; i++) {
+      const oi = i * 4;
+      const r = alb[oi];
+      const g = alb[oi + 1];
+      const b = alb[oi + 2];
+      const minc = Math.min(r, g, b);
+      const maxc = Math.max(r, g, b);
+      const nearWhite = maxc > 170 && minc > 130 && maxc - minc < 45;
+      // Cool UI screens: blue-dominant or cyan charts on the meeting board.
+      const coolUi =
+        !nearWhite &&
+        b >= 70 &&
+        b >= r * 0.95 &&
+        b >= g * 0.85 &&
+        maxc - minc > 18;
+      if (coolUi) {
+        // Mild lift so bloom catches the board without flooding the room.
+        emis[oi] = Math.min(255, Math.round(r * 0.85));
+        emis[oi + 1] = Math.min(255, Math.round(g * 0.9));
+        emis[oi + 2] = Math.min(255, Math.round(b * 1.05));
+        emis[oi + 3] = 255;
+        lit += 1;
+      } else {
+        emis[oi] = 0;
+        emis[oi + 1] = 0;
+        emis[oi + 2] = 0;
+        emis[oi + 3] = 255;
+      }
+    }
+    if (lit < 64) return; // nothing screen-like found
+    const raw = RawTexture.CreateRGBATexture(
+      emis,
+      w,
+      h,
+      this.scene,
+      false,
+      false,
+      Texture.BILINEAR_SAMPLINGMODE,
+    );
+    raw.name = "solo-items-emis-screens";
+    this.applyTextureUvState(base, raw);
+    mat.emissiveTexture = raw;
+    mat.emissiveColor = Color3.White();
+    mat.emissiveIntensity = 2.4;
   }
 
   private async filterAdditionalEmissiveTexture(mat: PBRMaterial) {
@@ -1238,8 +1329,7 @@ export class OfficeScene {
         OfficeScene.EMISSIVE_DEFAULT;
 
       if (target <= 0) {
-        // Hard kill: stray emission maps (e.g. coffee table / white portraits)
-        // must not bloom from residual texture or factor.
+        // Hard kill: stray emission maps (e.g. coffee table) must not bloom.
         mat.emissiveIntensity = 0;
         mat.emissiveColor = Color3.Black();
         if (mat.emissiveTexture) {
@@ -1249,24 +1339,11 @@ export class OfficeScene {
         mat.emissiveIntensity = target;
       }
 
-      // Portraits / misc props must stay matte and dim: pure-white photo backs
-      // on the Solo items atlas still crossed bloom under area lights even with
-      // emission fully killed (read as a cyan halo around the right frame).
-      if (name === "Solo items" || rawName === "Solo items") {
-        mat.metallic = 0;
-        mat.roughness = 1;
-        mat.specularIntensity = 0;
-        mat.environmentIntensity = 0;
-        // Receive lamps / panels softly — not blown out like self-emission.
-        if (typeof mat.directIntensity === "number") mat.directIntensity = 0.45;
-      }
-
       const soften =
         OfficeScene.ALBEDO_SOFTEN[name] ?? OfficeScene.ALBEDO_SOFTEN[rawName];
       if (soften != null && soften < 1) {
         if (mat.albedoColor) mat.albedoColor = mat.albedoColor.scale(soften);
-        // Texture-driven pure whites (portraits) need the texture level lowered
-        // too — albedoColor alone still left them past the bloom threshold.
+        // Texture-driven pure whites need the texture level lowered too.
         if (mat.albedoTexture && typeof mat.albedoTexture.level === "number") {
           mat.albedoTexture.level = soften;
         }

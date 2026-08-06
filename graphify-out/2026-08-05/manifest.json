@@ -1820,8 +1820,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-lighting.ts": {
-    "mtime": 1785942373.0264728,
-    "ast_hash": "28b05adae3178288d65ecab7f79c27b9",
+    "mtime": 1785943190.226237,
+    "ast_hash": "f1a008a4cf914fe19a15796ce4c1e89c",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-navdata.test.ts": {
@@ -1845,8 +1845,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-scene.ts": {
-    "mtime": 1785942444.7573729,
-    "ast_hash": "aa7231dc10eaeda515321c38ea7446ba",
+    "mtime": 1785943195.8247588,
+    "ast_hash": "ea081818e0c46512029e92219e40d2d6",
     "semantic_hash": ""
   },
   "apps/web/src/three/types.ts": {
@@ -14017,6 +14017,11 @@
   "apps/crm/src/components/charts.tsx": {
     "mtime": 1785942387.595403,
     "ast_hash": "a6ce2c42ec24146deaf301cb0a094895",
+    "semantic_hash": ""
+  },
+  "apps/crm/src/app/(app)/logs/page.tsx": {
+    "mtime": 1785942512.073949,
+    "ast_hash": "4659fd1deef7e57a92e85aadce90e7ee",
     "semantic_hash": ""
   }
 }
