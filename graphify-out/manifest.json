@@ -1845,8 +1845,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-scene.ts": {
-    "mtime": 1785944750.176812,
-    "ast_hash": "d02c5a2b18345cc9f4bc4de67b182c69",
+    "mtime": 1785945150.9071064,
+    "ast_hash": "df7e3888881b77a92ccca994f64db59d",
     "semantic_hash": ""
   },
   "apps/web/src/three/types.ts": {

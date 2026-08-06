@@ -399,7 +399,10 @@ defmodule MokaidWeb.AdminController do
   end
 
   def sync_costs(conn, params) do
-    days = Map.get(params, "days", 3) |> then(fn d -> if is_binary(d), do: String.to_integer(d), else: d end)
+    days =
+      Map.get(params, "days", 3)
+      |> then(fn d -> if is_binary(d), do: String.to_integer(d), else: d end)
+
     days = min(max(days, 1), 90)
 
     # Fire-and-forget Oban jobs for backfill

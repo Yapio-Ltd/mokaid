@@ -427,7 +427,9 @@ defmodule Mokaid.Billing.ProviderCostSync do
   defp day_start_unix(%Date{} = day), do: DateTime.to_unix(day_start_dt(day))
 
   defp usd_to_cents(v) when is_number(v), do: round(v * 100)
-  defp usd_to_cents(%Decimal{} = d), do: d |> Decimal.mult(100) |> Decimal.round(0) |> Decimal.to_integer()
+
+  defp usd_to_cents(%Decimal{} = d),
+    do: d |> Decimal.mult(100) |> Decimal.round(0) |> Decimal.to_integer()
 
   defp usd_to_cents(v) when is_binary(v) do
     case Float.parse(v) do
@@ -464,7 +466,9 @@ defmodule Mokaid.Billing.ProviderCostSync do
   defp strip_large(map) when is_map(map) do
     map
     |> Map.drop(["raw", "prompt", "messages", "input", "output", "content"])
-    |> Map.take(~w(amount line_item project_id model description cost_type service_tier token_type currency quantity))
+    |> Map.take(
+      ~w(amount line_item project_id model description cost_type service_tier token_type currency quantity)
+    )
   end
 
   defp sanitize_body(body) when is_map(body), do: Map.take(body, ["error", "type", "message"])

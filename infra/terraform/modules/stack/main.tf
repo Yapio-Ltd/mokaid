@@ -386,10 +386,10 @@ module "secrets" {
 
   name_prefix = local.name
   secrets = {
-    secret_key_base          = "CHANGE_ME"
-    worker_auth_token        = "CHANGE_ME"
-    openai_api_key           = "CHANGE_ME"
-    anthropic_api_key        = "CHANGE_ME"
+    secret_key_base   = "CHANGE_ME"
+    worker_auth_token = "CHANGE_ME"
+    openai_api_key    = "CHANGE_ME"
+    anthropic_api_key = "CHANGE_ME"
     # Admin API keys (costs/usage org only — never inference). Filled out-of-band.
     openai_admin_api_key     = "CHANGE_ME"
     anthropic_admin_api_key  = "CHANGE_ME"
@@ -574,9 +574,9 @@ module "api_service" {
   }
 
   secrets = {
-    DATABASE_URL             = module.rds.database_url_secret_arn
-    SECRET_KEY_BASE          = module.secrets.secret_arns["secret_key_base"]
-    AI_WORKER_TOKEN          = module.secrets.secret_arns["worker_auth_token"]
+    DATABASE_URL    = module.rds.database_url_secret_arn
+    SECRET_KEY_BASE = module.secrets.secret_arns["secret_key_base"]
+    AI_WORKER_TOKEN = module.secrets.secret_arns["worker_auth_token"]
     # Provider Admin keys — cost/usage org only; never on the AI worker.
     OPENAI_ADMIN_API_KEY     = module.secrets.secret_arns["openai_admin_api_key"]
     ANTHROPIC_ADMIN_API_KEY  = module.secrets.secret_arns["anthropic_admin_api_key"]

@@ -73,7 +73,8 @@ defmodule Mokaid.Billing.AwsCostSync do
     period_start = day_start_dt(day)
     period_end = day_start_dt(Date.add(day, 1))
 
-    results_by_time = Map.get(response, "ResultsByTime") || Map.get(response, :ResultsByTime) || []
+    results_by_time =
+      Map.get(response, "ResultsByTime") || Map.get(response, :ResultsByTime) || []
 
     rows =
       Enum.flat_map(results_by_time, fn block ->

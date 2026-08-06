@@ -100,7 +100,10 @@ defmodule Mokaid.Observability.CloudWatchLogs do
 
   defp redact_message(msg) when is_binary(msg) do
     msg
-    |> String.replace(~r/(?i)(authorization|api[_-]?key|token|password|secret)\s*[:=]\s*\S+/, "\\1=[REDACTED]")
+    |> String.replace(
+      ~r/(?i)(authorization|api[_-]?key|token|password|secret)\s*[:=]\s*\S+/,
+      "\\1=[REDACTED]"
+    )
     |> String.replace(~r/sk-(?:ant-)?[a-zA-Z0-9_\-]{10,}/, "[REDACTED_KEY]")
     |> String.replace(~r/Bearer\s+[A-Za-z0-9\-._~+\/]+=*/, "Bearer [REDACTED]")
     |> String.slice(0, 2000)

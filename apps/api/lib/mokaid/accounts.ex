@@ -49,7 +49,9 @@ defmodule Mokaid.Accounts do
     attrs = %{
       user_id: user.id,
       ip_address: Keyword.get(opts, :ip_address) && to_string(Keyword.get(opts, :ip_address)),
-      user_agent: Keyword.get(opts, :user_agent) && String.slice(to_string(Keyword.get(opts, :user_agent)), 0, 500),
+      user_agent:
+        Keyword.get(opts, :user_agent) &&
+          String.slice(to_string(Keyword.get(opts, :user_agent)), 0, 500),
       auth_method: Keyword.get(opts, :auth_method, "password"),
       success: Keyword.get(opts, :success, true),
       metadata: Keyword.get(opts, :metadata, %{}),

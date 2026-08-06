@@ -321,10 +321,18 @@ defmodule Mokaid.Admin do
 
       case user |> User.moderation_changeset(attrs) |> Repo.update() do
         {:ok, updated} ->
-          platform_audit(actor, "admin.user.ban", "user", updated.id, nil, %{
-            reason: reason,
-            ban_expires_at: expires
-          }, opts)
+          platform_audit(
+            actor,
+            "admin.user.ban",
+            "user",
+            updated.id,
+            nil,
+            %{
+              reason: reason,
+              ban_expires_at: expires
+            },
+            opts
+          )
 
           {:ok, Repo.preload(updated, memberships: [:workspace, :role])}
 
@@ -370,11 +378,19 @@ defmodule Mokaid.Admin do
 
       case user |> User.moderation_changeset(attrs) |> Repo.update() do
         {:ok, updated} ->
-          platform_audit(actor, "admin.user.schedule_deletion", "user", updated.id, nil, %{
-            deletion_scheduled_at: scheduled,
-            reason: reason,
-            grace_days: days
-          }, opts)
+          platform_audit(
+            actor,
+            "admin.user.schedule_deletion",
+            "user",
+            updated.id,
+            nil,
+            %{
+              deletion_scheduled_at: scheduled,
+              reason: reason,
+              grace_days: days
+            },
+            opts
+          )
 
           {:ok, Repo.preload(updated, memberships: [:workspace, :role])}
 
