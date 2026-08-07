@@ -1,7 +1,7 @@
 # Graph Report - mokaid  (2026-08-06)
 
 ## Corpus Check
-- 2571 files · ~3,580,410 words
+- 2571 files · ~3,580,418 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c87c180e`
+- Built from commit: `65bbd33c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -2893,10 +2893,10 @@
 10. `PhoenixClient` - 46 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `HostState` --references--> `OfficeScene`  [EXTRACTED]
-  apps/web/src/three/office-scene-host.ts → apps/web/src/three/office-scene.ts
 - `update_subscription()` --calls--> `adjust_credits()`  [INFERRED]
   apps/api/lib/mokaid/admin.ex → apps/api/lib/mokaid_web/controllers/admin_controller.ex
+- `HostState` --references--> `OfficeScene`  [EXTRACTED]
+  apps/web/src/three/office-scene-host.ts → apps/web/src/three/office-scene.ts
 - `MissionLearnings` --uses--> `PhoenixClient`  [INFERRED]
   apps/ai-worker/app/agents/deep_runner.py → apps/ai-worker/app/clients/phoenix.py
 - `MissionLearnings` --uses--> `McpToolbox`  [INFERRED]

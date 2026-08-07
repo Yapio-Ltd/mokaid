@@ -233,7 +233,7 @@ interface AvatarNode {
  * office-scene-host and reported in the debug snapshot, so the number the
  * verification harness reads can never drift from the one the host compares.
  */
-export const OFFICE_SCENE_BUILD = 44;
+export const OFFICE_SCENE_BUILD = 45;
 
 export class OfficeScene {
   private engine: Engine;
@@ -329,6 +329,18 @@ export class OfficeScene {
     this.scene = new Scene(this.engine);
     this.scene.clearColor = Color4.FromHexString("#050507ff");
     this.scene.ambientColor = new Color3(0.02, 0.02, 0.04);
+
+    // While the active-mesh list is frozen, Babylon's _evaluateActiveMeshes
+    // early-returns and never reaches _prepareSkeleton — bone matrices stop
+    // updating and avatars slide around in a fixed pose. Prepare avatar
+    // skeletons manually after animations advance; prepare() is render-id
+    // guarded, so this is a no-op on frames where Babylon already did it.
+    this.scene.onAfterAnimationsObservable.add(() => {
+      if (!this.environmentFrozen) return;
+      for (const skeleton of this.scene.skeletons) {
+        skeleton.prepare();
+      }
+    });
 
     this.setupImageProcessing();
     this.setupCamera();
