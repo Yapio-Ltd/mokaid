@@ -10,7 +10,7 @@
   - Research / chercheur: Meshy walk/talk/run overlays (`scripts/bake-avatar-research.py` on `assets/raw/research/`).
   - Served from `/assets3d/avatar_*.<hash>.glb` (also on S3 `mokaid-assets-3d-*`).
 - **Catalog**: Postgres table `asset_3d` — API `GET /api/assets-3d`. Agents reference via `avatar_asset_id`.
-- **Office furniture**: still procedural via `asset-manifest.ts` until environment GLBs ship.
+- **Office environment**: `office.<hash>.glb` (textures max 2048) + `office.mobile.<hash>.glb` (textures max 1024) in `apps/web/public/assets3d/` and S3 `mokaid-assets-3d-*/assets3d/`. Resolved by device profile (`office-asset.ts`).
 
 ## Delivery requirements for final assets
 
@@ -50,7 +50,7 @@ python3 scripts/bake-poi-clips.py assets/raw/avatar_legal.glb -o assets/raw/avat
 python3 scripts/bake-avatar-research.py assets/raw/research -o assets/raw/avatar_research.glb
 python3 scripts/bake-poi-clips.py assets/raw/avatar_research.glb -o assets/raw/avatar_research.glb
 
-# 2. Optimize raw exports (Draco + KTX2)
+# 2. Optimize raw exports (avatars Draco+WebP; office resize 2048 + 1024 mobile)
 ./scripts/optimize-assets.sh assets/raw assets/optimized
 
 # 3. Validate against budgets
@@ -59,9 +59,17 @@ python3 scripts/bake-poi-clips.py assets/raw/avatar_research.glb -o assets/raw/a
 # 4. Hash + copy into the web public folder (and optionally generate manifest)
 HASH=$(shasum -a 256 assets/optimized/avatar_male.glb | cut -c1-12)
 cp assets/optimized/avatar_male.glb "apps/web/public/assets3d/avatar_male.${HASH}.glb"
+OHASH=$(shasum -a 256 assets/optimized/office.glb | cut -c1-12)
+MHASH=$(shasum -a 256 assets/optimized/office.mobile.glb | cut -c1-12)
+cp assets/optimized/office.glb "apps/web/public/assets3d/office.${OHASH}.glb"
+cp assets/optimized/office.mobile.glb "apps/web/public/assets3d/office.mobile.${MHASH}.glb"
+# Update OFFICE_ENVIRONMENT_*_CDN_PATH in apps/web/src/three/office-asset.ts
 
 # 5. Upload to the assets bucket (Terraform output: mokaid-assets-3d-<env>-<account>)
-aws s3 sync assets/optimized s3://mokaid-assets-3d-.../assets3d/ --cache-control "public,max-age=31536000,immutable" --exclude "*" --include "*.glb"
+aws s3 sync apps/web/public/assets3d/ s3://mokaid-assets-3d-prod-660601648321/assets3d/ \
+  --profile mokaid \
+  --cache-control "public,max-age=31536000,immutable" \
+  --exclude "*" --include "*.glb"
 
 # 6. Upsert catalog metadata
 cd apps/api && mix run priv/repo/seeds.exs   # calls Assets3d.seed_catalog/0

@@ -108,6 +108,11 @@ import {
   type SecondaryActivity,
 } from "./office-navdata";
 import type { SceneAgent, SceneCallbacks } from "./types";
+import {
+  detectOfficeDeviceProfile,
+  type OfficeDeviceProfile,
+  type RenderQuality,
+} from "./office-device-profile";
 
 type IdleBehavior = "patrol" | IdleActivity | "poi" | "desk_sit";
 
@@ -147,8 +152,6 @@ function readOfficeCamOverride(): OfficeCamOverride | null {
   if (p.length < 6 || p.some((v) => Number.isNaN(v))) return null;
   return { px: p[0], py: p[1], pz: p[2], tx: p[3], ty: p[4], tz: p[5], fov: p[6], dist: p[7] };
 }
-
-type RenderQuality = "high" | "medium" | "low";
 
 interface AvatarNode {
   root: TransformNode;
@@ -230,7 +233,7 @@ interface AvatarNode {
  * office-scene-host and reported in the debug snapshot, so the number the
  * verification harness reads can never drift from the one the host compares.
  */
-export const OFFICE_SCENE_BUILD = 43;
+export const OFFICE_SCENE_BUILD = 44;
 
 export class OfficeScene {
   private engine: Engine;
@@ -261,12 +264,33 @@ export class OfficeScene {
   private socketOverrides = new Map<string, SeatSocket>();
   /** slotId → agent id holding it. Keeps two agents out of the same socket. */
   private slotClaims = new Map<string, string>();
-  private renderQuality: RenderQuality = "high";
+  /** Device-tiered render settings (desktop vs tablet/mobile). */
+  private readonly profile: OfficeDeviceProfile = detectOfficeDeviceProfile();
+  private renderQuality: RenderQuality = this.profile.initialQuality;
   private lowFpsFrames = 0;
   /** Consecutive frames at healthy FPS used to recover quality (hysteresis). */
   private goodFpsFrames = 0;
-  /** Don't degrade until this many ms after construction (load/spawn burst). */
+  /** Don't change tiers until this many ms after construction (load/spawn burst). */
   private readonly qualityGraceUntil = performance.now() + 12_000;
+  /** rAF handle of the frame-capped render loop. */
+  private renderHandle = 0;
+  /** Timestamp of the last rendered (non-skipped) frame. */
+  private lastRenderAt = 0;
+  /** True once the static environment was frozen (world matrices + materials). */
+  private environmentFrozen = false;
+  /** Reused across frames — see reportOverlay (GC pressure). */
+  private readonly overlayPositions = new Map<
+    string,
+    { x: number; y: number; visible: boolean }
+  >();
+  private readonly overlayWorldPos = new Vector3();
+  private readonly overlayProjected = new Vector3();
+  private lastOverlayAt = 0;
+  private readonly handleContextLost = (event: Event) => {
+    event.preventDefault();
+    console.warn("[OfficeScene] WebGL context lost");
+    this.callbacks.onContextLost?.();
+  };
   /**
    * Native Retina scale set by Engine(adaptToDeviceRatio): typically 1/dpr
    * (e.g. 0.5 on a 2× display). Quality tiers are multiples of this base.
@@ -282,18 +306,25 @@ export class OfficeScene {
   ) {
     this.engine = new Engine(
       canvas,
-      true,
+      false,
       {
         preserveDrawingBuffer: false,
         stencil: false,
-        antialias: true,
+        // AA is owned by the pipeline (MSAA / FXAA per quality tier). A
+        // multisampled default framebuffer on top of that costs GPU memory
+        // for zero visible gain once a post-process pipeline is active.
+        antialias: false,
         adaptToDeviceRatio: true,
-        powerPreference: "high-performance",
-        limitDeviceRatio: 2,
+        powerPreference: this.profile.powerPreference,
+        limitDeviceRatio: this.profile.limitDeviceRatio,
       },
       true,
     );
     this.baseScale = this.engine.getHardwareScalingLevel();
+
+    // iOS reclaims WebGL contexts under memory pressure; surface it so the
+    // React layer can swap to the 2D fallback instead of a frozen canvas.
+    canvas.addEventListener("webglcontextlost", this.handleContextLost, false);
 
     this.scene = new Scene(this.engine);
     this.scene.clearColor = Color4.FromHexString("#050507ff");
@@ -303,6 +334,9 @@ export class OfficeScene {
     this.setupCamera();
     this.setupAmbientLight();
     this.setupBloomPipeline();
+    // Apply the device-tier starting point (mobile starts low and is
+    // promoted by adaptQuality once FPS proves stable).
+    this.applyRenderQuality(this.renderQuality);
     this.setupPicking();
 
     // Placeholder slots; replaced with centered coords after the GLB loads.
@@ -451,6 +485,7 @@ export class OfficeScene {
     mat.disableLighting = true;
     pillar.material = mat;
     pillar.isPickable = false;
+    this.refreshFrozenActiveMeshes();
   }
 
   /**
@@ -507,16 +542,36 @@ export class OfficeScene {
     return out;
   }
 
+  /**
+   * Frame-capped render loop (30 fps tablet / 60 fps desktop).
+   *
+   * Uncapped rAF renders at 120 Hz on ProMotion displays — double the GPU
+   * work for an ambient scene and the main thermal driver on iPads. The cap
+   * is a custom loop (not Engine.runRenderLoop) on purpose: beginFrame /
+   * endFrame sample the perf monitor only on frames we actually render, so
+   * getDeltaTime() / getFps() measure real frame intervals. Skipping frames
+   * inside runRenderLoop would leave deltaTime at the raw rAF interval and
+   * play every animation in slow motion.
+   */
   private startRenderLoop() {
-    this.engine.stopRenderLoop();
-    this.engine.runRenderLoop(() => {
+    cancelAnimationFrame(this.renderHandle);
+    const minFrameMs = 1000 / this.profile.maxFps;
+    const tick = () => {
       if (this.disposed || this.paused) return;
+      this.renderHandle = requestAnimationFrame(tick);
+      const now = performance.now();
+      // ~1 ms tolerance so a 60 Hz display hits a 60 fps cap instead of 30.
+      if (now - this.lastRenderAt < minFrameMs - 1) return;
+      this.lastRenderAt = now;
+      this.engine.beginFrame();
       this.syncEngineSize();
       this.animate();
       this.scene.render();
       this.reportOverlay();
       this.adaptQuality();
-    });
+      this.engine.endFrame();
+    };
+    this.renderHandle = requestAnimationFrame(tick);
   }
 
   /** Swap React callbacks without rebuilding the WebGL context. */
@@ -530,12 +585,13 @@ export class OfficeScene {
 
   pause() {
     this.paused = true;
-    this.engine.stopRenderLoop();
+    cancelAnimationFrame(this.renderHandle);
   }
 
   resume() {
     if (this.disposed) return;
     this.paused = false;
+    this.lastRenderAt = 0;
     this.startRenderLoop();
     this.engine.resize();
   }
@@ -817,12 +873,16 @@ export class OfficeScene {
 
     for (const def of OFFICE_LIGHTS) {
       if (ORPHAN_POINT_LIGHTS.has(def.name)) continue; // no fixture under it
+      // Mobile sheds the weakest fill panels — fewer lights per fragment is
+      // the single biggest shader cost lever on tablet GPUs.
+      if (def.type === "AREA" && def.energy < this.profile.minAreaLightEnergy) continue;
       const light = this.createLightFromDef(def, centerX, minY, centerZ);
       if (!light) continue;
       this.sceneLights.push(light);
 
-      // Soft shadows from one warm lantern.
+      // Soft shadows from one warm lantern (skipped entirely on mobile).
       if (
+        this.profile.shadowsEnabled &&
         !primaryShadow &&
         light instanceof PointLight &&
         def.type === "POINT" &&
@@ -954,9 +1014,9 @@ export class OfficeScene {
         mesh.isPickable = false;
         mesh.receiveShadows = true;
         this.toneDownEmissive(mesh);
-        if (mesh instanceof Mesh) {
-          this.shadowGenerator?.addShadowCaster(mesh);
-        }
+        // Environment meshes are intentionally NOT shadow casters: only the
+        // avatars cast (re-rendering hundreds of static meshes into the
+        // shadow map every frame bought nothing visible from this lantern).
       }
 
       // Portrait frame shares "additional" emission atlas with the logo: strip
@@ -966,7 +1026,7 @@ export class OfficeScene {
       await this.sanitizeAdditionalMaterial();
       await this.sanitizeSoloItemsMaterial();
 
-      this.applyAnisotropicFiltering(16);
+      this.applyAnisotropicFiltering(this.profile.anisotropy);
 
       // Center footprint on XZ and plant the floor at y=0.
       root.computeWorldMatrix(true);
@@ -1003,12 +1063,17 @@ export class OfficeScene {
       this.officeReady = true;
       this.callbacks.onLoadProgress?.(1);
       this.callbacks.onOfficeReady?.(true);
-      // Prefer sharp Retina after the heaviest I/O; recover even if a prior host
-      // left a lower hardware scale in mind (fresh scene starts high).
-      this.renderQuality = "high";
+      // Reset to the device profile's starting tier after the heaviest I/O.
+      // Desktop returns to sharp Retina; mobile stays low and earns upgrades
+      // through adaptQuality once FPS proves stable.
+      this.renderQuality = this.profile.initialQuality;
       this.lowFpsFrames = 0;
       this.goodFpsFrames = 0;
-      this.applyRenderQuality("high");
+      this.applyRenderQuality(this.renderQuality);
+
+      // All material/texture mutations (toneDownEmissive, sanitize passes,
+      // light exclusions) are done — the environment can be frozen now.
+      this.freezeStaticEnvironment(result.meshes);
 
       // Bake Recast navmesh + crowd (async); agents fall back to A* until ready.
       void this.bakeOfficeCrowd();
@@ -1142,6 +1207,18 @@ export class OfficeScene {
     return { w, h, out };
   }
 
+  /**
+   * Free a texture that was replaced by a sanitized RawTexture — unless
+   * another material still samples it (atlases are shared across materials).
+   * Without this, both the original and the replacement stay in GPU memory.
+   */
+  private disposeReplacedTexture(replaced: Texture) {
+    for (const mat of this.scene.materials) {
+      if (mat.getActiveTextures().includes(replaced)) return;
+    }
+    replaced.dispose();
+  }
+
   private applyTextureUvState(src: Texture, raw: Texture) {
     raw.wrapU = src.wrapU;
     raw.wrapV = src.wrapV;
@@ -1189,13 +1266,14 @@ export class OfficeScene {
       w,
       h,
       this.scene,
+      true,
       false,
-      false,
-      Texture.BILINEAR_SAMPLINGMODE,
+      Texture.TRILINEAR_SAMPLINGMODE,
     );
     raw.name = rawName;
     this.applyTextureUvState(base, raw);
     mat.albedoTexture = raw;
+    this.disposeReplacedTexture(base);
   }
 
   /**
@@ -1246,9 +1324,9 @@ export class OfficeScene {
       w,
       h,
       this.scene,
+      true,
       false,
-      false,
-      Texture.BILINEAR_SAMPLINGMODE,
+      Texture.TRILINEAR_SAMPLINGMODE,
     );
     raw.name = "solo-items-emis-screens";
     this.applyTextureUvState(base, raw);
@@ -1296,13 +1374,47 @@ export class OfficeScene {
       w,
       h,
       this.scene,
+      true,
       false,
-      false,
-      Texture.BILINEAR_SAMPLINGMODE,
+      Texture.TRILINEAR_SAMPLINGMODE,
     );
     raw.name = "additional-emis-neon-only";
     this.applyTextureUvState(base, raw);
     mat.emissiveTexture = raw;
+    this.disposeReplacedTexture(base);
+  }
+
+  /**
+   * The office environment is fully static and the camera never moves:
+   * freeze world matrices + materials so Babylon stops re-evaluating
+   * hundreds of meshes and shader defines every frame, and freeze the
+   * active-mesh selection (re-evaluated whenever avatars spawn/despawn).
+   * Purely CPU savings — the rendered image is identical.
+   */
+  private freezeStaticEnvironment(envMeshes: AbstractMesh[]) {
+    const frozenMaterials = new Set<unknown>();
+    for (const mesh of envMeshes) {
+      mesh.freezeWorldMatrix();
+      mesh.doNotSyncBoundingInfo = true;
+      const mat = mesh.material;
+      if (mat && !frozenMaterials.has(mat)) {
+        frozenMaterials.add(mat);
+        mat.freeze();
+      }
+    }
+    this.environmentFrozen = true;
+    this.refreshFrozenActiveMeshes();
+  }
+
+  /**
+   * Re-evaluate the frozen active-mesh list after meshes appear/disappear.
+   * `freezeMeshes: false` is critical — the default would also freeze the
+   * world matrices of avatar meshes, pinning them mid-walk.
+   */
+  private refreshFrozenActiveMeshes() {
+    if (!this.environmentFrozen || this.disposed) return;
+    this.scene.unfreezeActiveMeshes();
+    this.scene.freezeActiveMeshes(false, undefined, undefined, false);
   }
 
   /** Keep textures crisp when viewed at grazing angles (desks, neon strips). */
@@ -1320,7 +1432,9 @@ export class OfficeScene {
     const apply = (mat: unknown) => {
       if (!(mat instanceof PBRMaterial)) return;
       // Desk lamps + overhead panels exceed Babylon's default 4 (and 24).
-      mat.maxSimultaneousLights = 36;
+      // Device-tiered: fragment cost scales with the number of lights the
+      // compiled shader evaluates, the dominant GPU cost on tablets.
+      mat.maxSimultaneousLights = this.profile.maxSimultaneousLights;
       const rawName = mat.name ?? "";
       const name = rawName.replace(/\s+$/, "").replace(/\.\d+$/, "");
       const target =
@@ -1379,6 +1493,9 @@ export class OfficeScene {
           existing.collider.dispose();
           existing.root.dispose();
           this.avatars.delete(agent.id);
+          // Drop the disposed meshes from the frozen active-mesh list now;
+          // the async re-spawn refreshes again once the new GLB is in.
+          this.refreshFrozenActiveMeshes();
           void this.createAvatar(agent, agent.seatIndex >= 0 ? agent.seatIndex : index);
           return;
         }
@@ -1414,6 +1531,7 @@ export class OfficeScene {
     });
 
     // Remove avatars for agents that no longer exist
+    let removedAny = false;
     for (const [id, avatar] of this.avatars) {
       if (!seen.has(id)) {
         disposeAgentAnims(avatar);
@@ -1422,8 +1540,10 @@ export class OfficeScene {
         avatar.collider.dispose();
         avatar.root.dispose();
         this.avatars.delete(id);
+        removedAny = true;
       }
     }
+    if (removedAny) this.refreshFrozenActiveMeshes();
   }
 
   private async createAvatar(agent: SceneAgent, seatIndex: number) {
@@ -1540,6 +1660,8 @@ export class OfficeScene {
     }
     this.syncServerActivity(avatar);
     this.applyStatusVisual(avatar);
+    // New meshes are invisible while the active-mesh list is frozen.
+    this.refreshFrozenActiveMeshes();
   }
 
   /** Bind home chair from a stable server seat_index (0..MAX_OFFICE_SEATS-1). */
@@ -2991,10 +3113,15 @@ export class OfficeScene {
     const fps = this.engine.getFps();
     if (fps <= 0) return;
 
-    if (fps < 32) {
+    // Thresholds are relative to the profile's frame cap: a tablet capped at
+    // 30 fps must not read its own cap as "sustained low FPS" and degrade.
+    const lowThreshold = Math.min(32, this.profile.maxFps * 0.7);
+    const goodThreshold = Math.min(45, this.profile.maxFps * 0.9);
+
+    if (fps < lowThreshold) {
       this.lowFpsFrames += 1;
       this.goodFpsFrames = 0;
-    } else if (fps < 45) {
+    } else if (fps < goodThreshold) {
       // Borderline: neither climb nor drop hard.
       this.lowFpsFrames = Math.max(0, this.lowFpsFrames - 1);
       this.goodFpsFrames = Math.max(0, this.goodFpsFrames - 1);
@@ -3025,29 +3152,16 @@ export class OfficeScene {
     this.applyRenderQuality(next);
   }
 
+  /** Apply a quality tier using the device profile's settings for that tier. */
   private applyRenderQuality(tier: RenderQuality) {
     if (!this.pipeline) return;
-    if (tier === "high") {
-      this.pipeline.bloomEnabled = true;
-      this.pipeline.bloomWeight = OFFICE_BLOOM.weight;
-      this.pipeline.samples = 4;
-      this.pipeline.fxaaEnabled = false;
-      this.engine.setHardwareScalingLevel(this.baseScale);
-    } else if (tier === "medium") {
-      this.pipeline.bloomEnabled = true;
-      this.pipeline.bloomWeight = OFFICE_BLOOM.weight * 0.75;
-      this.pipeline.samples = 2;
-      this.pipeline.fxaaEnabled = false;
-      // Cap worse than high Retina, but avoid the old ×1.3 mush on 2× displays.
-      this.engine.setHardwareScalingLevel(Math.min(1, this.baseScale * 1.15));
-    } else {
-      // Keep light MSAA + modest bloom; old ×1.7 + FXAA-only looked pixelated.
-      this.pipeline.bloomEnabled = true;
-      this.pipeline.bloomWeight = OFFICE_BLOOM.weight * 0.45;
-      this.pipeline.samples = 2;
-      this.pipeline.fxaaEnabled = true;
-      this.engine.setHardwareScalingLevel(Math.min(1, this.baseScale * 1.35));
-    }
+    const settings = this.profile.tiers[tier];
+    this.pipeline.bloomEnabled = settings.bloomEnabled;
+    this.pipeline.bloomWeight = OFFICE_BLOOM.weight * settings.bloomWeightMul;
+    this.pipeline.samples = settings.samples;
+    this.pipeline.fxaaEnabled = settings.fxaa;
+    // Clamped to ≤ 1: never render below the canvas CSS resolution.
+    this.engine.setHardwareScalingLevel(Math.min(1, this.baseScale * settings.scaleMul));
     this.lastClientW = 0;
     this.lastClientH = 0;
     this.engine.resize();
@@ -3086,7 +3200,11 @@ export class OfficeScene {
       this.callbacks.onFps(Math.round(this.engine.getFps()));
     }
 
-    const positions = new Map<string, { x: number; y: number; visible: boolean }>();
+    // Labels don't need more than ~30 Hz; avatars move slowly and the camera
+    // is fixed. Halves the projection work and the per-frame GC pressure.
+    if (now - this.lastOverlayAt < 33) return;
+    this.lastOverlayAt = now;
+
     const camera = this.scene.activeCamera;
     if (!camera) return;
 
@@ -3096,20 +3214,32 @@ export class OfficeScene {
     const renderH = this.engine.getRenderHeight();
     if (cssW === 0 || cssH === 0 || renderW === 0 || renderH === 0) return;
 
+    // Reuse the Map + per-agent entries + scratch vectors across frames.
+    const positions = this.overlayPositions;
+    for (const id of positions.keys()) {
+      if (!this.avatars.has(id)) positions.delete(id);
+    }
+
+    const viewport = camera.viewport.toGlobal(renderW, renderH);
     for (const [id, avatar] of this.avatars) {
-      const worldPos = avatar.root.getAbsolutePosition().add(new Vector3(0, avatar.labelHeight, 0));
-      const projected = Vector3.Project(
-        worldPos,
-        Matrix.Identity(),
+      this.overlayWorldPos.copyFrom(avatar.root.getAbsolutePosition());
+      this.overlayWorldPos.y += avatar.labelHeight;
+      Vector3.ProjectToRef(
+        this.overlayWorldPos,
+        Matrix.IdentityReadOnly,
         this.scene.getTransformMatrix(),
-        camera.viewport.toGlobal(renderW, renderH),
+        viewport,
+        this.overlayProjected,
       );
 
-      positions.set(id, {
-        x: (projected.x / renderW) * cssW,
-        y: (projected.y / renderH) * cssH,
-        visible: projected.z > 0 && projected.z < 1,
-      });
+      let entry = positions.get(id);
+      if (!entry) {
+        entry = { x: 0, y: 0, visible: false };
+        positions.set(id, entry);
+      }
+      entry.x = (this.overlayProjected.x / renderW) * cssW;
+      entry.y = (this.overlayProjected.y / renderH) * cssH;
+      entry.visible = this.overlayProjected.z > 0 && this.overlayProjected.z < 1;
     }
 
     this.callbacks.onBubblePositions(positions);
@@ -3121,6 +3251,8 @@ export class OfficeScene {
 
   dispose() {
     this.disposed = true;
+    cancelAnimationFrame(this.renderHandle);
+    this.canvas.removeEventListener("webglcontextlost", this.handleContextLost, false);
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
     for (const avatar of this.avatars.values()) {

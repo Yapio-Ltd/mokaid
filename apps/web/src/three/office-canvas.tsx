@@ -27,6 +27,7 @@ import { zoneForCommunity } from "./knowledge-zones";
 import {
   attachOfficeHost,
   detachOfficeHost,
+  disposeOfficeHost,
   getOfficeHostScene,
   OFFICE_SCENE_BUILD,
   updateOfficeHostAgents,
@@ -335,6 +336,13 @@ export function OfficeCanvas({
           if (ok) updateOfficeHostAgents(sceneAgentsRef.current);
         },
         onAgentActivity,
+        onContextLost: () => {
+          // iOS reclaimed the WebGL context (memory pressure): tear down the
+          // singleton and swap to the 2D fallback instead of a frozen canvas.
+          console.warn("[3d] WebGL context lost — switching to 2D fallback");
+          disposeOfficeHost();
+          setWebglFailed(true);
+        },
       });
       // Always seed lastAgents on the (possibly brand-new) host.
       updateOfficeHostAgents(sceneAgentsRef.current);

@@ -31,4 +31,9 @@ export interface SceneCallbacks {
   onOfficeReady?: (ok: boolean) => void;
   /** Local locomotion activity when no server activity is set (e.g. walking). */
   onAgentActivity?: (agentId: string, activity: SecondaryActivity) => void;
+  /**
+   * WebGL context was lost (iOS reclaims it under memory pressure).
+   * The React layer should tear the host down and show the 2D fallback.
+   */
+  onContextLost?: () => void;
 }
