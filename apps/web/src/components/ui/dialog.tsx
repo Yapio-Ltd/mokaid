@@ -30,7 +30,8 @@ export function Dialog({
         <DialogPrimitive.Content
           className={cn(
             "mk-dialog-in fixed left-1/2 top-1/2 z-50 w-[440px] max-w-[calc(100vw-2rem)]",
-            "max-h-[min(92vh,calc(100dvh-1.5rem))] overflow-y-auto rounded-xl bg-surface shadow-lg",
+            "max-h-[min(92vh,calc(100dvh-1.5rem))] overflow-y-auto rounded-xl border-0 bg-surface shadow-lg",
+            "outline-none ring-0 focus:outline-none focus-visible:outline-none",
             className,
           )}
         >

@@ -62,8 +62,33 @@ defmodule Mokaid.AI.DispatcherTest do
                })
 
       assert analysis.recommendation.mode == "custom_agent"
+      assert analysis.recommendation.agent_id == nil
+      assert analysis.recommendation.alternatives == []
       assert analysis.recommendation.custom_agent.display_name == "Data Scientist"
       assert analysis.recommendation.custom_agent.archetype_key == "data_scientist"
+    end
+
+    test "does not force-fit an agent on a vague request with no domain signal" do
+      {workspace, _owner} = workspace_fixture()
+
+      _engineer =
+        create_agent(workspace.id, "Sira", "Software Engineer", [
+          "coding",
+          "debugging",
+          "code-review",
+          "architecture"
+        ])
+
+      assert {:ok, analysis} =
+               Dispatcher.analyze(workspace.id, %{
+                 "instruction" => "tu pense quoi de ca"
+               })
+
+      assert analysis.recommendation.mode == "custom_agent"
+      assert analysis.recommendation.agent_id == nil
+      assert analysis.recommendation.alternatives == []
+      assert analysis.recommendation.custom_agent != nil
+      assert is_binary(analysis.recommendation.custom_agent.display_name)
     end
 
     test "exposes the requested domain categories" do

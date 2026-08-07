@@ -283,29 +283,49 @@ defmodule Mokaid.AI.Dispatcher do
         _ -> nil
       end
 
+    confidence = clamp_confidence(rec["confidence"])
+
+    # Low-confidence "matches" are not real fits — force create-agent flow.
+    {mode, agent_id} =
+      cond do
+        mode == "custom_agent" ->
+          {"custom_agent", nil}
+
+        mode == "existing_agent" and confidence < 45 ->
+          {"custom_agent", nil}
+
+        true ->
+          {mode, agent_id}
+      end
+
     cond do
       mode == nil -> nil
       mode in ~w(existing_agent user_choice) and agent_id == nil -> nil
-      true -> build_normalized(result, rec, mode, agent_id, agent_ids, server_keys)
+      true -> build_normalized(result, rec, mode, agent_id, agent_ids, server_keys, confidence)
     end
   end
 
-  defp build_normalized(result, rec, mode, agent_id, agent_ids, server_keys) do
+  defp build_normalized(result, rec, mode, agent_id, agent_ids, server_keys, confidence) do
     task = result["task"] || %{}
 
     alternatives =
-      (rec["alternatives"] || [])
-      |> Enum.filter(fn alt ->
-        is_map(alt) and is_binary(alt["agent_id"]) and MapSet.member?(agent_ids, alt["agent_id"])
-      end)
-      |> Enum.take(2)
-      |> Enum.map(fn alt ->
-        %{
-          agent_id: alt["agent_id"],
-          confidence: clamp_confidence(alt["confidence"]),
-          reason: to_string(alt["reason"] || "")
-        }
-      end)
+      if mode == "custom_agent" do
+        []
+      else
+        (rec["alternatives"] || [])
+        |> Enum.filter(fn alt ->
+          is_map(alt) and is_binary(alt["agent_id"]) and
+            MapSet.member?(agent_ids, alt["agent_id"])
+        end)
+        |> Enum.take(2)
+        |> Enum.map(fn alt ->
+          %{
+            agent_id: alt["agent_id"],
+            confidence: clamp_confidence(alt["confidence"]),
+            reason: to_string(alt["reason"] || "")
+          }
+        end)
+      end
 
     custom_agent =
       case rec["custom_agent"] do
@@ -322,8 +342,20 @@ defmodule Mokaid.AI.Dispatcher do
             skills: normalize_skills(custom["skills"])
           }
 
+        _ when mode in ~w(custom_agent user_choice) ->
+          # LLM omitted the specialist profile — still need a sensible proposal.
+          custom_proposal([])
+
         _ ->
           nil
+      end
+
+    # custom_agent mode must always present a creation option, never an agent id.
+    {mode, agent_id, custom_agent, alternatives} =
+      if mode == "custom_agent" do
+        {"custom_agent", nil, custom_agent || custom_proposal([]), []}
+      else
+        {mode, agent_id, custom_agent, alternatives}
       end
 
     mcp_suggestions =
@@ -336,6 +368,15 @@ defmodule Mokaid.AI.Dispatcher do
         %{server_key: s["server_key"], reason: to_string(s["reason"] || "")}
       end)
 
+    raw_reason = to_string(rec["reason"] || "")
+
+    reason =
+      if mode == "custom_agent" and raw_reason == "" do
+        heuristic_reason("custom_agent", nil, [])
+      else
+        raw_reason
+      end
+
     %{
       task: %{
         title: presence(task["title"]) || "New task",
@@ -345,8 +386,8 @@ defmodule Mokaid.AI.Dispatcher do
       recommendation: %{
         mode: mode,
         agent_id: agent_id,
-        confidence: clamp_confidence(rec["confidence"]),
-        reason: to_string(rec["reason"] || ""),
+        confidence: confidence,
+        reason: reason,
         alternatives: alternatives,
         custom_agent: custom_agent
       },
@@ -420,13 +461,18 @@ defmodule Mokaid.AI.Dispatcher do
     scored =
       roster
       |> Enum.map(fn entry ->
-        score = agent_score(entry.agent, signals, categories)
+        # Skill/domain match first — graph must not invent a false "best fit".
+        skill_score = agent_score(entry.agent, signals, categories)
 
         graph_bonus =
-          graph_bonus_for_agent(workspace_id, entry.agent, instruction, categories)
+          if skill_score > 0 do
+            graph_bonus_for_agent(workspace_id, entry.agent, instruction, categories)
+          else
+            0
+          end
 
         # Slight penalty per open task so equally-skilled but freer agents win.
-        {entry, max(score * 10 + graph_bonus - entry.open_tasks, 0)}
+        {entry, max(skill_score * 10 + graph_bonus - entry.open_tasks, 0)}
       end)
       |> Enum.sort_by(fn {_entry, score} -> -score end)
 
@@ -438,17 +484,21 @@ defmodule Mokaid.AI.Dispatcher do
       out_of_scope_check(best_entry, confidence, categories, roster)
 
     alternatives =
-      scored
-      |> Enum.drop(1)
-      |> Enum.take(2)
-      |> Enum.filter(fn {_entry, score} -> score > 0 end)
-      |> Enum.map(fn {entry, score} ->
-        %{
-          agent_id: entry.agent.id,
-          confidence: min(30 + score * 6, 85),
-          reason: "Related skills and availability"
-        }
-      end)
+      if mode == "custom_agent" do
+        []
+      else
+        scored
+        |> Enum.drop(1)
+        |> Enum.take(2)
+        |> Enum.filter(fn {_entry, score} -> score > 0 end)
+        |> Enum.map(fn {entry, score} ->
+          %{
+            agent_id: entry.agent.id,
+            confidence: min(30 + score * 6, 85),
+            reason: "Related skills and availability"
+          }
+        end)
+      end
 
     %{
       task: %{

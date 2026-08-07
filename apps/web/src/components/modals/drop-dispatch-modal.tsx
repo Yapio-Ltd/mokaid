@@ -4,7 +4,6 @@ import {
   Check,
   CheckCircle2,
   Loader2,
-  Plug,
   Sparkles,
   TriangleAlert,
   Wand2,
@@ -18,7 +17,8 @@ import {
   useUploadDriveFile,
 } from "@/api/hooks";
 import type { Agent, DispatchAnalysis, DispatchFileInput, DriveItem } from "@/api/types";
-import { Avatar } from "@/components/ui/avatar";
+import { AgentAvatar } from "@/components/agents/agent-avatar";
+import { McpLogo } from "@/components/mcp/mcp-logo";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -73,12 +73,7 @@ function AgentChoiceCard({
           : "border-border bg-surface-raised hover:border-border-strong hover:bg-surface-hover",
       )}
     >
-      <Avatar
-        name={agent.display_name}
-        size="md"
-        isAi={agent.kind === "ai"}
-        color={agent.avatar_config?.primary_color}
-      />
+      <AgentAvatar agent={agent} size="sm" showBadge={false} showRing={false} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="truncate text-xs font-semibold text-text">{agent.display_name}</span>
@@ -446,7 +441,7 @@ export function DropDispatchModal({
           </p>
 
           <div className="space-y-2">
-            {recommendedAgent && (
+            {recommendation.mode !== "custom_agent" && recommendedAgent && (
               <AgentChoiceCard
                 agent={recommendedAgent}
                 confidence={recommendation.confidence}
@@ -503,20 +498,21 @@ export function DropDispatchModal({
               </button>
             )}
 
-            {recommendation.alternatives.map((alt) => {
-              const agent = agentById.get(alt.agent_id);
-              if (!agent) return null;
-              return (
-                <AgentChoiceCard
-                  key={alt.agent_id}
-                  agent={agent}
-                  confidence={alt.confidence}
-                  reason={alt.reason}
-                  selected={selection?.kind === "agent" && selection.agentId === alt.agent_id}
-                  onSelect={() => setSelection({ kind: "agent", agentId: alt.agent_id })}
-                />
-              );
-            })}
+            {recommendation.mode !== "custom_agent" &&
+              recommendation.alternatives.map((alt) => {
+                const agent = agentById.get(alt.agent_id);
+                if (!agent) return null;
+                return (
+                  <AgentChoiceCard
+                    key={alt.agent_id}
+                    agent={agent}
+                    confidence={alt.confidence}
+                    reason={alt.reason}
+                    selected={selection?.kind === "agent" && selection.agentId === alt.agent_id}
+                    onSelect={() => setSelection({ kind: "agent", agentId: alt.agent_id })}
+                  />
+                );
+              })}
           </div>
 
           {/* MCP boosters */}
@@ -536,7 +532,13 @@ export function DropDispatchModal({
                     className="rounded-lg border border-border bg-surface-raised px-3 py-2.5"
                   >
                     <div className="flex items-center gap-2">
-                      <Plug size={13} className="text-primary-light" />
+                      <McpLogo
+                        logoUrl={`/api/mcp/logos/${suggestion.server_key}`}
+                        logoSlug={suggestion.logo_slug}
+                        name={suggestion.server_name}
+                        category="productivity"
+                        size="sm"
+                      />
                       <span className="text-xs font-semibold text-text">{suggestion.server_name}</span>
                       {effectiveStatus === "ready" && (
                         <span className="flex items-center gap-1 text-[10px] font-medium text-success">

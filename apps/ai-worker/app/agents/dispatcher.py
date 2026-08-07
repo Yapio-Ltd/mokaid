@@ -76,15 +76,20 @@ Decision rules:
   alone, even if the product being sold is furniture, insurance, etc.
 - Role titles are decisive: "Software Engineer" beats "Legal Specialist" for
   any site/app/code request; prefer the agent whose role matches the work.
-- "existing_agent": one agent clearly has the right skills. Do NOT propose a
-  custom agent in that case (custom_agent must be null) — do not bother the
-  user with a choice they don't need.
+- "existing_agent": one agent clearly has the right skills AND domain for this
+  request. Do NOT pick an agent just because they are free or the only option.
+  Do NOT propose a custom agent in that case (custom_agent must be null) — do
+  not bother the user with a choice they don't need.
 - "user_choice": the best agent is a partial fit AND a purpose-built agent
   would genuinely do better. Provide BOTH agent_id and custom_agent.
-- "custom_agent": nobody on the roster can do this well. agent_id must be null
-  and custom_agent must be filled with a sensible specialist profile.
+- "custom_agent": nobody on the roster can do this well — OR the request is too
+  vague / off-topic for any specialist (greetings, one-line chat, no clear
+  work domain). agent_id must be null, alternatives must be [], and
+  custom_agent must be filled with a sensible specialist profile for the
+  implied work (use a generalist profile if the domain is unknown).
 - Prefer agents with fewer open tasks when skills are comparable.
-- confidence reflects skill/domain match AND availability.
+- confidence reflects skill/domain match AND availability. Vague requests with
+  no real specialty match must stay below 45 and use custom_agent.
 - mcp_suggestions: at most 3, only when a connection would clearly make the
   work faster or better (e.g. Figma for .fig files, GitHub for code review).
   Suggest servers from the connected list first, then from the catalog.
