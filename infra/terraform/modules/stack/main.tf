@@ -185,9 +185,9 @@ variable "tranzila_terminal" {
 }
 
 variable "tranzila_token_terminal" {
-  description = "Tranzila terminal (masof) for recurring/tokenized transactions"
+  description = "Tranzila terminal (masof) for recurring/tokenized transactions — empty reuses tranzila_terminal with tranmode=AK"
   type        = string
-  default     = "fxpyapiotok"
+  default     = ""
 }
 
 variable "tranzila_currency" {

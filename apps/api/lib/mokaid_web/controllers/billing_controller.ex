@@ -157,7 +157,6 @@ defmodule MokaidWeb.BillingController do
             "kind" => "subscription",
             "amount_cents" => amount,
             "description" => "Mokaid #{plan.name} plan (#{cycle})",
-            "return_path" => params["return_path"],
             "line_items" => [
               %{
                 "description" => "#{plan.name} plan — #{cycle}",
@@ -173,7 +172,7 @@ defmodule MokaidWeb.BillingController do
 
   # Opens a Tranzila hosted checkout for an AI credits pack (one-time sale
   # on the standard terminal).
-  def credits_checkout(conn, %{"pack_key" => pack_key} = params) do
+  def credits_checkout(conn, %{"pack_key" => pack_key} = _params) do
     with :ok <- Permissions.authorize(current_member(conn), "billing.manage"),
          %{} = pack <- Billing.get_credit_pack(pack_key) do
       if Tranzila.enabled?() do
@@ -181,7 +180,6 @@ defmodule MokaidWeb.BillingController do
           "kind" => "credits",
           "amount_cents" => pack.price_cents,
           "description" => "Mokaid — #{pack.credits} AI credits",
-          "return_path" => params["return_path"],
           "line_items" => [
             %{
               "description" => "#{pack.credits} AI credits",
@@ -204,7 +202,9 @@ defmodule MokaidWeb.BillingController do
   # Subscriptions go through the token terminal (tranmode=AK) so the card is
   # tokenized for recurring charges; one-time purchases use the standard
   # terminal. Our invoice id travels with the checkout and comes back in the
-  # notify webhook for reconciliation.
+  # notify webhook for reconciliation. The returned sale_url is loaded in an
+  # on-site iframe modal by the web app — success/fail land on
+  # /payment-result.html which postMessages the outcome to the parent page.
   defp open_checkout(conn, attrs) do
     user = current_user(conn)
 
@@ -220,7 +220,6 @@ defmodule MokaidWeb.BillingController do
           amount_cents: attrs["amount_cents"],
           description: attrs["description"],
           invoice_id: invoice.id,
-          return_path: safe_return_path(attrs["return_path"]),
           buyer_email: user && user.email,
           buyer_name: user && user.full_name
         })
@@ -228,12 +227,6 @@ defmodule MokaidWeb.BillingController do
       json(conn, %{data: %{sale_url: checkout_url, invoice_id: invoice.id}})
     end
   end
-
-  # Only allow app-local return paths — never absolute or protocol-relative
-  # URLs (open redirect).
-  defp safe_return_path("//" <> _), do: nil
-  defp safe_return_path("/" <> _ = path), do: path
-  defp safe_return_path(_), do: nil
 
   defp subscription_json(nil), do: nil
 

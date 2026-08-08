@@ -815,8 +815,8 @@
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/controllers/billing_controller.ex": {
-    "mtime": 1785918487.6750615,
-    "ast_hash": "21d2274c7b8c5572a4fe099cb139080b",
+    "mtime": 1786213382.48952,
+    "ast_hash": "570bcbb2a26b3c89ccd74916f444d727",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/controllers/calendar_controller.ex": {
@@ -1210,8 +1210,8 @@
     "semantic_hash": "c852ce0b6e55531adbbbea62779b9e55"
   },
   "apps/web/src/api/hooks.ts": {
-    "mtime": 1785924418.6716776,
-    "ast_hash": "5dd20ba72092ef972be8571c6eaee47f",
+    "mtime": 1786213486.9117904,
+    "ast_hash": "3a85ddb65275f10cdac8cb17c51cf819",
     "semantic_hash": ""
   },
   "apps/web/src/api/types.ts": {
@@ -1380,8 +1380,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/onboarding/onboarding-wizard.tsx": {
-    "mtime": 1785918568.065549,
-    "ast_hash": "6f8cd49cb1b5b0a79c83bf7f3444cc76",
+    "mtime": 1786213675.0092347,
+    "ast_hash": "8422614a62161d96ae09449e56b4b653",
     "semantic_hash": ""
   },
   "apps/web/src/components/projects/project-detail-panel.tsx": {
@@ -1565,8 +1565,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/pages/billing.tsx": {
-    "mtime": 1785926607.211403,
-    "ast_hash": "43292c6bce9790d5e4311f24803e1afd",
+    "mtime": 1786213673.7988012,
+    "ast_hash": "95e2ddce817e239469428fcf6fba4cc0",
     "semantic_hash": ""
   },
   "apps/web/src/pages/calendar.tsx": {
@@ -1935,8 +1935,8 @@
     "semantic_hash": "5ead73ace41d0d7bac66f28005a54a8c"
   },
   "infra/terraform/modules/stack/main.tf": {
-    "mtime": 1786002610.3496253,
-    "ast_hash": "493c0465c461945d53f9f6b17d1d2e15",
+    "mtime": 1786213416.9051087,
+    "ast_hash": "aa8c985861402431748f43d72e125169",
     "semantic_hash": ""
   },
   "infra/terraform/modules/vpc/main.tf": {
@@ -3290,8 +3290,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/environments/prod/main.tf": {
-    "mtime": 1785936876.6798062,
-    "ast_hash": "c943e55078401e0ecf01a23b425d0033",
+    "mtime": 1786213395.32702,
+    "ast_hash": "3c868300b7fbcb05a24140b0f021abbe",
     "semantic_hash": ""
   },
   "scripts/copy-stack-secrets.sh": {
@@ -13640,23 +13640,23 @@
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid/billing/tranzila.ex": {
-    "mtime": 1785918395.8698926,
-    "ast_hash": "a01fcb1df929b42fa8534d2a678ca91e",
+    "mtime": 1786213357.139975,
+    "ast_hash": "446c2dba0c8ee78f16a0a6f9db33429f",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/controllers/tranzila_webhook_controller.ex": {
-    "mtime": 1785918417.099492,
-    "ast_hash": "112b7719e42dceb4bb00c87933b53d80",
+    "mtime": 1786213596.2421937,
+    "ast_hash": "176ff44207b7bab61c860157d788e35a",
     "semantic_hash": ""
   },
   "apps/api/test/mokaid/billing/tranzila_test.exs": {
-    "mtime": 1785918796.5584285,
-    "ast_hash": "1ba254f91b12d9db37a3b5eaa4d667c9",
+    "mtime": 1786213627.6115477,
+    "ast_hash": "061e25d93ef6ab7b76435b2936474c84",
     "semantic_hash": ""
   },
   "apps/api/test/mokaid_web/tranzila_webhook_test.exs": {
-    "mtime": 1785918833.5485249,
-    "ast_hash": "e2173342349a0a5119d8dcaa87579632",
+    "mtime": 1786213629.3647516,
+    "ast_hash": "8484b7904f5c3bbe550dd074bf48ab36",
     "semantic_hash": ""
   },
   "apps/api/test/support/conn_case.ex": {
@@ -14027,6 +14027,16 @@
   "apps/web/src/three/office-device-profile.ts": {
     "mtime": 1786010083.194764,
     "ast_hash": "2406e4bb316cfa7701121faed7c6b9ff",
+    "semantic_hash": ""
+  },
+  "apps/web/src/components/billing/checkout-dialog.tsx": {
+    "mtime": 1786213470.5858293,
+    "ast_hash": "f9d6511ecedc551e0c9aa338929ce220",
+    "semantic_hash": ""
+  },
+  "apps/web/public/payment-result.html": {
+    "mtime": 1786213440.3704448,
+    "ast_hash": "c38e8f2e2138e9277fd27184f04718bb",
     "semantic_hash": ""
   }
 }

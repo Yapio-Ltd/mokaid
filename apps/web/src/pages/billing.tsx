@@ -44,6 +44,10 @@ import {
   PlanPicker,
   type BillingCycle,
 } from "@/components/billing/plan-picker";
+import {
+  TranzilaCheckoutDialog,
+  type CheckoutOutcome,
+} from "@/components/billing/checkout-dialog";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { toast } from "@/stores/toast-store";
@@ -90,6 +94,7 @@ export function BillingPage() {
   const queryClient = useQueryClient();
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -99,6 +104,32 @@ export function BillingPage() {
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [queryClient]);
+
+  // Plan/credit activation happens via the Tranzila notify webhook, which is
+  // asynchronous — refresh a few times so the UI catches up within seconds.
+  const refreshBillingSoon = () => {
+    queryClient.invalidateQueries({ queryKey: ["billing"] });
+    [2_500, 6_000].forEach((delay) =>
+      setTimeout(
+        () => queryClient.invalidateQueries({ queryKey: ["billing"] }),
+        delay,
+      ),
+    );
+  };
+
+  const handleCheckoutComplete = (outcome: CheckoutOutcome) => {
+    setCheckoutUrl(null);
+    if (outcome === "done") {
+      refreshBillingSoon();
+      setShowPaymentSuccess(true);
+    } else {
+      toast({
+        tone: "error",
+        title: "Payment failed",
+        description: "Your card was not charged. Please try again.",
+      });
+    }
+  };
 
   if (isLoading || !overviewData) {
     return (
@@ -125,7 +156,9 @@ export function BillingPage() {
       { plan_key: planKey, billing_cycle: billingCycle },
       {
         onSuccess: (result) => {
-          if (result.data.activated) {
+          if (result.data.sale_url) {
+            setCheckoutUrl(result.data.sale_url);
+          } else if (result.data.activated) {
             toast({
               tone: "success",
               title: "Plan updated",
@@ -375,7 +408,9 @@ export function BillingPage() {
                       { pack_key: pack.key },
                       {
                         onSuccess: (result) => {
-                          if (result.data.activated) {
+                          if (result.data.sale_url) {
+                            setCheckoutUrl(result.data.sale_url);
+                          } else if (result.data.activated) {
                             toast({
                               tone: "success",
                               title: "Credits added",
@@ -597,6 +632,13 @@ export function BillingPage() {
           </CardBody>
         </Card>
       </section>
+
+      {/* ── Embedded Tranzila checkout ── */}
+      <TranzilaCheckoutDialog
+        saleUrl={checkoutUrl}
+        onClose={() => setCheckoutUrl(null)}
+        onComplete={handleCheckoutComplete}
+      />
 
       {/* ── Celebration modal ── */}
       <Dialog

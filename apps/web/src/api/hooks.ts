@@ -1157,35 +1157,35 @@ export function useCreditPacks() {
   });
 }
 
-/** Plan purchase — either activates directly or returns a Tranzila checkout URL. */
+/**
+ * Plan purchase — either activates directly (free plan / dev fallback) or
+ * returns a Tranzila `sale_url` the caller embeds in the on-site checkout
+ * modal (`TranzilaCheckoutDialog`). No external redirect.
+ */
 export function usePlanCheckout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { plan_key: string; billing_cycle?: string; return_path?: string }) =>
+    mutationFn: (body: { plan_key: string; billing_cycle?: string }) =>
       apiFetch<Envelope<CheckoutResult>>("/api/billing/checkout", { method: "POST", body }),
     onSuccess: (result) => {
-      if (result.data.sale_url) {
-        window.location.href = result.data.sale_url;
-      } else {
+      if (!result.data.sale_url) {
         queryClient.invalidateQueries({ queryKey: ["billing"] });
       }
     },
   });
 }
 
-/** AI credit pack purchase — same activation-or-redirect contract. */
+/** AI credit pack purchase — same activation-or-embedded-checkout contract. */
 export function useCreditsCheckout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { pack_key: string; return_path?: string }) =>
+    mutationFn: (body: { pack_key: string }) =>
       apiFetch<Envelope<CheckoutResult>>("/api/billing/credits/checkout", {
         method: "POST",
         body,
       }),
     onSuccess: (result) => {
-      if (result.data.sale_url) {
-        window.location.href = result.data.sale_url;
-      } else {
+      if (!result.data.sale_url) {
         queryClient.invalidateQueries({ queryKey: ["billing"] });
       }
     },

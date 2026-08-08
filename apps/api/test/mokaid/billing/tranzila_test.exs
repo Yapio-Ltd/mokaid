@@ -59,7 +59,7 @@ defmodule Mokaid.Billing.TranzilaTest do
           invoice_id: "0b5f8c6e-0000-0000-0000-000000000000"
         })
 
-      assert url =~ "https://direct.tranzila.com/fxpyapio/iframenew.php?"
+      assert url =~ "https://directng.tranzila.com/fxpyapio/iframenew.php?"
 
       params = url |> URI.parse() |> Map.fetch!(:query) |> URI.decode_query()
 
@@ -68,29 +68,64 @@ defmodule Mokaid.Billing.TranzilaTest do
       assert params["tranmode"] == "A"
       assert params["invoice_id"] == "0b5f8c6e-0000-0000-0000-000000000000"
       assert params["notify_url_address"] == "https://api.example.com/api/tranzila/notify"
-      assert params["success_url_address"] == "https://app.example.com/billing?payment=done"
-      assert params["fail_url_address"] == "https://app.example.com/billing?payment=failed"
+
+      assert params["success_url_address"] ==
+               "https://app.example.com/payment-result.html?payment=done"
+
+      assert params["fail_url_address"] ==
+               "https://app.example.com/payment-result.html?payment=failed"
+
+      # Duplicate-charge guard: unique per checkout, prefixed with the invoice.
+      assert String.starts_with?(params["DCdisable"], "0b5f8c6e-0000-0000-0000-000000000000-")
     end
 
-    test "subscription sale uses the token terminal with tranmode=AK" do
+    test "subscription sale uses the dedicated token terminal with tranmode=AK" do
       url =
         Tranzila.checkout_url(%{
           mode: :tokenize,
           amount_cents: 4_901,
           description: "Starter plan",
           invoice_id: "inv",
-          return_path: "/onboarding?step=4",
           buyer_email: "user@example.com"
         })
 
-      assert url =~ "https://direct.tranzila.com/fxpyapiotok/iframenew.php?"
+      assert url =~ "https://directng.tranzila.com/fxpyapiotok/iframenew.php?"
 
       params = url |> URI.parse() |> Map.fetch!(:query) |> URI.decode_query()
 
       assert params["tranmode"] == "AK"
       assert params["sum"] == "49.01"
       assert params["email"] == "user@example.com"
-      assert params["success_url_address"] == "https://app.example.com/onboarding?step=4"
+    end
+
+    test "subscription sale falls back to the main terminal when no token terminal is set" do
+      for empty <- [nil, ""] do
+        Application.put_env(
+          :mokaid,
+          :tranzila,
+          Keyword.put(@config, :token_terminal, empty)
+        )
+
+        url =
+          Tranzila.checkout_url(%{
+            mode: :tokenize,
+            amount_cents: 4_900,
+            description: "Starter plan",
+            invoice_id: "inv"
+          })
+
+        assert url =~ "https://directng.tranzila.com/fxpyapio/iframenew.php?"
+      end
+    end
+  end
+
+  describe "currency_matches?/1" do
+    test "accepts matching or absent currency, rejects mismatches" do
+      assert Tranzila.currency_matches?(%{"currency" => "2"})
+      assert Tranzila.currency_matches?(%{"currency" => 2})
+      assert Tranzila.currency_matches?(%{})
+      assert Tranzila.currency_matches?(%{"currency" => ""})
+      refute Tranzila.currency_matches?(%{"currency" => "1"})
     end
   end
 

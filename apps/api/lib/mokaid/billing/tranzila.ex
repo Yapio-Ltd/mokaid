@@ -5,12 +5,15 @@ defmodule Mokaid.Billing.Tranzila do
   Two flows:
 
   * Hosted checkout — we build an `iframenew.php` URL on the hosted payment
-    page (https://direct.tranzila.com) and redirect the customer there.
+    page (https://directng.tranzila.com) which the web app embeds in an
+    on-site iframe modal (no external redirect).
     One-time purchases use the standard terminal (`tranmode=A`); subscription
     purchases use the token terminal with `tranmode=AK` so Tranzila charges
     the card *and* returns a reusable `TranzilaTK` token in the notify
     callback. Every parameter we send (including our `invoice_id`) is echoed
     back to `notify_url_address`, which is how the webhook reconciles.
+    Success/fail URLs point at `/payment-result.html`, a tiny same-origin
+    page that postMessages the outcome to the parent window.
 
   * Server-side token charge — renewals and auto-recharge POST to the JSON
     API (`https://api.tranzila.com/v1/transaction/credit_card/create`) with
@@ -24,7 +27,7 @@ defmodule Mokaid.Billing.Tranzila do
 
   require Logger
 
-  @hosted_base "https://direct.tranzila.com"
+  @hosted_base "https://directng.tranzila.com"
   @api_base "https://api.tranzila.com/v1"
 
   # Hosted page currency codes (ISO-4217-ish numeric values Tranzila uses).
@@ -56,9 +59,13 @@ defmodule Mokaid.Billing.Tranzila do
         "tranmode" => if(mode == :tokenize, do: "AK", else: "A"),
         "invoice_id" => attrs.invoice_id,
         "pdesc" => attrs.description,
-        "success_url_address" => return_url(attrs[:return_path], "success"),
-        "fail_url_address" => return_url(attrs[:return_path], "failed"),
-        "notify_url_address" => notify_url()
+        "success_url_address" => result_url("done"),
+        "fail_url_address" => result_url("failed"),
+        "notify_url_address" => notify_url(),
+        # Duplicate-charge guard: unique per checkout attempt (invoice ids are
+        # one per attempt). Only enforced once field 20 is mapped to DCdisable
+        # in my.tranzila; harmless otherwise.
+        "DCdisable" => "#{attrs.invoice_id}-#{random_hex(16)}"
       }
       |> maybe_put("email", attrs[:buyer_email])
       |> maybe_put("contact", attrs[:buyer_name])
@@ -67,13 +74,40 @@ defmodule Mokaid.Billing.Tranzila do
     "#{hosted_base()}/#{terminal_for(mode)}/iframenew.php?" <> URI.encode_query(params)
   end
 
-  @doc "Terminal used for the given checkout mode."
-  def terminal_for(:tokenize), do: config()[:token_terminal] || config()[:terminal]
+  @doc """
+  Terminal used for the given checkout mode.
+
+  Falls back to the main terminal when no dedicated token terminal is
+  configured (an empty env var must not select a nonexistent terminal —
+  that yields a 404 on Tranzila's hosted page).
+  """
+  def terminal_for(:tokenize) do
+    case config()[:token_terminal] do
+      terminal when is_binary(terminal) and terminal != "" -> terminal
+      _ -> config()[:terminal]
+    end
+  end
+
   def terminal_for(_mode), do: config()[:terminal]
 
   @doc "True when a Tranzila notify payload reports an approved transaction."
   def transaction_approved?(params) do
     to_string(params["Response"] || params["response"] || "") == "000"
+  end
+
+  @doc """
+  True when a notify payload's currency matches our configured currency.
+
+  Tranzila echoes the numeric hosted-page currency code (e.g. `"2"` for
+  USD). Payloads without a currency are accepted — the amount check still
+  applies.
+  """
+  def currency_matches?(params) do
+    case params["currency"] do
+      nil -> true
+      "" -> true
+      value -> to_string(value) == to_string(currency_code())
+    end
   end
 
   ## ---------- Server-side token charges ----------
@@ -184,8 +218,10 @@ defmodule Mokaid.Billing.Tranzila do
     ]
   end
 
-  defp generate_nonce do
-    40 |> :crypto.strong_rand_bytes() |> Base.encode16(case: :lower)
+  defp generate_nonce, do: random_hex(40)
+
+  defp random_hex(bytes) do
+    bytes |> :crypto.strong_rand_bytes() |> Base.encode16(case: :lower)
   end
 
   ## ---------- Amounts / helpers ----------
@@ -235,9 +271,10 @@ defmodule Mokaid.Billing.Tranzila do
 
   defp notify_url, do: "#{config()[:api_base_url]}/api/tranzila/notify"
 
-  defp return_url(nil, "success"), do: "#{config()[:web_base_url]}/billing?payment=done"
-  defp return_url(nil, _outcome), do: "#{config()[:web_base_url]}/billing?payment=failed"
-  defp return_url(path, _outcome), do: "#{config()[:web_base_url]}#{path}"
+  # Loaded *inside* the checkout iframe after payment: postMessages the
+  # outcome to the parent window (or redirects to /billing when not framed).
+  defp result_url(outcome),
+    do: "#{config()[:web_base_url]}/payment-result.html?payment=#{outcome}"
 
   defp config, do: Application.get_env(:mokaid, :tranzila, [])
 end

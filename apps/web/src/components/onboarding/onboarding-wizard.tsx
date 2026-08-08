@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AgentPreview3D = lazy(() =>
   import("@/three/agent-preview").then((m) => ({ default: m.AgentPreview3D })),
@@ -54,12 +55,15 @@ import { useOnboardingStore } from "@/stores/onboarding-store";
 import { ApiError, fetchWorkspaceLogoBlob } from "@/api/client";
 import { IntegrationLogo } from "@/components/integrations/integration-logo";
 import { PlanPicker, BillingCycleToggle, type BillingCycle } from "@/components/billing/plan-picker";
+import {
+  TranzilaCheckoutDialog,
+  type CheckoutOutcome,
+} from "@/components/billing/checkout-dialog";
 import { cn } from "@/lib/cn";
 import {
   consumeOnboardingRestoreStep,
   navigateOauthPopup,
   openOauthPopup,
-  setOauthReturn,
 } from "@/lib/oauth-callback";
 import { useOauthPopupListener } from "@/lib/use-oauth-popup-listener";
 import { toast } from "@/stores/toast-store";
@@ -282,23 +286,9 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
 
   const [step, setStep] = useState(() => consumeOnboardingRestoreStep() ?? 0);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-
-  // Back from a Tranzila checkout started inside the wizard: the restore-step
-  // mechanism already re-opened us at the right step — confirm the payment.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("payment") === "done") {
-      setStep(6);
-      toast({
-        tone: "success",
-        title: "Payment received",
-        description: "Your plan is being activated — welcome aboard!",
-        duration: 8000,
-      });
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Embedded Tranzila checkout for paid plans — the wizard stays open.
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   // Workspace step
   const [companyName, setCompanyName] = useState("");
@@ -370,21 +360,43 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
       setStep(6);
       return;
     }
-    // Paid plan → Tranzila checkout (redirects; in dev it activates directly).
-    // Before redirecting, remember to reopen the wizard on the next step so
-    // the user lands back exactly where they left off.
-    setOauthReturn("/dashboard", 6);
+    // Paid plan → embedded Tranzila checkout modal (in dev without Tranzila
+    // credentials the plan activates directly).
     planCheckout.mutate(
-      { plan_key: planKey, billing_cycle: billingCycle, return_path: "/dashboard?payment=done" },
+      { plan_key: planKey, billing_cycle: billingCycle },
       {
         onSuccess: (result) => {
-          if (result.data.activated) {
+          if (result.data.sale_url) {
+            setCheckoutUrl(result.data.sale_url);
+          } else if (result.data.activated) {
             toast({ tone: "success", title: "Plan activated", description: "Welcome aboard!" });
             setStep(6);
           }
         },
       },
     );
+  };
+
+  const handleCheckoutComplete = (outcome: CheckoutOutcome) => {
+    setCheckoutUrl(null);
+    if (outcome === "done") {
+      // Activation is confirmed asynchronously by the notify webhook.
+      queryClient.invalidateQueries({ queryKey: ["billing"] });
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ["billing"] }), 4_000);
+      toast({
+        tone: "success",
+        title: "Payment received",
+        description: "Your plan is being activated — welcome aboard!",
+        duration: 8000,
+      });
+      setStep(6);
+    } else {
+      toast({
+        tone: "error",
+        title: "Payment failed",
+        description: "Your card was not charged. Please try again.",
+      });
+    }
   };
 
   const addEmail = () => {
@@ -1251,6 +1263,12 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
           Step {step + 1} of {steps.length} · Replay anytime from Workspace Settings
         </p>
       </div>
+
+      <TranzilaCheckoutDialog
+        saleUrl={checkoutUrl}
+        onClose={() => setCheckoutUrl(null)}
+        onComplete={handleCheckoutComplete}
+      />
     </div>
   );
 }

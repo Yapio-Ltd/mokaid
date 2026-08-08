@@ -9,7 +9,8 @@ defmodule MokaidWeb.TranzilaWebhookController do
 
   1. the transaction is approved (`Response == "000"`),
   2. the invoice exists and is still settleable,
-  3. the paid amount (`sum`) matches the invoice amount.
+  3. the paid amount (`sum`) matches the invoice amount,
+  4. the currency matches the configured terminal currency.
 
   Subscription checkouts run on the token terminal with `tranmode=AK`, so
   approved payloads carry a reusable `TranzilaTK` token plus the card expiry
@@ -60,7 +61,8 @@ defmodule MokaidWeb.TranzilaWebhookController do
          {:tx, invoice_id} when is_binary(invoice_id) <- {:tx, params["invoice_id"]},
          {:uuid, {:ok, _}} <- {:uuid, Ecto.UUID.cast(invoice_id)},
          {:invoice, %{} = invoice} <- {:invoice, Billing.get_invoice_by_id(invoice_id)},
-         {:amount, true} <- {:amount, amount_matches?(invoice, params)} do
+         {:amount, true} <- {:amount, amount_matches?(invoice, params)},
+         {:currency, true} <- {:currency, Tranzila.currency_matches?(params)} do
       if reference = params["index"] do
         Billing.attach_payment_reference(invoice, to_string(reference))
       end
@@ -75,6 +77,7 @@ defmodule MokaidWeb.TranzilaWebhookController do
       {:uuid, _} -> {:ignored, :invalid_invoice_id}
       {:invoice, _} -> {:ignored, :unknown_invoice}
       {:amount, false} -> {:rejected, :amount_mismatch}
+      {:currency, false} -> {:rejected, :currency_mismatch}
     end
   end
 

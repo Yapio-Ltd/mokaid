@@ -111,8 +111,10 @@ module "stack" {
 
   auth_mode = "dev_fallback"
 
-  tranzila_terminal       = "fxpyapio"
-  tranzila_token_terminal = "fxpyapiotok"
+  tranzila_terminal = "fxpyapio"
+  # No dedicated token terminal provisioned — empty falls back to the main
+  # terminal with tranmode=AK ("fxpyapiotok" does not exist and 404s).
+  tranzila_token_terminal = ""
   tranzila_currency       = "USD"
 
   api_image_tag    = var.api_image_tag

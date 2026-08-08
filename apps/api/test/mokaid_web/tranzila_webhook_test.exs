@@ -74,6 +74,16 @@ defmodule MokaidWeb.TranzilaWebhookTest do
     assert Billing.get_subscription(workspace.id) == nil
   end
 
+  test "currency mismatch is rejected and the invoice stays pending",
+       %{conn: conn, workspace: workspace, invoice: invoice} do
+    params = Map.put(approved_notify(invoice), "currency", "1")
+    conn = post(conn, "/api/tranzila/notify", params)
+
+    assert json_response(conn, 200) == %{"ok" => true}
+    assert Billing.get_invoice_by_id(invoice.id).status == "pending"
+    assert Billing.get_subscription(workspace.id) == nil
+  end
+
   test "declined transaction is ignored", %{conn: conn, invoice: invoice} do
     params = Map.put(approved_notify(invoice), "Response", "004")
     conn = post(conn, "/api/tranzila/notify", params)
