@@ -85,3 +85,7 @@ apps/web/tmp-office-verify/
 # lives in apps/web/src/three/office-navdata.ts.
 scripts/out/
 apps/web/src/three/graphify-out/
+
+# Terraform plan files (may embed sensitive values)
+*.tfplan
+infra/terraform/environments/*/tfplan

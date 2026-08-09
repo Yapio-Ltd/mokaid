@@ -111,6 +111,8 @@ module "stack" {
 
   auth_mode = "dev_fallback"
 
+  gmail_pubsub_topic = "projects/mokaid/topics/gmail-push"
+
   tranzila_terminal = "fxpyapio"
   # No dedicated token terminal provisioned — empty falls back to the main
   # terminal with tranmode=AK ("fxpyapiotok" does not exist and 404s).

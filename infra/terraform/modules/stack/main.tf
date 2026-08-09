@@ -178,6 +178,12 @@ variable "auth_mode" {
   default     = "cognito"
 }
 
+variable "gmail_pubsub_topic" {
+  description = "GCP Pub/Sub topic receiving Gmail users.watch notifications"
+  type        = string
+  default     = ""
+}
+
 variable "tranzila_terminal" {
   description = "Tranzila terminal (masof) for one-time transactions"
   type        = string
@@ -570,6 +576,9 @@ module "api_service" {
     MICROSOFT_REDIRECT_URI = var.app_domain != "" ? "https://${var.app_domain}/oauth/microsoft/callback" : "https://mokaid.com/oauth/microsoft/callback"
     MICROSOFT_TENANT       = "common"
     RESEND_FROM            = "mokaid <notifications@mokaid.com>"
+    # Gmail users.watch pushes to this GCP Pub/Sub topic, which forwards to /api/webhooks/gmail.
+    GMAIL_PUBSUB_TOPIC    = var.gmail_pubsub_topic
+    GMAIL_PUBSUB_AUDIENCE = var.app_domain != "" ? "https://${var.app_domain}/api/webhooks/gmail" : "https://mokaid.com/api/webhooks/gmail"
     # Tranzila hosted checkout: notify goes to the API, customers return to the app.
     TRANZILA_TERMINAL       = var.tranzila_terminal
     TRANZILA_TOKEN_TERMINAL = var.tranzila_token_terminal
