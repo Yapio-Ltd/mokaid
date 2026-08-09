@@ -122,6 +122,13 @@ const notionProviderKey = "notion";
 const slackProviderKey = "slack";
 const microsoftProviderKey = "outlook";
 
+// Email tiles are rendered statically so Gmail/Microsoft never disappear
+// while the integrations catalog is loading (or missing a provider row).
+const emailOauthConnectors = [
+  { key: "gmail", label: "Gmail", logoUrl: "/logos/brands/gmail.svg" },
+  { key: microsoftProviderKey, label: "Microsoft", logoUrl: "/logos/brands/outlook.svg" },
+] as const;
+
 /* ─── Small pieces ─── */
 
 function StepDots({ current }: { current: number }) {
@@ -883,9 +890,7 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      {(["gmail", microsoftProviderKey] as const).map((key) => {
-                        const provider = providers.find((p) => p.key === key);
-                        if (!provider) return null;
+                      {emailOauthConnectors.map(({ key, label, logoUrl }) => {
                         const connected = connectedKeys.has(key);
                         const isConnecting = connecting === key;
                         return (
@@ -902,14 +907,14 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
                             )}
                           >
                             <IntegrationLogo
-                              providerKey={provider.key}
-                              logoUrl={provider.logo_url}
-                              name={provider.name}
+                              providerKey={key}
+                              logoUrl={logoUrl}
+                              name={label}
                               size="sm"
                               onDark
                             />
                             <span className="min-w-0 flex-1 truncate text-xs font-semibold text-text">
-                              {key === microsoftProviderKey ? "Microsoft" : provider.name}
+                              {label}
                             </span>
                             {isConnecting ? (
                               <Loader2 size={13} className="animate-spin text-text-muted" />
@@ -1006,7 +1011,7 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
 
                   {providers.length === 0 && (
                     <p className="rounded-lg bg-surface-raised/60 px-3 py-2 text-center text-xs text-text-muted">
-                      Loading integrations… you can connect later from the MCP Hub.
+                      Loading more tools… you can also connect later from the MCP Hub.
                     </p>
                   )}
 

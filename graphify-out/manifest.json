@@ -1285,9 +1285,9 @@
     "semantic_hash": "4aa352e339aad6849200bccef02b15ea"
   },
   "apps/web/src/components/integrations/integration-logo.tsx": {
-    "mtime": 1783357343.287944,
-    "ast_hash": "2872893d1dce4b22735ae46501e17331",
-    "semantic_hash": "2872893d1dce4b22735ae46501e17331"
+    "mtime": 1786312682.9102786,
+    "ast_hash": "4916c3c6311050c1f57711eb9eb2bd02",
+    "semantic_hash": ""
   },
   "apps/web/src/components/layout/app-shell.tsx": {
     "mtime": 1786268719.8674414,
@@ -1380,8 +1380,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/onboarding/onboarding-wizard.tsx": {
-    "mtime": 1786282853.69052,
-    "ast_hash": "eb0eecdd777fa27724fbd024e8b79c64",
+    "mtime": 1786312688.7660332,
+    "ast_hash": "ed14dbf4ab5abe1b6470585a77abef19",
     "semantic_hash": ""
   },
   "apps/web/src/components/projects/project-detail-panel.tsx": {
@@ -2805,8 +2805,8 @@
     "semantic_hash": ""
   },
   "apps/web/public/logos/brands/gmail.svg": {
-    "mtime": 1783294731.5173562,
-    "ast_hash": "89d4cd4a83dc10374f9063a8a77443f6",
+    "mtime": 1786312677.7734818,
+    "ast_hash": "9dbc79dab48422c821c75bbfc21165ec",
     "semantic_hash": ""
   },
   "apps/web/public/logos/brands/googlecalendar.svg": {
@@ -13175,13 +13175,13 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/landing/site-footer.tsx": {
-    "mtime": 1785924765.9798744,
-    "ast_hash": "c7e28d2bba85ba9d0930f7fb86361a17",
+    "mtime": 1786289882.024421,
+    "ast_hash": "a3da8e685023c26ce9add927516f9e70",
     "semantic_hash": ""
   },
   "apps/web/src/components/ui/footer.tsx": {
-    "mtime": 1785827200.2389345,
-    "ast_hash": "1dae196799b078bed039d2fa18518890",
+    "mtime": 1786289882.017441,
+    "ast_hash": "9fb79f583cee212088f52330da9f1e9d",
     "semantic_hash": ""
   },
   "apps/web/src/components/ui/text-morph.tsx": {
@@ -14272,6 +14272,16 @@
   "apps/web/src/test/session-entry.test.ts": {
     "mtime": 1786288057.9354343,
     "ast_hash": "bd61f07dea5f4429eff20f0c1455c869",
+    "semantic_hash": ""
+  },
+  "apps/web/public/branding/icononly_nav.webp": {
+    "mtime": 1786289851.7520504,
+    "ast_hash": "c2b4eb9dbe4703f5b8966af0fa7730bf",
+    "semantic_hash": ""
+  },
+  "apps/web/public/logos/brands/outlook.svg": {
+    "mtime": 1786312677.7752724,
+    "ast_hash": "c74eb9f47e7f7739c5879da1d6c09c57",
     "semantic_hash": ""
   }
 }

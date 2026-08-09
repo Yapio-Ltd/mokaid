@@ -4,6 +4,10 @@ import { cn } from "@/lib/cn";
 /** Bundled overrides only when S3/API asset is known-bad or missing. */
 const staticLogoOverrides: Record<string, string> = {
   linear: "/logos/brands/linear.svg",
+  // Email connectors render in onboarding before the catalog loads — never
+  // depend on /api/integrations/logos/:key for these.
+  gmail: "/logos/brands/gmail.svg",
+  outlook: "/logos/brands/outlook.svg",
 };
 
 const whiteLogoOnDark = new Set(["github"]);

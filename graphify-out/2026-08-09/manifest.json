@@ -1680,8 +1680,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/router.tsx": {
-    "mtime": 1786283020.855381,
-    "ast_hash": "530259caf7f672d9f14829fa9ff6ac67",
+    "mtime": 1786288038.9716282,
+    "ast_hash": "3e1a79a0cf975e9f0d24962a5f585835",
     "semantic_hash": ""
   },
   "apps/web/src/stores/auth-store.ts": {
@@ -2165,8 +2165,8 @@
     "semantic_hash": ""
   },
   "apps/web/index.html": {
-    "mtime": 1785924418.671056,
-    "ast_hash": "7864e4b55da21b794b3cc29daa591f67",
+    "mtime": 1786288048.124645,
+    "ast_hash": "bc89bfe7c0f8c8eb6a721caf0795eb4c",
     "semantic_hash": ""
   },
   "assets/optimized/AVATAR_FEMALE_FILENAME.txt": {
@@ -14262,6 +14262,16 @@
   "apps/web/src/pages/microsoft-callback.tsx": {
     "mtime": 1786281789.6611707,
     "ast_hash": "eccca4598ae77d2de3158b1b13923a63",
+    "semantic_hash": ""
+  },
+  "apps/web/src/lib/session-entry.ts": {
+    "mtime": 1786288018.8679974,
+    "ast_hash": "7b0cecb53b117c04737c576d239f3263",
+    "semantic_hash": ""
+  },
+  "apps/web/src/test/session-entry.test.ts": {
+    "mtime": 1786288057.9354343,
+    "ast_hash": "bd61f07dea5f4429eff20f0c1455c869",
     "semantic_hash": ""
   }
 }
