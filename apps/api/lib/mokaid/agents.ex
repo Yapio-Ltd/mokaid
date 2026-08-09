@@ -3,7 +3,15 @@ defmodule Mokaid.Agents do
 
   import Ecto.Query
 
-  alias Mokaid.Agents.{Agent, AgentStatusEvent, Archetypes, DomainPacks, PermissionRule, Progression}
+  alias Mokaid.Agents.{
+    Agent,
+    AgentStatusEvent,
+    Archetypes,
+    DomainPacks,
+    PermissionRule,
+    Progression
+  }
+
   alias Mokaid.Agents.Workers.AgentBoostTrainingWorker
   alias Mokaid.Audit
   alias Mokaid.Billing
@@ -797,8 +805,7 @@ defmodule Mokaid.Agents do
     rule =
       Repo.one(
         from r in PermissionRule,
-          where:
-            r.workspace_id == ^workspace_id and r.agent_id == ^agent_id and r.id == ^rule_id
+          where: r.workspace_id == ^workspace_id and r.agent_id == ^agent_id and r.id == ^rule_id
       )
 
     case rule do
