@@ -1380,8 +1380,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/onboarding/onboarding-wizard.tsx": {
-    "mtime": 1786269149.7622883,
-    "ast_hash": "31017c8f4d9eb9c8d8dfbb25a8e5a77a",
+    "mtime": 1786274986.4470747,
+    "ast_hash": "d3fea7040fb1d85b0fb8af81a5a96b9a",
     "semantic_hash": ""
   },
   "apps/web/src/components/projects/project-detail-panel.tsx": {
