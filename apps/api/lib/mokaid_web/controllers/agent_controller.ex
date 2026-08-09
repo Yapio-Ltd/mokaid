@@ -9,12 +9,14 @@ defmodule MokaidWeb.AgentController do
   @create_params ~w(
     display_name role_title department kind avatar_asset_id avatar_config
     archetype_key boost_key knowledge_brief linked_user_id linked_member_id
-    human_takeover_enabled email_alias
+    human_takeover_enabled email_alias autonomy_mode instructions
+    model_quality tool_preferences
   )
 
   @update_params ~w(
     display_name role_title department avatar_asset_id avatar_config
     human_takeover_enabled email_alias status presence_status control_mode
+    autonomy_mode instructions model_quality tool_preferences
   )
 
   def index(conn, params) do
@@ -82,6 +84,39 @@ defmodule MokaidWeb.AgentController do
     with :ok <- Permissions.authorize(current_member(conn), "agents.delete"),
          %{} = agent <- Agents.get_agent(workspace_id(conn), id),
          {:ok, _} <- Agents.archive_agent(agent) do
+      json(conn, %{ok: true})
+    end
+  end
+
+  @doc "Persisted allow/deny tool rules for the agent (autonomy settings)."
+  def permission_rules(conn, %{"id" => id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "agents.view"),
+         %{} = agent <- Agents.get_agent(workspace_id(conn), id) do
+      rules = Agents.list_permission_rules(workspace_id(conn), agent.id)
+      json(conn, %{data: Enum.map(rules, &Serializer.permission_rule/1)})
+    end
+  end
+
+  def create_permission_rule(conn, %{"id" => id} = params) do
+    with :ok <- Permissions.authorize(current_member(conn), "agents.update"),
+         %{} = agent <- Agents.get_agent(workspace_id(conn), id),
+         {:ok, rule} <-
+           Agents.upsert_permission_rule(
+             workspace_id(conn),
+             agent.id,
+             Map.take(params, ["tool_pattern", "behavior"]),
+             current_member(conn)
+           ) do
+      conn
+      |> put_status(:created)
+      |> json(%{data: Serializer.permission_rule(rule)})
+    end
+  end
+
+  def delete_permission_rule(conn, %{"id" => id, "rule_id" => rule_id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "agents.update"),
+         %{} = agent <- Agents.get_agent(workspace_id(conn), id),
+         {:ok, _} <- Agents.delete_permission_rule(workspace_id(conn), agent.id, rule_id) do
       json(conn, %{ok: true})
     end
   end

@@ -15,6 +15,7 @@ import { env } from "@/lib/env";
 import { useAuthStore } from "@/stores/auth-store";
 import { useSceneStore } from "@/stores/scene-store";
 import { useChatStore } from "@/stores/chat-store";
+import { useToolActivityStore } from "@/stores/tool-activity-store";
 import type { SceneAgent } from "./types";
 import { AgentSceneLabel } from "./agent-scene-label";
 import { applyLabelPositions } from "./label-overlay";
@@ -279,6 +280,24 @@ export function OfficeCanvas({
   const setFps = useSceneStore((s) => s.setFps);
 
   const typingAgentIds = useChatStore((s) => s.typingAgentIds);
+  const openChat = useChatStore((s) => s.openChat);
+  const activityFeeds = useToolActivityStore((s) => s.feeds);
+
+  // Live "what am I doing" bubble content: last running tool description of
+  // each busy agent's current mission (streamed via task.tool_activity).
+  const activityByAgent = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const agent of agents) {
+      if (!agent.current_task_id) continue;
+      const feed = activityFeeds[agent.current_task_id];
+      if (!feed) continue;
+      const current = feed
+        .filter((e) => e.status === "running" || e.status === "awaiting_approval")
+        .at(-1);
+      if (current?.description) map.set(agent.id, current.description);
+    }
+    return map;
+  }, [agents, activityFeeds]);
   const { data: characterAssets } = useAssets3d("character");
   const assetCdnById = useMemo(() => {
     const map = new Map<string, string>();
@@ -402,6 +421,8 @@ export function OfficeCanvas({
             agent={agent}
             selected={agent.id === selectedAgentId}
             onClick={() => onSelectAgent(agent.id)}
+            onDoubleClick={agent.kind === "ai" ? () => openChat(agent.id) : undefined}
+            activity={activityByAgent.get(agent.id) ?? null}
           />
         ))}
 

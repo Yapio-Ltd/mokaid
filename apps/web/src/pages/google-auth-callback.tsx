@@ -5,6 +5,7 @@ import { apiFetch } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
 import { googleAuthRedirectUri } from "@/components/auth/google-sign-in-button";
+import { waitForAuthHydration } from "@/lib/oauth-callback";
 import { useAuthStore } from "@/stores/auth-store";
 
 type Status = "working" | "success" | "error";
@@ -31,8 +32,7 @@ interface GoogleAuthResponse {
 /** Completes Google identity OAuth (login / signup), not integrations. */
 export function GoogleAuthCallbackPage() {
   const navigate = useNavigate();
-  const setSession = useAuthStore((s) => s.setSession);
-  const setWorkspaces = useAuthStore((s) => s.setWorkspaces);
+  const establishSession = useAuthStore((s) => s.establishSession);
 
   const [status, setStatus] = useState<Status>("working");
   const [message, setMessage] = useState("Signing you in with Google…");
@@ -41,6 +41,9 @@ export function GoogleAuthCallbackPage() {
     let cancelled = false;
 
     async function finalize() {
+      await waitForAuthHydration();
+      if (cancelled) return;
+
       const params = new URLSearchParams(window.location.search);
       const code = params.get("code");
       const state = params.get("state");
@@ -78,8 +81,14 @@ export function GoogleAuthCallbackPage() {
         if (cancelled) return;
 
         sessionStorage.setItem(dedupeKey, "done");
-        setSession(result.token, result.user);
-        setWorkspaces(result.workspaces);
+        establishSession(result.token, result.user, result.workspaces ?? []);
+
+        if (!result.workspaces?.length) {
+          setStatus("error");
+          setMessage("Signed in, but no workspace is available. Please contact support.");
+          return;
+        }
+
         setStatus("success");
         setMessage(
           result.status === "created"
@@ -98,7 +107,7 @@ export function GoogleAuthCallbackPage() {
     return () => {
       cancelled = true;
     };
-  }, [navigate, setSession, setWorkspaces]);
+  }, [navigate, establishSession]);
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 bg-bg-deep px-6">

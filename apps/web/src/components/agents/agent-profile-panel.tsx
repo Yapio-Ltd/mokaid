@@ -4,18 +4,28 @@ import {
   ArrowRightLeft,
   Check,
   Coins,
+  ExternalLink,
   FileUp,
   Link2,
   Pencil,
+  Plus,
   Sparkles,
   Trash2,
   Upload,
   X,
+  Zap,
 } from "lucide-react";
-import type { Agent } from "@/api/types";
+import { Link } from "@tanstack/react-router";
+import { AutonomyModePicker } from "@/components/agents/autonomy-mode-picker";
+import { AutomationsSection } from "@/components/agents/automations-section";
+import { MemoriesSection } from "@/components/agents/memories-section";
+import type { Agent, AgentAutonomyMode } from "@/api/types";
 import {
   useAgentCatalog,
+  useAgentPermissionRules,
   useAgentProgression,
+  useCreateAgentPermissionRule,
+  useDeleteAgentPermissionRule,
   useTasks,
   useTransferAgent,
   useUpdateAgent,
@@ -404,6 +414,237 @@ function TransferSection({ agent }: { agent: Agent }) {
   );
 }
 
+/** Standing directives + model tier — the agent's builder settings, editable in place. */
+export function InstructionsSection({ agent }: { agent: Agent }) {
+  const updateAgent = useUpdateAgent();
+  const [draft, setDraft] = useState(agent.instructions ?? "");
+
+  useEffect(() => {
+    setDraft(agent.instructions ?? "");
+    // Only resync when switching agents — not on every keystroke echo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent.id]);
+
+  const dirty = draft.trim() !== (agent.instructions ?? "").trim();
+
+  const save = () => {
+    if (!dirty) return;
+    updateAgent.mutate(
+      { id: agent.id, instructions: draft.trim() || null },
+      {
+        onError: () =>
+          toast({
+            tone: "error",
+            title: "Could not save instructions",
+            description: "Check your permissions and try again.",
+          }),
+      },
+    );
+  };
+
+  const quality = agent.model_quality ?? "smart";
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+          Instructions
+        </p>
+        <p className="mb-2 text-[11px] leading-relaxed text-text-muted">
+          Standing directives this agent follows on every mission and chat —
+          tone, format, priorities, hard rules.
+        </p>
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={save}
+          rows={5}
+          maxLength={4000}
+          placeholder={`e.g. Always write in French. Keep reports under two pages.\nNever contact clients directly — draft, don't send.`}
+          className="mk-input min-h-[110px] resize-y py-2.5 text-[12px] leading-relaxed"
+          aria-label="Agent instructions"
+        />
+        {dirty && (
+          <div className="mt-1.5 flex justify-end">
+            <Button size="sm" loading={updateAgent.isPending} onClick={save}>
+              Save instructions
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+          Model
+        </p>
+        <div className="grid grid-cols-2 gap-1.5">
+          {(
+            [
+              { value: "smart", label: "Smart", hint: "Best quality for complex missions" },
+              { value: "fast", label: "Fast", hint: "Quicker and cheaper for routine work" },
+            ] as const
+          ).map(({ value, label, hint }) => {
+            const active = quality === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                disabled={updateAgent.isPending}
+                onClick={() => {
+                  if (!active) updateAgent.mutate({ id: agent.id, model_quality: value });
+                }}
+                className={cn(
+                  "rounded-xl border p-3 text-left transition-all mk-focus-ring",
+                  active
+                    ? "border-primary/60 bg-primary-muted/40"
+                    : "border-border/60 bg-surface-raised/40 hover:border-primary/30",
+                )}
+              >
+                <p
+                  className={cn(
+                    "flex items-center gap-1.5 text-xs font-semibold",
+                    active ? "text-primary-light" : "text-text",
+                  )}
+                >
+                  {value === "fast" ? <Zap size={12} /> : <Sparkles size={12} />}
+                  {label}
+                  {active && <Check size={11} />}
+                </p>
+                <p className="mt-0.5 text-[10px] leading-relaxed text-text-muted">{hint}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Supervision mode + persisted always-allow / always-deny tool rules. */
+export function AutonomySection({ agent }: { agent: Agent }) {
+  const updateAgent = useUpdateAgent();
+  const { data: rulesData } = useAgentPermissionRules(agent.id);
+  const createRule = useCreateAgentPermissionRule();
+  const deleteRule = useDeleteAgentPermissionRule();
+  const [newPattern, setNewPattern] = useState("");
+  const [newBehavior, setNewBehavior] = useState<"allow" | "deny">("allow");
+
+  const rules = rulesData?.data ?? [];
+  const mode = agent.autonomy_mode ?? "balanced";
+
+  const setMode = (value: AgentAutonomyMode) => {
+    if (value === mode) return;
+    updateAgent.mutate(
+      { id: agent.id, autonomy_mode: value },
+      {
+        onError: () =>
+          toast({
+            tone: "error",
+            title: "Could not change autonomy",
+            description: "Check your permissions and try again.",
+          }),
+      },
+    );
+  };
+
+  const addRule = () => {
+    const pattern = newPattern.trim();
+    if (!pattern) return;
+    createRule.mutate(
+      { agentId: agent.id, toolPattern: pattern, behavior: newBehavior },
+      {
+        onSuccess: () => setNewPattern(""),
+        onError: (error) =>
+          toast({
+            tone: "error",
+            title: "Could not add rule",
+            description:
+              error instanceof ApiError ? error.message : "Something went wrong.",
+          }),
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+          Autonomy
+        </p>
+        <AutonomyModePicker value={mode} onChange={setMode} disabled={updateAgent.isPending} />
+      </div>
+
+      <div>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+          Permission rules
+        </p>
+        <p className="mb-2 text-[11px] leading-relaxed text-text-muted">
+          Fine-grained exceptions on top of the mode — created here or from the
+          "Remember this decision" option when approving an action. Patterns
+          support wildcards (<code className="rounded bg-surface-raised px-1">mcp:github:*</code>).
+        </p>
+
+        {rules.length > 0 && (
+          <div className="mb-2 space-y-1.5">
+            {rules.map((rule) => (
+              <div
+                key={rule.id}
+                className="flex items-center gap-2 rounded-lg bg-surface-raised/50 px-3 py-2"
+              >
+                <Badge tone={rule.behavior === "allow" ? "success" : "danger"}>
+                  {rule.behavior === "allow" ? "Always allow" : "Always block"}
+                </Badge>
+                <code className="min-w-0 flex-1 truncate text-[11px] text-text">
+                  {rule.tool_pattern}
+                </code>
+                <button
+                  type="button"
+                  aria-label={`Delete rule ${rule.tool_pattern}`}
+                  disabled={deleteRule.isPending}
+                  onClick={() => deleteRule.mutate({ agentId: agent.id, ruleId: rule.id })}
+                  className="rounded p-1 text-text-muted transition-colors hover:bg-surface-hover hover:text-danger"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5">
+          <input
+            value={newPattern}
+            onChange={(e) => setNewPattern(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") addRule();
+            }}
+            placeholder="Tool name or pattern (send_email, mcp:slack:*)"
+            aria-label="Tool pattern"
+            className="mk-input h-8 min-w-0 flex-1 text-[11px]"
+          />
+          <Select
+            value={newBehavior}
+            onValueChange={(v) => setNewBehavior(v as "allow" | "deny")}
+            options={[
+              { value: "allow", label: "Allow" },
+              { value: "deny", label: "Block" },
+            ]}
+          />
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={!newPattern.trim() || createRule.isPending}
+            onClick={addRule}
+            aria-label="Add rule"
+          >
+            <Plus size={13} />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between py-1.5">
@@ -413,34 +654,37 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function AgentProfilePanel({
+/**
+ * Full profile body — shared between the right-side panel and the
+ * deep-linkable /agents/$agentId page.
+ */
+export function AgentProfileContent({
   agent,
-  onClose,
-  overlay,
+  onDeleted,
+  hideDeepLink,
 }: {
-  agent: Agent | null;
-  onClose: () => void;
-  overlay?: boolean;
+  agent: Agent;
+  onDeleted?: () => void;
+  hideDeepLink?: boolean;
 }) {
-  const { data: tasksData } = useTasks(agent ? { agent_id: agent.id } : {});
+  const { data: tasksData } = useTasks({ agent_id: agent.id });
   const updateAgent = useUpdateAgent();
   const deleteAgent = useDeleteAgent();
   const selectTask = useUiStore((s) => s.selectTask);
-  const [nameDraft, setNameDraft] = useState(agent?.display_name ?? "");
-  const agentTasks = agent
-    ? (tasksData?.data ?? []).filter((t) => t.assigned_agent_id === agent.id)
-    : [];
+  const [nameDraft, setNameDraft] = useState(agent.display_name);
+  const agentTasks = (tasksData?.data ?? []).filter(
+    (t) => t.assigned_agent_id === agent.id,
+  );
   const currentTask =
-    agentTasks.find((t) => t.id === agent?.current_task_id) ??
+    agentTasks.find((t) => t.id === agent.current_task_id) ??
     agentTasks.find((t) => t.status === "in_progress");
 
   useEffect(() => {
-    setNameDraft(agent?.display_name ?? "");
-  }, [agent?.id, agent?.display_name]);
+    setNameDraft(agent.display_name);
+  }, [agent.id, agent.display_name]);
 
   const handleRename = useCallback(
     (name: string) => {
-      if (!agent) return;
       updateAgent.mutate(
         { id: agent.id, display_name: name },
         {
@@ -455,29 +699,25 @@ export function AgentProfilePanel({
         },
       );
     },
-    [agent, updateAgent],
+    [agent.id, agent.display_name, updateAgent],
   );
 
   const saveNameDraft = useCallback(() => {
-    if (!agent) return;
     const trimmed = nameDraft.trim();
     if (!trimmed) {
       setNameDraft(agent.display_name);
       return;
     }
     if (trimmed !== agent.display_name) handleRename(trimmed);
-  }, [agent, handleRename, nameDraft]);
+  }, [agent.display_name, handleRename, nameDraft]);
 
   const handleDelete = useCallback(() => {
-    if (!agent) return;
     if (!window.confirm(`Delete agent "${agent.display_name}"? This cannot be undone.`)) return;
-    deleteAgent.mutate(agent.id, { onSuccess: onClose });
-  }, [agent, deleteAgent, onClose]);
+    deleteAgent.mutate(agent.id, { onSuccess: onDeleted });
+  }, [agent.display_name, agent.id, deleteAgent, onDeleted]);
 
   return (
-    <DetailPanel open={agent != null} onClose={onClose} title="Agent Profile" overlay={overlay}>
-      {agent && (
-        <div className="flex flex-col gap-0">
+    <div className="flex flex-col gap-0">
           {/* Header */}
           <div className="flex flex-col items-center gap-3 px-6 pb-5 pt-4">
             <AgentAvatar agent={agent} size="xl" showBadge={agent.kind === "ai"} />
@@ -492,6 +732,16 @@ export function AgentProfilePanel({
             </div>
 
             <AgentStatusBadge status={agent.status} />
+
+            {!hideDeepLink && (
+              <Link
+                to="/agents/$agentId"
+                params={{ agentId: agent.id }}
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-primary-light transition-colors hover:text-primary"
+              >
+                <ExternalLink size={11} /> Open full profile
+              </Link>
+            )}
 
             <div className="flex flex-wrap items-center justify-center gap-2">
               {agent.kind === "ai" ? (
@@ -543,6 +793,16 @@ export function AgentProfilePanel({
                 Tools
               </Tabs.Trigger>
               {agent.kind === "ai" && (
+                <Tabs.Trigger value="automations" className={tabClass}>
+                  Auto
+                </Tabs.Trigger>
+              )}
+              {agent.kind === "ai" && (
+                <Tabs.Trigger value="memories" className={tabClass}>
+                  Memory
+                </Tabs.Trigger>
+              )}
+              {agent.kind === "ai" && (
                 <Tabs.Trigger value="progression" className={tabClass}>
                   Level
                 </Tabs.Trigger>
@@ -567,6 +827,8 @@ export function AgentProfilePanel({
                   aria-label="Agent name"
                 />
               </label>
+
+              {agent.kind === "ai" && <InstructionsSection agent={agent} />}
 
               {currentTask && (
                 <div>
@@ -703,9 +965,22 @@ export function AgentProfilePanel({
               )}
             </Tabs.Content>
 
-            <Tabs.Content value="tools" className="px-5 py-4">
+            <Tabs.Content value="tools" className="space-y-6 px-5 py-4">
+              {agent.kind === "ai" && <AutonomySection agent={agent} />}
               <AgentMcpMatrix agentId={agent.id} />
             </Tabs.Content>
+
+            {agent.kind === "ai" && (
+              <Tabs.Content value="automations" className="px-5 py-4">
+                <AutomationsSection agent={agent} />
+              </Tabs.Content>
+            )}
+
+            {agent.kind === "ai" && (
+              <Tabs.Content value="memories" className="px-5 py-4">
+                <MemoriesSection agent={agent} />
+              </Tabs.Content>
+            )}
 
             {agent.kind === "ai" && (
               <Tabs.Content value="progression" className="px-5 py-4">
@@ -716,18 +991,32 @@ export function AgentProfilePanel({
 
           <TransferSection agent={agent} />
 
-          {/* Delete action */}
-          <div className="mt-auto px-5 pb-5 pt-3">
-            <button
-              onClick={handleDelete}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 py-2.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10"
-            >
-              <Trash2 size={13} />
-              Delete Agent
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Delete action */}
+      <div className="mt-auto px-5 pb-5 pt-3">
+        <button
+          onClick={handleDelete}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 py-2.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10"
+        >
+          <Trash2 size={13} />
+          Delete Agent
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function AgentProfilePanel({
+  agent,
+  onClose,
+  overlay,
+}: {
+  agent: Agent | null;
+  onClose: () => void;
+  overlay?: boolean;
+}) {
+  return (
+    <DetailPanel open={agent != null} onClose={onClose} title="Agent Profile" overlay={overlay}>
+      {agent && <AgentProfileContent agent={agent} onDeleted={onClose} />}
     </DetailPanel>
   );
 }

@@ -33,20 +33,28 @@ export const AgentSceneLabel = forwardRef<
     agent: SceneAgent;
     selected: boolean;
     onClick: () => void;
+    /** Double-click opens the direct chat with the agent. */
+    onDoubleClick?: () => void;
+    /** Live tool activity ("Searching the web for…") while on a mission. */
+    activity?: string | null;
   }
->(function AgentSceneLabel({ agent, selected, onClick }, ref) {
+>(function AgentSceneLabel({ agent, selected, onClick, onDoubleClick, activity }, ref) {
   const dotColor = stateColor[agent.visualState] ?? "var(--mk-success)";
   const primary = stateText[agent.visualState] ?? agent.visualState;
   const secondary =
-    agent.visualState === "idle" || agent.visualState === "walking"
-      ? secondaryActivityLabel(agent.secondaryActivity ?? null)
-      : null;
+    agent.visualState === "working" && activity
+      ? activity
+      : agent.visualState === "idle" || agent.visualState === "walking"
+        ? secondaryActivityLabel(agent.secondaryActivity ?? null)
+        : null;
 
   return (
     <button
       ref={ref}
       type="button"
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
+      title={onDoubleClick ? "Double-click to chat" : undefined}
       className={cn(
         "pointer-events-auto absolute z-10 hidden -translate-x-1/2 -translate-y-full whitespace-nowrap will-change-[left,top]",
         "flex items-center gap-2 rounded-lg border bg-surface-overlay/90 py-1.5 pl-2 pr-2.5 backdrop-blur-md",
@@ -71,7 +79,9 @@ export const AgentSceneLabel = forwardRef<
         <span className="text-[10px] font-semibold text-text">{agent.name.split(" ")[0]}</span>
         <span className="mt-0.5 text-[9px] font-medium text-text-muted">{primary}</span>
         {secondary && (
-          <span className="mt-0.5 text-[8px] font-medium text-primary-light">{secondary}</span>
+          <span className="mt-0.5 max-w-[160px] truncate text-[8px] font-medium text-primary-light">
+            {secondary}
+          </span>
         )}
       </span>
 

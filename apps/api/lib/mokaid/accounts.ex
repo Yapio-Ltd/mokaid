@@ -104,7 +104,10 @@ defmodule Mokaid.Accounts do
 
   @doc """
   Signs in or registers a user from a verified Google profile.
-  Returns `{:ok, user, :created | :existing}`. New users get a workspace.
+  Returns `{:ok, user, :created | :existing, workspace | nil}`.
+
+  New users always get a workspace. Existing users without any active
+  workspace membership also get one (self-heal after partial failures).
   """
   def login_or_register_with_google(%{sub: sub, email: email} = profile)
       when is_binary(sub) and is_binary(email) do
@@ -112,27 +115,29 @@ defmodule Mokaid.Accounts do
     name = profile[:name] || profile["name"] || email
     picture = profile[:picture] || profile["picture"]
 
-    Repo.transaction(fn ->
+    result =
       case find_google_user(google_key, email) do
         nil ->
           workspace_name = default_workspace_name(name)
 
-          with {:ok, user} <-
-                 register_user(%{
-                   "email" => email,
-                   "full_name" => name,
-                   "avatar_url" => picture,
-                   "cognito_sub" => google_key
-                 }),
-               {:ok, workspace} <-
-                 Mokaid.Workspaces.create_workspace(
-                   %{"name" => workspace_name},
-                   user
-                 ) do
-            {touch_login(user), :created, workspace}
-          else
-            {:error, changeset} -> Repo.rollback(changeset)
-          end
+          Repo.transaction(fn ->
+            with {:ok, user} <-
+                   register_user(%{
+                     "email" => email,
+                     "full_name" => name,
+                     "avatar_url" => picture,
+                     "cognito_sub" => google_key
+                   }),
+                 {:ok, workspace} <-
+                   Mokaid.Workspaces.create_workspace(
+                     %{"name" => workspace_name},
+                     user
+                   ) do
+              {touch_login(user), :created, workspace}
+            else
+              {:error, reason} -> Repo.rollback(reason)
+            end
+          end)
 
         user ->
           user =
@@ -145,12 +150,15 @@ defmodule Mokaid.Accounts do
             |> Repo.update!()
             |> touch_login()
 
-          {user, :existing, nil}
+          case ensure_workspace_for_user(user, name) do
+            {:ok, nil} -> {:ok, {user, :existing, nil}}
+            {:ok, workspace} -> {:ok, {user, :existing, workspace}}
+            {:error, reason} -> {:error, reason}
+          end
       end
-    end)
-    |> case do
-      {:ok, {user, :created, workspace}} -> {:ok, user, :created, workspace}
-      {:ok, {user, :existing, _}} -> {:ok, user, :existing, nil}
+
+    case result do
+      {:ok, {user, status, workspace}} -> {:ok, user, status, workspace}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -161,6 +169,23 @@ defmodule Mokaid.Accounts do
 
   defp find_google_user(google_key, email) do
     get_user_by_cognito_sub(google_key) || get_user_by_email(email)
+  end
+
+  @doc """
+  Ensures the user has at least one active workspace membership.
+  Creates a personal workspace when none exist. Returns
+  `{:ok, nil}` when nothing was needed, or `{:ok, workspace}` when created.
+  """
+  def ensure_workspace_for_user(%User{} = user, name_hint \\ nil) do
+    case Mokaid.Workspaces.list_workspaces_for_user(user.id) do
+      [_ | _] ->
+        {:ok, nil}
+
+      [] ->
+        workspace_name = default_workspace_name(name_hint || user.full_name || user.email)
+
+        Mokaid.Workspaces.create_workspace(%{"name" => workspace_name}, user)
+    end
   end
 
   defp default_workspace_name(full_name) when is_binary(full_name) do

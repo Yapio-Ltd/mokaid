@@ -55,6 +55,7 @@ import {
 import { toast } from "@/stores/toast-store";
 import { motion } from "framer-motion";
 import { useMissionPlanStore, type MissionPlanStep } from "@/stores/mission-plan-store";
+import { RunHistory, RunTimeline } from "@/components/tasks/run-timeline";
 import { useChatStore } from "@/stores/chat-store";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -668,6 +669,9 @@ export function TaskDetailPanel({
             <MissionPlan steps={plan} working={agentWorking} />
           )}
 
+          {/* Chronological tool activity: what the agent actually does, live. */}
+          <RunTimeline taskId={task.id} run={run} working={agentWorking} />
+
           {/* Idle to_do task with an AI agent: one click to launch. */}
           {task.status === "to_do" && task.assigned_agent_id && !agentWorking && !waitingApproval && (
             <Button
@@ -1069,6 +1073,9 @@ export function TaskDetailPanel({
               </div>
             </Section>
           )}
+
+          {/* Past runs of this mission (retries, restarts) with their timelines. */}
+          {run != null && <RunHistory taskId={task.id} currentRunId={run.id} />}
 
           {/* Conversation lives in the floating agent chat bubble. */}
           {canOpenConversation && (

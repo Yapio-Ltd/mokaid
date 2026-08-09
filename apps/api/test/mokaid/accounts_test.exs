@@ -147,7 +147,7 @@ defmodule Mokaid.AccountsTest do
   test "login_or_register_with_google reuses existing email account" do
     user = user_fixture(%{email: "linked#{System.unique_integer([:positive])}@example.com"})
 
-    assert {:ok, same, :existing, nil} =
+    assert {:ok, same, :existing, workspace} =
              Accounts.login_or_register_with_google(%{
                sub: "google-sub-#{System.unique_integer([:positive])}",
                email: user.email,
@@ -157,5 +157,37 @@ defmodule Mokaid.AccountsTest do
 
     assert same.id == user.id
     assert String.starts_with?(same.cognito_sub, "google:")
+    # No prior membership → self-heals by creating a personal workspace.
+    assert workspace
+    assert [_] = Mokaid.Workspaces.list_workspaces_for_user(user.id)
+
+    assert {:ok, again, :existing, nil} =
+             Accounts.login_or_register_with_google(%{
+               sub: "google-sub-#{System.unique_integer([:positive])}",
+               email: user.email,
+               name: "Linked",
+               picture: nil
+             })
+
+    assert again.id == user.id
+  end
+
+  test "login_or_register_with_google creates workspace for existing user without one" do
+    user = user_fixture(%{email: "orphan#{System.unique_integer([:positive])}@example.com"})
+
+    assert Mokaid.Workspaces.list_workspaces_for_user(user.id) == []
+
+    assert {:ok, same, :existing, workspace} =
+             Accounts.login_or_register_with_google(%{
+               sub: "google-sub-#{System.unique_integer([:positive])}",
+               email: user.email,
+               name: "Orphan User",
+               picture: nil
+             })
+
+    assert same.id == user.id
+    assert workspace
+    assert workspace.name =~ "Orphan"
+    assert [_] = Mokaid.Workspaces.list_workspaces_for_user(user.id)
   end
 end

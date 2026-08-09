@@ -1,20 +1,36 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { History, Loader2, Minus, Paperclip, Plus, Send, Upload, X } from "lucide-react";
+import {
+  History,
+  Loader2,
+  Minus,
+  Paperclip,
+  Plus,
+  Send,
+  ShieldAlert,
+  ThumbsDown,
+  ThumbsUp,
+  Upload,
+  X,
+} from "lucide-react";
 import type { Agent, AgentChatConversation } from "@/api/types";
 import {
   useAgentChatMessages,
   useAgentConversations,
+  useApproveTaskAction,
   useMarkAgentChatRead,
   useNewConversation,
   useSendAgentChatMessage,
+  useTask,
   useUploadDriveFile,
 } from "@/api/hooks";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { ChatAttachmentView } from "./chat-attachment";
 import { FadeSlide } from "@/components/ui/motion";
+import { MarkdownView } from "@/components/ui/markdown-view";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useChatStore } from "@/stores/chat-store";
+import { useToolActivityStore } from "@/stores/tool-activity-store";
 import { playSound } from "@/lib/sounds";
 import { toast } from "@/stores/toast-store";
 import { cn } from "@/lib/cn";
@@ -45,6 +61,85 @@ function TypingDots() {
 interface PendingFile {
   driveItemId: string;
   name: string;
+}
+
+/** Live "what the agent is doing" chip, fed by the tool-activity stream. */
+function LiveActivityChip({ taskId }: { taskId: string }) {
+  const feed = useToolActivityStore((s) => s.feeds[taskId]);
+  const current = useMemo(
+    () =>
+      (feed ?? [])
+        .filter((e) => e.status === "running" || e.status === "awaiting_approval")
+        .at(-1),
+    [feed],
+  );
+  if (!current) return null;
+
+  return (
+    <div className="flex items-center gap-2 px-1">
+      <span className="flex max-w-full items-center gap-1.5 rounded-full border border-info/25 bg-info/8 px-2.5 py-1">
+        {current.status === "awaiting_approval" ? (
+          <ShieldAlert size={11} className="shrink-0 text-warning" />
+        ) : (
+          <Loader2 size={11} className="shrink-0 animate-spin text-info" />
+        )}
+        <span className="min-w-0 truncate text-[11px] text-text-secondary">
+          {current.description || current.tool}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Inline approval: when the agent's current mission (born in or delivered to
+ * this chat) pauses on a risky action, decide without leaving the thread.
+ */
+function InlineApprovalCard({ agent }: { agent: Agent }) {
+  const { data } = useTask(agent.current_task_id);
+  const approveAction = useApproveTaskAction();
+  const task = data?.data;
+  const pending = task?.pending_approval;
+
+  // Only surface missions anchored to this agent's chat — others live in the
+  // global review gate.
+  if (!task || !pending || task.chat_agent_id !== agent.id) return null;
+
+  const decide = (decision: "approved" | "rejected") =>
+    approveAction.mutate({ taskId: task.id, approvalRequestId: pending.id, decision });
+
+  return (
+    <FadeSlide className="flex items-end gap-2">
+      <AgentAvatar agent={agent} size="xs" showRing={false} showBadge={false} />
+      <div className="max-w-[85%] rounded-2xl rounded-bl-sm border border-warning/30 bg-warning/8 px-3 py-2.5">
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold text-text">
+          <ShieldAlert size={12} className="shrink-0 text-warning" />
+          I need your go-ahead
+        </p>
+        <p className="mt-1 text-[12px] leading-snug text-text-secondary">
+          {pending.proposed_action}
+        </p>
+        <div className="mt-2 flex gap-1.5">
+          <button
+            type="button"
+            disabled={approveAction.isPending}
+            onClick={() => decide("approved")}
+            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            <ThumbsUp size={11} /> Approve
+          </button>
+          <button
+            type="button"
+            disabled={approveAction.isPending}
+            onClick={() => decide("rejected")}
+            className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-[11px] font-medium text-text transition-colors hover:bg-surface-hover disabled:opacity-50"
+          >
+            <ThumbsDown size={11} /> Reject
+          </button>
+        </div>
+      </div>
+    </FadeSlide>
+  );
 }
 
 function ConversationList({
@@ -374,7 +469,15 @@ export function ChatWindow({ agent }: { agent: Agent }) {
                           : `${message.author_name ?? "You"} · ${formatTime(message.inserted_at)}`
                       }
                     >
-                      {message.body && <p className="whitespace-pre-wrap">{message.body}</p>}
+                      {message.body &&
+                        (isAgent ? (
+                          <MarkdownView
+                            markdown={message.body}
+                            className="text-[12.5px] leading-snug"
+                          />
+                        ) : (
+                          <p className="whitespace-pre-wrap">{message.body}</p>
+                        ))}
                       {message.attachments.map((att) => (
                         <ChatAttachmentView
                           key={att.drive_item_id}
@@ -411,6 +514,15 @@ export function ChatWindow({ agent }: { agent: Agent }) {
                   <TypingDots />
                 </div>
               </div>
+            )}
+
+            {/* Mission activity: live tool chip + inline approval when the
+                agent's current mission is anchored to this chat. */}
+            {agent.kind === "ai" && agent.current_task_id && (
+              <>
+                <LiveActivityChip taskId={agent.current_task_id} />
+                <InlineApprovalCard agent={agent} />
+              </>
             )}
           </div>
 

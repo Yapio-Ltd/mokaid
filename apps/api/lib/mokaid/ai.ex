@@ -284,6 +284,25 @@ defmodule Mokaid.AI do
   defp loaded(%Ecto.Association.NotLoaded{}), do: nil
   defp loaded(other), do: other
 
+  @doc """
+  One tool-activity event streamed by the worker (tool start/end with a human
+  description). Persisted on the run and broadcast on a dedicated event so
+  the timeline and chat activity chips update live without task refetches.
+  """
+  def handle_tool_activity(run_id, event) when is_map(event) do
+    with %{} = run <- Tasks.get_run(run_id),
+         {:ok, updated_run} <- Tasks.append_run_activity(run, event) do
+      Realtime.broadcast_workspace(run.workspace_id, "task.tool_activity", %{
+        task_id: run.task_id,
+        run_id: run.id,
+        agent_id: run.agent_id,
+        event: event
+      })
+
+      {:ok, updated_run}
+    end
+  end
+
   @doc "Handles a progress callback from the AI worker."
   def handle_progress(run_id, attrs) do
     with %{} = run <- Tasks.get_run(run_id),

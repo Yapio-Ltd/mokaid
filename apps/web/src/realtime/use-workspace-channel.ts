@@ -7,6 +7,8 @@ import { toast } from "@/stores/toast-store";
 import { useUiStore } from "@/stores/ui-store";
 import { useChatStore } from "@/stores/chat-store";
 import { useMissionPlanStore, type MissionPlanStep } from "@/stores/mission-plan-store";
+import { useToolActivityStore } from "@/stores/tool-activity-store";
+import type { ToolActivityEvent } from "@/api/types";
 import { useTaskTypingStore } from "@/stores/task-typing-store";
 import { playSound } from "@/lib/sounds";
 import { useReviewQueueStore } from "@/stores/review-queue-store";
@@ -528,6 +530,22 @@ export function useWorkspaceChannel(): void {
       }
     });
 
+    // A fresh run makes the previous live feed stale — drop it.
+    const runStartedRef = channel.on("task.run_started", (payload: EventPayload) => {
+      const taskId = str(payload ?? {}, "task_id");
+      if (taskId) useToolActivityStore.getState().clear(taskId);
+    });
+
+    // Live tool activity: every tool call the agent makes streams here with a
+    // human description — feeds the run timeline and the chat activity chips.
+    const toolActivityRef = channel.on("task.tool_activity", (payload: EventPayload) => {
+      const taskId = str(payload ?? {}, "task_id");
+      const event = (payload as { event?: ToolActivityEvent }).event;
+      if (taskId && event && typeof event.id === "string") {
+        useToolActivityStore.getState().push(taskId, event);
+      }
+    });
+
     // Personal notifications: badge + toast. Must live on notifications:{userId}
     // — never arrives on the workspace channel.
     const notifRef = notifChannel?.on("notification.created", (payload: EventPayload) => {
@@ -573,6 +591,8 @@ export function useWorkspaceChannel(): void {
       channel.off("task.agent_typing", taskTypingRef);
       channel.off("task.comment_added", commentRef);
       channel.off("task.plan_updated", planRef);
+      channel.off("task.run_started", runStartedRef);
+      channel.off("task.tool_activity", toolActivityRef);
       if (notifChannel && notifRef != null) {
         notifChannel.off("notification.created", notifRef);
       }

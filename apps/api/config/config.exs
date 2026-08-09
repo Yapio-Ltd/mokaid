@@ -35,7 +35,8 @@ config :mokaid, Oban,
        {"15 * * * *", Mokaid.Billing.Workers.MonthlyCreditsWorker},
        {"*/15 * * * *", Mokaid.Tasks.Workers.OverdueTaskWorker},
        {"*/5 * * * *", Mokaid.Tasks.Workers.StaleRunWorker},
-       {"* * * * *", Mokaid.Office.Workers.ActivitySchedulerWorker}
+       {"* * * * *", Mokaid.Office.Workers.ActivitySchedulerWorker},
+       {"* * * * *", Mokaid.AI.Workers.ScheduleWorker}
      ]}
   ]
 

@@ -75,7 +75,16 @@ defmodule MokaidWeb.KnowledgeController do
   def show(conn, %{"id" => id}) do
     with :ok <- Permissions.authorize(current_member(conn), "knowledge.view"),
          %{} = item <- Knowledge.get_item(workspace_id(conn), id) do
-      json(conn, %{data: Serializer.knowledge_item(item)})
+      # The full body only ships on the detail endpoint — lists stay light.
+      json(conn, %{data: item |> Serializer.knowledge_item() |> Map.put(:body, item.body)})
+    end
+  end
+
+  def delete(conn, %{"id" => id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "knowledge.update"),
+         %{} = item <- Knowledge.get_item(workspace_id(conn), id),
+         {:ok, _} <- Knowledge.delete_item(item) do
+      json(conn, %{ok: true})
     end
   end
 

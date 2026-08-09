@@ -391,6 +391,41 @@ defmodule Mokaid.Tasks do
     |> Repo.update()
   end
 
+  @doc "All runs of a task, newest first (run history in the task panel)."
+  def list_runs_for_task(workspace_id, task_id) do
+    Repo.all(
+      from r in TaskExecutionRun,
+        where: r.workspace_id == ^workspace_id and r.task_id == ^task_id,
+        order_by: [desc: r.inserted_at]
+    )
+  end
+
+  @max_activity_entries 200
+
+  @doc """
+  Appends (or updates, matched by event id) one tool-activity event on the
+  run. Intentionally does NOT broadcast `task.progress_changed` — the caller
+  broadcasts the dedicated `task.tool_activity` event instead, so the noisy
+  per-tool stream never triggers full task refetches.
+  """
+  def append_run_activity(%TaskExecutionRun{} = run, event) when is_map(event) do
+    activity = upsert_activity(run.tool_activity || [], event)
+
+    run
+    |> TaskExecutionRun.progress_changeset(%{"tool_activity" => activity})
+    |> Repo.update()
+  end
+
+  defp upsert_activity(activity, event) do
+    event_id = event["id"]
+
+    if event_id != nil and Enum.any?(activity, &(&1["id"] == event_id)) do
+      Enum.map(activity, &if(&1["id"] == event_id, do: Map.merge(&1, event), else: &1))
+    else
+      Enum.take(activity ++ [event], -@max_activity_entries)
+    end
+  end
+
   def update_run_progress(%TaskExecutionRun{} = run, attrs) do
     result =
       run

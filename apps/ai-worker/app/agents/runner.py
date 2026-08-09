@@ -24,7 +24,7 @@ from app.agents.acknowledge import post_acknowledgement
 from app.agents.planner import plan_steps
 from app.clients.phoenix import PhoenixClient
 from app.mcp.client import TOOL_PREFIX, McpToolbox
-from app.policies.approval import requires_approval, risk_for_tool
+from app.policies.approval import ApprovalPolicy, risk_for_tool
 from app.schemas import ResumeRequest, RunRequest, RunState, RunStatus, ToolCall
 from app.tools.registry import RunContext, get_tool
 
@@ -118,6 +118,8 @@ async def execute_run(
             await persistence.delete_run_request(request.run_id)
         return final
 
+    policy = ApprovalPolicy(request.autonomy)
+
     try:
         for step in await plan_steps(request, ctx.usage, mcp_tools):
             tool_name: str = step["tool"]
@@ -125,7 +127,17 @@ async def execute_run(
             risk = risk_for_tool(tool_name)
             call = ToolCall(tool=tool_name, input=tool_input, risk=risk)
 
-            if requires_approval(tool_name):
+            gate_decision = policy.decision(tool_name)
+            if gate_decision == "deny":
+                call.approved = False
+                state.tool_calls.append(call)
+                log.info("tool_denied_by_rule", run_id=request.run_id, tool=tool_name)
+                continue
+
+            if gate_decision == "allow":
+                call.approved = True
+
+            if gate_decision == "ask":
                 state.status = RunStatus.WAITING_FOR_APPROVAL
                 state.pending_tool = call
                 created = await phoenix.request_approval(

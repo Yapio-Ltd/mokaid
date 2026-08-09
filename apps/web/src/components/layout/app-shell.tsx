@@ -4,6 +4,7 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { useWorkspaceChannel } from "@/realtime/use-workspace-channel";
 import { useOnboardingSettings } from "@/api/hooks";
+import { apiFetch } from "@/api/client";
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 import { CoachmarkTour } from "@/components/onboarding/coachmark-tour";
 import { ReviewBanner } from "@/components/approvals/review-banner";
@@ -14,6 +15,7 @@ import { DeliverableViewer } from "@/components/deliverables/deliverable-viewer"
 import { FloatingChatDock } from "@/components/chat/floating-chat-dock";
 import { Toaster } from "@/components/ui/toaster";
 import { useUiStore } from "@/stores/ui-store";
+import { useAuthStore, type WorkspaceSummary } from "@/stores/auth-store";
 
 function OnboardingGate() {
   const [dismissed, setDismissed] = useState(false);
@@ -27,7 +29,44 @@ function OnboardingGate() {
   return <OnboardingWizard onFinish={() => setDismissed(true)} />;
 }
 
+/** Reconcile workspaces after login / repair so a missing membership is healed. */
+function useSessionWorkspaceSync() {
+  const token = useAuthStore((s) => s.token);
+  const setWorkspaces = useAuthStore((s) => s.setWorkspaces);
+  const patchUser = useAuthStore((s) => s.patchUser);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const me = await apiFetch<{
+          user: {
+            id: string;
+            email: string;
+            full_name: string;
+            avatar_url: string | null;
+            has_password?: boolean;
+          };
+          workspaces: WorkspaceSummary[];
+        }>("/api/me", { skipWorkspace: true });
+        if (cancelled) return;
+        patchUser(me.user);
+        setWorkspaces(me.workspaces ?? []);
+      } catch {
+        // 401 handled by apiFetch (logout). Other errors leave local state as-is.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, setWorkspaces, patchUser]);
+}
+
 export function AppShell() {
+  useSessionWorkspaceSync();
   useWorkspaceChannel();
   useReviewQueueHydration();
 

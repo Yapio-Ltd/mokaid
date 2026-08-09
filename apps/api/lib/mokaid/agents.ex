@@ -3,7 +3,7 @@ defmodule Mokaid.Agents do
 
   import Ecto.Query
 
-  alias Mokaid.Agents.{Agent, AgentStatusEvent, Archetypes, DomainPacks, Progression}
+  alias Mokaid.Agents.{Agent, AgentStatusEvent, Archetypes, DomainPacks, PermissionRule, Progression}
   alias Mokaid.Agents.Workers.AgentBoostTrainingWorker
   alias Mokaid.Audit
   alias Mokaid.Billing
@@ -752,6 +752,80 @@ defmodule Mokaid.Agents do
         {:ok, updated}
       end
     end
+  end
+
+  ## ---------- Autonomy & permission rules ----------
+
+  @doc "Persisted allow/deny tool rules for one agent (Claude Code style)."
+  def list_permission_rules(workspace_id, agent_id) do
+    Repo.all(
+      from r in PermissionRule,
+        where: r.workspace_id == ^workspace_id and r.agent_id == ^agent_id,
+        order_by: [asc: r.inserted_at]
+    )
+  end
+
+  @doc """
+  Creates (or updates the behavior of) an always-allow / always-deny rule.
+  Idempotent on (agent_id, tool_pattern) so approving twice with
+  "always allow" never fails.
+  """
+  def upsert_permission_rule(workspace_id, agent_id, attrs, member \\ nil) do
+    attrs = stringify_attrs(attrs)
+
+    result =
+      %PermissionRule{}
+      |> PermissionRule.changeset(
+        Map.merge(attrs, %{
+          "workspace_id" => workspace_id,
+          "agent_id" => agent_id,
+          "created_by_member_id" => member && member.id
+        })
+      )
+      |> Repo.insert(
+        on_conflict: {:replace, [:behavior, :updated_at]},
+        conflict_target: [:agent_id, :tool_pattern]
+      )
+
+    with {:ok, rule} <- result do
+      Realtime.broadcast_workspace(workspace_id, "agent.updated", %{agent_id: agent_id})
+      {:ok, rule}
+    end
+  end
+
+  def delete_permission_rule(workspace_id, agent_id, rule_id) do
+    rule =
+      Repo.one(
+        from r in PermissionRule,
+          where:
+            r.workspace_id == ^workspace_id and r.agent_id == ^agent_id and r.id == ^rule_id
+      )
+
+    case rule do
+      nil ->
+        {:error, :not_found}
+
+      rule ->
+        with {:ok, deleted} <- Repo.delete(rule) do
+          Realtime.broadcast_workspace(workspace_id, "agent.updated", %{agent_id: agent_id})
+          {:ok, deleted}
+        end
+    end
+  end
+
+  @doc """
+  Autonomy payload shipped to the AI worker with every run: the agent's
+  supervision mode plus its persisted allow/deny rules.
+  """
+  def autonomy_payload(nil), do: %{}
+
+  def autonomy_payload(%Agent{} = agent) do
+    rules =
+      agent.workspace_id
+      |> list_permission_rules(agent.id)
+      |> Enum.map(&%{tool_pattern: &1.tool_pattern, behavior: &1.behavior})
+
+    %{mode: agent.autonomy_mode || "balanced", rules: rules}
   end
 
   def counts(workspace_id) do

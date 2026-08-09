@@ -9,6 +9,14 @@ defmodule MokaidWeb.WorkerCallbackController do
     end
   end
 
+  def tool_activity(conn, %{"run_id" => run_id} = params) do
+    event = params["event"] || Map.drop(params, ["run_id"])
+
+    with {:ok, run} <- AI.handle_tool_activity(run_id, event) do
+      json(conn, %{data: %{run_id: run.id}})
+    end
+  end
+
   def approval_request(conn, %{"run_id" => run_id} = params) do
     with {:ok, request} <- AI.handle_approval_request(run_id, Map.drop(params, ["run_id"])) do
       conn

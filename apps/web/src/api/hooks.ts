@@ -6,8 +6,11 @@ import type {
   AgentChatConversation,
   AgentChatMessage,
   AgentChatSummary,
+  AgentPermissionRule,
   AgentProgression,
+  AgentSchedule,
   AgentTrainingSnapshot,
+  ScheduleDraft,
   AgentCounts,
   AnalyticsOverview,
   CreateAgentPayload,
@@ -37,6 +40,7 @@ import type {
   ProjectActivity,
   Task,
   TaskComment,
+  TaskRun,
   Workspace,
 } from "./types";
 import { useAuthStore, type WorkspaceSummary } from "@/stores/auth-store";
@@ -55,9 +59,17 @@ export interface Asset3d {
   inserted_at: string;
 }
 
-function useWorkspaceKey(base: string): (string | null)[] {
+function useWorkspaceKey(base: string): {
+  key: (string | null)[];
+  workspaceId: string | null;
+  enabled: boolean;
+} {
   const workspaceId = useAuthStore((s) => s.workspaceId);
-  return [base, workspaceId];
+  return {
+    key: [base, workspaceId],
+    workspaceId,
+    enabled: workspaceId != null,
+  };
 }
 
 /* ---------- Agents ---------- */
@@ -74,9 +86,10 @@ export function useAssets3d(kind?: string) {
 }
 
 export function useAgents(filters: Record<string, string | undefined> = {}) {
-  const key = useWorkspaceKey("agents");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("agents");
   return useQuery({
     queryKey: [...key, filters],
+    enabled: workspaceReady,
     queryFn: () =>
       apiFetch<{ data: Agent[]; meta: { counts: AgentCounts } }>("/api/agents", {
         params: filters,
@@ -85,28 +98,28 @@ export function useAgents(filters: Record<string, string | undefined> = {}) {
 }
 
 export function useAgent(id: string | null) {
-  const key = useWorkspaceKey("agents");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("agents");
   return useQuery({
     queryKey: [...key, "detail", id],
-    enabled: id != null,
+    enabled: workspaceReady && id != null,
     queryFn: () => apiFetch<Envelope<Agent>>(`/api/agents/${id}`),
   });
 }
 
 export function useAgentProgression(id: string | null) {
-  const key = useWorkspaceKey("agents");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("agents");
   return useQuery({
     queryKey: [...key, "progression", id],
-    enabled: id != null,
+    enabled: workspaceReady && id != null,
     queryFn: () => apiFetch<Envelope<AgentProgression>>(`/api/agents/${id}/progression`),
   });
 }
 
 export function useAgentTraining(id: string | null) {
-  const key = useWorkspaceKey("agents");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("agents");
   return useQuery({
     queryKey: [...key, "training", id],
-    enabled: id != null,
+    enabled: workspaceReady && id != null,
     queryFn: () => apiFetch<Envelope<AgentTrainingSnapshot>>(`/api/agents/${id}/training`),
     refetchInterval: (query) => (query.state.data?.data.complete ? false : 1_200),
   });
@@ -138,6 +151,131 @@ export function useUpdateAgent() {
     mutationFn: ({ id, ...body }: Partial<Agent> & { id: string }) =>
       apiFetch<Envelope<Agent>>(`/api/agents/${id}`, { method: "PATCH", body }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agents"] }),
+  });
+}
+
+/* Persisted allow/deny tool rules (agent autonomy). */
+
+export function useAgentPermissionRules(agentId: string | null) {
+  const { key, enabled: workspaceReady } = useWorkspaceKey("agents");
+  return useQuery({
+    queryKey: [...key, "permission-rules", agentId],
+    enabled: workspaceReady && agentId != null,
+    queryFn: () =>
+      apiFetch<Envelope<AgentPermissionRule[]>>(
+        `/api/agents/${agentId}/permission-rules`,
+      ),
+  });
+}
+
+export function useCreateAgentPermissionRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      agentId,
+      toolPattern,
+      behavior,
+    }: {
+      agentId: string;
+      toolPattern: string;
+      behavior: "allow" | "deny";
+    }) =>
+      apiFetch<Envelope<AgentPermissionRule>>(
+        `/api/agents/${agentId}/permission-rules`,
+        { method: "POST", body: { tool_pattern: toolPattern, behavior } },
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agents"] }),
+  });
+}
+
+export function useDeleteAgentPermissionRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ agentId, ruleId }: { agentId: string; ruleId: string }) =>
+      apiFetch<{ ok: boolean }>(
+        `/api/agents/${agentId}/permission-rules/${ruleId}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agents"] }),
+  });
+}
+
+/* Agent automations (cron schedules). */
+
+export function useAgentSchedules(agentId: string | null) {
+  const { key, enabled: workspaceReady } = useWorkspaceKey("agents");
+  return useQuery({
+    queryKey: [...key, "schedules", agentId],
+    enabled: workspaceReady && agentId != null,
+    queryFn: () =>
+      apiFetch<Envelope<AgentSchedule[]>>(`/api/agents/${agentId}/schedules`),
+  });
+}
+
+export function useCreateAgentSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      agentId,
+      ...body
+    }: {
+      agentId: string;
+      name: string;
+      cron_expression: string;
+      timezone?: string;
+      prompt: string;
+      enabled?: boolean;
+      max_runs?: number | null;
+      expires_at?: string | null;
+    }) =>
+      apiFetch<Envelope<AgentSchedule>>(`/api/agents/${agentId}/schedules`, {
+        method: "POST",
+        body,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agents"] }),
+  });
+}
+
+export function useUpdateAgentSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      agentId,
+      scheduleId,
+      ...body
+    }: {
+      agentId: string;
+      scheduleId: string;
+    } & Partial<
+      Pick<AgentSchedule, "name" | "cron_expression" | "timezone" | "prompt" | "enabled">
+    >) =>
+      apiFetch<Envelope<AgentSchedule>>(
+        `/api/agents/${agentId}/schedules/${scheduleId}`,
+        { method: "PATCH", body },
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agents"] }),
+  });
+}
+
+export function useDeleteAgentSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ agentId, scheduleId }: { agentId: string; scheduleId: string }) =>
+      apiFetch<{ ok: boolean }>(`/api/agents/${agentId}/schedules/${scheduleId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agents"] }),
+  });
+}
+
+/** Natural-language → cron draft ("every Monday 9am, prepare the report"). */
+export function useParseAgentSchedule() {
+  return useMutation({
+    mutationFn: ({ agentId, text }: { agentId: string; text: string }) =>
+      apiFetch<Envelope<ScheduleDraft>>(`/api/agents/${agentId}/schedules/parse`, {
+        method: "POST",
+        body: { text },
+      }),
   });
 }
 
@@ -197,9 +335,10 @@ export function useUploadAgentFiles() {
 /* ---------- Tasks ---------- */
 
 export function useTasks(filters: Record<string, string | undefined> = {}) {
-  const key = useWorkspaceKey("tasks");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("tasks");
   return useQuery({
     queryKey: [...key, filters],
+    enabled: workspaceReady,
     queryFn: () =>
       apiFetch<{
         data: Task[];
@@ -209,11 +348,21 @@ export function useTasks(filters: Record<string, string | undefined> = {}) {
 }
 
 export function useTask(id: string | null) {
-  const key = useWorkspaceKey("tasks");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("tasks");
   return useQuery({
     queryKey: [...key, "detail", id],
-    enabled: id != null,
+    enabled: workspaceReady && id != null,
     queryFn: () => apiFetch<Envelope<Task>>(`/api/tasks/${id}`),
+  });
+}
+
+/** Full run history of a task (newest first) — powers the run timeline. */
+export function useTaskRuns(id: string | null, opts?: { enabled?: boolean }) {
+  const { key, enabled: workspaceReady } = useWorkspaceKey("tasks");
+  return useQuery({
+    queryKey: [...key, "runs", id],
+    enabled: workspaceReady && id != null && (opts?.enabled ?? true),
+    queryFn: () => apiFetch<Envelope<TaskRun[]>>(`/api/tasks/${id}/runs`),
   });
 }
 
@@ -311,11 +460,14 @@ export function useApproveTaskAction() {
       approvalRequestId,
       decision,
       payload,
+      remember,
     }: {
       taskId: string;
       approvalRequestId: string;
       decision: "approved" | "rejected" | "edited";
       payload?: Record<string, unknown>;
+      /** Persist an always-allow / always-deny rule for this agent+tool. */
+      remember?: "allow" | "deny";
     }) =>
       apiFetch<Envelope<{ id: string; status: string }>>(`/api/tasks/${taskId}/approve-action`, {
         method: "POST",
@@ -323,6 +475,7 @@ export function useApproveTaskAction() {
           approval_request_id: approvalRequestId,
           decision,
           ...(payload ? { payload } : {}),
+          ...(remember ? { remember } : {}),
         },
       }),
     onSuccess: () => {
@@ -370,9 +523,10 @@ export function useDispatchConfirm() {
 /* ---------- Projects ---------- */
 
 export function useProjects(filters: Record<string, string | undefined> = {}) {
-  const key = useWorkspaceKey("projects");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("projects");
   return useQuery({
     queryKey: [...key, filters],
+    enabled: workspaceReady,
     queryFn: () =>
       apiFetch<{
         data: Project[];
@@ -438,9 +592,10 @@ export function useDeleteProject() {
 /* ---------- Knowledge ---------- */
 
 export function useKnowledgeItems(filters: Record<string, string | undefined> = {}) {
-  const key = useWorkspaceKey("knowledge");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("knowledge");
   return useQuery({
     queryKey: [...key, filters],
+    enabled: workspaceReady,
     queryFn: () =>
       apiFetch<{ data: KnowledgeItem[]; meta: { counts: Record<string, number> } }>(
         "/api/knowledge",
@@ -449,10 +604,30 @@ export function useKnowledgeItems(filters: Record<string, string | undefined> = 
   });
 }
 
+/** Item detail — the only endpoint that ships the full body. */
+export function useKnowledgeItem(id: string | null) {
+  const { key, enabled: workspaceReady } = useWorkspaceKey("knowledge");
+  return useQuery({
+    queryKey: [...key, "detail", id],
+    enabled: workspaceReady && id != null,
+    queryFn: () => apiFetch<Envelope<KnowledgeItem>>(`/api/knowledge/${id}`),
+  });
+}
+
+export function useDeleteKnowledgeItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<{ ok: boolean }>(`/api/knowledge/${id}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["knowledge"] }),
+  });
+}
+
 export function useKnowledgeCategories() {
-  const key = useWorkspaceKey("knowledge");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("knowledge");
   return useQuery({
     queryKey: [...key, "categories"],
+    enabled: workspaceReady,
     queryFn: () => apiFetch<Envelope<KnowledgeCategory[]>>("/api/knowledge-categories"),
   });
 }
@@ -487,9 +662,10 @@ export function useUploadKnowledgeFiles() {
 }
 
 export function useKnowledgeGraph(filters: Record<string, string | undefined> = {}) {
-  const key = useWorkspaceKey("knowledge-graph");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("knowledge-graph");
   return useQuery({
     queryKey: [...key, filters],
+    enabled: workspaceReady,
     queryFn: () =>
       apiFetch<Envelope<import("@/three/knowledge-zones").KnowledgeGraphSnapshot>>(
         "/api/knowledge-graph",
@@ -499,9 +675,10 @@ export function useKnowledgeGraph(filters: Record<string, string | undefined> = 
 }
 
 export function useKnowledgeOfficeZones() {
-  const key = useWorkspaceKey("knowledge-graph-zones");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("knowledge-graph-zones");
   return useQuery({
     queryKey: key,
+    enabled: workspaceReady,
     queryFn: () =>
       apiFetch<Envelope<import("@/three/knowledge-zones").KnowledgeCommunity[]>>(
         "/api/knowledge-graph/office-zones",
@@ -560,9 +737,10 @@ export function useCompanyBrain() {
 /* ---------- Drive ---------- */
 
 export function useDriveItems(parentId: string | null) {
-  const key = useWorkspaceKey("drive");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("drive");
   return useQuery({
     queryKey: [...key, parentId],
+    enabled: workspaceReady,
     queryFn: () =>
       apiFetch<Envelope<DriveItem[]>>("/api/drive", {
         params: { parent_id: parentId ?? undefined },
@@ -571,9 +749,10 @@ export function useDriveItems(parentId: string | null) {
 }
 
 export function useDriveTrash() {
-  const key = useWorkspaceKey("drive");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("drive");
   return useQuery({
     queryKey: [...key, "trash"],
+    enabled: workspaceReady,
     queryFn: () => apiFetch<Envelope<DriveItem[]>>("/api/drive-trash"),
   });
 }
@@ -683,9 +862,10 @@ export function useRestoreDriveItem() {
 /* ---------- Calendar ---------- */
 
 export function useCalendarEvents(filters: Record<string, string | undefined> = {}) {
-  const key = useWorkspaceKey("calendar");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("calendar");
   return useQuery({
     queryKey: [...key, filters],
+    enabled: workspaceReady,
     queryFn: () =>
       apiFetch<Envelope<CalendarEvent[]>>("/api/calendar/events", { params: filters }),
   });
@@ -714,9 +894,10 @@ export function useCreateCalendarEvent() {
 /* ---------- Members & leave ---------- */
 
 export function useMembers() {
-  const key = useWorkspaceKey("members");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("members");
   return useQuery({
     queryKey: key,
+    enabled: workspaceReady,
     queryFn: () =>
       apiFetch<{
         data: Member[];
@@ -791,9 +972,10 @@ export function useLinkMemberAgent() {
 }
 
 export function useLeaveRequests() {
-  const key = useWorkspaceKey("leave-requests");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("leave-requests");
   return useQuery({
     queryKey: key,
+    enabled: workspaceReady,
     queryFn: () => apiFetch<Envelope<LeaveRequest[]>>("/api/leave-requests"),
   });
 }
@@ -822,9 +1004,10 @@ export function useReviewLeaveRequest() {
 /* ---------- Integrations ---------- */
 
 export function useIntegrations() {
-  const key = useWorkspaceKey("integrations");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("integrations");
   return useQuery({
     queryKey: key,
+    enabled: workspaceReady,
     queryFn: () =>
       apiFetch<
         Envelope<{ providers: IntegrationProvider[]; connections: IntegrationConnection[] }>
@@ -857,9 +1040,10 @@ export function useDisconnectIntegration() {
 /* ---------- MCP Hub ---------- */
 
 export function useMcpHub() {
-  const key = useWorkspaceKey("mcp");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("mcp");
   return useQuery({
     queryKey: key,
+    enabled: workspaceReady,
     queryFn: () =>
       apiFetch<Envelope<{ servers: McpServer[]; installations: McpInstallation[] }>>("/api/mcp"),
   });
@@ -900,9 +1084,10 @@ export function useUninstallMcp() {
 }
 
 export function useAgentMcpGrants(agentId: string | null) {
+  const workspaceId = useAuthStore((s) => s.workspaceId);
   return useQuery({
-    queryKey: ["mcp-grants", agentId],
-    enabled: agentId != null,
+    queryKey: ["mcp-grants", workspaceId, agentId],
+    enabled: workspaceId != null && agentId != null,
     queryFn: () => apiFetch<Envelope<McpGrant[]>>(`/api/agents/${agentId}/mcp-grants`),
   });
 }
@@ -1108,17 +1293,19 @@ export function useNotionOauthCallback() {
 /* ---------- Billing & analytics ---------- */
 
 export function useBillingOverview() {
-  const key = useWorkspaceKey("billing");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("billing");
   return useQuery({
     queryKey: [...key, "overview"],
+    enabled: workspaceReady,
     queryFn: () => apiFetch<Envelope<BillingOverview>>("/api/billing/overview"),
   });
 }
 
 export function useInvoices() {
-  const key = useWorkspaceKey("billing");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("billing");
   return useQuery({
     queryKey: [...key, "invoices"],
+    enabled: workspaceReady,
     queryFn: () => apiFetch<Envelope<Invoice[]>>("/api/billing/invoices"),
   });
 }
@@ -1133,9 +1320,10 @@ export interface BillingPlanSummary {
 }
 
 export function useBillingPlans() {
-  const key = useWorkspaceKey("billing");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("billing");
   return useQuery({
     queryKey: [...key, "plans"],
+    enabled: workspaceReady,
     queryFn: () => apiFetch<Envelope<BillingPlanSummary[]>>("/api/billing/plans"),
   });
 }
@@ -1150,9 +1338,10 @@ export function useChangePlan() {
 }
 
 export function useCreditPacks() {
-  const key = useWorkspaceKey("billing");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("billing");
   return useQuery({
     queryKey: [...key, "credit-packs"],
+    enabled: workspaceReady,
     queryFn: () => apiFetch<Envelope<CreditPack[]>>("/api/billing/credit-packs"),
   });
 }
@@ -1202,9 +1391,10 @@ export function useUpdateAutoRecharge() {
 }
 
 export function useAnalyticsOverview() {
-  const key = useWorkspaceKey("analytics");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("analytics");
   return useQuery({
     queryKey: [...key, "overview"],
+    enabled: workspaceReady,
     queryFn: () => apiFetch<Envelope<AnalyticsOverview>>("/api/analytics/overview"),
   });
 }
@@ -1411,9 +1601,10 @@ export function useUpdateOnboarding() {
 }
 
 export function useNotifications() {
-  const key = useWorkspaceKey("notifications");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("notifications");
   return useQuery({
     queryKey: key,
+    enabled: workspaceReady,
     queryFn: () => apiFetch<Envelope<AppNotification[]>>("/api/notifications"),
     refetchInterval: 30_000,
   });
@@ -1431,18 +1622,19 @@ export function useMarkNotificationRead() {
 /* ---------- Agent direct chat (floating dock) ---------- */
 
 export function useAgentChats() {
-  const key = useWorkspaceKey("agent-chats");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("agent-chats");
   return useQuery({
     queryKey: key,
+    enabled: workspaceReady,
     queryFn: () => apiFetch<Envelope<AgentChatSummary[]>>("/api/agent-chats"),
   });
 }
 
 export function useAgentChatMessages(agentId: string | null, conversationId?: string | null) {
-  const key = useWorkspaceKey("agent-chat");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("agent-chat");
   return useQuery({
     queryKey: [...key, agentId, conversationId ?? null],
-    enabled: agentId != null,
+    enabled: workspaceReady && agentId != null,
     queryFn: () => {
       const qs = conversationId ? `?conversation_id=${conversationId}` : "";
       return apiFetch<Envelope<AgentChatMessage[]>>(`/api/agents/${agentId}/chat${qs}`);
@@ -1488,10 +1680,10 @@ export function useMarkAgentChatRead() {
 }
 
 export function useAgentConversations(agentId: string | null) {
-  const key = useWorkspaceKey("agent-conversations");
+  const { key, enabled: workspaceReady } = useWorkspaceKey("agent-conversations");
   return useQuery({
     queryKey: [...key, agentId],
-    enabled: agentId != null,
+    enabled: workspaceReady && agentId != null,
     queryFn: () =>
       apiFetch<Envelope<AgentChatConversation[]>>(`/api/agents/${agentId}/conversations`),
   });

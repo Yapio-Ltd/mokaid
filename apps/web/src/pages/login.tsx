@@ -66,8 +66,7 @@ const agentCards = [
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const setSession = useAuthStore((s) => s.setSession);
-  const setWorkspaces = useAuthStore((s) => s.setWorkspaces);
+  const establishSession = useAuthStore((s) => s.establishSession);
   const [error, setError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -99,11 +98,10 @@ export function LoginPage() {
         body: values,
         skipWorkspace: true,
       });
-      setSession(response.token, response.user);
-
+      // Bind the new token before /me so Authorization is correct.
+      useAuthStore.getState().setSession(response.token, response.user);
       const me = await apiFetch<MeResponse>("/api/me", { skipWorkspace: true });
-      setSession(response.token, me.user);
-      setWorkspaces(me.workspaces);
+      establishSession(response.token, me.user, me.workspaces);
 
       navigate({ to: "/dashboard" });
     } catch (err) {

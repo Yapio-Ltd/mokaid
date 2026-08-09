@@ -46,6 +46,9 @@ const AgentsNewPage = lazyPage(() =>
 const AgentTrainingPage = lazyPage(() =>
   import("@/pages/agent-training").then((m) => ({ default: m.AgentTrainingPage })),
 );
+const AgentDetailPage = lazyPage(() =>
+  import("@/pages/agent-detail").then((m) => ({ default: m.AgentDetailPage })),
+);
 const TasksPage = lazyPage(() =>
   import("@/pages/tasks").then((m) => ({ default: m.TasksPage })),
 );
@@ -232,6 +235,13 @@ const agentTrainingRoute = createRoute({
   component: AgentTrainingPage,
 });
 
+// Deep-linkable full-page agent profile (static /agents/new ranks above it).
+const agentDetailRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/agents/$agentId",
+  component: AgentDetailPage,
+});
+
 const figmaCallbackRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/oauth/figma/callback",
@@ -338,7 +348,7 @@ const routeTree = rootRoute.addChildren([
   legalRoute,
   refundRoute,
   ...seoRoutes,
-  appRoute.addChildren([...pageRoutes, agentsNewRoute, agentTrainingRoute]),
+  appRoute.addChildren([...pageRoutes, agentsNewRoute, agentTrainingRoute, agentDetailRoute]),
 ]);
 
 export const router = createRouter({ routeTree });

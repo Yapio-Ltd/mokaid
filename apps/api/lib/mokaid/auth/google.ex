@@ -7,6 +7,8 @@ defmodule Mokaid.Auth.Google do
   URIs under `/auth/google/callback`.
   """
 
+  require Logger
+
   @authorize_endpoint "https://accounts.google.com/o/oauth2/v2/auth"
   @token_endpoint "https://oauth2.googleapis.com/token"
   @userinfo_endpoint "https://www.googleapis.com/oauth2/v2/userinfo"
@@ -85,9 +87,17 @@ defmodule Mokaid.Auth.Google do
         {:ok, body}
 
       {:ok, %Req.Response{status: status, body: body}} ->
+        Logger.warning(
+          "google identity token exchange failed status=#{status} body=#{inspect(body)} redirect_uri=#{redirect_uri}"
+        )
+
         {:error, {:token_exchange_failed, status, inspect(body)}}
 
       {:error, exception} ->
+        Logger.warning(
+          "google identity token exchange network error: #{Exception.message(exception)}"
+        )
+
         {:error, {:token_exchange_failed, :network, Exception.message(exception)}}
     end
   end

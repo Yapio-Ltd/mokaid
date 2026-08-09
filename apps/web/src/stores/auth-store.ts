@@ -35,6 +35,12 @@ interface AuthState {
   workspaceId: string | null;
   workspaces: WorkspaceSummary[];
   setSession: (token: string, user: AuthUser) => void;
+  /** Atomically set auth + workspaces so a stale workspaceId from another account never leaks. */
+  establishSession: (
+    token: string,
+    user: AuthUser,
+    workspaces: WorkspaceSummary[],
+  ) => void;
   patchUser: (patch: Partial<AuthUser>) => void;
   setWorkspaces: (workspaces: WorkspaceSummary[]) => void;
   selectWorkspace: (id: string) => void;
@@ -43,27 +49,45 @@ interface AuthState {
   logout: () => void;
 }
 
+function pickWorkspaceId(
+  workspaces: WorkspaceSummary[],
+  preferred: string | null | undefined,
+): string | null {
+  if (preferred && workspaces.some((w) => w.id === preferred)) return preferred;
+  return workspaces[0]?.id ?? null;
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       token: null,
       user: null,
       workspaceId: null,
       workspaces: [],
       setSession: (token, user) => set({ token, user }),
+      establishSession: (token, user, workspaces) => {
+        const prevWorkspace = get().workspaceId;
+        const nextWorkspace = pickWorkspaceId(workspaces, prevWorkspace);
+        if (prevWorkspace && nextWorkspace && prevWorkspace !== nextWorkspace) {
+          disposeOfficeHostLazy();
+        }
+        set({
+          token,
+          user,
+          workspaces,
+          workspaceId: nextWorkspace,
+        });
+      },
       patchUser: (patch) =>
         set((state) => (state.user ? { user: { ...state.user, ...patch } } : state)),
       setWorkspaces: (workspaces) =>
         set((state) => ({
           workspaces,
-          workspaceId:
-            state.workspaceId && workspaces.some((w) => w.id === state.workspaceId)
-              ? state.workspaceId
-              : (workspaces[0]?.id ?? null),
+          workspaceId: pickWorkspaceId(workspaces, state.workspaceId),
         })),
       selectWorkspace: (id) => {
         // Drop the WebGL context when switching workspaces so seats/POIs remount cleanly.
-        const prev = useAuthStore.getState().workspaceId;
+        const prev = get().workspaceId;
         if (prev && prev !== id) disposeOfficeHostLazy();
         set({ workspaceId: id });
       },

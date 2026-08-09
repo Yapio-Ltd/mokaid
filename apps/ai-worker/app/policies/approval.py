@@ -4,7 +4,15 @@ Mirrors the risk model from the product spec:
 - read-only tools run freely,
 - content-producing tools run freely but results are reviewable,
 - external side effects (email, posting, purchases) always require approval.
+
+On top of the static risk table, `ApprovalPolicy` applies the agent's
+per-agent supervision settings (Claude Code style):
+- an autonomy mode shifts the risk threshold that pauses the run,
+- persisted allow/deny rules short-circuit the gate for specific tools
+  ("always allow send_email for this agent", "never let it post socials").
 """
+
+from fnmatch import fnmatchcase
 
 from app.schemas import RiskLevel
 
@@ -62,3 +70,58 @@ def _risk_for_mcp_tool(tool_name: str) -> RiskLevel:
     from app.mcp.client import is_write_tool
 
     return RiskLevel.HIGH if is_write_tool(tool_name) else RiskLevel.MEDIUM
+
+
+# Risk levels that pause the run per supervision mode. "supervised" reviews
+# even content generation; "autonomous" only stops for critical actions.
+_MODE_GATED: dict[str, set[RiskLevel]] = {
+    "supervised": {RiskLevel.MEDIUM, RiskLevel.HIGH, RiskLevel.CRITICAL},
+    "balanced": APPROVAL_THRESHOLD,
+    "autonomous": {RiskLevel.CRITICAL},
+}
+
+# Tools that are genuine questions to the human (not risk gates) — they pause
+# regardless of autonomy mode or allow rules.
+ALWAYS_ASK: set[str] = {"choose_site_delivery"}
+
+
+class ApprovalPolicy:
+    """Per-run approval decisions from the agent's autonomy settings.
+
+    decision(tool) returns:
+    - "auto"  — run freely (below the mode's risk threshold)
+    - "allow" — gated tool auto-approved by a persisted allow rule
+    - "deny"  — auto-rejected by a persisted deny rule (agent adapts)
+    - "ask"   — pause the run for a human decision
+    """
+
+    def __init__(self, autonomy: dict | None = None) -> None:
+        autonomy = autonomy if isinstance(autonomy, dict) else {}
+        mode = autonomy.get("mode") or "balanced"
+        self.mode = mode if mode in _MODE_GATED else "balanced"
+        self.rules = [
+            rule
+            for rule in (autonomy.get("rules") or [])
+            if isinstance(rule, dict) and rule.get("tool_pattern")
+        ]
+
+    def _matches(self, behavior: str, tool_name: str) -> bool:
+        return any(
+            rule.get("behavior") == behavior
+            and fnmatchcase(tool_name, str(rule["tool_pattern"]))
+            for rule in self.rules
+        )
+
+    def decision(self, tool_name: str) -> str:
+        if tool_name in ALWAYS_ASK:
+            return "ask"
+        if self._matches("deny", tool_name):
+            return "deny"
+        if risk_for_tool(tool_name) not in _MODE_GATED[self.mode]:
+            return "auto"
+        if self._matches("allow", tool_name):
+            return "allow"
+        return "ask"
+
+    def requires_approval(self, tool_name: str) -> bool:
+        return self.decision(tool_name) == "ask"

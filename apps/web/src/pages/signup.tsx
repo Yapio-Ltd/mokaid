@@ -26,8 +26,7 @@ interface RegisterResponse {
 
 export function SignupPage() {
   const navigate = useNavigate();
-  const setSession = useAuthStore((s) => s.setSession);
-  const setWorkspaces = useAuthStore((s) => s.setWorkspaces);
+  const establishSession = useAuthStore((s) => s.establishSession);
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -44,8 +43,9 @@ export function SignupPage() {
         body: values,
         skipWorkspace: true,
       });
-      setSession(response.token, { ...response.user, has_password: true });
-      setWorkspaces([{ ...response.workspace, role_name: "Owner" } as never]);
+      establishSession(response.token, { ...response.user, has_password: true }, [
+        { ...response.workspace, role_name: "Owner" } as never,
+      ]);
       navigate({ to: "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed");

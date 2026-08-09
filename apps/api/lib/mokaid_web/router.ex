@@ -78,6 +78,15 @@ defmodule MokaidWeb.Router do
     post "/agents/:id/files", AgentController, :upload_files
     get "/agents/:id/progression", AgentController, :progression
     get "/agents/:id/training", AgentController, :training
+    get "/agents/:id/permission-rules", AgentController, :permission_rules
+    post "/agents/:id/permission-rules", AgentController, :create_permission_rule
+    delete "/agents/:id/permission-rules/:rule_id", AgentController, :delete_permission_rule
+
+    get "/agents/:agent_id/schedules", ScheduleController, :index
+    post "/agents/:agent_id/schedules", ScheduleController, :create
+    post "/agents/:agent_id/schedules/parse", ScheduleController, :parse
+    patch "/agents/:agent_id/schedules/:id", ScheduleController, :update
+    delete "/agents/:agent_id/schedules/:id", ScheduleController, :delete
 
     get "/agent-chats", AgentChatController, :index
     get "/agents/:agent_id/chat", AgentChatController, :show
@@ -90,6 +99,7 @@ defmodule MokaidWeb.Router do
     post "/dispatch/confirm", DispatchController, :confirm
 
     resources "/tasks", TaskController, only: [:index, :create, :show, :update, :delete]
+    get "/tasks/:id/runs", TaskController, :runs
     patch "/tasks/:task_id/subtasks/:id", TaskController, :update_subtask
     post "/tasks/:id/comments", TaskController, :create_comment
     post "/tasks/:id/execute-ai", TaskController, :execute_ai
@@ -100,7 +110,7 @@ defmodule MokaidWeb.Router do
     post "/projects/:id/agents", ProjectController, :add_agent
     delete "/projects/:id/agents/:agent_id", ProjectController, :remove_agent
 
-    resources "/knowledge", KnowledgeController, only: [:index, :create, :show, :update]
+    resources "/knowledge", KnowledgeController, only: [:index, :create, :show, :update, :delete]
     get "/knowledge-categories", KnowledgeController, :categories
     post "/knowledge/upload", KnowledgeController, :upload
     get "/knowledge-graph", KnowledgeController, :graph
@@ -233,6 +243,7 @@ defmodule MokaidWeb.Router do
 
     post "/runs/:run_id/progress", WorkerCallbackController, :progress
     post "/runs/:run_id/status", WorkerCallbackController, :progress
+    post "/runs/:run_id/tool-activity", WorkerCallbackController, :tool_activity
     post "/runs/:run_id/approval-request", WorkerCallbackController, :approval_request
     post "/runs/:run_id/approval", WorkerCallbackController, :approval_request
     post "/runs/:run_id/complete", WorkerCallbackController, :complete

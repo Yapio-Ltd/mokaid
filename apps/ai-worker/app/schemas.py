@@ -72,6 +72,9 @@ class RunRequest(BaseModel):
     agent: dict[str, Any] = Field(default_factory=dict)
     # Team mates available for consult_colleague.
     colleagues: list[Colleague] = Field(default_factory=list)
+    # Supervision: {"mode": "supervised|balanced|autonomous",
+    #               "rules": [{"tool_pattern": "...", "behavior": "allow|deny"}]}
+    autonomy: dict[str, Any] = Field(default_factory=dict)
 
 
 class ResumeRequest(BaseModel):

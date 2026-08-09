@@ -35,6 +35,15 @@ defmodule MokaidWeb.TaskController do
     end
   end
 
+  @doc "Full run history of a task (newest first) — powers the run timeline."
+  def runs(conn, %{"id" => id}) do
+    with :ok <- Permissions.authorize(current_member(conn), "tasks.view"),
+         %{} = task <- Tasks.get_task(workspace_id(conn), id) do
+      runs = Tasks.list_runs_for_task(workspace_id(conn), task.id)
+      json(conn, %{data: Enum.map(runs, &Serializer.execution_run/1)})
+    end
+  end
+
   def update(conn, %{"id" => id} = params) do
     with :ok <- Permissions.authorize(current_member(conn), "tasks.update"),
          %{} = task <- Tasks.get_task(workspace_id(conn), id),
@@ -133,6 +142,19 @@ defmodule MokaidWeb.TaskController do
         approval_request_id: request_id,
         decision: decision
       })
+
+      # "Always allow/deny this action for this agent" — persists a scoped
+      # permission rule so future runs stop asking (Claude Code pattern).
+      remember = params["remember"]
+
+      if remember in ["allow", "deny"] and request.agent_id != nil and request.tool_name != nil do
+        Mokaid.Agents.upsert_permission_rule(
+          workspace_id(conn),
+          request.agent_id,
+          %{"tool_pattern" => request.tool_name, "behavior" => remember},
+          current_member(conn)
+        )
+      end
 
       if updated.run_id do
         AI.resume_after_approval(updated.run_id, decision, payload)

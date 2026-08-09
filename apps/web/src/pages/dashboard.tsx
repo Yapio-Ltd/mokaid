@@ -9,6 +9,7 @@ import { AgentStatusBadge, TaskStatusBadge } from "@/components/ui/status";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AskBar } from "@/components/dashboard/ask-bar";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { useUiStore } from "@/stores/ui-store";
 import { AgentProfilePanel } from "@/components/agents/agent-profile-panel";
 import { formatRelative } from "@/lib/format";
@@ -202,34 +203,39 @@ export function DashboardPage() {
             </CardBody>
           </Card>
 
-          <Card className="xl:col-span-2">
-            <CardHeader>
-              <CardTitle>Team Overview</CardTitle>
-            </CardHeader>
-            <CardBody className="space-y-1 px-2 pb-3">
-              {agentsLoading
-                ? [1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12" />)
-                : agents.slice(0, 9).map((agent) => (
-                    <button
-                      key={agent.id}
-                      onClick={() => selectAgent(agent.id)}
-                      className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-surface-hover mk-focus-ring"
-                    >
-                      <AgentAvatar agent={agent} size="sm" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-semibold text-text">
-                          {agent.display_name}
+          <div className="space-y-5 xl:col-span-2">
+            {/* Realtime pulse of the whole team — live tool activity included. */}
+            <ActivityFeed tasks={tasks} agents={agents} />
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Team Overview</CardTitle>
+              </CardHeader>
+              <CardBody className="space-y-1 px-2 pb-3">
+                {agentsLoading
+                  ? [1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12" />)
+                  : agents.slice(0, 9).map((agent) => (
+                      <button
+                        key={agent.id}
+                        onClick={() => selectAgent(agent.id)}
+                        className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-surface-hover mk-focus-ring"
+                      >
+                        <AgentAvatar agent={agent} size="sm" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-xs font-semibold text-text">
+                            {agent.display_name}
+                          </span>
+                          <span className="block truncate text-[11px] text-text-muted">
+                            {agent.role_title ?? agent.department ?? "Agent"} ·{" "}
+                            {formatRelative(agent.last_active_at)}
+                          </span>
                         </span>
-                        <span className="block truncate text-[11px] text-text-muted">
-                          {agent.role_title ?? agent.department ?? "Agent"} ·{" "}
-                          {formatRelative(agent.last_active_at)}
-                        </span>
-                      </span>
-                      <AgentStatusBadge status={agent.status} />
-                    </button>
-                  ))}
-            </CardBody>
-          </Card>
+                        <AgentStatusBadge status={agent.status} />
+                      </button>
+                    ))}
+              </CardBody>
+            </Card>
+          </div>
         </div>
       </div>
 

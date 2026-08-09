@@ -44,7 +44,8 @@ defmodule Mokaid.AI.Workers.AgentChatWorker do
           role_title: agent.role_title,
           department: agent.department,
           status: agent.status,
-          skills: Enum.map(agent.skills || [], &(&1["name"] || &1[:name]))
+          skills: Enum.map(agent.skills || [], &(&1["name"] || &1[:name])),
+          instructions: agent.instructions
         },
         current_tasks: current_tasks(workspace_id, agent.id),
         conversation: conversation(workspace_id, agent.id)

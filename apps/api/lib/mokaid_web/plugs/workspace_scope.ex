@@ -22,6 +22,29 @@ defmodule MokaidWeb.Plugs.WorkspaceScope do
       |> assign(:current_workspace_id, workspace_id)
       |> assign(:current_member, member)
     else
+      [] ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{
+          error: %{
+            code: "workspace_required",
+            message: "x-workspace-id header is required"
+          }
+        })
+        |> halt()
+
+      :error ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{error: %{code: "forbidden", message: "Invalid workspace id"}})
+        |> halt()
+
+      nil ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{error: %{code: "forbidden", message: "Not a member of this workspace"}})
+        |> halt()
+
       _ ->
         conn
         |> put_status(:forbidden)

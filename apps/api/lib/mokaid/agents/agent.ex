@@ -28,6 +28,10 @@ defmodule Mokaid.Agents.Agent do
     field :human_takeover_enabled, :boolean, default: false
     field :skills, {:array, :map}, default: []
     field :capabilities, :map, default: %{}
+    field :autonomy_mode, :string, default: "balanced"
+    field :instructions, :string
+    field :model_quality, :string, default: "smart"
+    field :tool_preferences, :map, default: %{}
     field :current_task_id, :binary_id
     field :performance_score, :decimal
     field :level, :integer, default: 1
@@ -48,6 +52,8 @@ defmodule Mokaid.Agents.Agent do
   end
 
   @kinds ~w(ai human_linked hybrid)
+  @autonomy_modes ~w(supervised balanced autonomous)
+  @model_qualities ~w(fast smart)
   @statuses ~w(active busy idle waiting blocked away offline archived training)
   @presences ~w(online offline away)
   @office_activities ~w(preparing_coffee playing_foosball sitting_sofa walking scrolling stretching looking_around)
@@ -74,6 +80,10 @@ defmodule Mokaid.Agents.Agent do
     :human_takeover_enabled,
     :skills,
     :capabilities,
+    :autonomy_mode,
+    :instructions,
+    :model_quality,
+    :tool_preferences,
     :level,
     :xp,
     :xp_for_next_level,
@@ -93,7 +103,11 @@ defmodule Mokaid.Agents.Agent do
     :human_takeover_enabled,
     :status,
     :presence_status,
-    :control_mode
+    :control_mode,
+    :autonomy_mode,
+    :instructions,
+    :model_quality,
+    :tool_preferences
   ]
 
   # Progression / skill learning / system paths.
@@ -123,6 +137,10 @@ defmodule Mokaid.Agents.Agent do
     |> validate_required([:workspace_id, :kind, :display_name])
     |> validate_inclusion(:kind, @kinds)
     |> validate_inclusion(:status, @statuses)
+    |> validate_optional_inclusion(:autonomy_mode, @autonomy_modes)
+    |> validate_optional_inclusion(:model_quality, @model_qualities)
+    |> validate_length(:instructions, max: 4000)
+    |> validate_tool_preferences()
     |> validate_inclusion(:presence_status, @presences)
     |> validate_number(:seat_index, greater_than_or_equal_to: 0, less_than_or_equal_to: 8)
     |> validate_optional_inclusion(:office_activity, @office_activities)
@@ -145,6 +163,29 @@ defmodule Mokaid.Agents.Agent do
     ])
     |> validate_optional_inclusion(:office_activity, @office_activities)
     |> validate_optional_inclusion(:office_activity_phase, @office_phases)
+  end
+
+  # tool_preferences shape: %{"disabled" => ["send_email", "mcp:slack:*"]}
+  defp validate_tool_preferences(changeset) do
+    case get_change(changeset, :tool_preferences, :__absent__) do
+      :__absent__ ->
+        changeset
+
+      nil ->
+        changeset
+
+      %{} = prefs ->
+        disabled = Map.get(prefs, "disabled") || Map.get(prefs, :disabled) || []
+
+        if is_list(disabled) and Enum.all?(disabled, &is_binary/1) do
+          changeset
+        else
+          add_error(changeset, :tool_preferences, "disabled must be a list of tool patterns")
+        end
+
+      _ ->
+        add_error(changeset, :tool_preferences, "must be a map")
+    end
   end
 
   defp validate_optional_inclusion(changeset, field, values) do

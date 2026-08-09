@@ -1,5 +1,5 @@
 import { CheckCircle2, ExternalLink, ShieldAlert, ThumbsDown, ThumbsUp, Undo2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useApproveTaskAction, useTask, useUpdateTask } from "@/api/hooks";
 import {
   SiteDeliveryChoice,
@@ -29,6 +29,16 @@ export function ReviewGateModal() {
   const task = taskEnvelope?.data;
   const updateTask = useUpdateTask();
   const approveAction = useApproveTaskAction();
+
+  // "Always allow/deny this action for this agent" — persists a scoped
+  // permission rule so future runs stop asking (Claude Code pattern).
+  const [rememberChoice, setRememberChoice] = useState(false);
+
+  // A fresh approval starts with the checkbox cleared.
+  const approvalKey = current?.approvalRequestId ?? current?.taskId ?? null;
+  useEffect(() => {
+    setRememberChoice(false);
+  }, [approvalKey]);
 
   // Keep queue item enriched from live task detail (approval id, copy).
   // Guard: only call updateItem when values actually differ to avoid an
@@ -115,8 +125,13 @@ export function ReviewGateModal() {
     const approvalRequestId =
       current.approvalRequestId ?? task?.pending_approval?.id ?? null;
     if (!approvalRequestId) return;
+    const remember = rememberChoice
+      ? decision === "approved"
+        ? ("allow" as const)
+        : ("deny" as const)
+      : undefined;
     approveAction.mutate(
-      { taskId: current.taskId, approvalRequestId, decision },
+      { taskId: current.taskId, approvalRequestId, decision, remember },
       { onSuccess: () => advance(current.taskId, "tool_approval") },
     );
   };
@@ -272,6 +287,28 @@ export function ReviewGateModal() {
             busy={busy}
             onChoose={chooseSiteDelivery}
           />
+        )}
+
+        {current.kind === "tool_approval" && !siteDelivery && pending?.tool_name && (
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-surface-raised px-3.5 py-3 transition-colors hover:border-primary/40">
+            <input
+              type="checkbox"
+              checked={rememberChoice}
+              onChange={(e) => setRememberChoice(e.target.checked)}
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-primary"
+            />
+            <span className="min-w-0">
+              <span className="block text-[12px] font-medium text-text">
+                Remember this decision
+              </span>
+              <span className="mt-0.5 block text-[11px] leading-relaxed text-text-secondary">
+                Approve to always allow {agentLabel} to run{" "}
+                <code className="rounded bg-surface px-1 py-0.5 text-[10px]">{pending.tool_name}</code>{" "}
+                without asking — or reject to always block it. Editable anytime in
+                the agent&apos;s Autonomy settings.
+              </span>
+            </span>
+          </label>
         )}
 
         <button

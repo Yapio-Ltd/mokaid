@@ -131,6 +131,10 @@ defmodule Mokaid.Knowledge do
     end
   end
 
+  def delete_item(%KnowledgeItem{} = item) do
+    Repo.delete(item)
+  end
+
   def update_item(%KnowledgeItem{} = item, attrs) do
     old_body = item.body
 

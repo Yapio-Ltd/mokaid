@@ -128,6 +128,7 @@ Your profile:
 
 Your current workload:
 {tasks}
+{instructions_block}
 
 {intent_block}
 
@@ -585,6 +586,14 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
             "in the user message."
         )
 
+    employer_instructions = (agent.get("instructions") or "").strip()
+    instructions_block = (
+        "Standing directives from your employer (always follow these):\n"
+        + employer_instructions[:2000]
+        if employer_instructions
+        else ""
+    )
+
     system = _REPLY_SYSTEM.format(
         name=agent.get("display_name") or "an AI agent",
         role=agent.get("role_title") or "Generalist",
@@ -592,6 +601,7 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
         skills=", ".join(agent.get("skills") or []) or "generalist",
         status=agent.get("status") or "available",
         tasks=_format_tasks(payload.get("current_tasks") or []),
+        instructions_block=instructions_block,
         intent_block=intent_block,
         language_name=_language_name(language),
     )

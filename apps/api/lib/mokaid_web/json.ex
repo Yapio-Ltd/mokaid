@@ -88,6 +88,10 @@ defmodule MokaidWeb.JSON do
       human_takeover_enabled: agent.human_takeover_enabled,
       skills: agent.skills,
       capabilities: agent.capabilities,
+      autonomy_mode: agent.autonomy_mode || "balanced",
+      instructions: agent.instructions,
+      model_quality: agent.model_quality || "smart",
+      tool_preferences: agent.tool_preferences || %{},
       current_task_id: agent.current_task_id,
       performance_score: agent.performance_score && Decimal.to_float(agent.performance_score),
       # Gamified progression (XP ring around the avatar, level badge).
@@ -107,6 +111,33 @@ defmodule MokaidWeb.JSON do
       linked_user_email: linked_user && linked_user.email,
       last_active_at: agent.last_active_at,
       inserted_at: agent.inserted_at
+    }
+  end
+
+  def schedule(schedule) do
+    %{
+      id: schedule.id,
+      agent_id: schedule.agent_id,
+      name: schedule.name,
+      cron_expression: schedule.cron_expression,
+      timezone: schedule.timezone,
+      prompt: schedule.prompt,
+      enabled: schedule.enabled,
+      last_run_at: schedule.last_run_at,
+      runs_count: schedule.runs_count,
+      max_runs: schedule.max_runs,
+      expires_at: schedule.expires_at,
+      inserted_at: schedule.inserted_at
+    }
+  end
+
+  def permission_rule(rule) do
+    %{
+      id: rule.id,
+      agent_id: rule.agent_id,
+      tool_pattern: rule.tool_pattern,
+      behavior: rule.behavior,
+      inserted_at: rule.inserted_at
     }
   end
 
@@ -208,7 +239,10 @@ defmodule MokaidWeb.JSON do
   defp latest_run(nil), do: nil
   defp latest_run([]), do: nil
 
-  defp latest_run([run | _rest]) do
+  defp latest_run([run | _rest]), do: execution_run(run)
+
+  @doc "Full run payload (also used by GET /tasks/:id/runs for the history)."
+  def execution_run(run) do
     %{
       id: run.id,
       status: run.status,
@@ -216,6 +250,8 @@ defmodule MokaidWeb.JSON do
       output: run.output,
       # Deep-agent live plan: [%{"content" => ..., "status" => ...}]
       plan: plan_steps(run.steps),
+      # Chronological tool-call feed streamed by the worker (timeline).
+      tool_activity: run.tool_activity || [],
       token_usage: run.token_usage,
       # Provider cost (Mokaid's, cents) and what the user was billed (credits).
       # The web UI only shows credits; the CRM sees both for margin tracking.

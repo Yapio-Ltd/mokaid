@@ -1,4 +1,13 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -113,15 +122,15 @@ const slackProviderKey = "slack";
 
 function StepDots({ current }: { current: number }) {
   return (
-    <div className="mb-6 flex items-center gap-1 sm:gap-2">
+    <div className="mb-3 flex items-center gap-1 sm:mb-4 sm:gap-2">
       {steps.map((s, i) => {
         const Icon = s.icon;
         return (
           <div key={s.key} className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2">
-            <div className="flex min-w-0 flex-col items-center gap-1.5">
+            <div className="flex min-w-0 flex-col items-center gap-1">
               <span
                 className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-300",
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-300 sm:h-9 sm:w-9",
                   i < current
                     ? "bg-success-muted text-success"
                     : i === current
@@ -129,11 +138,11 @@ function StepDots({ current }: { current: number }) {
                       : "bg-surface-raised text-text-muted",
                 )}
               >
-                {i < current ? <CheckCircle2 size={16} /> : <Icon size={15} />}
+                {i < current ? <CheckCircle2 size={15} /> : <Icon size={14} />}
               </span>
               <span
                 className={cn(
-                  "max-w-[4.5rem] truncate text-center text-[9px] font-medium sm:max-w-none",
+                  "hidden max-w-[4.5rem] truncate text-center text-[9px] font-medium sm:block sm:max-w-none",
                   i === current ? "text-primary-light" : "text-text-muted",
                 )}
               >
@@ -143,7 +152,7 @@ function StepDots({ current }: { current: number }) {
             {i < steps.length - 1 && (
               <span
                 className={cn(
-                  "mb-4 h-0.5 min-w-2 flex-1 rounded-full transition-colors duration-500",
+                  "h-0.5 min-w-2 flex-1 rounded-full transition-colors duration-500 sm:mb-4",
                   i < current ? "bg-success/40" : "bg-surface-raised",
                 )}
               />
@@ -155,13 +164,27 @@ function StepDots({ current }: { current: number }) {
   );
 }
 
+/** Sticky action bar so primary CTAs stay visible while the body scrolls. */
+function StepActions({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "sticky bottom-0 z-10 -mx-5 -mb-5 mt-5 flex gap-2 border-t border-border/40 bg-surface/95 px-5 py-4 backdrop-blur-sm sm:-mx-8 sm:-mb-7 sm:px-8",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 function FeatureCard({
   icon,
   title,
   body,
   delay,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   body: string;
   delay: string;
@@ -624,644 +647,691 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
 
   const logoDisplay = logoPreview;
 
+  // Wider shell on dense steps (workspace, agent, plan); never exceed the viewport.
+  const shellMaxWidth =
+    step === 1 || step === 3 || step === 5 ? "max-w-3xl" : "max-w-2xl";
+
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-bg-deep/95 backdrop-blur-md">
-      <div className="relative my-8 w-full max-w-2xl px-6">
-        <div className="mb-2 flex justify-end">
-          <button
-            type="button"
-            onClick={() => finish(false)}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+    <div className="fixed inset-0 z-[80] overflow-y-auto overscroll-contain bg-bg-deep/95 backdrop-blur-md">
+      {/* min-h + padding pattern: centers when short, scrolls from the top when tall */}
+      <div className="flex min-h-[100dvh] items-center justify-center p-4 sm:p-6">
+        <div className={cn("relative my-auto flex w-full flex-col", shellMaxWidth)}>
+          <div className="mb-1 flex shrink-0 justify-end sm:mb-2">
+            <button
+              type="button"
+              onClick={() => finish(false)}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+            >
+              Skip for now <X size={13} />
+            </button>
+          </div>
+
+          <div className="shrink-0">
+            <StepDots current={step} />
+          </div>
+
+          {/*
+            Card is capped to the remaining viewport height.
+            Body scrolls inside; sticky StepActions keep CTAs reachable.
+          */}
+          <div
+            key={step}
+            className="mk-fade-up flex max-h-[min(42rem,calc(100dvh-7.5rem))] flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_16px_60px_rgba(0,0,0,0.4)] sm:max-h-[min(48rem,calc(100dvh-8.5rem))]"
           >
-            Skip for now <X size={13} />
-          </button>
-        </div>
-
-        <StepDots current={step} />
-
-        <div
-          key={step}
-          className="mk-fade-up rounded-2xl bg-surface p-8 shadow-[0_16px_60px_rgba(0,0,0,0.4)]"
-        >
-          {/* ── Step 0 : Welcome ── */}
-          {step === 0 && (
-            <div className="space-y-6 text-center">
-              <Sparkles size={36} strokeWidth={1.75} className="mk-ai-icon-shimmer" />
-              <div>
-                <h2 className="text-2xl font-bold text-text">
-                  Welcome to mokaid, {firstName}
-                </h2>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-text-secondary">
-                  Your AI Workforce OS. Build a team of AI agents that work alongside you.
-                  They take tasks, produce real deliverables and ask for approval when it
-                  matters.
-                </p>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <FeatureCard
-                  icon={<Bot size={17} />}
-                  title="AI Agents"
-                  body="Hire agents with skills. They work autonomously on your tasks."
-                  delay="0.05s"
-                />
-                <FeatureCard
-                  icon={<FolderKanban size={17} />}
-                  title="Projects & Tasks"
-                  body="Brief in plain language. Track progress on a live kanban."
-                  delay="0.15s"
-                />
-                <FeatureCard
-                  icon={<Plug size={17} />}
-                  title="Your Tools"
-                  body="Slack, GitHub, Google… decide which agent uses which tool."
-                  delay="0.25s"
-                />
-              </div>
-              <Button size="lg" className="w-full" onClick={() => setStep(1)}>
-                Set up my workspace <ArrowRight size={15} />
-              </Button>
-              <p className="text-[11px] text-text-muted">Takes about 2 minutes · every step is skippable</p>
-            </div>
-          )}
-
-          {/* ── Step 1 : Workspace setup ── */}
-          {step === 1 && (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-xl font-bold text-text">Set up your workspace</h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
-                  Tell us about your company. This gives your agents context to work with.
-                </p>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <LogoDropZone
-                  previewUrl={logoDisplay}
-                  uploading={uploadLogo.isPending}
-                  onFile={handleLogoFile}
-                />
-                <div className="min-w-0 flex-1">
-                  <Field label="Company name" required>
-                    <input
-                      className="mk-input h-11"
-                      placeholder="Acme Inc."
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      autoFocus
-                    />
-                  </Field>
-                  {logoError && (
-                    <p className="mt-2 text-[11px] text-danger">{logoError}</p>
-                  )}
-                </div>
-              </div>
-
-              <Field label="Industry">
-                <div className="flex flex-wrap gap-2">
-                  {industries.map((ind) => (
-                    <button
-                      key={ind}
-                      type="button"
-                      onClick={() => setIndustry(industry === ind ? "" : ind)}
-                      className={cn(
-                        "rounded-full px-3.5 py-1.5 text-xs font-medium transition-all",
-                        industry === ind
-                          ? "bg-primary text-white shadow-[0_2px_12px_rgba(124,92,255,0.35)]"
-                          : "bg-surface-raised text-text-muted hover:text-text",
-                      )}
-                    >
-                      {ind}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-
-              <Field label="What does your company do?" hint="A short summary helps agents understand your context.">
-                <Textarea
-                  className="min-h-[88px]"
-                  placeholder="We build B2B billing software for SMBs…"
-                  value={companySummary}
-                  onChange={(e) => setCompanySummary(e.target.value)}
-                />
-              </Field>
-
-              <Field
-                label="What should your agents help with?"
-                hint="Describe the jobs you want agents to take on."
-              >
-                <Textarea
-                  className="min-h-[88px]"
-                  placeholder="Ship features from GitHub, draft marketing pages, research competitors…"
-                  value={agentNeeds}
-                  onChange={(e) => setAgentNeeds(e.target.value)}
-                />
-              </Field>
-
-              <Field label="Invite your team" hint="They'll get an email invite. You can also do this later.">
-                <div className="flex gap-2">
-                  <input
-                    className="mk-input flex-1"
-                    placeholder="colleague@company.com"
-                    value={emailDraft}
-                    onChange={(e) => setEmailDraft(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addEmail())}
-                  />
-                  <Button variant="secondary" size="icon" onClick={addEmail} aria-label="Add email">
-                    <Plus size={14} />
-                  </Button>
-                </div>
-                {inviteEmails.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {inviteEmails.map((email) => (
-                      <span
-                        key={email}
-                        className="flex items-center gap-1.5 rounded-full bg-primary-muted px-2.5 py-1 text-[11px] text-primary-light"
-                      >
-                        <Mail size={10} /> {email}
-                        <button
-                          onClick={() =>
-                            setInviteEmails((prev) => prev.filter((e) => e !== email))
-                          }
-                          className="hover:text-text"
-                        >
-                          <X size={10} />
-                        </button>
-                      </span>
-                    ))}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8 sm:py-7">
+              {/* ── Step 0 : Welcome ── */}
+              {step === 0 && (
+                <div className="space-y-5 text-center sm:space-y-6">
+                  <Sparkles size={36} strokeWidth={1.75} className="mk-ai-icon-shimmer" />
+                  <div>
+                    <h2 className="text-2xl font-bold text-text">
+                      Welcome to mokaid, {firstName}
+                    </h2>
+                    <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-text-secondary">
+                      Your AI Workforce OS. Build a team of AI agents that work alongside you.
+                      They take tasks, produce real deliverables and ask for approval when it
+                      matters.
+                    </p>
                   </div>
-                )}
-              </Field>
-
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setStep(0)}>
-                  <ArrowLeft size={14} />
-                </Button>
-                <Button variant="ghost" onClick={() => setStep(2)}>
-                  Skip
-                </Button>
-                <Button
-                  className="flex-1"
-                  loading={busy || inviteMember.isPending}
-                  disabled={!companyName.trim()}
-                  onClick={submitWorkspace}
-                >
-                  Continue <ArrowRight size={14} />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 2 : Integrations ── */}
-          {step === 2 && (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-xl font-bold text-text">Connect your tools</h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
-                  Plug in the tools your team already uses. Agents will be able to work with
-                  them, with your permission.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                {featuredIntegrations.map((key) => {
-                  const provider = providers.find((p) => p.key === key);
-                  if (!provider) return null;
-                  const connected = connectedKeys.has(key);
-                  const isConnecting = connecting === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      disabled={connected || isConnecting}
-                      onClick={() => toggleConnect(key)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-xl p-3.5 text-left transition-all",
-                        connected
-                          ? "bg-success-muted/40"
-                          : "bg-surface-raised/60 hover:bg-surface-hover hover:shadow-[0_2px_12px_rgba(0,0,0,0.15)]",
-                      )}
-                    >
-                      <IntegrationLogo
-                        providerKey={provider.key}
-                        logoUrl={provider.logo_url}
-                        name={provider.name}
-                        size="sm"
-                        onDark
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-xs font-semibold text-text">
-                          {provider.name}
-                        </span>
-                        <span className="block truncate text-[10px] text-text-muted">
-                          {provider.category}
-                        </span>
-                      </span>
-                      {isConnecting ? (
-                        <Loader2 size={14} className="animate-spin text-text-muted" />
-                      ) : connected ? (
-                        <span
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-success text-white shadow-[0_0_14px_rgba(34,197,94,0.45)]"
-                          aria-label="Connected"
-                        >
-                          <CheckCircle2 size={18} strokeWidth={2.25} />
-                        </span>
-                      ) : (
-                        <Plus size={14} className="text-text-muted" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {connectError && (
-                <p className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-xs leading-relaxed text-danger">
-                  {connectError}
-                </p>
-              )}
-
-              {providers.length === 0 && (
-                <p className="rounded-xl bg-surface-raised/60 px-4 py-3 text-center text-xs text-text-muted">
-                  Integrations catalog is loading… you can also connect tools later from the
-                  MCP Hub.
-                </p>
-              )}
-
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setStep(1)}>
-                  <ArrowLeft size={14} />
-                </Button>
-                <Button className="flex-1" onClick={() => setStep(3)}>
-                  {connectedKeys.size > 0 ? "Continue" : "Skip for now"} <ArrowRight size={14} />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 3 : First agent ── */}
-          {step === 3 && (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-xl font-bold text-text">Choose your first agent</h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
-                  Start blank at level 1, or unlock a level-10 specialist with domain knowledge packs
-                  already loaded.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAgentPath("blank");
-                    setArchetypeKey("blank");
-                  }}
-                  className={cn(
-                    "rounded-xl border px-3.5 py-3 text-left transition-all",
-                    agentPath === "blank"
-                      ? "border-primary bg-primary/10"
-                      : "border-border bg-surface-raised/50 hover:border-primary/40",
-                  )}
-                >
-                  <span className="block text-xs font-semibold text-text">New agent · Level 1</span>
-                  <span className="mt-1 block text-[10px] leading-relaxed text-text-muted">
-                    Free. Basic skills, trains alone from your missions.
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAgentPath("specialist");
-                    const first = recommended[0] ?? specialists[0];
-                    if (first) setArchetypeKey(first.key);
-                  }}
-                  className={cn(
-                    "rounded-xl border px-3.5 py-3 text-left transition-all",
-                    agentPath === "specialist"
-                      ? "border-primary bg-primary/10"
-                      : "border-border bg-surface-raised/50 hover:border-primary/40",
-                  )}
-                >
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-text">
-                    <Sparkles size={12} className="text-primary" />
-                    Specialist · Level 10
-                  </span>
-                  <span className="mt-1 block text-[10px] leading-relaxed text-text-muted">
-                    {formatNumber(specialistCredits)} credits · domain packs preloaded
-                  </span>
-                </button>
-              </div>
-
-              <div className="flex items-start gap-5">
-                <div className="relative shrink-0 overflow-hidden rounded-xl border border-border bg-surface-raised/30">
-                  <Suspense
-                    fallback={
-                      <div
-                        className="flex items-center justify-center"
-                        style={{ width: 200, height: 260 }}
-                      >
-                        <Avatar name={agentName || "?"} size="xl" isAi color={agentColor} />
-                      </div>
-                    }
-                  >
-                    <AgentPreview3D color={agentColor} name={agentName || "?"} width={200} height={260} />
-                  </Suspense>
-                  {agentCreated && (
-                    <span className="absolute bottom-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-success text-white shadow-lg mk-fade-up">
-                      <Check size={14} />
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex min-w-0 flex-1 flex-col gap-4 pt-1">
-                  <Field label="Name" required>
-                    <input
-                      className="mk-input"
-                      value={agentName}
-                      onChange={(e) => setAgentName(e.target.value)}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <FeatureCard
+                      icon={<Bot size={17} />}
+                      title="AI Agents"
+                      body="Hire agents with skills. They work autonomously on your tasks."
+                      delay="0.05s"
                     />
-                  </Field>
+                    <FeatureCard
+                      icon={<FolderKanban size={17} />}
+                      title="Projects & Tasks"
+                      body="Brief in plain language. Track progress on a live kanban."
+                      delay="0.15s"
+                    />
+                    <FeatureCard
+                      icon={<Plug size={17} />}
+                      title="Your Tools"
+                      body="Slack, GitHub, Google… decide which agent uses which tool."
+                      delay="0.25s"
+                    />
+                  </div>
+                  <p className="text-[11px] text-text-muted">
+                    Takes about 2 minutes · every step is skippable
+                  </p>
+                  <StepActions className="flex-col sm:flex-row">
+                    <Button size="lg" className="w-full" onClick={() => setStep(1)}>
+                      Set up my workspace <ArrowRight size={15} />
+                    </Button>
+                  </StepActions>
+                </div>
+              )}
 
-                  <Field label="Color">
-                    <div className="flex flex-wrap gap-2">
-                      {agentColors.map((color) => (
-                        <button
-                          key={color}
-                          type="button"
-                          onClick={() => setAgentColor(color)}
-                          aria-label={`Color ${color}`}
-                          className={cn(
-                            "h-8 w-8 rounded-full transition-transform",
-                            agentColor === color &&
-                              "scale-110 ring-2 ring-white/60 ring-offset-2 ring-offset-surface",
-                          )}
-                          style={{ backgroundColor: color }}
+              {/* ── Step 1 : Workspace setup ── */}
+              {step === 1 && (
+                <div className="space-y-4 sm:space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold text-text">Set up your workspace</h2>
+                    <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                      Tell us about your company. This gives your agents context to work with.
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    <LogoDropZone
+                      previewUrl={logoDisplay}
+                      uploading={uploadLogo.isPending}
+                      onFile={handleLogoFile}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <Field label="Company name" required>
+                        <input
+                          className="mk-input h-11"
+                          placeholder="Acme Inc."
+                          value={companyName}
+                          onChange={(e) => setCompanyName(e.target.value)}
+                          autoFocus
                         />
+                      </Field>
+                      {logoError && (
+                        <p className="mt-2 text-[11px] text-danger">{logoError}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <Field label="Industry">
+                    <div className="flex flex-wrap gap-2">
+                      {industries.map((ind) => (
+                        <button
+                          key={ind}
+                          type="button"
+                          onClick={() => setIndustry(industry === ind ? "" : ind)}
+                          className={cn(
+                            "rounded-full px-3.5 py-1.5 text-xs font-medium transition-all",
+                            industry === ind
+                              ? "bg-primary text-white shadow-[0_2px_12px_rgba(124,92,255,0.35)]"
+                              : "bg-surface-raised text-text-muted hover:text-text",
+                          )}
+                        >
+                          {ind}
+                        </button>
                       ))}
                     </div>
                   </Field>
 
-                  {agentPath === "blank" ? (
-                    <div className="rounded-lg border border-border bg-surface-raised/40 px-3 py-2.5 text-xs leading-relaxed text-text-muted">
-                      <Sparkles size={11} className="mb-0.5 mr-1 inline text-primary-light" />
-                      Starts weak on purpose — role and specialty emerge as it completes missions.
-                    </div>
-                  ) : (
+                  {/* Side-by-side on wide viewports = less vertical scroll on dense forms */}
+                  <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
                     <Field
-                      label="Specialist domain"
-                      hint={
-                        recommended.length
-                          ? `Suggested for your brief: ${recommended.map((r) => r.name).join(", ")}`
-                          : `Balance: ${formatNumber(spendable)} credits`
-                      }
+                      label="What does your company do?"
+                      hint="A short summary helps agents understand your context."
                     >
-                      <div className="grid max-h-[220px] gap-2 overflow-y-auto sm:grid-cols-2">
-                        {specialists.map((archetype) => {
-                          const active = archetype.key === archetypeKey;
-                          const suggested = recommendedKeys.has(archetype.key);
-                          return (
-                            <button
-                              key={archetype.key}
-                              type="button"
-                              onClick={() => setArchetypeKey(archetype.key)}
-                              className={cn(
-                                "rounded-xl border px-3 py-2.5 text-left transition-colors",
-                                active
-                                  ? "border-primary bg-primary/10"
-                                  : "border-border bg-surface-raised/40 hover:border-primary/40",
-                              )}
-                            >
-                              <span className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-semibold text-text">{archetype.name}</span>
-                                {suggested && (
-                                  <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-medium text-primary-light">
-                                    Match
-                                  </span>
-                                )}
-                              </span>
-                              <span className="mt-0.5 block text-[10px] text-text-muted line-clamp-2">
-                                {archetype.description}
-                              </span>
-                              <span className="mt-1 block text-[9px] text-text-secondary">
-                                L10 · {archetype.skill_count ?? archetype.corpus_doc_count ?? 0} skills
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <Textarea
+                        className="min-h-[72px] sm:min-h-[96px]"
+                        placeholder="We build B2B billing software for SMBs…"
+                        value={companySummary}
+                        onChange={(e) => setCompanySummary(e.target.value)}
+                      />
                     </Field>
-                  )}
-                </div>
-              </div>
 
-              {agentPath === "specialist" && !canAffordSpecialist && (
-                <p className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-xs text-warning">
-                  You need {formatNumber(specialistCredits)} credits (you have {formatNumber(spendable)}).
-                 {" "}
-                  <button type="button" className="underline" onClick={() => setStep(5)}>
-                    Choose a plan / buy credits
-                  </button>
-                  {" "}
-                  or continue with a free blank agent.
-                </p>
+                    <Field
+                      label="What should your agents help with?"
+                      hint="Describe the jobs you want agents to take on."
+                    >
+                      <Textarea
+                        className="min-h-[72px] sm:min-h-[96px]"
+                        placeholder="Ship features from GitHub, draft marketing pages, research competitors…"
+                        value={agentNeeds}
+                        onChange={(e) => setAgentNeeds(e.target.value)}
+                      />
+                    </Field>
+                  </div>
+
+                  <Field
+                    label="Invite your team"
+                    hint="They'll get an email invite. You can also do this later."
+                  >
+                    <div className="flex gap-2">
+                      <input
+                        className="mk-input flex-1"
+                        placeholder="colleague@company.com"
+                        value={emailDraft}
+                        onChange={(e) => setEmailDraft(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addEmail())}
+                      />
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        onClick={addEmail}
+                        aria-label="Add email"
+                      >
+                        <Plus size={14} />
+                      </Button>
+                    </div>
+                    {inviteEmails.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {inviteEmails.map((email) => (
+                          <span
+                            key={email}
+                            className="flex items-center gap-1.5 rounded-full bg-primary-muted px-2.5 py-1 text-[11px] text-primary-light"
+                          >
+                            <Mail size={10} /> {email}
+                            <button
+                              onClick={() =>
+                                setInviteEmails((prev) => prev.filter((e) => e !== email))
+                              }
+                              className="hover:text-text"
+                            >
+                              <X size={10} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </Field>
+
+                  <StepActions>
+                    <Button variant="ghost" onClick={() => setStep(0)}>
+                      <ArrowLeft size={14} />
+                    </Button>
+                    <Button variant="ghost" onClick={() => setStep(2)}>
+                      Skip
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      loading={busy || inviteMember.isPending}
+                      disabled={!companyName.trim()}
+                      onClick={submitWorkspace}
+                    >
+                      Continue <ArrowRight size={14} />
+                    </Button>
+                  </StepActions>
+                </div>
               )}
 
-              {agentError && (
-                <p className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-xs text-danger">
-                  {agentError}
-                </p>
+              {/* ── Step 2 : Integrations ── */}
+              {step === 2 && (
+                <div className="space-y-4 sm:space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold text-text">Connect your tools</h2>
+                    <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                      Plug in the tools your team already uses. Agents will be able to work with
+                      them, with your permission.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    {featuredIntegrations.map((key) => {
+                      const provider = providers.find((p) => p.key === key);
+                      if (!provider) return null;
+                      const connected = connectedKeys.has(key);
+                      const isConnecting = connecting === key;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          disabled={connected || isConnecting}
+                          onClick={() => toggleConnect(key)}
+                          className={cn(
+                            "flex items-center gap-3 rounded-xl p-3.5 text-left transition-all",
+                            connected
+                              ? "bg-success-muted/40"
+                              : "bg-surface-raised/60 hover:bg-surface-hover hover:shadow-[0_2px_12px_rgba(0,0,0,0.15)]",
+                          )}
+                        >
+                          <IntegrationLogo
+                            providerKey={provider.key}
+                            logoUrl={provider.logo_url}
+                            name={provider.name}
+                            size="sm"
+                            onDark
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-xs font-semibold text-text">
+                              {provider.name}
+                            </span>
+                            <span className="block truncate text-[10px] text-text-muted">
+                              {provider.category}
+                            </span>
+                          </span>
+                          {isConnecting ? (
+                            <Loader2 size={14} className="animate-spin text-text-muted" />
+                          ) : connected ? (
+                            <span
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-success text-white shadow-[0_0_14px_rgba(34,197,94,0.45)]"
+                              aria-label="Connected"
+                            >
+                              <CheckCircle2 size={18} strokeWidth={2.25} />
+                            </span>
+                          ) : (
+                            <Plus size={14} className="text-text-muted" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {connectError && (
+                    <p className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-xs leading-relaxed text-danger">
+                      {connectError}
+                    </p>
+                  )}
+
+                  {providers.length === 0 && (
+                    <p className="rounded-xl bg-surface-raised/60 px-4 py-3 text-center text-xs text-text-muted">
+                      Integrations catalog is loading… you can also connect tools later from the
+                      MCP Hub.
+                    </p>
+                  )}
+
+                  <StepActions>
+                    <Button variant="ghost" onClick={() => setStep(1)}>
+                      <ArrowLeft size={14} />
+                    </Button>
+                    <Button className="flex-1" onClick={() => setStep(3)}>
+                      {connectedKeys.size > 0 ? "Continue" : "Skip for now"}{" "}
+                      <ArrowRight size={14} />
+                    </Button>
+                  </StepActions>
+                </div>
               )}
 
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setStep(2)}>
-                  <ArrowLeft size={14} />
-                </Button>
-                <Button variant="ghost" onClick={() => setStep(4)}>
-                  Skip
-                </Button>
-                <Button
-                  className="flex-1"
-                  loading={busy}
-                  disabled={
-                    !agentName.trim() ||
-                    agentCreated ||
-                    (agentPath === "specialist" && !canAffordSpecialist)
-                  }
-                  onClick={submitAgent}
-                >
-                  {agentCreated ? (
-                    <>
-                      <Check size={14} /> Created!
-                    </>
-                  ) : agentPath === "specialist" ? (
-                    <>
-                      <Coins size={14} /> Unlock {selectedArchetype?.name ?? "specialist"} ·{" "}
-                      {formatNumber(specialistCredits)}
-                    </>
-                  ) : (
-                    <>
-                      <Bot size={14} /> Create {agentName || "agent"}
-                    </>
+              {/* ── Step 3 : First agent ── */}
+              {step === 3 && (
+                <div className="space-y-4 sm:space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold text-text">Choose your first agent</h2>
+                    <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                      Start blank at level 1, or unlock a level-10 specialist with domain knowledge
+                      packs already loaded.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAgentPath("blank");
+                        setArchetypeKey("blank");
+                      }}
+                      className={cn(
+                        "rounded-xl border px-3.5 py-3 text-left transition-all",
+                        agentPath === "blank"
+                          ? "border-primary bg-primary/10"
+                          : "border-border bg-surface-raised/50 hover:border-primary/40",
+                      )}
+                    >
+                      <span className="block text-xs font-semibold text-text">
+                        New agent · Level 1
+                      </span>
+                      <span className="mt-1 block text-[10px] leading-relaxed text-text-muted">
+                        Free. Basic skills, trains alone from your missions.
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAgentPath("specialist");
+                        const first = recommended[0] ?? specialists[0];
+                        if (first) setArchetypeKey(first.key);
+                      }}
+                      className={cn(
+                        "rounded-xl border px-3.5 py-3 text-left transition-all",
+                        agentPath === "specialist"
+                          ? "border-primary bg-primary/10"
+                          : "border-border bg-surface-raised/50 hover:border-primary/40",
+                      )}
+                    >
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-text">
+                        <Sparkles size={12} className="text-primary" />
+                        Specialist · Level 10
+                      </span>
+                      <span className="mt-1 block text-[10px] leading-relaxed text-text-muted">
+                        {formatNumber(specialistCredits)} credits · domain packs preloaded
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col items-start gap-4 sm:flex-row sm:gap-5">
+                    <div className="relative mx-auto shrink-0 overflow-hidden rounded-xl border border-border bg-surface-raised/30 sm:mx-0">
+                      <Suspense
+                        fallback={
+                          <div
+                            className="flex items-center justify-center"
+                            style={{ width: 180, height: 230 }}
+                          >
+                            <Avatar name={agentName || "?"} size="xl" isAi color={agentColor} />
+                          </div>
+                        }
+                      >
+                        <AgentPreview3D
+                          color={agentColor}
+                          name={agentName || "?"}
+                          width={180}
+                          height={230}
+                        />
+                      </Suspense>
+                      {agentCreated && (
+                        <span className="absolute bottom-3 right-3 flex h-7 w-7 items-center justify-center rounded-full bg-success text-white shadow-lg mk-fade-up">
+                          <Check size={14} />
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex min-w-0 w-full flex-1 flex-col gap-4 pt-1">
+                      <Field label="Name" required>
+                        <input
+                          className="mk-input"
+                          value={agentName}
+                          onChange={(e) => setAgentName(e.target.value)}
+                        />
+                      </Field>
+
+                      <Field label="Color">
+                        <div className="flex flex-wrap gap-2">
+                          {agentColors.map((color) => (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() => setAgentColor(color)}
+                              aria-label={`Color ${color}`}
+                              className={cn(
+                                "h-8 w-8 rounded-full transition-transform",
+                                agentColor === color &&
+                                  "scale-110 ring-2 ring-white/60 ring-offset-2 ring-offset-surface",
+                              )}
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                      </Field>
+
+                      {agentPath === "blank" ? (
+                        <div className="rounded-lg border border-border bg-surface-raised/40 px-3 py-2.5 text-xs leading-relaxed text-text-muted">
+                          <Sparkles size={11} className="mb-0.5 mr-1 inline text-primary-light" />
+                          Starts weak on purpose — role and specialty emerge as it completes
+                          missions.
+                        </div>
+                      ) : (
+                        <Field
+                          label="Specialist domain"
+                          hint={
+                            recommended.length
+                              ? `Suggested for your brief: ${recommended.map((r) => r.name).join(", ")}`
+                              : `Balance: ${formatNumber(spendable)} credits`
+                          }
+                        >
+                          <div className="grid max-h-[min(11rem,30vh)] gap-2 overflow-y-auto sm:grid-cols-2">
+                            {specialists.map((archetype) => {
+                              const active = archetype.key === archetypeKey;
+                              const suggested = recommendedKeys.has(archetype.key);
+                              return (
+                                <button
+                                  key={archetype.key}
+                                  type="button"
+                                  onClick={() => setArchetypeKey(archetype.key)}
+                                  className={cn(
+                                    "rounded-xl border px-3 py-2.5 text-left transition-colors",
+                                    active
+                                      ? "border-primary bg-primary/10"
+                                      : "border-border bg-surface-raised/40 hover:border-primary/40",
+                                  )}
+                                >
+                                  <span className="flex items-center justify-between gap-2">
+                                    <span className="text-xs font-semibold text-text">
+                                      {archetype.name}
+                                    </span>
+                                    {suggested && (
+                                      <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[9px] font-medium text-primary-light">
+                                        Match
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span className="mt-0.5 block text-[10px] text-text-muted line-clamp-2">
+                                    {archetype.description}
+                                  </span>
+                                  <span className="mt-1 block text-[9px] text-text-secondary">
+                                    L10 ·{" "}
+                                    {archetype.skill_count ?? archetype.corpus_doc_count ?? 0}{" "}
+                                    skills
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </Field>
+                      )}
+                    </div>
+                  </div>
+
+                  {agentPath === "specialist" && !canAffordSpecialist && (
+                    <p className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-xs text-warning">
+                      You need {formatNumber(specialistCredits)} credits (you have{" "}
+                      {formatNumber(spendable)}).{" "}
+                      <button type="button" className="underline" onClick={() => setStep(5)}>
+                        Choose a plan / buy credits
+                      </button>{" "}
+                      or continue with a free blank agent.
+                    </p>
                   )}
-                </Button>
-              </div>
-            </div>
-          )}
 
-          {/* ── Step 4 : First project ── */}
-          {step === 4 && (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-xl font-bold text-text">Create your first project</h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
-                  Projects group tasks, agents and files around one goal. Don't overthink it.
-                  You can rename it anytime.
-                </p>
-              </div>
-              <Field label="Project name" required>
-                <input
-                  className="mk-input h-11"
-                  placeholder="e.g. Website launch, Q3 campaign…"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  autoFocus
-                />
-              </Field>
-              <Field label="What is it about?">
-                <Textarea
-                  className="min-h-[72px]"
-                  placeholder="One or two sentences (optional)"
-                  value={projectDescription}
-                  onChange={(e) => setProjectDescription(e.target.value)}
-                />
-              </Field>
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setStep(3)}>
-                  <ArrowLeft size={14} />
-                </Button>
-                <Button variant="ghost" onClick={() => setStep(5)}>
-                  Skip
-                </Button>
-                <Button
-                  className="flex-1"
-                  loading={busy}
-                  disabled={!projectName.trim() || projectCreated}
-                  onClick={submitProject}
-                >
-                  {projectCreated ? (
-                    <>
-                      <Check size={14} /> Created!
-                    </>
-                  ) : (
-                    <>
-                      <FolderKanban size={14} /> Create project
-                    </>
+                  {agentError && (
+                    <p className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-xs text-danger">
+                      {agentError}
+                    </p>
                   )}
-                </Button>
-              </div>
-            </div>
-          )}
 
-          {/* ── Step 5 : Choose a plan ── */}
-          {step === 5 && (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-xl font-bold text-text">Choose your plan</h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">
-                  Every plan includes a monthly pool of AI credits — the fuel your employees
-                  spend as they work. Start free, upgrade anytime.
-                </p>
-              </div>
-
-              <div className="flex justify-center">
-                <BillingCycleToggle cycle={billingCycle} onChange={setBillingCycle} />
-              </div>
-
-              <PlanPicker
-                plans={onboardingPlans}
-                currentKey={currentPlanKey}
-                pendingKey={planCheckout.isPending ? planCheckout.variables?.plan_key : undefined}
-                onChoose={choosePlan}
-                cycle={billingCycle}
-                compact
-              />
-
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setStep(4)}>
-                  <ArrowLeft size={14} />
-                </Button>
-                <Button variant="ghost" className="flex-1" onClick={() => setStep(6)}>
-                  Continue with Free
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 6 : Done ── */}
-          {step === 6 && (
-            <div className="space-y-6 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success-muted mk-float">
-                <PartyPopper size={28} className="text-success" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-text">You're all set!</h2>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-text-secondary">
-                  Your workspace is ready. Take a quick interactive tour to discover the
-                  interface, or dive right in.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 text-left">
-                <div className="rounded-xl bg-surface-raised/60 p-3.5">
-                  <Bot size={15} className="mb-2 text-primary-light" />
-                  <p className="text-[11px] font-semibold text-text">
-                    {agentCreated ? `${agentName} is ready` : "No agent yet"}
-                  </p>
-                  <p className="text-[10px] text-text-muted">
-                    {agentCreated ? "Waiting at their desk" : "Create one anytime"}
-                  </p>
+                  <StepActions>
+                    <Button variant="ghost" onClick={() => setStep(2)}>
+                      <ArrowLeft size={14} />
+                    </Button>
+                    <Button variant="ghost" onClick={() => setStep(4)}>
+                      Skip
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      loading={busy}
+                      disabled={
+                        !agentName.trim() ||
+                        agentCreated ||
+                        (agentPath === "specialist" && !canAffordSpecialist)
+                      }
+                      onClick={submitAgent}
+                    >
+                      {agentCreated ? (
+                        <>
+                          <Check size={14} /> Created!
+                        </>
+                      ) : agentPath === "specialist" ? (
+                        <>
+                          <Coins size={14} /> Unlock {selectedArchetype?.name ?? "specialist"} ·{" "}
+                          {formatNumber(specialistCredits)}
+                        </>
+                      ) : (
+                        <>
+                          <Bot size={14} /> Create {agentName || "agent"}
+                        </>
+                      )}
+                    </Button>
+                  </StepActions>
                 </div>
-                <div className="rounded-xl bg-surface-raised/60 p-3.5">
-                  <FolderKanban size={15} className="mb-2 text-primary-light" />
-                  <p className="text-[11px] font-semibold text-text">
-                    {projectCreated ? projectName : "No project yet"}
-                  </p>
-                  <p className="text-[10px] text-text-muted">
-                    {projectCreated ? "Ready for tasks" : "Create one anytime"}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-surface-raised/60 p-3.5">
-                  <Users size={15} className="mb-2 text-primary-light" />
-                  <p className="text-[11px] font-semibold text-text">
-                    {inviteEmails.length > 0
-                      ? `${inviteEmails.length} invite${inviteEmails.length > 1 ? "s" : ""} sent`
-                      : "Solo for now"}
-                  </p>
-                  <p className="text-[10px] text-text-muted">Invite more from Members</p>
-                </div>
-              </div>
+              )}
 
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => {
-                    finish(false);
-                    navigate({ to: "/dashboard" });
-                  }}
-                >
-                  Go to dashboard
-                </Button>
-                <Button className="flex-1" onClick={() => finish(true)}>
-                  <Sparkles size={14} /> Take the tour
-                </Button>
-              </div>
+              {/* ── Step 4 : First project ── */}
+              {step === 4 && (
+                <div className="space-y-4 sm:space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold text-text">Create your first project</h2>
+                    <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                      Projects group tasks, agents and files around one goal. Don't overthink it.
+                      You can rename it anytime.
+                    </p>
+                  </div>
+                  <Field label="Project name" required>
+                    <input
+                      className="mk-input h-11"
+                      placeholder="e.g. Website launch, Q3 campaign…"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      autoFocus
+                    />
+                  </Field>
+                  <Field label="What is it about?">
+                    <Textarea
+                      className="min-h-[72px]"
+                      placeholder="One or two sentences (optional)"
+                      value={projectDescription}
+                      onChange={(e) => setProjectDescription(e.target.value)}
+                    />
+                  </Field>
+                  <StepActions>
+                    <Button variant="ghost" onClick={() => setStep(3)}>
+                      <ArrowLeft size={14} />
+                    </Button>
+                    <Button variant="ghost" onClick={() => setStep(5)}>
+                      Skip
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      loading={busy}
+                      disabled={!projectName.trim() || projectCreated}
+                      onClick={submitProject}
+                    >
+                      {projectCreated ? (
+                        <>
+                          <Check size={14} /> Created!
+                        </>
+                      ) : (
+                        <>
+                          <FolderKanban size={14} /> Create project
+                        </>
+                      )}
+                    </Button>
+                  </StepActions>
+                </div>
+              )}
+
+              {/* ── Step 5 : Choose a plan ── */}
+              {step === 5 && (
+                <div className="space-y-4 sm:space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold text-text">Choose your plan</h2>
+                    <p className="mt-1 text-sm leading-relaxed text-text-secondary">
+                      Every plan includes a monthly pool of AI credits — the fuel your employees
+                      spend as they work. Start free, upgrade anytime.
+                    </p>
+                  </div>
+
+                  <div className="flex justify-center">
+                    <BillingCycleToggle cycle={billingCycle} onChange={setBillingCycle} />
+                  </div>
+
+                  <PlanPicker
+                    plans={onboardingPlans}
+                    currentKey={currentPlanKey}
+                    pendingKey={
+                      planCheckout.isPending ? planCheckout.variables?.plan_key : undefined
+                    }
+                    onChoose={choosePlan}
+                    cycle={billingCycle}
+                    compact
+                  />
+
+                  <StepActions>
+                    <Button variant="ghost" onClick={() => setStep(4)}>
+                      <ArrowLeft size={14} />
+                    </Button>
+                    <Button variant="ghost" className="flex-1" onClick={() => setStep(6)}>
+                      Continue with Free
+                    </Button>
+                  </StepActions>
+                </div>
+              )}
+
+              {/* ── Step 6 : Done ── */}
+              {step === 6 && (
+                <div className="space-y-5 text-center sm:space-y-6">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success-muted mk-float">
+                    <PartyPopper size={28} className="text-success" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-text">You're all set!</h2>
+                    <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-text-secondary">
+                      Your workspace is ready. Take a quick interactive tour to discover the
+                      interface, or dive right in.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 text-left sm:grid-cols-3">
+                    <div className="rounded-xl bg-surface-raised/60 p-3.5">
+                      <Bot size={15} className="mb-2 text-primary-light" />
+                      <p className="text-[11px] font-semibold text-text">
+                        {agentCreated ? `${agentName} is ready` : "No agent yet"}
+                      </p>
+                      <p className="text-[10px] text-text-muted">
+                        {agentCreated ? "Waiting at their desk" : "Create one anytime"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-surface-raised/60 p-3.5">
+                      <FolderKanban size={15} className="mb-2 text-primary-light" />
+                      <p className="text-[11px] font-semibold text-text">
+                        {projectCreated ? projectName : "No project yet"}
+                      </p>
+                      <p className="text-[10px] text-text-muted">
+                        {projectCreated ? "Ready for tasks" : "Create one anytime"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-surface-raised/60 p-3.5">
+                      <Users size={15} className="mb-2 text-primary-light" />
+                      <p className="text-[11px] font-semibold text-text">
+                        {inviteEmails.length > 0
+                          ? `${inviteEmails.length} invite${inviteEmails.length > 1 ? "s" : ""} sent`
+                          : "Solo for now"}
+                      </p>
+                      <p className="text-[10px] text-text-muted">Invite more from Members</p>
+                    </div>
+                  </div>
+
+                  <StepActions>
+                    <Button
+                      variant="secondary"
+                      className="flex-1"
+                      onClick={() => {
+                        finish(false);
+                        navigate({ to: "/dashboard" });
+                      }}
+                    >
+                      Go to dashboard
+                    </Button>
+                    <Button className="flex-1" onClick={() => finish(true)}>
+                      <Sparkles size={14} /> Take the tour
+                    </Button>
+                  </StepActions>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          <p className="mt-3 shrink-0 text-center text-[11px] text-text-muted sm:mt-4">
+            Step {step + 1} of {steps.length} · Replay anytime from Workspace Settings
+          </p>
         </div>
-
-        <p className="mt-4 text-center text-[11px] text-text-muted">
-          Step {step + 1} of {steps.length} · Replay anytime from Workspace Settings
-        </p>
       </div>
 
       <TranzilaCheckoutDialog

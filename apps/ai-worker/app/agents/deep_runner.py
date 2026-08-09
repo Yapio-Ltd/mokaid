@@ -17,7 +17,10 @@ LangChain Deep Agents best practices:
 The legacy deterministic engine in `runner.py` remains the offline/test path.
 """
 
+import asyncio
+import time
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -29,7 +32,7 @@ from app.agents import colleagues as colleagues_mod
 from app.clients.phoenix import PhoenixClient
 from app.config import get_settings
 from app.mcp.client import McpToolbox
-from app.policies.approval import requires_approval, risk_for_tool
+from app.policies.approval import ApprovalPolicy, risk_for_tool
 from app.schemas import RunRequest, RunState, RunStatus, ToolCall
 from app.tools.registry import RunContext, get_tool
 
@@ -72,7 +75,7 @@ _MIME_BY_EXT = {
 _SYSTEM_TEMPLATE = """You are {name}, an AI employee working inside your team's workspace.
 Role: {role} — Department: {department}
 Skills: {skills}
-{domain_expertise_block}
+{domain_expertise_block}{custom_instructions_block}
 
 You were assigned a real mission by a teammate. Work autonomously and
 deliver professional-quality results. Reply and write deliverables ENTIRELY
@@ -207,6 +210,13 @@ def _mission_kind_rule(kind: str, language: str) -> str:
     )
 
 
+def _disabled_tool_patterns(agent: dict) -> list[str]:
+    """Tool patterns the employer disabled in the agent builder."""
+    prefs = (agent or {}).get("tool_preferences") or {}
+    disabled = prefs.get("disabled") if isinstance(prefs, dict) else None
+    return [str(p) for p in (disabled or []) if p]
+
+
 def is_available() -> bool:
     """Deep engine is usable when deepagents is installed and an LLM key set."""
     if not llm.is_configured():
@@ -338,6 +348,17 @@ def _domain_expertise_block(agent: dict) -> str:
     return "\n".join(lines)
 
 
+def _custom_instructions_block(agent: dict) -> str:
+    """Standing directives written by the employer in the agent builder."""
+    instructions = ((agent or {}).get("instructions") or "").strip()
+    if not instructions:
+        return ""
+    return (
+        "\n\n## Directives from your employer (always follow these)\n"
+        + instructions[:4000]
+    )
+
+
 def _system_prompt(request: RunRequest) -> str:
     from app.agents.mission_kind import detect_mission_kind, language_for_request
 
@@ -350,6 +371,7 @@ def _system_prompt(request: RunRequest) -> str:
         department=agent.get("department") or "—",
         skills=", ".join(agent.get("skills") or []) or "generalist",
         domain_expertise_block=_domain_expertise_block(agent),
+        custom_instructions_block=_custom_instructions_block(agent),
         task_title=request.task_title or "Untitled",
         task_description=request.task_description or "(none)",
         priority=request.task_priority or "medium",
@@ -385,18 +407,45 @@ class _Engine:
         self.toolbox = toolbox
         self.mcp_tools = mcp_tools
         self.wait_for_decision = wait_for_decision
+        self.policy = ApprovalPolicy(request.autonomy)
+        self.disabled_tools = _disabled_tool_patterns(request.agent or {})
         self.consultations: list[dict[str, Any]] = []
         self.last_todos: list[dict[str, Any]] = []
         self.progress_updates = 0
+        self._activity_seq = 0
+        self._activity_bg: set[asyncio.Task] = set()
+
+    def _tool_enabled(self, name: str) -> bool:
+        from fnmatch import fnmatchcase
+
+        return not any(fnmatchcase(name, pattern) for pattern in self.disabled_tools)
+
+    # ---------- Live tool-activity stream (run timeline) ----------
+
+    def _emit_activity(self, event: dict[str, Any]) -> None:
+        """Fire-and-forget post so the timeline never slows the agent down.
+        Task references are kept alive until completion (else GC may cancel)."""
+        task = asyncio.create_task(
+            self.phoenix.post_tool_activity(self.request.run_id, event)
+        )
+        self._activity_bg.add(task)
+        task.add_done_callback(self._activity_bg.discard)
+
+    def _new_activity(self, tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
+        self._activity_seq += 1
+        return {
+            "id": f"{self.request.run_id}:{self._activity_seq}",
+            "tool": tool_name,
+            "description": _activity_description(tool_name, tool_input),
+            "status": "running",
+            "started_at": datetime.now(UTC).isoformat(),
+        }
 
     # ---------- Approval gating (human in the loop) ----------
 
     async def _gate(self, tool_name: str, tool_input: dict[str, Any]) -> tuple[bool, dict]:
-        """Pauses the run for approval when the tool is risky. Returns
-        (approved, effective_input)."""
-        if not requires_approval(tool_name):
-            return True, tool_input
-
+        """Pauses the run for a human decision. Only called when the policy
+        says "ask". Returns (approved, effective_input)."""
         # Recovery path: the worker restarted while this run waited for its
         # approval, and the resume endpoint seeded the human decision before
         # re-attaching to the checkpointed thread. Apply it directly instead
@@ -439,30 +488,75 @@ class _Engine:
         risk = risk_for_tool(tool_name)
         call = ToolCall(tool=tool_name, input=tool_input, risk=risk)
 
-        if requires_approval(tool_name):
+        activity = self._new_activity(tool_name, tool_input)
+
+        decision = self.policy.decision(tool_name)
+        if decision == "deny":
+            call.approved = False
+            self.state.tool_calls.append(call)
+            self._emit_activity({**activity, "status": "denied"})
+            log.info(
+                "deep_tool_denied_by_rule", run_id=self.request.run_id, tool=tool_name
+            )
+            return {
+                "skipped": True,
+                "reason": (
+                    "This action is blocked by the agent's permission rules. "
+                    "Adapt and continue without it."
+                ),
+            }
+        if decision == "ask":
+            self._emit_activity({**activity, "status": "awaiting_approval"})
             approved, effective_input = await self._gate(tool_name, tool_input)
             call.approved = approved
             call.input = effective_input
             if not approved:
                 self.state.tool_calls.append(call)
+                self._emit_activity({**activity, "status": "rejected"})
                 return {
                     "skipped": True,
                     "reason": "The human reviewer rejected this action. Adapt and continue without it.",
                 }
+        elif decision == "allow":
+            # Gated by risk, but pre-approved by a persisted allow rule.
+            call.approved = True
         else:
             call.approved = None
 
-        if self.toolbox.has(tool_name):
-            output = await self.toolbox.call(tool_name, call.input)
-        else:
-            fn = get_tool(tool_name)
-            if fn is None:
-                raise ValueError(f"unknown tool: {tool_name}")
-            enriched = {
-                **call.input,
-                "_attached_files": [f.model_dump() for f in self.request.attached_files],
+        self._emit_activity(activity)
+        started = time.monotonic()
+
+        try:
+            if self.toolbox.has(tool_name):
+                output = await self.toolbox.call(tool_name, call.input)
+            else:
+                fn = get_tool(tool_name)
+                if fn is None:
+                    raise ValueError(f"unknown tool: {tool_name}")
+                enriched = {
+                    **call.input,
+                    "_attached_files": [f.model_dump() for f in self.request.attached_files],
+                }
+                output = await fn(enriched, self.ctx)
+        except Exception:
+            self._emit_activity(
+                {
+                    **activity,
+                    "status": "error",
+                    "finished_at": datetime.now(UTC).isoformat(),
+                    "duration_ms": int((time.monotonic() - started) * 1000),
+                }
+            )
+            raise
+
+        self._emit_activity(
+            {
+                **activity,
+                "status": "ok",
+                "finished_at": datetime.now(UTC).isoformat(),
+                "duration_ms": int((time.monotonic() - started) * 1000),
             }
-            output = await fn(enriched, self.ctx)
+        )
 
         call.output = output
         self.state.tool_calls.append(call)
@@ -698,13 +792,20 @@ class _Engine:
             generate_website,
             generate_webapp,
         ]
-        tools = [StructuredTool.from_function(coroutine=fn) for fn in native]
+        # Builder tool preferences: patterns in tool_preferences.disabled are
+        # stripped from the toolset entirely (the model never sees them).
+        tools = [
+            StructuredTool.from_function(coroutine=fn)
+            for fn in native
+            if self._tool_enabled(fn.__name__)
+        ]
 
-        if self.request.colleagues:
+        if self.request.colleagues and self._tool_enabled("consult_colleague"):
             tools.append(StructuredTool.from_function(coroutine=consult_colleague))
 
         for mcp_tool in self.mcp_tools:
-            tools.append(self._build_mcp_tool(mcp_tool))
+            if self._tool_enabled(mcp_tool["name"]):
+                tools.append(self._build_mcp_tool(mcp_tool))
 
         return tools
 
@@ -972,8 +1073,10 @@ class _Engine:
         # worker restarts, so paused approvals can re-attach and continue.
         checkpointer = await persistence.get_checkpointer()
 
+        # Builder model tier: "fast" routes missions to the cheaper model.
+        quality = (self.request.agent or {}).get("model_quality") or "smart"
         agent = create_deep_agent(
-            model=_build_model(),
+            model=_build_model(quality if quality in ("fast", "smart") else "smart"),
             tools=self._build_tools(),
             system_prompt=_system_prompt(self.request),
             checkpointer=checkpointer,
@@ -1104,6 +1207,52 @@ def _final_message(state: dict[str, Any]) -> str:
             if text:
                 return text[:1500]
     return ""
+
+
+# Present-tense labels for the live run timeline / chat activity chips.
+# Keyed by tool name; {detail} is filled with the most telling input field.
+_ACTIVITY_LABELS = {
+    "web_search": "Searching the web for “{detail}”",
+    "fetch_url": "Reading {detail}",
+    "search_knowledge": "Searching the workspace knowledge for “{detail}”",
+    "traverse_knowledge": "Exploring the knowledge graph around “{detail}”",
+    "knowledge_path": "Connecting concepts in the knowledge graph",
+    "explain_concept": "Studying the concept “{detail}”",
+    "load_domain_skill": "Loading the “{detail}” skill",
+    "generate_document": "Writing a document: {detail}",
+    "generate_image": "Generating an image: {detail}",
+    "send_email": "Sending an email: {detail}",
+    "consult_colleague": "Consulting a colleague: {detail}",
+    "update_task": "Updating the task",
+    "create_subtasks": "Breaking the mission into subtasks",
+    "post_task_comment": "Posting an update in the task thread",
+    "choose_site_delivery": "Deciding how to deliver the website",
+}
+
+
+def _activity_description(tool_name: str, tool_input: dict) -> str:
+    detail = next(
+        (
+            str(tool_input[key])
+            for key in ("query", "url", "name", "subject", "title", "instruction",
+                        "question", "prompt", "concept", "message")
+            if isinstance(tool_input.get(key), str) and tool_input[key].strip()
+        ),
+        "",
+    )
+    detail = detail.strip()[:120]
+
+    template = _ACTIVITY_LABELS.get(tool_name)
+    if template:
+        try:
+            text = template.format(detail=detail)
+        except (KeyError, IndexError):
+            text = template
+        # A label that expected a detail but got none reads broken — trim it.
+        return text.replace("“”", "").replace(": .", ".").strip(" :") or f"Using {tool_name}"
+
+    pretty = tool_name.replace("_", " ")
+    return f"Using {pretty}: {detail}" if detail else f"Using {pretty}"
 
 
 def _describe_action(tool_name: str, tool_input: dict) -> str:

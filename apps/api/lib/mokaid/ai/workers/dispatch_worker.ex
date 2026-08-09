@@ -72,7 +72,10 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
           mcp_servers: mcp_servers,
           # Persona for the deep agent + colleagues it may consult.
           agent: agent_persona(agent),
-          colleagues: colleagues(run.workspace_id, run.agent_id)
+          colleagues: colleagues(run.workspace_id, run.agent_id),
+          # Supervision mode + persisted allow/deny tool rules — the worker's
+          # approval policy uses these to decide what pauses for a human.
+          autonomy: Agents.autonomy_payload(agent)
         }
 
         result =
@@ -108,7 +111,11 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
       tier: Map.get(learning, "tier") || Map.get(domain_pack, "tier"),
       domain_skill_index: Map.get(domain_pack, "skill_index", []),
       suggested_mcp: Map.get(domain_pack, "suggested_mcp") || [],
-      level: agent.level
+      level: agent.level,
+      # Builder settings: standing directives, model tier, disabled tools.
+      instructions: agent.instructions,
+      model_quality: agent.model_quality || "smart",
+      tool_preferences: agent.tool_preferences || %{}
     }
   end
 

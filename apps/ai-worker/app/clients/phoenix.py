@@ -69,6 +69,11 @@ class PhoenixClient:
             {"status": "running", "steps": todos},
         )
 
+    async def post_tool_activity(self, run_id: str, event: dict[str, Any]) -> None:
+        """Streams one tool-activity event (start/end of a tool call with a
+        human description) so the UI can render a live run timeline."""
+        await self._post(f"/api/worker/runs/{run_id}/tool-activity", {"event": event})
+
     async def request_approval(
         self,
         run_id: str,

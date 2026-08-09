@@ -11,7 +11,7 @@ import app.tools.web  # noqa: F401 — registers web_search
 import app.tools.webapp  # noqa: F401 — registers Next/React webapp scaffold tool
 import app.tools.website  # noqa: F401 — registers the website generator tool
 from app.agents import converse as converse_agent
-from app.agents import direct_chat, dispatcher, runner
+from app.agents import direct_chat, dispatcher, runner, schedule_parser
 from app.config import get_settings
 from app.memory.ingestion import ingest_document
 from app.queue.consumer import consume_forever
@@ -149,6 +149,27 @@ async def dispatch_analyze(
     except Exception as exc:  # noqa: BLE001 — Phoenix falls back on any error
         log.warning("dispatch_analyze_failed", error=str(exc))
         raise HTTPException(status_code=502, detail="dispatch analysis failed") from exc
+
+
+@app.post("/schedules/parse")
+async def schedules_parse(
+    payload: dict,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    """Turns a natural-language automation request ("every Monday 9am, …")
+    into a structured cron schedule. 503 without an LLM key so the UI can
+    fall back to manual cron entry."""
+    _check_auth(authorization)
+
+    if not schedule_parser.is_available():
+        raise HTTPException(status_code=503, detail="llm not configured")
+
+    result = await schedule_parser.parse(payload)
+    if result.get("error") == "empty_request":
+        raise HTTPException(status_code=422, detail="text is required")
+    if result.get("error"):
+        raise HTTPException(status_code=422, detail="could not parse a schedule")
+    return result
 
 
 @app.post("/runs/{run_id}/resume")

@@ -32,6 +32,42 @@ export interface AgentCapabilities {
   [key: string]: unknown;
 }
 
+export type AgentAutonomyMode = "supervised" | "balanced" | "autonomous";
+
+/** Persisted "always allow / always deny" tool rule for one agent. */
+export interface AgentPermissionRule {
+  id: string;
+  agent_id: string;
+  tool_pattern: string;
+  behavior: "allow" | "deny";
+  inserted_at: string;
+}
+
+/** A recurring automation: cron-scheduled mission for one agent. */
+export interface AgentSchedule {
+  id: string;
+  agent_id: string;
+  name: string;
+  cron_expression: string;
+  timezone: string;
+  prompt: string;
+  enabled: boolean;
+  last_run_at: string | null;
+  runs_count: number;
+  max_runs: number | null;
+  expires_at: string | null;
+  inserted_at: string;
+}
+
+/** LLM-parsed draft returned by /schedules/parse. */
+export interface ScheduleDraft {
+  name: string;
+  cron_expression: string;
+  timezone: string;
+  prompt: string;
+  human_readable?: string;
+}
+
 export interface Agent {
   id: string;
   workspace_id: string;
@@ -52,6 +88,14 @@ export interface Agent {
   human_takeover_enabled: boolean;
   skills: AgentSkill[];
   capabilities: AgentCapabilities | null;
+  /** Supervision level: what pauses for human approval during runs. */
+  autonomy_mode: AgentAutonomyMode;
+  /** Standing directives injected into every mission's system prompt. */
+  instructions: string | null;
+  /** Model tier used for this agent's missions. */
+  model_quality: "fast" | "smart";
+  /** {"disabled": ["send_email", "mcp:slack:*"]} — tools the agent never gets. */
+  tool_preferences: { disabled?: string[] } & Record<string, unknown>;
   current_task_id: string | null;
   performance_score: number | null;
   /** Gamified progression: XP ring around the avatar, level badge. */
@@ -137,6 +181,10 @@ export interface CreateAgentPayload {
   linked_member_id?: string;
   human_takeover_enabled?: boolean;
   email_alias?: string;
+  autonomy_mode?: AgentAutonomyMode;
+  instructions?: string;
+  model_quality?: "fast" | "smart";
+  tool_preferences?: { disabled?: string[] };
 }
 
 export interface AgentArchetype {
@@ -206,6 +254,17 @@ export interface TaskRunToolCall {
   approved?: boolean | null;
 }
 
+/** One tool call streamed live by the worker (run timeline / activity chips). */
+export interface ToolActivityEvent {
+  id: string;
+  tool: string;
+  description: string;
+  status: "running" | "awaiting_approval" | "ok" | "error" | "denied" | "rejected" | string;
+  started_at?: string;
+  finished_at?: string;
+  duration_ms?: number;
+}
+
 export interface TaskRun {
   id: string;
   status: string;
@@ -219,6 +278,8 @@ export interface TaskRun {
   } | null;
   /** Deep-agent live plan (todo checklist), streamed while the run works. */
   plan?: Array<{ content: string; status: string }>;
+  /** Chronological tool-call feed (persisted; live events arrive via channel). */
+  tool_activity?: ToolActivityEvent[];
   token_usage: Record<string, number> | null;
   /** Mokaid's provider cost in cents — CRM only, never shown to end users. */
   cost_cents: number | null;
@@ -375,6 +436,9 @@ export interface KnowledgeItem {
   tags: string[];
   version: number;
   indexing_status: string;
+  agent_id?: string | null;
+  /** Full content — only present on the detail endpoint. */
+  body?: string | null;
   used_by_agent_ids: string[];
   file_size_bytes: number | null;
   created_by_name: string | null;
