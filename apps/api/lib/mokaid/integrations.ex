@@ -9,6 +9,7 @@ defmodule Mokaid.Integrations do
     GitHubOAuth,
     GoogleOAuth,
     LinearOAuth,
+    MicrosoftOAuth,
     NotionOAuth,
     SlackOAuth,
     IntegrationConnection,
@@ -49,6 +50,7 @@ defmodule Mokaid.Integrations do
       LinearOAuth.linear_provider?(provider_key) -> {:error, :oauth_required}
       NotionOAuth.notion_provider?(provider_key) -> {:error, :oauth_required}
       SlackOAuth.slack_provider?(provider_key) -> {:error, :oauth_required}
+      MicrosoftOAuth.microsoft_provider?(provider_key) -> {:error, :oauth_required}
       true -> connect_mock(workspace_id, provider_key, member)
     end
   end
@@ -193,6 +195,44 @@ defmodule Mokaid.Integrations do
       })
 
     with {:ok, installation} <- MCP.install(workspace_id, SlackOAuth.provider_key(), member, %{}),
+         {:ok, _} <- MCP.store_credentials(installation, mcp_credentials, account) do
+      {:ok, :synced}
+    else
+      # Mirroring into the MCP Hub is best-effort: a missing catalog entry or
+      # a plan without MCP slots must not break the base OAuth connection.
+      {:error, :server_not_found} -> {:ok, :synced}
+      {:error, :mcp_integration_limit_reached} -> {:ok, :synced}
+      other -> other
+    end
+  end
+
+  @doc "Stores Microsoft OAuth credentials on the workspace Outlook integration."
+  def connect_microsoft_provider(workspace_id, member, credentials, account) do
+    member = Repo.preload(member, :user)
+
+    case connect_with_credentials(
+           workspace_id,
+           MicrosoftOAuth.provider_key(),
+           member,
+           credentials,
+           account,
+           "microsoft_oauth"
+         ) do
+      {:ok, connection} -> {:ok, connection}
+      error -> error
+    end
+  end
+
+  @doc "Mirrors Microsoft OAuth credentials into the MCP Hub Outlook installation."
+  def sync_microsoft_mcp_installation(workspace_id, member, credentials, account) do
+    mcp_credentials =
+      Map.merge(credentials, %{
+        "api_key" => credentials["access_token"],
+        "token" => credentials["access_token"]
+      })
+
+    with {:ok, installation} <-
+           MCP.install(workspace_id, MicrosoftOAuth.provider_key(), member, %{}),
          {:ok, _} <- MCP.store_credentials(installation, mcp_credentials, account) do
       {:ok, :synced}
     else

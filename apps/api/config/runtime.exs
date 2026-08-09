@@ -68,6 +68,26 @@ config :mokaid, :slack_oauth,
       "http://localhost:5173/oauth/slack/callback"
     ])
 
+config :mokaid, :microsoft_oauth,
+  client_id: System.get_env("MICROSOFT_CLIENT_ID"),
+  client_secret: System.get_env("MICROSOFT_CLIENT_SECRET"),
+  tenant: System.get_env("MICROSOFT_TENANT") || "common",
+  redirect_uris:
+    Enum.uniq([
+      System.get_env("MICROSOFT_REDIRECT_URI") || "https://mokaid.com/oauth/microsoft/callback",
+      "https://mokaid.com/oauth/microsoft/callback",
+      "http://localhost:5173/oauth/microsoft/callback"
+    ])
+
+config :mokaid, :resend,
+  api_key: System.get_env("RESEND_API_KEY"),
+  from: System.get_env("RESEND_FROM") || "mokaid <notifications@mokaid.com>"
+
+# GCP Pub/Sub topic used by Gmail users.watch push notifications.
+config :mokaid, :gmail_pubsub,
+  topic: System.get_env("GMAIL_PUBSUB_TOPIC"),
+  audience: System.get_env("GMAIL_PUBSUB_AUDIENCE")
+
 config :mokaid, :notion_oauth,
   client_id: System.get_env("NOTION_CLIENT_ID"),
   client_secret: System.get_env("NOTION_CLIENT_SECRET"),

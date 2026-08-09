@@ -43,6 +43,8 @@ import {
   useGithubOauthStart,
   useGoogleOauthStart,
   useLinearOauthStart,
+  useMailAccounts,
+  useMicrosoftOauthStart,
   useNotionOauthStart,
   usePlanCheckout,
   useSlackOauthStart,
@@ -63,6 +65,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import { ApiError, fetchWorkspaceLogoBlob } from "@/api/client";
 import { IntegrationLogo } from "@/components/integrations/integration-logo";
+import { ImapConnectDialog } from "@/components/mail/imap-connect-dialog";
 import { PlanPicker, BillingCycleToggle, type BillingCycle } from "@/components/billing/plan-picker";
 import {
   TranzilaCheckoutDialog,
@@ -117,6 +120,7 @@ const githubProviderKey = "github";
 const linearProviderKey = "linear";
 const notionProviderKey = "notion";
 const slackProviderKey = "slack";
+const microsoftProviderKey = "outlook";
 
 /* ─── Small pieces ─── */
 
@@ -285,6 +289,8 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
   const linearOauthStart = useLinearOauthStart();
   const notionOauthStart = useNotionOauthStart();
   const slackOauthStart = useSlackOauthStart();
+  const microsoftOauthStart = useMicrosoftOauthStart();
+  const { data: mailAccountsData } = useMailAccounts();
 
   const [step, setStep] = useState(() => consumeOnboardingRestoreStep() ?? 0);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
@@ -306,6 +312,7 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
   // Integrations step
   const [connecting, setConnecting] = useState<string | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [imapDialogOpen, setImapDialogOpen] = useState(false);
 
   useOauthPopupListener(() => setConnecting(null));
 
@@ -346,6 +353,7 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
   const connectedKeys = new Set(
     connections.filter((c) => c.status === "connected").map((c) => c.provider_key),
   );
+  const imapConnected = (mailAccountsData?.data ?? []).some((a) => a.provider === "imap");
 
   const finish = (withTour: boolean) => {
     updateOnboarding.mutate({ wizard_done: true });
@@ -470,6 +478,13 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
         navigateOauthPopup(popup, result.data.authorize_url, { step });
         return;
       }
+      if (key === microsoftProviderKey) {
+        const result = await microsoftOauthStart.mutateAsync(
+          `${window.location.origin}/oauth/microsoft/callback`,
+        );
+        navigateOauthPopup(popup, result.data.authorize_url, { step });
+        return;
+      }
       popup?.close();
       await connectIntegration.mutateAsync(key);
     } catch (err) {
@@ -482,6 +497,8 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
               ? "Notion OAuth is not configured on the API. Add NOTION_CLIENT_ID and NOTION_CLIENT_SECRET to apps/api/.env, then restart the API."
             : key === linearProviderKey
               ? "Linear OAuth is not configured on the API. Add LINEAR_CLIENT_ID and LINEAR_CLIENT_SECRET to apps/api/.env, then restart the API."
+              : key === microsoftProviderKey
+                ? "Microsoft OAuth is not configured on the API. Add MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET to apps/api/.env, then restart the API."
               : "Google OAuth is not configured on the API. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to apps/api/.env, then restart the API."
           : err instanceof ApiError
             ? err.message
@@ -850,6 +867,84 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
                     <p className="mt-0.5 text-sm text-text-secondary">
                       Plug in tools your team already uses. Agents work with your permission.
                     </p>
+                  </div>
+
+                  {/* Email first: it unlocks the AI mail agent (sync + smart alerts). */}
+                  <div className="rounded-xl border border-primary/25 bg-primary/5 p-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/15 text-primary-light">
+                        <Mail size={13} />
+                      </span>
+                      <div>
+                        <p className="text-xs font-bold text-text">Connect your email</p>
+                        <p className="text-[10px] text-text-muted">
+                          Your AI agents read, analyze and alert you on important mail.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["gmail", microsoftProviderKey] as const).map((key) => {
+                        const provider = providers.find((p) => p.key === key);
+                        if (!provider) return null;
+                        const connected = connectedKeys.has(key);
+                        const isConnecting = connecting === key;
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            disabled={connected || isConnecting}
+                            onClick={() => toggleConnect(key)}
+                            className={cn(
+                              "flex items-center gap-2 rounded-lg p-2.5 text-left transition-all",
+                              connected
+                                ? "bg-success-muted/40"
+                                : "bg-surface-raised/70 hover:bg-surface-hover",
+                            )}
+                          >
+                            <IntegrationLogo
+                              providerKey={provider.key}
+                              logoUrl={provider.logo_url}
+                              name={provider.name}
+                              size="sm"
+                              onDark
+                            />
+                            <span className="min-w-0 flex-1 truncate text-xs font-semibold text-text">
+                              {key === microsoftProviderKey ? "Microsoft" : provider.name}
+                            </span>
+                            {isConnecting ? (
+                              <Loader2 size={13} className="animate-spin text-text-muted" />
+                            ) : connected ? (
+                              <CheckCircle2 size={15} className="shrink-0 text-success" />
+                            ) : (
+                              <Plus size={13} className="shrink-0 text-text-muted" />
+                            )}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        disabled={imapConnected}
+                        onClick={() => setImapDialogOpen(true)}
+                        className={cn(
+                          "flex items-center gap-2 rounded-lg p-2.5 text-left transition-all",
+                          imapConnected
+                            ? "bg-success-muted/40"
+                            : "bg-surface-raised/70 hover:bg-surface-hover",
+                        )}
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-raised text-text-secondary">
+                          <Mail size={15} />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-xs font-semibold text-text">
+                          IMAP / SMTP
+                        </span>
+                        {imapConnected ? (
+                          <CheckCircle2 size={15} className="shrink-0 text-success" />
+                        ) : (
+                          <Plus size={13} className="shrink-0 text-text-muted" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -1305,6 +1400,14 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
         saleUrl={checkoutUrl}
         onClose={() => setCheckoutUrl(null)}
         onComplete={handleCheckoutComplete}
+      />
+
+      <ImapConnectDialog
+        open={imapDialogOpen}
+        onOpenChange={setImapDialogOpen}
+        onConnected={(email) =>
+          toast({ tone: "success", title: "Mailbox connected", description: email })
+        }
       />
     </div>
   );

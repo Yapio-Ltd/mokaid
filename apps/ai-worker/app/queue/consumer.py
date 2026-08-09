@@ -64,6 +64,16 @@ async def _handle_message(body: dict[str, Any]) -> None:
     elif kind == "ingest":
         await ingest_document(body)
 
+    elif kind == "mail_sync":
+        from app.mail import sync as mail_sync
+
+        await mail_sync.sync_account(body)
+
+    elif kind == "mail_watch":
+        from app.mail import sync as mail_sync
+
+        await mail_sync.renew_watch(body)
+
     else:
         log.warning("sqs_unknown_message_type", type=kind)
 

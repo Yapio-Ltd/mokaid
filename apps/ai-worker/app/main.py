@@ -204,3 +204,36 @@ async def ingest(
 ) -> dict:
     _check_auth(authorization)
     return await ingest_document(payload)
+
+
+@app.post("/mail/sync", status_code=202)
+async def mail_sync_endpoint(
+    payload: dict,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    """Sync one mailbox (HTTP dispatch mode). Runs in the background so
+    Phoenix's Oban job returns immediately."""
+    _check_auth(authorization)
+
+    from app.mail import sync as mail_sync
+
+    task = asyncio.ensure_future(mail_sync.sync_account(payload))
+    _background_runs.add(task)
+    task.add_done_callback(_background_runs.discard)
+    return {"accepted": True}
+
+
+@app.post("/mail/watch", status_code=202)
+async def mail_watch_endpoint(
+    payload: dict,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    """Create/renew a mailbox push channel (Gmail watch / Graph subscription)."""
+    _check_auth(authorization)
+
+    from app.mail import sync as mail_sync
+
+    task = asyncio.ensure_future(mail_sync.renew_watch(payload))
+    _background_runs.add(task)
+    task.add_done_callback(_background_runs.discard)
+    return {"accepted": True}

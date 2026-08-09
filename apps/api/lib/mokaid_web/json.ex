@@ -555,6 +555,61 @@ defmodule MokaidWeb.JSON do
     }
   end
 
+  def mail_account(account) do
+    member = loaded(account.member)
+    member_user = member && loaded(member.user)
+
+    %{
+      id: account.id,
+      provider: account.provider,
+      email_address: account.email_address,
+      display_name: account.display_name,
+      status: account.status,
+      error_message: account.error_message,
+      last_sync_at: account.last_sync_at,
+      owner_name: member_user && member_user.full_name,
+      settings: Map.drop(account.settings || %{}, ["password"]),
+      inserted_at: account.inserted_at
+    }
+  end
+
+  def mail_message(message) do
+    %{
+      id: message.id,
+      mail_account_id: message.mail_account_id,
+      provider_message_id: message.provider_message_id,
+      thread_id: message.thread_id,
+      from_name: message.from_name,
+      from_email: message.from_email,
+      to_emails: message.to_emails,
+      subject: message.subject,
+      snippet: message.snippet,
+      folder: message.folder,
+      labels: message.labels,
+      has_attachments: message.has_attachments,
+      received_at: message.received_at,
+      ai_importance: message.ai_importance,
+      ai_category: message.ai_category,
+      ai_summary: message.ai_summary,
+      matched_rule_ids: message.matched_rule_ids,
+      analyzed_at: message.analyzed_at
+    }
+  end
+
+  def mail_rule(rule) do
+    %{
+      id: rule.id,
+      mail_account_id: rule.mail_account_id,
+      name: rule.name,
+      prompt: rule.prompt,
+      action: rule.action,
+      enabled: rule.enabled,
+      last_matched_at: rule.last_matched_at,
+      matches_count: rule.matches_count,
+      inserted_at: rule.inserted_at
+    }
+  end
+
   def mcp_server(server) do
     %{
       id: server.id,

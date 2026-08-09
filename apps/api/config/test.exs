@@ -47,3 +47,4 @@ config :bcrypt_elixir, :log_rounds, 1
 config :logger, level: :warning
 
 config :phoenix, :plug_init_mode, :runtime
+config :mokaid, :imap_probe_enabled, false

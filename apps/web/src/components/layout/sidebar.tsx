@@ -8,6 +8,7 @@ import {
   FolderKanban,
   FolderOpen,
   LayoutDashboard,
+  Mail,
   Plug,
   Settings,
   Users,
@@ -25,6 +26,7 @@ const mainNav = [
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/drive", label: "Drive", icon: FolderOpen },
+  { to: "/mail", label: "Mail", icon: Mail },
   { to: "/calendar", label: "Calendar", icon: Calendar },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
 ];

@@ -24,6 +24,8 @@ provider_specs = [
   {"slack", "Slack", "Communication", "Send messages, alerts and notifications.", "slack"},
   {"google_drive", "Google Drive", "Storage", "Store, access and share files.", "googledrive"},
   {"gmail", "Gmail", "Communication", "Send and receive email.", "gmail"},
+  {"outlook", "Outlook", "Communication", "Read, analyze and send email through Outlook.",
+   "outlook"},
   {"notion", "Notion", "Productivity", "Sync pages and databases.", "notion"},
   {"trello", "Trello", "Project Management", "Manage tasks and boards.", "trello"},
   {"github", "GitHub", "Developer", "Sync repositories, issues and PRs.", "github"},

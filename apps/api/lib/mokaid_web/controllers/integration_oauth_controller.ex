@@ -6,7 +6,16 @@ defmodule MokaidWeb.IntegrationOAuthController do
   use MokaidWeb, :controller
 
   alias Mokaid.Integrations
-  alias Mokaid.Integrations.{GitHubOAuth, GoogleOAuth, LinearOAuth, NotionOAuth, SlackOAuth}
+
+  alias Mokaid.Integrations.{
+    GitHubOAuth,
+    GoogleOAuth,
+    LinearOAuth,
+    MicrosoftOAuth,
+    NotionOAuth,
+    SlackOAuth
+  }
+
   alias MokaidWeb.JSON, as: Serializer
 
   def google_start(conn, params) do
@@ -54,6 +63,8 @@ defmodule MokaidWeb.IntegrationOAuthController do
              result.credentials,
              result.account
            ) do
+      ensure_mail_account(conn, result, connections, "gmail")
+
       json(conn, %{
         data: %{
           connections: Enum.map(connections, &Serializer.integration_connection/1),
@@ -297,6 +308,98 @@ defmodule MokaidWeb.IntegrationOAuthController do
     end
   end
 
+  def microsoft_start(conn, params) do
+    redirect_uri = params["redirect_uri"] || default_microsoft_redirect_uri()
+
+    with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),
+         {:ok, url} <-
+           MicrosoftOAuth.authorize_url(
+             workspace_id(conn),
+             current_member(conn).id,
+             redirect_uri
+           ) do
+      json(conn, %{data: %{authorize_url: url}})
+    else
+      {:error, :oauth_not_configured} ->
+        oauth_not_configured(conn, "Microsoft")
+
+      {:error, :invalid_redirect_uri} ->
+        invalid_redirect_uri(conn)
+
+      other ->
+        other
+    end
+  end
+
+  def microsoft_callback(conn, %{"code" => code, "state" => state} = params) do
+    redirect_uri = params["redirect_uri"] || default_microsoft_redirect_uri()
+
+    with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),
+         {:ok, result} <- MicrosoftOAuth.exchange_code(code, state, redirect_uri),
+         :ok <- ensure_same_workspace(conn, result.workspace_id),
+         {:ok, connection} <-
+           Integrations.connect_microsoft_provider(
+             result.workspace_id,
+             current_member(conn),
+             result.credentials,
+             result.account
+           ),
+         {:ok, _} <-
+           Integrations.sync_microsoft_mcp_installation(
+             result.workspace_id,
+             current_member(conn),
+             result.credentials,
+             result.account
+           ) do
+      ensure_mail_account(conn, result, [connection], "microsoft")
+
+      json(conn, %{
+        data: %{
+          connection: Serializer.integration_connection(connection),
+          connected_account: result.account,
+          provider_key: MicrosoftOAuth.provider_key()
+        }
+      })
+    else
+      {:error, :invalid_state} -> invalid_state(conn)
+      {:error, {:token_exchange_failed, _, _}} -> token_exchange_failed(conn, "Microsoft")
+      {:error, :forbidden} -> forbidden(conn)
+      other -> other
+    end
+  end
+
+  # Auto-registers the mailbox for sync after a successful email-capable
+  # OAuth. Best-effort: failures must never break the OAuth flow itself.
+  defp ensure_mail_account(conn, result, connections, provider) do
+    mail_provider_key = if provider == "gmail", do: "gmail", else: "outlook"
+
+    connection =
+      Enum.find(connections, fn c ->
+        loaded = Mokaid.Repo.preload(c, :provider)
+        loaded.provider && loaded.provider.key == mail_provider_key
+      end) || List.first(connections)
+
+    if is_binary(result.account) and connection != nil do
+      case Mokaid.Mail.ensure_oauth_account(
+             result.workspace_id,
+             current_member(conn),
+             provider,
+             result.account,
+             connection.id
+           ) do
+        {:ok, account} ->
+          %{"mail_account_id" => account.id}
+          |> Mokaid.Mail.Workers.SyncWorker.new()
+          |> Oban.insert()
+
+        _ ->
+          :ok
+      end
+    end
+
+    :ok
+  end
+
   defp ensure_same_workspace(conn, state_workspace_id) do
     if workspace_id(conn) == state_workspace_id, do: :ok, else: {:error, :forbidden}
   end
@@ -333,6 +436,12 @@ defmodule MokaidWeb.IntegrationOAuthController do
 
   defp default_notion_redirect_uri do
     Application.get_env(:mokaid, :notion_oauth, [])
+    |> Keyword.get(:redirect_uris, [])
+    |> List.first()
+  end
+
+  defp default_microsoft_redirect_uri do
+    Application.get_env(:mokaid, :microsoft_oauth, [])
     |> Keyword.get(:redirect_uris, [])
     |> List.first()
   end

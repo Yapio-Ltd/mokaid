@@ -520,6 +520,53 @@ export interface IntegrationConnection {
   last_sync_at: string | null;
 }
 
+export interface MailAccount {
+  id: string;
+  provider: "gmail" | "microsoft" | "imap";
+  email_address: string;
+  display_name: string | null;
+  status: "active" | "paused" | "error";
+  error_message: string | null;
+  last_sync_at: string | null;
+  owner_name: string | null;
+  settings: Record<string, unknown>;
+  inserted_at: string;
+}
+
+export interface MailMessage {
+  id: string;
+  mail_account_id: string;
+  provider_message_id: string;
+  thread_id: string | null;
+  from_name: string | null;
+  from_email: string | null;
+  to_emails: string[];
+  subject: string | null;
+  snippet: string | null;
+  body_text?: string | null;
+  folder: string | null;
+  labels: string[];
+  has_attachments: boolean;
+  received_at: string | null;
+  ai_importance: number | null;
+  ai_category: string | null;
+  ai_summary: string | null;
+  matched_rule_ids: string[];
+  analyzed_at: string | null;
+}
+
+export interface MailRule {
+  id: string;
+  mail_account_id: string | null;
+  name: string;
+  prompt: string;
+  action: "notify" | "notify_email" | "label";
+  enabled: boolean;
+  last_matched_at: string | null;
+  matches_count: number;
+  inserted_at: string;
+}
+
 export interface McpServer {
   id: string;
   key: string;

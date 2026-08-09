@@ -64,6 +64,9 @@ const DrivePage = lazyPage(() =>
 const CalendarPage = lazyPage(() =>
   import("@/pages/calendar").then((m) => ({ default: m.CalendarPage })),
 );
+const MailPage = lazyPage(() =>
+  import("@/pages/mail").then((m) => ({ default: m.MailPage })),
+);
 const AnalyticsPage = lazyPage(() =>
   import("@/pages/analytics").then((m) => ({ default: m.AnalyticsPage })),
 );
@@ -102,6 +105,9 @@ const SlackCallbackPage = lazyPage(() =>
 );
 const NotionCallbackPage = lazyPage(() =>
   import("@/pages/notion-callback").then((m) => ({ default: m.NotionCallbackPage })),
+);
+const MicrosoftCallbackPage = lazyPage(() =>
+  import("@/pages/microsoft-callback").then((m) => ({ default: m.MicrosoftCallbackPage })),
 );
 const PrivacyPage = lazyPage(() =>
   import("@/pages/privacy").then((m) => ({ default: m.PrivacyPage })),
@@ -210,6 +216,7 @@ const pages = [
   { path: "/projects", component: ProjectsPage },
   { path: "/knowledge", component: KnowledgePage },
   { path: "/drive", component: DrivePage },
+  { path: "/mail", component: MailPage },
   { path: "/calendar", component: CalendarPage },
   { path: "/analytics", component: AnalyticsPage },
   { path: "/settings", component: SettingsPage },
@@ -284,6 +291,12 @@ const notionCallbackRoute = createRoute({
   component: NotionCallbackPage,
 });
 
+const microsoftCallbackRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/oauth/microsoft/callback",
+  component: MicrosoftCallbackPage,
+});
+
 const privacyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/privacy",
@@ -342,6 +355,7 @@ const routeTree = rootRoute.addChildren([
   linearCallbackRoute,
   slackCallbackRoute,
   notionCallbackRoute,
+  microsoftCallbackRoute,
   privacyRoute,
   termsRoute,
   cookiesRoute,

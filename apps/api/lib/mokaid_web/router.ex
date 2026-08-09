@@ -42,6 +42,11 @@ defmodule MokaidWeb.Router do
 
     # Tranzila posts payment results here (reconciled by invoice id).
     post "/tranzila/notify", TranzilaWebhookController, :notify
+
+    # Mail push notifications (Gmail Pub/Sub, Microsoft Graph). Untrusted
+    # hints only — they trigger idempotent syncs for known accounts.
+    post "/webhooks/gmail", MailWebhookController, :gmail
+    post "/webhooks/microsoft", MailWebhookController, :microsoft
   end
 
   scope "/api", MokaidWeb do
@@ -156,6 +161,11 @@ defmodule MokaidWeb.Router do
     post "/integrations/slack/oauth/callback", IntegrationOAuthController, :slack_callback
     post "/integrations/notion/oauth/start", IntegrationOAuthController, :notion_start
     post "/integrations/notion/oauth/callback", IntegrationOAuthController, :notion_callback
+    post "/integrations/microsoft/oauth/start", IntegrationOAuthController, :microsoft_start
+
+    post "/integrations/microsoft/oauth/callback",
+         IntegrationOAuthController,
+         :microsoft_callback
 
     get "/mcp", MCPController, :index
     post "/mcp/:server/install", MCPController, :install
@@ -178,6 +188,17 @@ defmodule MokaidWeb.Router do
     get "/analytics/overview", AnalyticsController, :overview
     get "/analytics/agents", AnalyticsController, :agents
     get "/analytics/tasks", AnalyticsController, :tasks
+
+    get "/mail/accounts", MailController, :list_accounts
+    post "/mail/accounts/imap", MailController, :create_imap_account
+    delete "/mail/accounts/:id", MailController, :delete_account
+    post "/mail/accounts/:id/sync", MailController, :sync_account
+    get "/mail/messages", MailController, :list_messages
+    get "/mail/messages/:id", MailController, :show_message
+    get "/mail/rules", MailController, :list_rules
+    post "/mail/rules", MailController, :create_rule
+    patch "/mail/rules/:id", MailController, :update_rule
+    delete "/mail/rules/:id", MailController, :delete_rule
 
     get "/notifications", NotificationController, :index
     post "/notifications/:id/read", NotificationController, :mark_read
@@ -265,5 +286,10 @@ defmodule MokaidWeb.Router do
     post "/agents/:id/chat-stream", WorkerResourceController, :agent_chat_stream
     post "/agents/:id/memory", WorkerResourceController, :agent_memory
     post "/tasks/:id/output", WorkerResourceController, :save_output
+
+    post "/mail/accounts/:id/messages", MailWorkerController, :ingest_messages
+    post "/mail/accounts/:id/sync-state", MailWorkerController, :update_sync_state
+    post "/mail/accounts/:id/credentials", MailWorkerController, :credentials
+    post "/mail/accounts/:id/rules", MailWorkerController, :rules
   end
 end

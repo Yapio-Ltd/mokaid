@@ -107,6 +107,44 @@ defmodule Mokaid.Integrations.GoogleOAuth do
     end
   end
 
+  @doc "Exchanges a refresh token for fresh credentials."
+  def refresh_tokens(refresh_token) do
+    with :ok <- ensure_configured() do
+      config = config()
+
+      response =
+        Req.post(@token_endpoint,
+          form: [
+            client_id: config[:client_id],
+            client_secret: config[:client_secret],
+            refresh_token: refresh_token,
+            grant_type: "refresh_token"
+          ]
+        )
+
+      case response do
+        {:ok, %Req.Response{status: 200, body: %{"access_token" => _} = body}} ->
+          {:ok,
+           %{
+             "access_token" => body["access_token"],
+             "refresh_token" => body["refresh_token"] || refresh_token,
+             "token_type" => body["token_type"] || "Bearer",
+             "scope" => body["scope"],
+             "expires_at" =>
+               DateTime.utc_now()
+               |> DateTime.add(body["expires_in"] || 3600, :second)
+               |> DateTime.to_iso8601()
+           }}
+
+        {:ok, %Req.Response{status: status, body: body}} ->
+          {:error, {:token_refresh_failed, status, inspect(body)}}
+
+        {:error, exception} ->
+          {:error, {:token_refresh_failed, :network, Exception.message(exception)}}
+      end
+    end
+  end
+
   defp request_tokens(code, redirect_uri) do
     config = config()
 

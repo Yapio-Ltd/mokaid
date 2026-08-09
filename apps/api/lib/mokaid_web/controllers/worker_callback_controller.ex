@@ -48,7 +48,8 @@ defmodule MokaidWeb.WorkerCallbackController do
   @usage_sources %{
     "converse" => {"ai_converse", "message", "Agent reply in task thread"},
     "agent_chat" => {"ai_agent_chat", "message", "Direct chat reply"},
-    "knowledge_ingest" => {"ai_ingest", "document", "Knowledge indexing"}
+    "knowledge_ingest" => {"ai_ingest", "document", "Knowledge indexing"},
+    "mail_analyze" => {"ai_mail_analyze", "message", "Email analysis"}
   }
 
   @doc """

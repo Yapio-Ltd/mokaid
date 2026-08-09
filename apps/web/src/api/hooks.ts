@@ -31,6 +31,9 @@ import type {
   KnowledgeCategory,
   KnowledgeItem,
   LeaveRequest,
+  MailAccount,
+  MailMessage,
+  MailRule,
   McpGrant,
   McpInstallation,
   McpServer,
@@ -1166,6 +1169,38 @@ export function useGoogleOauthCallback() {
   });
 }
 
+export function useMicrosoftOauthStart() {
+  return useMutation({
+    mutationFn: (redirectUri: string) =>
+      apiFetch<Envelope<{ authorize_url: string }>>("/api/integrations/microsoft/oauth/start", {
+        method: "POST",
+        body: { redirect_uri: redirectUri },
+      }),
+  });
+}
+
+export function useMicrosoftOauthCallback() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { code: string; state: string; redirect_uri: string }) =>
+      apiFetch<
+        Envelope<{
+          connection: IntegrationConnection;
+          connected_account?: string;
+          provider_key: string;
+        }>
+      >("/api/integrations/microsoft/oauth/callback", {
+        method: "POST",
+        body,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["mcp"] });
+      queryClient.invalidateQueries({ queryKey: ["mail"] });
+    },
+  });
+}
+
 export function useGithubOauthStart() {
   return useMutation({
     mutationFn: (redirectUri: string) =>
@@ -1706,5 +1741,130 @@ export function useNewConversation(agentId: string) {
         { data: [] },
       );
     },
+  });
+}
+
+/* ─── Mail (connected mailboxes + AI rules) ─── */
+
+export function useMailAccounts() {
+  const workspaceId = useAuthStore((s) => s.workspaceId);
+  return useQuery({
+    queryKey: ["mail", "accounts", workspaceId],
+    queryFn: () => apiFetch<Envelope<MailAccount[]>>("/api/mail/accounts"),
+    enabled: Boolean(workspaceId),
+  });
+}
+
+export function useCreateImapAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      email_address: string;
+      password: string;
+      imap_host: string;
+      imap_port?: number;
+      username?: string;
+      smtp_host?: string;
+      smtp_port?: number;
+      display_name?: string;
+    }) =>
+      apiFetch<Envelope<MailAccount>>("/api/mail/accounts/imap", {
+        method: "POST",
+        body,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mail"] }),
+  });
+}
+
+export function useDeleteMailAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<Envelope<{ deleted: boolean }>>(`/api/mail/accounts/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mail"] }),
+  });
+}
+
+export function useSyncMailAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<Envelope<{ queued: boolean }>>(`/api/mail/accounts/${id}/sync`, {
+        method: "POST",
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mail"] }),
+  });
+}
+
+export function useMailMessages(filters?: {
+  account_id?: string;
+  q?: string;
+  min_importance?: number;
+  limit?: number;
+}) {
+  const workspaceId = useAuthStore((s) => s.workspaceId);
+  const params = new URLSearchParams();
+  if (filters?.account_id) params.set("account_id", filters.account_id);
+  if (filters?.q) params.set("q", filters.q);
+  if (filters?.min_importance != null) params.set("min_importance", String(filters.min_importance));
+  if (filters?.limit != null) params.set("limit", String(filters.limit));
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return useQuery({
+    queryKey: ["mail", "messages", workspaceId, suffix],
+    queryFn: () => apiFetch<Envelope<MailMessage[]>>(`/api/mail/messages${suffix}`),
+    enabled: Boolean(workspaceId),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useMailMessage(id: string | null) {
+  const workspaceId = useAuthStore((s) => s.workspaceId);
+  return useQuery({
+    queryKey: ["mail", "message", workspaceId, id],
+    queryFn: () => apiFetch<Envelope<MailMessage>>(`/api/mail/messages/${id}`),
+    enabled: Boolean(workspaceId && id),
+  });
+}
+
+export function useMailRules() {
+  const workspaceId = useAuthStore((s) => s.workspaceId);
+  return useQuery({
+    queryKey: ["mail", "rules", workspaceId],
+    queryFn: () => apiFetch<Envelope<MailRule[]>>("/api/mail/rules"),
+    enabled: Boolean(workspaceId),
+  });
+}
+
+export function useCreateMailRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      name: string;
+      prompt: string;
+      action?: string;
+      mail_account_id?: string;
+    }) =>
+      apiFetch<Envelope<MailRule>>("/api/mail/rules", { method: "POST", body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mail", "rules"] }),
+  });
+}
+
+export function useUpdateMailRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & Partial<Pick<MailRule, "name" | "prompt" | "action" | "enabled">>) =>
+      apiFetch<Envelope<MailRule>>(`/api/mail/rules/${id}`, { method: "PATCH", body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mail", "rules"] }),
+  });
+}
+
+export function useDeleteMailRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<Envelope<{ deleted: boolean }>>(`/api/mail/rules/${id}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mail", "rules"] }),
   });
 }

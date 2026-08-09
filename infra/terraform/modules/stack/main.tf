@@ -411,6 +411,9 @@ module "secrets" {
     slack_verification_token = "CHANGE_ME"
     notion_client_id         = "CHANGE_ME"
     notion_client_secret     = "CHANGE_ME"
+    microsoft_client_id      = "CHANGE_ME"
+    microsoft_client_secret  = "CHANGE_ME"
+    resend_api_key           = "CHANGE_ME"
   }
   parameters = {
     cognito_user_pool_id = module.cognito.user_pool_id
@@ -545,25 +548,28 @@ module "api_service" {
   alb_security_group_id = module.alb.alb_security_group_id
 
   environment = {
-    MIX_ENV               = "prod"
-    PHX_HOST              = var.app_domain != "" ? var.app_domain : module.alb.alb_dns_name
-    PORT                  = "4000"
-    AWS_REGION            = var.aws_region
-    AUTH_MODE             = var.auth_mode
-    COGNITO_USER_POOL_ID  = module.cognito.user_pool_id
-    COGNITO_CLIENT_ID     = module.cognito.web_client_id
-    S3_BUCKET_UPLOADS     = module.s3_uploads.bucket_id
-    S3_BUCKET_PRIVATE     = module.s3_files.bucket_id
-    S3_BUCKET_OUTPUTS     = module.s3_exports.bucket_id
-    S3_BUCKET_EXPORTS     = module.s3_exports.bucket_id
-    AI_DISPATCH_QUEUE_URL = module.sqs_ai_runs.queue_url
-    CORS_ORIGINS          = local.app_origin
-    FIGMA_REDIRECT_URI    = var.app_domain != "" ? "https://${var.app_domain}/oauth/figma/callback" : "https://mokaid.com/oauth/figma/callback"
-    GOOGLE_REDIRECT_URI   = var.app_domain != "" ? "https://${var.app_domain}/oauth/google/callback" : "https://mokaid.com/oauth/google/callback"
-    GITHUB_REDIRECT_URI   = var.app_domain != "" ? "https://${var.app_domain}/oauth/github/callback" : "https://mokaid.com/oauth/github/callback"
-    LINEAR_REDIRECT_URI   = var.app_domain != "" ? "https://${var.app_domain}/oauth/linear/callback" : "https://mokaid.com/oauth/linear/callback"
-    SLACK_REDIRECT_URI    = var.app_domain != "" ? "https://${var.app_domain}/oauth/slack/callback" : "https://mokaid.com/oauth/slack/callback"
-    NOTION_REDIRECT_URI   = var.app_domain != "" ? "https://${var.app_domain}/auth/notion/callback" : "https://mokaid.com/auth/notion/callback"
+    MIX_ENV                = "prod"
+    PHX_HOST               = var.app_domain != "" ? var.app_domain : module.alb.alb_dns_name
+    PORT                   = "4000"
+    AWS_REGION             = var.aws_region
+    AUTH_MODE              = var.auth_mode
+    COGNITO_USER_POOL_ID   = module.cognito.user_pool_id
+    COGNITO_CLIENT_ID      = module.cognito.web_client_id
+    S3_BUCKET_UPLOADS      = module.s3_uploads.bucket_id
+    S3_BUCKET_PRIVATE      = module.s3_files.bucket_id
+    S3_BUCKET_OUTPUTS      = module.s3_exports.bucket_id
+    S3_BUCKET_EXPORTS      = module.s3_exports.bucket_id
+    AI_DISPATCH_QUEUE_URL  = module.sqs_ai_runs.queue_url
+    CORS_ORIGINS           = local.app_origin
+    FIGMA_REDIRECT_URI     = var.app_domain != "" ? "https://${var.app_domain}/oauth/figma/callback" : "https://mokaid.com/oauth/figma/callback"
+    GOOGLE_REDIRECT_URI    = var.app_domain != "" ? "https://${var.app_domain}/oauth/google/callback" : "https://mokaid.com/oauth/google/callback"
+    GITHUB_REDIRECT_URI    = var.app_domain != "" ? "https://${var.app_domain}/oauth/github/callback" : "https://mokaid.com/oauth/github/callback"
+    LINEAR_REDIRECT_URI    = var.app_domain != "" ? "https://${var.app_domain}/oauth/linear/callback" : "https://mokaid.com/oauth/linear/callback"
+    SLACK_REDIRECT_URI     = var.app_domain != "" ? "https://${var.app_domain}/oauth/slack/callback" : "https://mokaid.com/oauth/slack/callback"
+    NOTION_REDIRECT_URI    = var.app_domain != "" ? "https://${var.app_domain}/auth/notion/callback" : "https://mokaid.com/auth/notion/callback"
+    MICROSOFT_REDIRECT_URI = var.app_domain != "" ? "https://${var.app_domain}/oauth/microsoft/callback" : "https://mokaid.com/oauth/microsoft/callback"
+    MICROSOFT_TENANT       = "common"
+    RESEND_FROM            = "mokaid <notifications@mokaid.com>"
     # Tranzila hosted checkout: notify goes to the API, customers return to the app.
     TRANZILA_TERMINAL       = var.tranzila_terminal
     TRANZILA_TOKEN_TERMINAL = var.tranzila_token_terminal
@@ -595,6 +601,9 @@ module "api_service" {
     SLACK_VERIFICATION_TOKEN = module.secrets.secret_arns["slack_verification_token"]
     NOTION_CLIENT_ID         = module.secrets.secret_arns["notion_client_id"]
     NOTION_CLIENT_SECRET     = module.secrets.secret_arns["notion_client_secret"]
+    MICROSOFT_CLIENT_ID      = module.secrets.secret_arns["microsoft_client_id"]
+    MICROSOFT_CLIENT_SECRET  = module.secrets.secret_arns["microsoft_client_secret"]
+    RESEND_API_KEY           = module.secrets.secret_arns["resend_api_key"]
     TRANZILA_PUBLIC_KEY      = module.secrets.secret_arns["tranzila_public_key"]
     TRANZILA_PRIVATE_KEY     = module.secrets.secret_arns["tranzila_private_key"]
   }

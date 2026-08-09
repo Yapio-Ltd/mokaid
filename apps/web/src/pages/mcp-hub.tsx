@@ -4,6 +4,7 @@ import {
   useFigmaOauthStart,
   useGithubOauthStart,
   useGoogleOauthStart,
+  useMicrosoftOauthStart,
   useLinearOauthStart,
   useNotionOauthStart,
   useSlackOauthStart,
@@ -63,6 +64,10 @@ function slackRedirectUri(): string {
 
 function notionRedirectUri(): string {
   return `${window.location.origin}/auth/notion/callback`;
+}
+
+function microsoftRedirectUri(): string {
+  return `${window.location.origin}/oauth/microsoft/callback`;
 }
 
 const googleServerKeys = new Set([
@@ -143,6 +148,7 @@ function InstallPanel({
   const linearStart = useLinearOauthStart();
   const slackStart = useSlackOauthStart();
   const notionStart = useNotionOauthStart();
+  const microsoftStart = useMicrosoftOauthStart();
   const [apiKey, setApiKey] = useState("");
   const [serverUrl, setServerUrl] = useState("");
   const [token, setToken] = useState("");
@@ -155,6 +161,7 @@ function InstallPanel({
   const isLinear = server.key === "linear";
   const isSlack = server.key === "slack";
   const isNotion = server.key === "notion";
+  const isMicrosoft = server.key === "outlook";
 
   const startFigmaOauth = async () => {
     setError(null);
@@ -216,6 +223,16 @@ function InstallPanel({
       window.location.href = result.data.authorize_url;
     } catch {
       setError("Notion OAuth is not configured on this environment.");
+    }
+  };
+
+  const startMicrosoftOauth = async () => {
+    setError(null);
+    try {
+      const result = await microsoftStart.mutateAsync(microsoftRedirectUri());
+      window.location.href = result.data.authorize_url;
+    } catch {
+      setError("Microsoft OAuth is not configured on this environment.");
     }
   };
 
@@ -369,6 +386,15 @@ function InstallPanel({
         >
           <Plug size={13} /> Connect with Notion
         </Button>
+      ) : isMicrosoft ? (
+        <Button
+          size="sm"
+          className="w-full"
+          loading={microsoftStart.isPending}
+          onClick={startMicrosoftOauth}
+        >
+          <Plug size={13} /> Connect with Microsoft
+        </Button>
       ) : server.auth_kind === "api_key" ? (
         <div className="space-y-3">
           <Field label="API key" hint="Stored encrypted. Only used by agents you authorize.">
@@ -431,6 +457,7 @@ function InstallPanel({
         !isLinear &&
         !isSlack &&
         !isNotion &&
+        !isMicrosoft &&
         !isConnected && (
         <p className="text-center text-[10px] text-text-muted">
           Native OAuth for {server.name} is coming soon. You can connect it today through a custom

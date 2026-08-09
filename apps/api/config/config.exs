@@ -36,7 +36,9 @@ config :mokaid, Oban,
        {"*/15 * * * *", Mokaid.Tasks.Workers.OverdueTaskWorker},
        {"*/5 * * * *", Mokaid.Tasks.Workers.StaleRunWorker},
        {"* * * * *", Mokaid.Office.Workers.ActivitySchedulerWorker},
-       {"* * * * *", Mokaid.AI.Workers.ScheduleWorker}
+       {"* * * * *", Mokaid.AI.Workers.ScheduleWorker},
+       {"*/2 * * * *", Mokaid.Mail.Workers.PollWorker},
+       {"30 * * * *", Mokaid.Mail.Workers.WatchRenewalWorker}
      ]}
   ]
 

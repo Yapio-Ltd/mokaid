@@ -138,6 +138,33 @@ class PhoenixClient:
             },
         )
 
+    # ---------- Mail sync ----------
+
+    async def ingest_mail_messages(
+        self, account_id: str, messages: list[dict[str, Any]]
+    ) -> bool:
+        """Posts a batch of normalized + analyzed messages for one account."""
+        result = await self._post(
+            f"/api/worker/mail/accounts/{account_id}/messages",
+            {"messages": messages},
+            timeout=60,
+        )
+        return result is not None
+
+    async def update_mail_sync_state(self, account_id: str, attrs: dict[str, Any]) -> bool:
+        """Reports sync cursors, push-channel expiry and error status."""
+        result = await self._post(
+            f"/api/worker/mail/accounts/{account_id}/sync-state", attrs
+        )
+        return result is not None
+
+    async def fetch_mail_credentials(self, account_id: str) -> dict[str, Any] | None:
+        """Fetches a fresh account payload (Phoenix refreshes OAuth tokens)."""
+        result = await self._post(
+            f"/api/worker/mail/accounts/{account_id}/credentials", {}
+        )
+        return (result or {}).get("data")
+
     # ---------- Workspace resources ----------
 
 
