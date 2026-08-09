@@ -157,6 +157,12 @@ export function SiteFooter() {
           },
         ]}
         copyright={`© ${new Date().getFullYear()} ${LEGAL_ENTITY_NAME}. All rights reserved.`}
+        designCredit={{
+          href: "https://www.yapio.io/",
+          name: "Yapio",
+          logoSrc: "/branding/icononly_nav.webp",
+          label: "Powered by Yapio — design and product engineering",
+        }}
       />
     </div>
   );

@@ -19,6 +19,14 @@ interface FooterColumn {
   links: FooterLink[];
 }
 
+interface DesignCredit {
+  href: string;
+  name: string;
+  logoSrc: string;
+  /** Accessible label for the credit link (defaults to "Powered by {name}") */
+  label?: string;
+}
+
 interface FooterProps extends React.HTMLAttributes<HTMLDivElement> {
   brand: {
     name: string;
@@ -27,6 +35,8 @@ interface FooterProps extends React.HTMLAttributes<HTMLDivElement> {
   socialLinks: SocialLink[];
   columns: FooterColumn[];
   copyright?: string;
+  /** Optional design / powered-by credit shown beside copyright */
+  designCredit?: DesignCredit;
 }
 
 function isInternalPath(href: string): boolean {
@@ -63,7 +73,13 @@ function FooterAnchor({
 }
 
 export const Footer = React.forwardRef<HTMLDivElement, FooterProps>(
-  ({ className, brand, socialLinks, columns, copyright, ...props }, ref) => {
+  (
+    { className, brand, socialLinks, columns, copyright, designCredit, ...props },
+    ref,
+  ) => {
+    const creditLabel =
+      designCredit?.label ?? (designCredit ? `Powered by ${designCredit.name}` : undefined);
+
     return (
       <div
         ref={ref}
@@ -120,9 +136,39 @@ export const Footer = React.forwardRef<HTMLDivElement, FooterProps>(
             </div>
           </div>
 
-          {copyright && (
-            <div className="mt-14 border-t border-white/[0.05] pb-8 pt-6 sm:mt-16">
-              <p className="text-xs text-text-muted">{copyright}</p>
+          {(copyright || designCredit) && (
+            <div className="mt-14 flex flex-col gap-3 border-t border-white/[0.05] pb-8 pt-6 sm:mt-16 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              {copyright ? (
+                <p className="text-xs text-text-muted">{copyright}</p>
+              ) : (
+                <span />
+              )}
+              {designCredit && (
+                <p className="text-xs text-text-muted sm:text-right">
+                  <a
+                    href={designCredit.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={creditLabel}
+                    aria-label={creditLabel}
+                    className="group inline-flex items-center gap-1.5 rounded-sm transition-colors hover:text-primary-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                  >
+                    <span className="font-light tracking-wide">Powered by</span>
+                    <img
+                      src={designCredit.logoSrc}
+                      alt=""
+                      width={16}
+                      height={15}
+                      decoding="async"
+                      loading="lazy"
+                      className="h-4 w-auto opacity-80 transition-opacity group-hover:opacity-100"
+                    />
+                    <span className="font-medium text-text/80 transition-colors group-hover:text-primary-light">
+                      {designCredit.name}
+                    </span>
+                  </a>
+                </p>
+              )}
             </div>
           )}
         </div>
