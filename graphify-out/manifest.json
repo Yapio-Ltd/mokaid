@@ -1680,8 +1680,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/router.tsx": {
-    "mtime": 1786283020.855381,
-    "ast_hash": "530259caf7f672d9f14829fa9ff6ac67",
+    "mtime": 1786288038.9716282,
+    "ast_hash": "3e1a79a0cf975e9f0d24962a5f585835",
     "semantic_hash": ""
   },
   "apps/web/src/stores/auth-store.ts": {
@@ -1935,8 +1935,8 @@
     "semantic_hash": "5ead73ace41d0d7bac66f28005a54a8c"
   },
   "infra/terraform/modules/stack/main.tf": {
-    "mtime": 1786283309.9359512,
-    "ast_hash": "eb279510930097a7df3a479aad024eba",
+    "mtime": 1786286846.9043798,
+    "ast_hash": "2be462cf065ee852e1920f00e81183f9",
     "semantic_hash": ""
   },
   "infra/terraform/modules/vpc/main.tf": {
@@ -2165,8 +2165,8 @@
     "semantic_hash": ""
   },
   "apps/web/index.html": {
-    "mtime": 1785924418.671056,
-    "ast_hash": "7864e4b55da21b794b3cc29daa591f67",
+    "mtime": 1786288048.124645,
+    "ast_hash": "bc89bfe7c0f8c8eb6a721caf0795eb4c",
     "semantic_hash": ""
   },
   "assets/optimized/AVATAR_FEMALE_FILENAME.txt": {
@@ -3290,8 +3290,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/environments/prod/main.tf": {
-    "mtime": 1786213395.32702,
-    "ast_hash": "3c868300b7fbcb05a24140b0f021abbe",
+    "mtime": 1786286862.110038,
+    "ast_hash": "b1a108aab5925239d399ac37d795dd2b",
     "semantic_hash": ""
   },
   "scripts/copy-stack-secrets.sh": {
@@ -13235,8 +13235,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/modules/waf/main.tf": {
-    "mtime": 1785065688.2650383,
-    "ast_hash": "f38383c442a705a3043015b317b0ebba",
+    "mtime": 1786287232.107738,
+    "ast_hash": "8a6af7933e270f5ecba5af2bbb98f84f",
     "semantic_hash": ""
   },
   "infra/terraform/modules/waf/geo-unavailable.html": {
@@ -14262,6 +14262,16 @@
   "apps/web/src/pages/microsoft-callback.tsx": {
     "mtime": 1786281789.6611707,
     "ast_hash": "eccca4598ae77d2de3158b1b13923a63",
+    "semantic_hash": ""
+  },
+  "apps/web/src/lib/session-entry.ts": {
+    "mtime": 1786288018.8679974,
+    "ast_hash": "7b0cecb53b117c04737c576d239f3263",
+    "semantic_hash": ""
+  },
+  "apps/web/src/test/session-entry.test.ts": {
+    "mtime": 1786288057.9354343,
+    "ast_hash": "bd61f07dea5f4429eff20f0c1455c869",
     "semantic_hash": ""
   }
 }

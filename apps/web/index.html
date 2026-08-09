@@ -5,6 +5,24 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b0b10" />
+    <!--
+      Send signed-in visitors to the app before anything renders, so the
+      prerendered landing snapshot never flashes while the SPA bundle loads.
+      Crawlers have no session and always get the marketing page.
+      Mirrors shouldSkipLanding() in src/lib/session-entry.ts — keep in sync.
+    -->
+    <script>
+      (function () {
+        try {
+          if (location.pathname !== "/") return;
+          if (new URLSearchParams(location.search).has("landing")) return;
+          var stored = localStorage.getItem("mokaid-auth");
+          if (stored && JSON.parse(stored).state.token) location.replace("/dashboard");
+        } catch (err) {
+          /* No session readable — fall through to the landing page. */
+        }
+      })();
+    </script>
     <meta name="description" content="Hire autonomous AI employees you can actually see. mokaid is the AI Workforce OS: a real-time 3D virtual office where your AI agents work, collaborate, and report to you." />
     <title>mokaid | AI Employees in a 3D Virtual Office — AI Workforce OS</title>
     <!-- Open Graph / WhatsApp / social link previews (per-page values set by useSeo) -->

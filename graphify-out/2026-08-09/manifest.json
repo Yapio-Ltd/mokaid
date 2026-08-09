@@ -1935,8 +1935,8 @@
     "semantic_hash": "5ead73ace41d0d7bac66f28005a54a8c"
   },
   "infra/terraform/modules/stack/main.tf": {
-    "mtime": 1786283309.9359512,
-    "ast_hash": "eb279510930097a7df3a479aad024eba",
+    "mtime": 1786286846.9043798,
+    "ast_hash": "2be462cf065ee852e1920f00e81183f9",
     "semantic_hash": ""
   },
   "infra/terraform/modules/vpc/main.tf": {
@@ -3290,8 +3290,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/environments/prod/main.tf": {
-    "mtime": 1786213395.32702,
-    "ast_hash": "3c868300b7fbcb05a24140b0f021abbe",
+    "mtime": 1786286862.110038,
+    "ast_hash": "b1a108aab5925239d399ac37d795dd2b",
     "semantic_hash": ""
   },
   "scripts/copy-stack-secrets.sh": {
@@ -13235,8 +13235,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/modules/waf/main.tf": {
-    "mtime": 1785065688.2650383,
-    "ast_hash": "f38383c442a705a3043015b317b0ebba",
+    "mtime": 1786287232.107738,
+    "ast_hash": "8a6af7933e270f5ecba5af2bbb98f84f",
     "semantic_hash": ""
   },
   "infra/terraform/modules/waf/geo-unavailable.html": {

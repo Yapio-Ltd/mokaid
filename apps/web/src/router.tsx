@@ -7,6 +7,7 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 import { useAuthStore } from "@/stores/auth-store";
+import { shouldSkipLanding } from "@/lib/session-entry";
 import { CookieConsent } from "@/components/legal/cookie-consent";
 import { LandingPage } from "@/pages/landing";
 import { LoginPage } from "@/pages/login";
@@ -174,6 +175,11 @@ const landingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: LandingPage,
+  beforeLoad: ({ location }) => {
+    if (shouldSkipLanding(location.searchStr, Boolean(useAuthStore.getState().token))) {
+      throw redirect({ to: "/dashboard" });
+    }
+  },
 });
 
 const loginRoute = createRoute({
