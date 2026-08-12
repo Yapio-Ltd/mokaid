@@ -15,7 +15,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@babylonjs/core": "^7.35.0",
+    "@babylonjs/core": "^7.54.3",
     "@babylonjs/loaders": "^7.54.3",
     "@hookform/resolvers": "^3.9.0",
     "@mokaid/design-tokens": "*",

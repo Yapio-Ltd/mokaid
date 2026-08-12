@@ -11,6 +11,8 @@
   - Served from `/assets3d/avatar_*.<hash>.glb` (also on S3 `mokaid-assets-3d-*`).
 - **Catalog**: Postgres table `asset_3d` — API `GET /api/assets-3d`. Agents reference via `avatar_asset_id`.
 - **Office environment**: `office.<hash>.glb` (textures max 2048) + `office.mobile.<hash>.glb` (textures max 1024) in `apps/web/public/assets3d/` and S3 `mokaid-assets-3d-*/assets3d/`. Resolved by device profile (`office-asset.ts`).
+  - Office meshes use **float32** vertex attributes (no `KHR_mesh_quantization`). Quantized SHORT positions explode under Chrome Windows / ANGLE.
+  - `EXT_mesh_gpu_instancing` is expanded to discrete nodes during optimize (`scripts/expand-office-instances.mjs`) for the same ANGLE safety.
 
 ## Delivery requirements for final assets
 
@@ -50,10 +52,11 @@ python3 scripts/bake-poi-clips.py assets/raw/avatar_legal.glb -o assets/raw/avat
 python3 scripts/bake-avatar-research.py assets/raw/research -o assets/raw/avatar_research.glb
 python3 scripts/bake-poi-clips.py assets/raw/avatar_research.glb -o assets/raw/avatar_research.glb
 
-# 2. Optimize raw exports (avatars Draco+WebP; office resize 2048 + 1024 mobile)
+# 2. Optimize raw exports (avatars Draco+WebP; office resize 2048 + 1024 mobile,
+#    then dequantize + expand GPU instances — never re-quantize office)
 ./scripts/optimize-assets.sh assets/raw assets/optimized
 
-# 3. Validate against budgets
+# 3. Validate against budgets (+ reject KHR_mesh_quantization on office)
 ./scripts/validate-gltf.sh assets/optimized
 
 # 4. Hash + copy into the web public folder (and optionally generate manifest)

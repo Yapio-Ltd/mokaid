@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Validate GLB/GLTF assets against budgets from docs/ASSETS_3D.md.
 # Office environment assets are allowed a higher byte budget (textures dominate).
+# Office MUST NOT ship KHR_mesh_quantization (Windows ANGLE vertex explosion).
 #
 # Usage: ./scripts/validate-gltf.sh <assets_dir>
 
@@ -22,6 +23,24 @@ fi
 
 failed=0
 
+# Returns 0 if KHR_mesh_quantization is present in the GLB JSON chunk.
+glb_has_mesh_quantization() {
+  python3 - "$1" <<'PY'
+import struct, json, sys
+path = sys.argv[1]
+data = open(path, "rb").read()
+if data[:4] != b"glTF":
+    sys.exit(1)
+off = 12
+chunk_len, chunk_type = struct.unpack_from("<I4s", data, off)
+if chunk_type != b"JSON":
+    sys.exit(1)
+js = json.loads(data[off + 8 : off + 8 + chunk_len])
+exts = set(js.get("extensionsRequired") or []) | set(js.get("extensionsUsed") or [])
+sys.exit(0 if "KHR_mesh_quantization" in exts else 1)
+PY
+}
+
 for file in "${files[@]}"; do
   size=$(wc -c <"$file" | tr -d ' ')
   name="$(basename "$file")"
@@ -37,6 +56,15 @@ for file in "${files[@]}"; do
     failed=1
   else
     echo "OK   $name — $((size / 1024)) KB"
+  fi
+
+  if [ "$is_office" -eq 1 ]; then
+    if glb_has_mesh_quantization "$file"; then
+      echo "FAIL $name — KHR_mesh_quantization present (unsafe on Windows ANGLE; run dequantize)"
+      failed=1
+    else
+      echo "OK   $name — no KHR_mesh_quantization"
+    fi
   fi
 
   if command -v npx &>/dev/null; then
