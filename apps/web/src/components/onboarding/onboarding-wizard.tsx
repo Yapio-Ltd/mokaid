@@ -67,15 +67,13 @@ import { ApiError, fetchWorkspaceLogoBlob } from "@/api/client";
 import { IntegrationLogo } from "@/components/integrations/integration-logo";
 import { ImapConnectDialog } from "@/components/mail/imap-connect-dialog";
 import { PlanPicker, BillingCycleToggle, type BillingCycle } from "@/components/billing/plan-picker";
-import {
-  TranzilaCheckoutDialog,
-  type CheckoutOutcome,
-} from "@/components/billing/checkout-dialog";
+import { redirectToCheckout } from "@/components/billing/checkout-dialog";
 import { cn } from "@/lib/cn";
 import {
   consumeOnboardingRestoreStep,
   navigateOauthPopup,
   openOauthPopup,
+  setOauthReturn,
 } from "@/lib/oauth-callback";
 import { useOauthPopupListener } from "@/lib/use-oauth-popup-listener";
 import { toast } from "@/stores/toast-store";
@@ -301,8 +299,6 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
 
   const [step, setStep] = useState(() => consumeOnboardingRestoreStep() ?? 0);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-  // Embedded Tranzila checkout for paid plans — the wizard stays open.
-  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Workspace step
@@ -322,6 +318,27 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
   const [imapDialogOpen, setImapDialogOpen] = useState(false);
 
   useOauthPopupListener(() => setConnecting(null));
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      queryClient.invalidateQueries({ queryKey: ["billing"] });
+      toast({
+        tone: "success",
+        title: "Payment received",
+        description: "Your plan is being activated — welcome aboard!",
+        duration: 8000,
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (params.get("checkout") === "canceled") {
+      toast({
+        tone: "error",
+        title: "Checkout canceled",
+        description: "Your card was not charged. You can pick a plan again.",
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [queryClient]);
 
   // Agent step
   const [agentName, setAgentName] = useState("Nova");
@@ -377,14 +394,15 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
       setStep(6);
       return;
     }
-    // Paid plan → embedded Tranzila checkout modal (in dev without Tranzila
+    // Paid plan → Stripe Checkout redirect (in dev without Stripe
     // credentials the plan activates directly).
     planCheckout.mutate(
-      { plan_key: planKey, billing_cycle: billingCycle },
+      { plan_key: planKey, billing_cycle: billingCycle, return_path: "/dashboard" },
       {
         onSuccess: (result) => {
           if (result.data.sale_url) {
-            setCheckoutUrl(result.data.sale_url);
+            setOauthReturn("/dashboard", 6);
+            redirectToCheckout(result.data.sale_url);
           } else if (result.data.activated) {
             toast({ tone: "success", title: "Plan activated", description: "Welcome aboard!" });
             setStep(6);
@@ -392,28 +410,6 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
         },
       },
     );
-  };
-
-  const handleCheckoutComplete = (outcome: CheckoutOutcome) => {
-    setCheckoutUrl(null);
-    if (outcome === "done") {
-      // Activation is confirmed asynchronously by the notify webhook.
-      queryClient.invalidateQueries({ queryKey: ["billing"] });
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ["billing"] }), 4_000);
-      toast({
-        tone: "success",
-        title: "Payment received",
-        description: "Your plan is being activated — welcome aboard!",
-        duration: 8000,
-      });
-      setStep(6);
-    } else {
-      toast({
-        tone: "error",
-        title: "Payment failed",
-        description: "Your card was not charged. Please try again.",
-      });
-    }
   };
 
   const addEmail = () => {
@@ -1400,12 +1396,6 @@ export function OnboardingWizard({ onFinish }: { onFinish: () => void }) {
           </div>
         </div>
       </div>
-
-      <TranzilaCheckoutDialog
-        saleUrl={checkoutUrl}
-        onClose={() => setCheckoutUrl(null)}
-        onComplete={handleCheckoutComplete}
-      />
 
       <ImapConnectDialog
         open={imapDialogOpen}

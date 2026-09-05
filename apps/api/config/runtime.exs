@@ -185,18 +185,15 @@ if config_env() == :dev do
   end
 end
 
-# Tranzila hosted payments — API keys come from the environment (AWS Secrets
+# Stripe payments — API keys come from the environment (AWS Secrets
 # Manager in deployed environments, .env locally); never from the repo.
-if System.get_env("TRANZILA_PUBLIC_KEY") do
-  config :mokaid, :tranzila,
-    app_key: System.get_env("TRANZILA_PUBLIC_KEY"),
-    secret: System.get_env("TRANZILA_PRIVATE_KEY"),
-    terminal: System.get_env("TRANZILA_TERMINAL"),
-    token_terminal: System.get_env("TRANZILA_TOKEN_TERMINAL"),
-    currency: System.get_env("TRANZILA_CURRENCY", "USD"),
-    api_base_url: System.get_env("API_BASE_URL", "https://api.mokaid.com"),
-    web_base_url: System.get_env("WEB_BASE_URL", "https://mokaid.com")
-end
+config :mokaid, :stripe,
+  secret_key: System.get_env("STRIPE_SECRET_KEY"),
+  publishable_key: System.get_env("STRIPE_PUBLISHABLE_KEY"),
+  webhook_secret: System.get_env("STRIPE_WEBHOOK_SECRET"),
+  currency: System.get_env("STRIPE_CURRENCY", "usd"),
+  api_base_url: System.get_env("API_BASE_URL", "https://api.mokaid.com"),
+  web_base_url: System.get_env("WEB_BASE_URL", "https://mokaid.com")
 
 # Provider Admin keys for cost/usage sync (platform CRM). Distinct from
 # worker inference keys — never use sk-admin / sk-ant-admin for chat.

@@ -672,6 +672,7 @@ export interface CheckoutResult {
   simulated?: boolean;
   credits?: number;
   sale_url?: string;
+  checkout_url?: string;
   invoice_id?: string;
   subscription?: BillingOverview["subscription"];
 }

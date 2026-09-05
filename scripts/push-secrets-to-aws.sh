@@ -68,8 +68,9 @@ put_secret() { # put_secret NAME VALUE DESCRIPTION
 
 ANTHROPIC_KEY="$(env_value "$ROOT/apps/ai-worker/.env" ANTHROPIC_API_KEY)"
 OPENAI_KEY="$(env_value "$ROOT/apps/ai-worker/.env" OPENAI_API_KEY)"
-TRANZILA_PUBLIC="$(env_value "$ROOT/apps/api/.env" TRANZILA_PUBLIC_KEY)"
-TRANZILA_PRIVATE="$(env_value "$ROOT/apps/api/.env" TRANZILA_PRIVATE_KEY)"
+STRIPE_SECRET="$(env_value "$ROOT/apps/api/.env" STRIPE_SECRET_KEY)"
+STRIPE_PUBLISHABLE="$(env_value "$ROOT/apps/api/.env" STRIPE_PUBLISHABLE_KEY)"
+STRIPE_WEBHOOK="$(env_value "$ROOT/apps/api/.env" STRIPE_WEBHOOK_SECRET)"
 
 # Optional local admin keys (prefer interactive prompt so keys never sit in .env).
 OPENAI_ADMIN_KEY="$(env_value "$ROOT/apps/api/.env" OPENAI_ADMIN_API_KEY)"
@@ -77,8 +78,9 @@ ANTHROPIC_ADMIN_KEY="$(env_value "$ROOT/apps/api/.env" ANTHROPIC_ADMIN_API_KEY)"
 
 put_secret "mokaid/anthropic-api-key" "$ANTHROPIC_KEY" "Anthropic API key for the Mokaid AI worker"
 put_secret "mokaid/openai-api-key" "$OPENAI_KEY" "OpenAI API key for the Mokaid AI worker"
-put_secret "mokaid/tranzila-public-key" "$TRANZILA_PUBLIC" "Tranzila public app key for Mokaid billing"
-put_secret "mokaid/tranzila-private-key" "$TRANZILA_PRIVATE" "Tranzila private/secret key for Mokaid billing"
+put_secret "mokaid/stripe-secret-key" "$STRIPE_SECRET" "Stripe secret key for Mokaid billing"
+put_secret "mokaid/stripe-publishable-key" "$STRIPE_PUBLISHABLE" "Stripe publishable key for Mokaid billing"
+put_secret "mokaid/stripe-webhook-secret" "$STRIPE_WEBHOOK" "Stripe webhook signing secret for Mokaid billing"
 
 # Terraform-managed stacks (mokaid-prod)
 # create their own suffixed secrets consumed by the ECS task definitions —
@@ -107,8 +109,9 @@ update_stack_secret() { # update_stack_secret KEY VALUE
 
 update_stack_secret "anthropic_api_key" "$ANTHROPIC_KEY"
 update_stack_secret "openai_api_key" "$OPENAI_KEY"
-update_stack_secret "tranzila_public_key" "$TRANZILA_PUBLIC"
-update_stack_secret "tranzila_private_key" "$TRANZILA_PRIVATE"
+update_stack_secret "stripe_secret_key" "$STRIPE_SECRET"
+update_stack_secret "stripe_publishable_key" "$STRIPE_PUBLISHABLE"
+update_stack_secret "stripe_webhook_secret" "$STRIPE_WEBHOOK"
 
 if [ "$PUSH_ADMIN_KEYS" = "1" ]; then
   echo ""

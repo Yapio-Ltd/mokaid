@@ -40,8 +40,8 @@ defmodule MokaidWeb.Router do
     post "/auth/google/start", AuthController, :google_start
     post "/auth/google/callback", AuthController, :google_callback
 
-    # Tranzila posts payment results here (reconciled by invoice id).
-    post "/tranzila/notify", TranzilaWebhookController, :notify
+    # Stripe posts billing events here (signature verified).
+    post "/stripe/webhook", StripeWebhookController, :notify
 
     # Mail push notifications (Gmail Pub/Sub, Microsoft Graph). Untrusted
     # hints only — they trigger idempotent syncs for known accounts.
@@ -184,6 +184,8 @@ defmodule MokaidWeb.Router do
     post "/billing/checkout", BillingController, :checkout
     post "/billing/credits/checkout", BillingController, :credits_checkout
     post "/billing/auto-recharge", BillingController, :update_auto_recharge
+    get "/billing/config", BillingController, :config
+    post "/billing/portal", BillingController, :portal
 
     get "/analytics/overview", AnalyticsController, :overview
     get "/analytics/agents", AnalyticsController, :agents

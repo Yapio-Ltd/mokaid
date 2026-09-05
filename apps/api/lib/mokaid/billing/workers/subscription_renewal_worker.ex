@@ -1,12 +1,11 @@
 defmodule Mokaid.Billing.Workers.SubscriptionRenewalWorker do
   @moduledoc """
-  Recurring billing: renews every subscription whose period has ended.
+  Recurring billing safety net.
 
-  Paid plans are charged on the stored Tranzila card token and
-  get a paid invoice; free plans (and dev environments without Tranzila) simply
-  roll over. Failed charges follow the dunning flow in
-  `Mokaid.Billing.renew_subscription/1` — daily retries, then downgrade to
-  Free. Runs hourly so period ends are honored within the hour.
+  Stripe Billing charges paid subscriptions; `invoice.paid` webhooks roll
+  the local period. This worker only rolls free plans (and dev environments
+  without Stripe) and flags paid workspaces that have no Stripe subscription.
+  Runs hourly so period ends are honored within the hour.
   """
 
   use Oban.Worker, queue: :billing, max_attempts: 3

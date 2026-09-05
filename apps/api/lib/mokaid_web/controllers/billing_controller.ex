@@ -2,7 +2,7 @@ defmodule MokaidWeb.BillingController do
   use MokaidWeb, :controller
 
   alias Mokaid.Billing
-  alias Mokaid.Billing.{Credits, Tranzila}
+  alias Mokaid.Billing.{Credits, Stripe}
   alias MokaidWeb.JSON, as: Serializer
 
   def overview(conn, _params) do
@@ -89,8 +89,8 @@ defmodule MokaidWeb.BillingController do
   end
 
   # Direct plan switching is only allowed for free plans (downgrades) — any
-  # paid plan must go through the hosted checkout so the payment actually
-  # happens. Without configured Tranzila credentials (local dev) everything
+  # paid plan must go through Stripe Checkout so the payment actually
+  # happens. Without configured Stripe credentials (local dev) everything
   # stays switchable so the flow remains testable.
   def change_plan(conn, %{"plan_key" => plan_key} = params) do
     cycle = if params["billing_cycle"] == "yearly", do: "yearly", else: "monthly"
@@ -99,7 +99,7 @@ defmodule MokaidWeb.BillingController do
          %{} = plan <- Billing.get_plan_by_key(plan_key) do
       amount = if cycle == "yearly", do: plan.price_cents_yearly, else: plan.price_cents_monthly
 
-      if amount > 0 and Tranzila.enabled?() do
+      if amount > 0 and Stripe.enabled?() do
         conn
         |> put_status(:payment_required)
         |> json(%{
@@ -109,10 +109,48 @@ defmodule MokaidWeb.BillingController do
           }
         })
       else
+        maybe_cancel_stripe_subscription(workspace_id(conn), amount)
+
         with {:ok, subscription} <- Billing.change_plan(workspace_id(conn), plan.key, cycle) do
           json(conn, %{data: subscription_json(subscription)})
         end
       end
+    end
+  end
+
+  def config(conn, _params) do
+    with :ok <- Permissions.authorize(current_member(conn), "billing.view") do
+      json(conn, %{
+        data: %{
+          publishable_key: Stripe.publishable_key(),
+          payments_enabled: Stripe.enabled?()
+        }
+      })
+    end
+  end
+
+  def portal(conn, _params) do
+    with :ok <- Permissions.authorize(current_member(conn), "billing.manage"),
+         %{} = subscription <- Billing.get_subscription(workspace_id(conn)),
+         true <- Stripe.stripe_customer?(subscription.external_customer_id) do
+      return_url = "#{Stripe.web_base_url()}/billing"
+
+      case Stripe.create_portal_session(subscription.external_customer_id, return_url) do
+        {:ok, %{"url" => url}} ->
+          json(conn, %{data: %{url: url}})
+
+        {:error, reason} ->
+          conn
+          |> put_status(:bad_gateway)
+          |> json(%{error: %{code: "portal_failed", message: inspect(reason)}})
+      end
+    else
+      _ ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{
+          error: %{code: "no_customer", message: "No Stripe customer on this workspace."}
+        })
     end
   end
 
@@ -122,11 +160,10 @@ defmodule MokaidWeb.BillingController do
     end
   end
 
-  # Opens a Tranzila hosted checkout for a paid plan (token terminal, so the
-  # card is tokenized for recurring renewals). Free plans switch directly;
-  # Enterprise goes through sales. Without configured Tranzila credentials
-  # (local dev) the plan change applies immediately so the whole flow stays
-  # testable.
+  # Opens Stripe Checkout for a paid plan. Free plans switch directly;
+  # Enterprise goes through sales. An existing Stripe subscription is updated
+  # in place (proration). Without Stripe credentials (local dev) the plan
+  # change applies immediately so the whole flow stays testable.
   def checkout(conn, %{"plan_key" => plan_key} = params) do
     cycle = if params["billing_cycle"] == "yearly", do: "yearly", else: "monthly"
 
@@ -141,7 +178,9 @@ defmodule MokaidWeb.BillingController do
           |> put_status(:unprocessable_entity)
           |> json(%{error: %{code: "contact_sales", message: "Enterprise is a custom contract."}})
 
-        amount <= 0 or not Tranzila.enabled?() ->
+        amount <= 0 or not Stripe.enabled?() ->
+          maybe_cancel_stripe_subscription(workspace_id(conn), amount)
+
           with {:ok, subscription} <- Billing.change_plan(workspace_id(conn), plan.key, cycle) do
             json(conn, %{
               data: %{
@@ -152,11 +191,17 @@ defmodule MokaidWeb.BillingController do
             })
           end
 
+        stripe_subscription_id(workspace_id(conn)) ->
+          update_existing_subscription(conn, plan, cycle, amount)
+
         true ->
           open_checkout(conn, %{
             "kind" => "subscription",
             "amount_cents" => amount,
             "description" => "Mokaid #{plan.name} plan (#{cycle})",
+            "plan_key" => plan.key,
+            "billing_cycle" => cycle,
+            "return_path" => params["return_path"],
             "line_items" => [
               %{
                 "description" => "#{plan.name} plan — #{cycle}",
@@ -170,16 +215,16 @@ defmodule MokaidWeb.BillingController do
     end
   end
 
-  # Opens a Tranzila hosted checkout for an AI credits pack (one-time sale
-  # on the standard terminal).
-  def credits_checkout(conn, %{"pack_key" => pack_key} = _params) do
+  # Opens Stripe Checkout for an AI credits pack (one-time Payment).
+  def credits_checkout(conn, %{"pack_key" => pack_key} = params) do
     with :ok <- Permissions.authorize(current_member(conn), "billing.manage"),
          %{} = pack <- Billing.get_credit_pack(pack_key) do
-      if Tranzila.enabled?() do
+      if Stripe.enabled?() do
         open_checkout(conn, %{
           "kind" => "credits",
           "amount_cents" => pack.price_cents,
           "description" => "Mokaid — #{pack.credits} AI credits",
+          "return_path" => params["return_path"],
           "line_items" => [
             %{
               "description" => "#{pack.credits} AI credits",
@@ -189,7 +234,6 @@ defmodule MokaidWeb.BillingController do
           ]
         })
       else
-        # Dev fallback: credit immediately (settles debt first, like a real buy).
         Credits.add_purchased(workspace_id(conn), pack.credits,
           description: "#{pack.credits} AI credits"
         )
@@ -199,32 +243,95 @@ defmodule MokaidWeb.BillingController do
     end
   end
 
-  # Subscriptions go through the token terminal (tranmode=AK) so the card is
-  # tokenized for recurring charges; one-time purchases use the standard
-  # terminal. Our invoice id travels with the checkout and comes back in the
-  # notify webhook for reconciliation. The returned sale_url is loaded in an
-  # on-site iframe modal by the web app — success/fail land on
-  # /payment-result.html which postMessages the outcome to the parent page.
+  defp update_existing_subscription(conn, plan, cycle, amount) do
+    subscription = Billing.get_subscription(workspace_id(conn))
+
+    case Stripe.update_subscription(subscription.external_subscription_id, %{
+           amount_cents: amount,
+           product_name: "Mokaid #{plan.name} plan (#{cycle})",
+           plan_key: plan.key,
+           billing_cycle: cycle
+         }) do
+      {:ok, _} ->
+        with {:ok, updated} <- Billing.change_plan(workspace_id(conn), plan.key, cycle) do
+          json(conn, %{
+            data: %{activated: true, simulated: false, subscription: subscription_json(updated)}
+          })
+        end
+
+      {:error, reason} ->
+        conn
+        |> put_status(:bad_gateway)
+        |> json(%{error: %{code: "stripe_update_failed", message: inspect(reason)}})
+    end
+  end
+
   defp open_checkout(conn, attrs) do
     user = current_user(conn)
+    workspace_id = workspace_id(conn)
+    existing = Billing.get_subscription(workspace_id)
+    customer_id = existing && existing.external_customer_id
 
     with {:ok, invoice} <-
-           Billing.create_pending_invoice(workspace_id(conn), %{
+           Billing.create_pending_invoice(workspace_id, %{
              "kind" => attrs["kind"],
              "amount_cents" => attrs["amount_cents"],
              "line_items" => attrs["line_items"]
+           }),
+         {:ok, customer} <-
+           Stripe.get_or_create_customer(%{
+             customer_id: customer_id,
+             email: user && user.email,
+             name: user && user.full_name,
+             workspace_id: workspace_id
+           }),
+         {:ok, session} <-
+           Stripe.create_checkout_session(%{
+             kind: attrs["kind"],
+             amount_cents: attrs["amount_cents"],
+             description: attrs["description"],
+             invoice_id: invoice.id,
+             workspace_id: workspace_id,
+             customer_id: customer["id"],
+             buyer_email: user && user.email,
+             plan_key: attrs["plan_key"],
+             billing_cycle: attrs["billing_cycle"],
+             return_path: attrs["return_path"]
            }) do
-      checkout_url =
-        Tranzila.checkout_url(%{
-          mode: if(attrs["kind"] == "subscription", do: :tokenize, else: :one_time),
-          amount_cents: attrs["amount_cents"],
-          description: attrs["description"],
-          invoice_id: invoice.id,
-          buyer_email: user && user.email,
-          buyer_name: user && user.full_name
-        })
+      if url = session["url"] do
+        json(conn, %{data: %{sale_url: url, checkout_url: url, invoice_id: invoice.id}})
+      else
+        conn
+        |> put_status(:bad_gateway)
+        |> json(%{error: %{code: "checkout_failed", message: "Stripe returned no checkout URL."}})
+      end
+    else
+      {:error, reason} ->
+        conn
+        |> put_status(:bad_gateway)
+        |> json(%{error: %{code: "checkout_failed", message: inspect(reason)}})
+    end
+  end
 
-      json(conn, %{data: %{sale_url: checkout_url, invoice_id: invoice.id}})
+  defp stripe_subscription_id(workspace_id) do
+    case Billing.get_subscription(workspace_id) do
+      %{external_subscription_id: id} ->
+        if Stripe.stripe_subscription?(id), do: id, else: nil
+
+      _ ->
+        nil
+    end
+  end
+
+  defp maybe_cancel_stripe_subscription(_workspace_id, amount) when amount > 0, do: :ok
+
+  defp maybe_cancel_stripe_subscription(workspace_id, _amount) do
+    case Billing.get_subscription(workspace_id) do
+      %{external_subscription_id: id} ->
+        if Stripe.stripe_subscription?(id), do: Stripe.cancel_subscription(id)
+
+      _ ->
+        :ok
     end
   end
 

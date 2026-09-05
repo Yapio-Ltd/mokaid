@@ -69,16 +69,13 @@ config :mokaid, :ai_worker,
   url: "http://localhost:8100",
   token: "dev-worker-token"
 
-# Tranzila hosted payments. Empty keys => payments disabled (dev fallback
-# activates plans/credits directly). Overridden per env / runtime.exs.
-# `terminal` clears one-time sales; `token_terminal` clears subscription
-# sales (tranmode=AK) and server-side token charges.
-config :mokaid, :tranzila,
-  app_key: nil,
-  secret: nil,
-  terminal: nil,
-  token_terminal: nil,
-  currency: "USD",
+# Stripe payments. Empty secret_key => payments disabled (dev fallback
+# activates plans/credits directly). Overridden by runtime.exs / env.
+config :mokaid, :stripe,
+  secret_key: nil,
+  publishable_key: nil,
+  webhook_secret: nil,
+  currency: "usd",
   api_base_url: "http://localhost:4000",
   web_base_url: "http://localhost:5173"
 

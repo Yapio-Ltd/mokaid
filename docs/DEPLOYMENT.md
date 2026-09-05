@@ -118,6 +118,9 @@ In Secrets Manager, replace the `CHANGE_ME` placeholders:
 - `mokaid-prod/secret_key_base` — `mix phx.gen.secret`
 - `mokaid-prod/worker_auth_token` — long random string
 - `mokaid-prod/openai_api_key` — provider key
+- `mokaid-prod/stripe_secret_key` — Stripe secret key (`sk_…`)
+- `mokaid-prod/stripe_publishable_key` — Stripe publishable key (`pk_…`)
+- `mokaid-prod/stripe_webhook_secret` — Stripe webhook signing secret (`whsec_…`)
 
 Or push from local `.env` files:
 

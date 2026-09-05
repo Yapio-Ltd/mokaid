@@ -25,6 +25,7 @@ defmodule MokaidWeb.Endpoint do
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
     json_decoder: Phoenix.json_library(),
+    body_reader: {MokaidWeb.CacheBodyReader, :read_body, []},
     length: 50_000_000
 
   plug Plug.MethodOverride

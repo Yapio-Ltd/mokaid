@@ -5,7 +5,7 @@ defmodule Mokaid.Billing do
 
   require Logger
 
-  alias Mokaid.Billing.{BillingPlan, Credits, Invoice, Subscription, Tranzila, UsageEvent}
+  alias Mokaid.Billing.{BillingPlan, Credits, Invoice, Subscription, Stripe, UsageEvent}
   alias Mokaid.Repo
 
   # Renewals are retried once a day, at most this many times, before the
@@ -106,14 +106,12 @@ defmodule Mokaid.Billing do
   ## ---------- Recurring renewal ----------
 
   @doc """
-  Renews a subscription whose period has ended: charges the stored payment
-  method for paid plans (creating a paid invoice), rolls the billing period
-  and refreshes the monthly credit grant. Free plans (and dev environments
-  without Tranzila) roll over without a charge.
+  Renews a subscription whose period has ended.
 
-  On payment failure the subscription goes `past_due` and admins are
-  notified; after #{@max_renewal_failures} consecutive failures the
-  workspace is downgraded to Free.
+  Free plans (and dev environments without Stripe) roll over without a
+  charge. Paid plans billed by Stripe Billing are left alone — `invoice.paid`
+  webhooks roll the period. A paid plan with no Stripe subscription is
+  treated as a dunning failure.
   """
   def renew_subscription(%Subscription{} = subscription) do
     subscription = Repo.preload(subscription, :plan)
@@ -122,61 +120,145 @@ defmodule Mokaid.Billing do
     amount = if plan, do: plan_amount_for_cycle(plan, cycle), else: 0
 
     cond do
-      amount <= 0 or not Tranzila.enabled?() ->
+      amount <= 0 or not Stripe.enabled?() ->
         roll_period(subscription)
 
-      subscription.external_customer_id in [nil, ""] ->
-        renewal_failure(subscription, :no_payment_method)
+      Stripe.stripe_subscription?(subscription.external_subscription_id) ->
+        Logger.info(
+          "subscription_renewal_deferred_to_stripe workspace=#{subscription.workspace_id}"
+        )
+
+        {:ok, subscription}
 
       true ->
-        charge_renewal(subscription, plan, cycle, amount)
+        renewal_failure(subscription, :no_payment_method)
     end
   end
 
-  defp charge_renewal(subscription, plan, cycle, amount) do
-    payment_method = subscription.payment_method || %{}
+  @doc "Applies a Stripe `invoice.paid` renewal (idempotent on Stripe invoice id)."
+  def apply_stripe_renewal(stripe_invoice) when is_map(stripe_invoice) do
+    ext_id = stripe_invoice["id"]
+    sub_id = Stripe.stripe_id(stripe_invoice["subscription"])
 
-    case Tranzila.charge_token(%{
-           token: subscription.external_customer_id,
-           expire_month: payment_method["expire_month"],
-           expire_year: payment_method["expire_year"],
-           amount_cents: amount,
-           description: "Mokaid #{plan.name} plan renewal (#{cycle})"
-         }) do
-      {:ok, charge} ->
+    subscription = get_subscription_by_external_subscription_id(sub_id)
+
+    cond do
+      is_binary(ext_id) and get_invoice_by_external_payment_id(ext_id) != nil ->
+        {:ok, :already_recorded}
+
+      subscription == nil ->
+        {:ignored, :unknown_subscription}
+
+      true ->
+        subscription = Repo.preload(subscription, :plan)
+        plan = subscription.plan
+        cycle = subscription.billing_cycle || "monthly"
+        amount = stripe_invoice["amount_paid"] || 0
+
         create_settled_invoice(subscription.workspace_id, %{
           "kind" => "subscription",
           "amount_cents" => amount,
-          "external_payment_id" => to_string(charge.transaction_id),
+          "external_payment_id" => ext_id,
           "line_items" => [
             %{
-              "description" => "#{plan.name} plan renewal — #{cycle}",
+              "description" => "#{plan && plan.name} plan renewal — #{cycle}",
               "amount_cents" => amount,
-              "plan_key" => plan.key,
+              "plan_key" => plan && plan.key,
               "billing_cycle" => cycle
             }
           ]
         })
 
-        {:ok, renewed} = roll_period(subscription)
+        if stripe_invoice["billing_reason"] == "subscription_cycle" do
+          {:ok, renewed} = roll_period(subscription)
 
-        Mokaid.Notifications.notify_roles(
-          subscription.workspace_id,
-          ["Owner", "Admin"],
-          "billing_renewed",
-          "Your #{plan.name} plan was renewed"
-        )
+          Mokaid.Notifications.notify_roles(
+            subscription.workspace_id,
+            ["Owner", "Admin"],
+            "billing_renewed",
+            "Your #{plan && plan.name} plan was renewed"
+          )
 
-        {:ok, renewed}
-
-      {:error, reason} ->
-        Logger.warning(
-          "subscription_renewal_charge_failed workspace=#{subscription.workspace_id} reason=#{inspect(reason)}"
-        )
-
-        renewal_failure(subscription, reason)
+          {:ok, renewed}
+        else
+          {:ok, subscription}
+        end
     end
   end
+
+  def mark_renewal_failed(%Subscription{} = subscription, reason) do
+    renewal_failure(subscription, reason)
+  end
+
+  def get_subscription_by_external_subscription_id(nil), do: nil
+
+  def get_subscription_by_external_subscription_id(id) do
+    Repo.one(from s in Subscription, where: s.external_subscription_id == ^id, preload: [:plan])
+  end
+
+  def get_invoice_by_external_payment_id(nil), do: nil
+
+  def get_invoice_by_external_payment_id(id) do
+    Repo.one(from i in Invoice, where: i.external_payment_id == ^id)
+  end
+
+  @doc "Syncs local status/period from a Stripe subscription.updated event."
+  def sync_stripe_subscription(object) when is_map(object) do
+    case get_subscription_by_external_subscription_id(Stripe.stripe_id(object["id"])) do
+      nil ->
+        {:ignored, :unknown_subscription}
+
+      subscription ->
+        status = stripe_status(object["status"])
+        period_end = unix_to_dt(object["current_period_end"])
+
+        changes =
+          [status: status]
+          |> maybe_put_change(:current_period_end, period_end)
+
+        {:ok, updated} =
+          subscription
+          |> Ecto.Changeset.change(changes)
+          |> Repo.update()
+
+        if status in ["canceled", "unpaid"] do
+          cancel_stripe_subscription(object)
+        else
+          Mokaid.Realtime.broadcast_workspace(updated.workspace_id, "billing.updated", %{
+            subscription_id: updated.id
+          })
+
+          {:ok, updated}
+        end
+    end
+  end
+
+  @doc "Downgrades the workspace to Free after Stripe cancels the subscription."
+  def cancel_stripe_subscription(object) when is_map(object) do
+    case get_subscription_by_external_subscription_id(Stripe.stripe_id(object["id"])) do
+      nil ->
+        {:ignored, :unknown_subscription}
+
+      subscription ->
+        subscription
+        |> Ecto.Changeset.change(external_subscription_id: nil)
+        |> Repo.update()
+
+        change_plan(subscription.workspace_id, "free")
+    end
+  end
+
+  defp stripe_status("past_due"), do: "past_due"
+  defp stripe_status("unpaid"), do: "past_due"
+  defp stripe_status("canceled"), do: "canceled"
+  defp stripe_status("incomplete_expired"), do: "canceled"
+  defp stripe_status(_), do: "active"
+
+  defp unix_to_dt(ts) when is_integer(ts), do: DateTime.from_unix!(ts)
+  defp unix_to_dt(_), do: nil
+
+  defp maybe_put_change(changes, _key, nil), do: changes
+  defp maybe_put_change(changes, key, value), do: Keyword.put(changes, key, value)
 
   defp roll_period(subscription) do
     now = DateTime.utc_now()
@@ -443,7 +525,7 @@ defmodule Mokaid.Billing do
     :ok
   end
 
-  ## ---------- Payments (Tranzila hosted checkout) ----------
+  ## ---------- Payments (Stripe Checkout) ----------
 
   def get_invoice(workspace_id, invoice_id) do
     Repo.one(from i in Invoice, where: i.workspace_id == ^workspace_id and i.id == ^invoice_id)
@@ -585,18 +667,30 @@ defmodule Mokaid.Billing do
         :ok
 
       subscription ->
-        changes =
-          [
-            payment_method:
-              Map.merge(subscription.payment_method || %{}, payment_info[:card] || %{})
-          ] ++
-            if payment_info[:buyer_key],
-              do: [external_customer_id: payment_info[:buyer_key]],
-              else: []
+        card = payment_info[:card] || %{}
 
-        subscription |> Ecto.Changeset.change(changes) |> Repo.update()
+        changes =
+          []
+          |> maybe_merge_card(subscription, card)
+          |> maybe_put_change(:external_customer_id, payment_info[:buyer_key])
+          |> maybe_put_change(:external_subscription_id, payment_info[:subscription_id])
+
+        if changes != [] do
+          subscription |> Ecto.Changeset.change(changes) |> Repo.update()
+        end
+
         :ok
     end
+  end
+
+  defp maybe_merge_card(changes, _subscription, card) when card == %{}, do: changes
+
+  defp maybe_merge_card(changes, subscription, card) do
+    Keyword.put(
+      changes,
+      :payment_method,
+      Map.merge(subscription.payment_method || %{}, card)
+    )
   end
 
   defp generate_invoice_number do

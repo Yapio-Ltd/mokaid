@@ -28,6 +28,7 @@ import {
   useBillingOverview,
   useBillingPlans,
   useCreditPacks,
+  useBillingPortal,
   useCreditsCheckout,
   useInvoices,
   usePlanCheckout,
@@ -44,10 +45,7 @@ import {
   PlanPicker,
   type BillingCycle,
 } from "@/components/billing/plan-picker";
-import {
-  TranzilaCheckoutDialog,
-  type CheckoutOutcome,
-} from "@/components/billing/checkout-dialog";
+import { redirectToCheckout } from "@/components/billing/checkout-dialog";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { toast } from "@/stores/toast-store";
@@ -91,45 +89,30 @@ export function BillingPage() {
   const planCheckout = usePlanCheckout();
   const creditsCheckout = useCreditsCheckout();
   const autoRecharge = useUpdateAutoRecharge();
+  const billingPortal = useBillingPortal();
   const queryClient = useQueryClient();
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("payment") === "done") {
+    const checkout = params.get("checkout");
+    if (checkout === "success" || params.get("payment") === "done") {
       queryClient.invalidateQueries({ queryKey: ["billing"] });
+      [2_500, 6_000].forEach((delay) =>
+        setTimeout(() => queryClient.invalidateQueries({ queryKey: ["billing"] }), delay),
+      );
       setShowPaymentSuccess(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (checkout === "canceled") {
+      toast({
+        tone: "error",
+        title: "Checkout canceled",
+        description: "Your card was not charged. You can try again anytime.",
+      });
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [queryClient]);
-
-  // Plan/credit activation happens via the Tranzila notify webhook, which is
-  // asynchronous — refresh a few times so the UI catches up within seconds.
-  const refreshBillingSoon = () => {
-    queryClient.invalidateQueries({ queryKey: ["billing"] });
-    [2_500, 6_000].forEach((delay) =>
-      setTimeout(
-        () => queryClient.invalidateQueries({ queryKey: ["billing"] }),
-        delay,
-      ),
-    );
-  };
-
-  const handleCheckoutComplete = (outcome: CheckoutOutcome) => {
-    setCheckoutUrl(null);
-    if (outcome === "done") {
-      refreshBillingSoon();
-      setShowPaymentSuccess(true);
-    } else {
-      toast({
-        tone: "error",
-        title: "Payment failed",
-        description: "Your card was not charged. Please try again.",
-      });
-    }
-  };
 
   if (isLoading || !overviewData) {
     return (
@@ -153,11 +136,11 @@ export function BillingPage() {
 
   const buyPlan = (planKey: string) => {
     planCheckout.mutate(
-      { plan_key: planKey, billing_cycle: billingCycle },
+      { plan_key: planKey, billing_cycle: billingCycle, return_path: "/billing" },
       {
         onSuccess: (result) => {
           if (result.data.sale_url) {
-            setCheckoutUrl(result.data.sale_url);
+            redirectToCheckout(result.data.sale_url);
           } else if (result.data.activated) {
             toast({
               tone: "success",
@@ -297,6 +280,24 @@ export function BillingPage() {
                   </span>
                 </div>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                loading={billingPortal.isPending}
+                onClick={() =>
+                  billingPortal.mutate(undefined, {
+                    onError: () =>
+                      toast({
+                        tone: "error",
+                        title: "Billing portal unavailable",
+                        description: "Complete a Stripe checkout first to manage your card.",
+                      }),
+                  })
+                }
+              >
+                Manage billing
+              </Button>
             </div>
           </CardBody>
         </Card>
@@ -405,11 +406,11 @@ export function BillingPage() {
                   className="group/pack flex items-center gap-3 rounded-xl border border-border p-3.5 text-left transition-all hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-sm"
                   onClick={() =>
                     creditsCheckout.mutate(
-                      { pack_key: pack.key },
+                      { pack_key: pack.key, return_path: "/billing" },
                       {
                         onSuccess: (result) => {
                           if (result.data.sale_url) {
-                            setCheckoutUrl(result.data.sale_url);
+                            redirectToCheckout(result.data.sale_url);
                           } else if (result.data.activated) {
                             toast({
                               tone: "success",
@@ -632,13 +633,6 @@ export function BillingPage() {
           </CardBody>
         </Card>
       </section>
-
-      {/* ── Embedded Tranzila checkout ── */}
-      <TranzilaCheckoutDialog
-        saleUrl={checkoutUrl}
-        onClose={() => setCheckoutUrl(null)}
-        onComplete={handleCheckoutComplete}
-      />
 
       {/* ── Celebration modal ── */}
       <Dialog

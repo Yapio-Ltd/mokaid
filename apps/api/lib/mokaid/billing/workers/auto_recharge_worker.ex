@@ -2,8 +2,8 @@ defmodule Mokaid.Billing.Workers.AutoRechargeWorker do
   @moduledoc """
   Auto-recharge: buys an AI credit pack automatically when a workspace's
   spendable balance falls below its threshold (ElevenLabs-style). Charges the
-  stored Tranzila card token server-side; on success the pack's credits are
-  added (settling any negative balance in the process).
+  Stripe customer off-session; on success the pack's credits are added
+  (settling any negative balance in the process).
 
   Unique per workspace within a short window so a burst of spends doesn't fire
   multiple recharges.
@@ -37,7 +37,7 @@ defmodule Mokaid.Billing.Workers.AutoRechargeWorker do
       Credits.spendable(subscription) > (subscription.auto_recharge_threshold || 0) ->
         :ok
 
-      subscription.external_customer_id in [nil, ""] ->
+      not Billing.Stripe.stripe_customer?(subscription.external_customer_id) ->
         Logger.warning("auto_recharge_no_payment_method workspace=#{workspace_id}")
         :ok
 
@@ -47,27 +47,23 @@ defmodule Mokaid.Billing.Workers.AutoRechargeWorker do
   end
 
   defp charge_and_credit(workspace_id, subscription, pack) do
-    payment_method = subscription.payment_method || %{}
-
-    case Billing.Tranzila.charge_token(%{
-           token: subscription.external_customer_id,
-           expire_month: payment_method["expire_month"],
-           expire_year: payment_method["expire_year"],
+    case Billing.Stripe.charge_off_session(%{
+           customer_id: subscription.external_customer_id,
            amount_cents: pack.price_cents,
-           description: "Mokaid — auto-recharge #{pack.credits} AI credits"
+           description: "Mokaid — auto-recharge #{pack.credits} AI credits",
+           workspace_id: workspace_id
          }) do
-      {:ok, charge} ->
+      {:ok, intent} ->
         Credits.add_purchased(workspace_id, pack.credits,
           kind: "auto_recharge",
           description: "Auto-recharge: #{pack.credits} credits",
           cost_cents: pack.price_cents
         )
 
-        # Every real charge leaves a paid invoice so accounting stays complete.
         Billing.create_settled_invoice(workspace_id, %{
           "kind" => "credits",
           "amount_cents" => pack.price_cents,
-          "external_payment_id" => to_string(charge.transaction_id),
+          "external_payment_id" => intent["id"],
           "line_items" => [
             %{
               "description" => "Auto-recharge — #{pack.credits} AI credits",

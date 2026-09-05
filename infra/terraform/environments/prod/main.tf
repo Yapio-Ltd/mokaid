@@ -113,12 +113,6 @@ module "stack" {
 
   gmail_pubsub_topic = "projects/mokaid/topics/gmail-push"
 
-  tranzila_terminal = "fxpyapio"
-  # No dedicated token terminal provisioned — empty falls back to the main
-  # terminal with tranmode=AK ("fxpyapiotok" does not exist and 404s).
-  tranzila_token_terminal = ""
-  tranzila_currency       = "USD"
-
   api_image_tag    = var.api_image_tag
   web_image_tag    = var.web_image_tag
   crm_image_tag    = var.crm_image_tag

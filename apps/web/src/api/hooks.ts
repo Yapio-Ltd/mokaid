@@ -1383,13 +1383,12 @@ export function useCreditPacks() {
 
 /**
  * Plan purchase — either activates directly (free plan / dev fallback) or
- * returns a Tranzila `sale_url` the caller embeds in the on-site checkout
- * modal (`TranzilaCheckoutDialog`). No external redirect.
+ * returns a Stripe Checkout `sale_url` the caller redirects to.
  */
 export function usePlanCheckout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { plan_key: string; billing_cycle?: string }) =>
+    mutationFn: (body: { plan_key: string; billing_cycle?: string; return_path?: string }) =>
       apiFetch<Envelope<CheckoutResult>>("/api/billing/checkout", { method: "POST", body }),
     onSuccess: (result) => {
       if (!result.data.sale_url) {
@@ -1399,11 +1398,11 @@ export function usePlanCheckout() {
   });
 }
 
-/** AI credit pack purchase — same activation-or-embedded-checkout contract. */
+/** AI credit pack purchase — same activation-or-redirect-checkout contract. */
 export function useCreditsCheckout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (body: { pack_key: string }) =>
+    mutationFn: (body: { pack_key: string; return_path?: string }) =>
       apiFetch<Envelope<CheckoutResult>>("/api/billing/credits/checkout", {
         method: "POST",
         body,
@@ -1412,6 +1411,16 @@ export function useCreditsCheckout() {
       if (!result.data.sale_url) {
         queryClient.invalidateQueries({ queryKey: ["billing"] });
       }
+    },
+  });
+}
+
+export function useBillingPortal() {
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<Envelope<{ url: string }>>("/api/billing/portal", { method: "POST" }),
+    onSuccess: (result) => {
+      if (result.data.url) window.location.assign(result.data.url);
     },
   });
 }
