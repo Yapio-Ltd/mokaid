@@ -6,6 +6,7 @@
  */
 
 import {
+  Animation,
   AnimationGroup,
   AssetContainer,
   Color3,
@@ -142,6 +143,7 @@ export function loadAgentModelTemplate(
   if (cached) return cached;
 
   const promise = SceneLoader.LoadAssetContainerAsync("", url, scene).then((container) => {
+    completeAgentAnimationTracks(container.animationGroups);
     const probe = container.instantiateModelsToScene((name) => `probe-${name}`, false, {
       doNotInstantiate: false,
     });
@@ -178,6 +180,9 @@ export function loadAgentModelTemplate(
       sitPelvisHeight,
       url,
     };
+  }).catch((error) => {
+    map.delete(url);
+    throw error;
   });
 
   map.set(url, promise);
@@ -192,7 +197,7 @@ export function spawnAgentModel(
 ): SpawnedAgentModel {
   const instance = template.container.instantiateModelsToScene(
     (name) => `agent-${agentId}-${name}`,
-    false,
+    true,
     { doNotInstantiate: false },
   );
 
@@ -211,6 +216,10 @@ export function spawnAgentModel(
   applyTint(meshes, color);
 
   for (const mesh of meshes) {
+    // The office freezes its active list. Every part of a moving avatar must
+    // stay eligible even when its initial desk is outside the camera frustum;
+    // otherwise hair/clothes culled at spawn never reappear during a trip.
+    mesh.alwaysSelectAsActiveMesh = true;
     mesh.isPickable = true;
     mesh.metadata = { agentId };
   }
@@ -231,18 +240,17 @@ export function spawnAgentModel(
   };
 }
 
-function normalizeAnimName(name: string): AgentVisualState | null {
+export function normalizeAnimName(name: string): AgentVisualState | null {
   const lower = name.toLowerCase().trim();
-  // Strip Babylon prefixes like "agent-uuid-idle"
+  // Longest aliases first: "sitting_sofa" must not resolve as a suffix token.
+  for (const alias of Object.keys(CLIP_ALIASES).sort((a, b) => b.length - a.length)) {
+    if (lower === alias || lower.endsWith(`/${alias}`) || lower.endsWith(`-${alias}`)) {
+      return CLIP_ALIASES[alias];
+    }
+  }
   const parts = lower.split(/[/_\-\s]+/);
   for (let i = parts.length - 1; i >= 0; i--) {
-    const part = parts[i];
-    if (part in CLIP_ALIASES) return CLIP_ALIASES[part];
-  }
-  for (const [alias, state] of Object.entries(CLIP_ALIASES)) {
-    if (lower === alias || lower.endsWith(`/${alias}`) || lower.endsWith(`-${alias}`)) {
-      return state;
-    }
+    if (parts[i] in CLIP_ALIASES) return CLIP_ALIASES[parts[i]];
   }
   return null;
 }
@@ -253,7 +261,8 @@ function findNamedNode(root: TransformNode, names: string[]): TransformNode | nu
   while (stack.length) {
     const node = stack.pop()!;
     const base = node.name.split("|").pop()?.split("/").pop() ?? node.name;
-    if (want.has(base.toLowerCase()) || want.has(node.name.toLowerCase())) return node;
+    const normalized = base.toLowerCase();
+    if ([...want].some((name) => normalized === name || normalized.endsWith(`-${name}`) || normalized.endsWith(`:${name}`))) return node;
     for (const child of node.getChildren()) {
       if (child instanceof TransformNode) stack.push(child);
     }
@@ -281,7 +290,8 @@ function measureSitPelvisHeight(
   if (!sit) return FALLBACK;
 
   for (const ag of animationGroups) ag.stop();
-  sit.start(false, 1.0, sit.from, sit.from, false);
+  sit.start(false, 1.0, sit.from, sit.to, false);
+  sit.goToFrame(sit.from);
   root.computeWorldMatrix(true);
 
   const hips =
@@ -294,6 +304,36 @@ function measureSitPelvisHeight(
   const height = hips.getAbsolutePosition().y - root.position.y;
   sit.stop();
   return height > 0.2 && height < 1.3 ? height : FALLBACK;
+}
+
+/**
+ * GLB activity clips key only a few joints; retargeted walks also translate
+ * limbs. Restore unkeyed channels to the authored rest pose on every clip,
+ * otherwise walking leaves stretched limbs and rotated roots behind at a seat.
+ * Done once per template, before cloning or evaluating any animation.
+ */
+export function completeAgentAnimationTracks(groups: AnimationGroup[]) {
+  const channels = new Map<TransformNode, Map<string, Animation>>();
+  for (const group of groups) for (const { target, animation } of group.targetedAnimations) {
+    if (!(target instanceof TransformNode)) continue;
+    const property = animation.targetProperty;
+    if (!["position", "rotation", "rotationQuaternion", "scaling"].includes(property)) continue;
+    let properties = channels.get(target);
+    if (!properties) { properties = new Map(); channels.set(target, properties); }
+    properties.set(property, animation);
+  }
+  for (const group of groups) {
+    for (const [target, properties] of channels) for (const [property, source] of properties) {
+      if (group.targetedAnimations.some(track => track.target === target && track.animation.targetProperty === property)) continue;
+      const value = property === "position" ? target.position
+        : property === "rotation" ? target.rotation
+        : property === "scaling" ? target.scaling : target.rotationQuaternion;
+      if (!value) continue;
+      const track = new Animation(`${group.name}-rest-${property}`, property, source.framePerSecond, source.dataType);
+      track.setKeys([{ frame: group.from, value: value.clone() }, { frame: group.to, value: value.clone() }]);
+      group.addTargetedAnimation(track, target);
+    }
+  }
 }
 
 function indexAnims(groups: AnimationGroup[]): AgentAnimMap {
@@ -324,43 +364,72 @@ function resolveClip(
   return { state, group };
 }
 
+interface AnimationBlend {
+  target: AnimationGroup;
+  weights: Map<AnimationGroup, number>;
+  elapsed: number;
+}
+const blends = new WeakMap<AgentAnimPlayer, AnimationBlend>();
+const BLEND_SECONDS = 0.28;
+
+/** Advance only active crossfades; completed poses need no per-frame allocations. */
+export function advanceAgentAnimation(avatar: AgentAnimPlayer, dt: number) {
+  const blend = blends.get(avatar);
+  if (!blend) return;
+  blend.elapsed += Math.max(0, Math.min(dt, 0.05));
+  const u = Math.min(1, blend.elapsed / BLEND_SECONDS);
+  const weight = u * u * (3 - 2 * u);
+  for (const [group, from] of blend.weights) {
+    group.weight = from + ((group === blend.target ? 1 : 0) - from) * weight;
+    if (u === 1 && group !== blend.target) group.stop();
+  }
+  if (u === 1) blends.delete(avatar);
+}
+
 export function playAgentAnimation(avatar: AgentAnimPlayer, next: AgentAnimName) {
   const { state, group } = resolveClip(avatar, next);
-  if (avatar.currentAnim === state || (next === "walk" && avatar.currentAnim === "walking")) {
-    // Re-assert playback if the group stalled (e.g. after a failed prior fallback).
-    if (group && !group.isPlaying) {
-      group.start(state !== "celebrating", 1.0, group.from, group.to, false);
-    }
-    return;
+  if (!group || avatar.currentAnim === state) return;
+  const groups = new Set([...Object.values(avatar.anims), avatar.idleAnim, avatar.walkAnim]);
+  const weights = new Map<AnimationGroup, number>();
+  for (const ag of groups) {
+    if (ag?.isPlaying) weights.set(ag, Math.max(0, ag.weight < 0 ? 1 : ag.weight));
   }
-
-  for (const ag of Object.values(avatar.anims)) {
-    ag?.stop();
+  avatar.currentAnim = state;
+  // Multiple missing states may resolve to the same idle clip. Keep its phase.
+  if (weights.size === 1 && weights.has(group)) return;
+  if (!group.isPlaying) {
+    group.weight = weights.size ? 0 : 1;
+    group.start(state !== "celebrating", 1, group.from, group.to, false);
   }
-  avatar.idleAnim?.stop();
-  avatar.walkAnim?.stop();
-
-  const loop = state !== "celebrating";
-  if (group) {
-    group.start(loop, 1.0, group.from, group.to, false);
-    avatar.currentAnim = state;
+  weights.set(group, group.weight < 0 ? 1 : group.weight);
+  if (weights.size === 1) {
+    group.weight = 1;
+    blends.delete(avatar);
   } else {
-    // Don't claim the missing state — keep retrying next frame when the clip appears.
-    const idle = avatar.anims.idle ?? avatar.idleAnim;
-    idle?.start(true);
-    avatar.currentAnim = "idle";
-    if (state !== "idle") {
-      console.warn(`[agent-model] missing clip "${state}", falling back to idle`);
-    }
+    blends.set(avatar, { target: group, weights, elapsed: 0 });
   }
 }
 
+/** Match the authored in-place stride to real travel, including avoidance braking. */
+export function setAgentWalkSpeed(avatar: AgentAnimPlayer, metersPerSecond: number) {
+  const walk = avatar.anims.walking ?? avatar.walkAnim;
+  if (walk) walk.speedRatio = Math.max(0.05, Math.min(1.6, metersPerSecond / 1.5));
+}
+
 export function disposeAgentAnims(avatar: { anims?: AgentAnimMap; idleAnim?: AnimationGroup | null; walkAnim?: AnimationGroup | null }) {
-  for (const ag of Object.values(avatar.anims ?? {})) {
+  blends.delete(avatar as AgentAnimPlayer);
+  for (const ag of new Set([...Object.values(avatar.anims ?? {}), avatar.idleAnim, avatar.walkAnim])) {
     ag?.dispose();
   }
-  avatar.idleAnim?.dispose();
-  avatar.walkAnim?.dispose();
+}
+
+/** Release per-avatar GPU resources while keeping cached geometry/textures alive. */
+export function disposeAgentModel(avatar: { root: TransformNode; meshes: AbstractMesh[] }) {
+  const materials = new Set(avatar.meshes.map(mesh => mesh.material));
+  const skeletons = new Set(avatar.meshes.map(mesh => mesh.skeleton));
+  avatar.root.dispose();
+  for (const skeleton of skeletons) skeleton?.dispose();
+  for (const material of materials) material?.dispose(false, false);
 }
 
 export function groundAgent(root: TransformNode, footOffset: number) {
