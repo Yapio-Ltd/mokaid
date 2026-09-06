@@ -1,9 +1,11 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type DragEvent,
   type ReactNode,
 } from "react";
@@ -27,10 +29,14 @@ import { MAX_OFFICE_SEATS, type SecondaryActivity } from "./office-navdata";
 import { zoneForCommunity } from "./knowledge-zones";
 import {
   attachOfficeHost,
-  detachOfficeHost,
   disposeOfficeHost,
+  parkOfficeHost,
   getOfficeHostScene,
+  getOfficeHostStatus,
+  getOfficeParkEl,
   OFFICE_SCENE_BUILD,
+  resetOfficeRecovery,
+  subscribeOfficeHostStatus,
   updateOfficeHostAgents,
 } from "./office-scene-host";
 
@@ -191,6 +197,25 @@ function OfficeDropzone({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    const park = getOfficeParkEl();
+    if (!park) return;
+    const enter = (e: Event) => onDragEnter(e as unknown as DragEvent);
+    const over = (e: Event) => onDragOver(e as unknown as DragEvent);
+    const leave = (e: Event) => onDragLeave(e as unknown as DragEvent);
+    const drop = (e: Event) => onDrop(e as unknown as DragEvent);
+    park.addEventListener("dragenter", enter);
+    park.addEventListener("dragover", over);
+    park.addEventListener("dragleave", leave);
+    park.addEventListener("drop", drop);
+    return () => {
+      park.removeEventListener("dragenter", enter);
+      park.removeEventListener("dragover", over);
+      park.removeEventListener("dragleave", leave);
+      park.removeEventListener("drop", drop);
+    };
+  }, [onDragEnter, onDragOver, onDragLeave, onDrop]);
+
   return (
     <div
       className="relative h-full w-full"
@@ -226,13 +251,24 @@ function OfficeDropzone({ children }: { children: ReactNode }) {
 function FallbackOffice({
   agents,
   onSelectAgent,
+  onRetry,
 }: {
   agents: Agent[];
   onSelectAgent: (id: string) => void;
+  onRetry?: () => void;
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 bg-bg-deep p-6">
       <p className="text-xs text-text-muted">3D view unavailable, showing team status</p>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mk-focus-ring rounded-md border border-border bg-surface-overlay px-3 py-1.5 text-xs font-medium text-text transition-colors hover:bg-surface-hover"
+        >
+          Retry 3D view
+        </button>
+      )}
       <div className="flex max-w-xl flex-wrap items-center justify-center gap-3">
         {agents.map((agent) => (
           <button
@@ -268,8 +304,15 @@ export function OfficeCanvas({
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const labelRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const [webglFailed, setWebglFailed] = useState(false);
-  const [loadProgress, setLoadProgress] = useState(0);
+  const [retryNonce, setRetryNonce] = useState(0);
+  const hostStatus = useSyncExternalStore(
+    subscribeOfficeHostStatus,
+    getOfficeHostStatus,
+    getOfficeHostStatus,
+  );
+  const [loadProgress, setLoadProgress] = useState(() =>
+    getOfficeHostScene()?.isReady() ? 1 : 0,
+  );
   const [officeReady, setOfficeReady] = useState(() => getOfficeHostScene()?.isReady() ?? false);
   const [localActivities, setLocalActivities] = useState<Map<string, SecondaryActivity>>(
     () => new Map(),
@@ -315,7 +358,8 @@ export function OfficeCanvas({
   // directly freezes an early empty [] and wipes avatars on officeReady.
   const sceneAgentsRef = useRef(sceneAgents);
   sceneAgentsRef.current = sceneAgents;
-  const disable3d = env.VITE_DISABLE_3D || webglFailed || !workspaceId;
+  const disable3d = env.VITE_DISABLE_3D || !workspaceId;
+  const showFallback = disable3d || hostStatus === "failed";
 
   const registerLabel = useCallback((agentId: string, node: HTMLButtonElement | null) => {
     if (node) labelRefs.current.set(agentId, node);
@@ -335,7 +379,7 @@ export function OfficeCanvas({
 
   // Attach/reuse the singleton scene. OFFICE_SCENE_BUILD in deps + host check
   // recreates WebGL when collision/socket logic changes.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (disable3d || !hostRef.current || !workspaceId) return;
 
     const container = hostRef.current;
@@ -355,13 +399,6 @@ export function OfficeCanvas({
           if (ok) updateOfficeHostAgents(sceneAgentsRef.current);
         },
         onAgentActivity,
-        onContextLost: () => {
-          // iOS reclaimed the WebGL context (memory pressure): tear down the
-          // singleton and swap to the 2D fallback instead of a frozen canvas.
-          console.warn("[3d] WebGL context lost — switching to 2D fallback");
-          disposeOfficeHost();
-          setWebglFailed(true);
-        },
       });
       // Always seed lastAgents on the (possibly brand-new) host.
       updateOfficeHostAgents(sceneAgentsRef.current);
@@ -373,17 +410,23 @@ export function OfficeCanvas({
         updateOfficeHostAgents(sceneAgentsRef.current);
       }
     } catch (error) {
-      console.warn("[3d] WebGL initialization failed, using fallback", error);
-      setWebglFailed(true);
+      console.warn("[3d] WebGL initialization failed — host will recover or fall back", error);
     }
 
     return () => {
-      detachOfficeHost(container);
+      parkOfficeHost();
     };
     // sceneAgents intentionally omitted from deps — push runs on ready/attach
     // via sceneAgentsRef; the dedicated agents effect handles ongoing updates.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disable3d, workspaceId, OFFICE_SCENE_BUILD]);
+  }, [disable3d, workspaceId, OFFICE_SCENE_BUILD, retryNonce]);
+
+  useEffect(() => {
+    if (hostStatus === "lost" || hostStatus === "restoring") {
+      setOfficeReady(false);
+      setLoadProgress(0);
+    }
+  }, [hostStatus]);
 
   // Push agent updates into the running scene (singleton survives remounts).
   // Include OFFICE_SCENE_BUILD so a scene recreation always re-hydrates avatars.
@@ -392,10 +435,22 @@ export function OfficeCanvas({
     updateOfficeHostAgents(sceneAgents);
   }, [sceneAgents, disable3d, OFFICE_SCENE_BUILD]);
 
-  if (disable3d) {
+  if (showFallback) {
     return (
       <OfficeDropzone>
-        <FallbackOffice agents={agents} onSelectAgent={onSelectAgent} />
+        <FallbackOffice
+          agents={agents}
+          onSelectAgent={onSelectAgent}
+          onRetry={
+            hostStatus === "failed"
+              ? () => {
+                  resetOfficeRecovery();
+                  disposeOfficeHost();
+                  setRetryNonce((n) => n + 1);
+                }
+              : undefined
+          }
+        />
       </OfficeDropzone>
     );
   }
@@ -406,12 +461,15 @@ export function OfficeCanvas({
     (a) => !["away", "offline"].includes(a.visualState),
   );
 
-  const showLoading = !officeReady && loadProgress < 1;
+  const restoring = hostStatus === "lost" || hostStatus === "restoring";
+  const sessionReady = officeReady || getOfficeHostScene()?.isReady() === true;
+  const showLoading =
+    restoring || (hostStatus === "running" && !sessionReady);
 
   return (
     <OfficeDropzone>
-      <div className="relative h-full w-full overflow-hidden">
-        <div ref={hostRef} className="h-full w-full" />
+      <div className="pointer-events-none relative z-[3] h-full w-full overflow-hidden">
+        <div ref={hostRef} className="pointer-events-none h-full w-full" />
 
         {/* Status bubbles overlay — positions updated imperatively each frame */}
         {labeledAgents.map((agent) => (
@@ -435,7 +493,9 @@ export function OfficeCanvas({
               />
             </div>
             <p className="text-xs text-text-muted">
-              Loading office… {Math.round(loadProgress * 100)}%
+              {restoring
+                ? "Restoring 3D view…"
+                : `Loading office… ${Math.round(loadProgress * 100)}%`}
             </p>
           </div>
         )}

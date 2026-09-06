@@ -16,6 +16,7 @@ import { FloatingChatDock } from "@/components/chat/floating-chat-dock";
 import { Toaster } from "@/components/ui/toaster";
 import { useUiStore } from "@/stores/ui-store";
 import { useAuthStore, type WorkspaceSummary } from "@/stores/auth-store";
+import { OfficePark } from "@/three/office-park";
 
 function OnboardingGate() {
   const [dismissed, setDismissed] = useState(false);
@@ -98,6 +99,7 @@ export function AppShell() {
         <Topbar />
         <ReviewBanner />
         <main className="relative min-h-0 flex-1 overflow-y-auto p-5">
+          <OfficePark />
           <div key={routeKey} className="mk-page h-full">
             <Outlet />
           </div>

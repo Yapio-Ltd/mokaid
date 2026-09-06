@@ -110,9 +110,16 @@ import {
 import type { SceneAgent, SceneCallbacks } from "./types";
 import {
   detectOfficeDeviceProfile,
+  refineProfileForRenderer,
+  safeOfficeProfile,
   type OfficeDeviceProfile,
   type RenderQuality,
 } from "./office-device-profile";
+
+export interface OfficeSceneOptions {
+  useSafeProfile?: boolean;
+  recoveryAttempt?: number;
+}
 
 type IdleBehavior = "patrol" | IdleActivity | "poi" | "desk_sit";
 
@@ -233,7 +240,7 @@ interface AvatarNode {
  * office-scene-host and reported in the debug snapshot, so the number the
  * verification harness reads can never drift from the one the host compares.
  */
-export const OFFICE_SCENE_BUILD = 45;
+export const OFFICE_SCENE_BUILD = 48;
 
 export class OfficeScene {
   private engine: Engine;
@@ -264,9 +271,11 @@ export class OfficeScene {
   private socketOverrides = new Map<string, SeatSocket>();
   /** slotId → agent id holding it. Keeps two agents out of the same socket. */
   private slotClaims = new Map<string, string>();
-  /** Device-tiered render settings (desktop vs tablet/mobile). */
-  private readonly profile: OfficeDeviceProfile = detectOfficeDeviceProfile();
-  private renderQuality: RenderQuality = this.profile.initialQuality;
+  /** Device-tiered render settings (desktop vs tablet/mobile, possibly refined). */
+  private profile: OfficeDeviceProfile;
+  private renderQuality: RenderQuality;
+  private glRenderer = "";
+  private readonly recoveryAttempt: number;
   private lowFpsFrames = 0;
   /** Consecutive frames at healthy FPS used to recover quality (hysteresis). */
   private goodFpsFrames = 0;
@@ -288,8 +297,28 @@ export class OfficeScene {
   private lastOverlayAt = 0;
   private readonly handleContextLost = (event: Event) => {
     event.preventDefault();
+    this.paused = true;
+    cancelAnimationFrame(this.renderHandle);
+    this.renderHandle = 0;
     console.warn("[OfficeScene] WebGL context lost");
     this.callbacks.onContextLost?.();
+  };
+  private readonly handleContextRestored = () => {
+    console.info("[OfficeScene] WebGL context restored");
+    this.callbacks.onContextRestored?.();
+  };
+  private readonly handleVisibilityChange = () => {
+    if (typeof document === "undefined") return;
+    if (document.hidden) {
+      cancelAnimationFrame(this.renderHandle);
+      this.renderHandle = 0;
+      return;
+    }
+    if (!this.disposed && !this.paused) {
+      this.lastRenderAt = 0;
+      this.startRenderLoop();
+      this.engine.resize();
+    }
   };
   /**
    * Native Retina scale set by Engine(adaptToDeviceRatio): typically 1/dpr
@@ -299,11 +328,21 @@ export class OfficeScene {
   private lastClientW = 0;
   private lastClientH = 0;
   private paused = false;
+  /** ANGLE: lantern shadows stay off until FPS proves stable at high. */
+  private shadowsDeferred = false;
+  private skipRenderUntil = 0;
 
   constructor(
     private canvas: HTMLCanvasElement,
     private callbacks: SceneCallbacks,
+    options?: OfficeSceneOptions,
   ) {
+    this.recoveryAttempt = options?.recoveryAttempt ?? 0;
+    this.profile = options?.useSafeProfile
+      ? safeOfficeProfile(detectOfficeDeviceProfile())
+      : detectOfficeDeviceProfile();
+    this.renderQuality = this.profile.initialQuality;
+
     this.engine = new Engine(
       canvas,
       false,
@@ -317,14 +356,21 @@ export class OfficeScene {
         adaptToDeviceRatio: true,
         powerPreference: this.profile.powerPreference,
         limitDeviceRatio: this.profile.limitDeviceRatio,
+        // Babylon's built-in restore cannot rebuild File-imported GLB textures.
+        doNotHandleContextLost: true,
       },
       true,
     );
     this.baseScale = this.engine.getHardwareScalingLevel();
+    this.applyRendererProfile();
 
-    // iOS reclaims WebGL contexts under memory pressure; surface it so the
-    // React layer can swap to the 2D fallback instead of a frozen canvas.
+    // preventDefault keeps webglcontextrestored eligible; we still rebuild
+    // from a fresh canvas because File-backed textures do not revive cleanly.
     canvas.addEventListener("webglcontextlost", this.handleContextLost, false);
+    canvas.addEventListener("webglcontextrestored", this.handleContextRestored, false);
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    }
 
     this.scene = new Scene(this.engine);
     this.scene.clearColor = Color4.FromHexString("#050507ff");
@@ -570,15 +616,25 @@ export class OfficeScene {
     const minFrameMs = 1000 / this.profile.maxFps;
     const tick = () => {
       if (this.disposed || this.paused) return;
+      if (typeof document !== "undefined" && document.hidden) {
+        this.renderHandle = requestAnimationFrame(tick);
+        return;
+      }
       this.renderHandle = requestAnimationFrame(tick);
       const now = performance.now();
+      if (now < this.skipRenderUntil) return;
       // ~1 ms tolerance so a 60 Hz display hits a 60 fps cap instead of 30.
       if (now - this.lastRenderAt < minFrameMs - 1) return;
       this.lastRenderAt = now;
       this.engine.beginFrame();
       this.syncEngineSize();
       this.animate();
+      const renderStarted = performance.now();
       this.scene.render();
+      const renderMs = performance.now() - renderStarted;
+      if (renderMs > 200) {
+        this.skipRenderUntil = performance.now() + minFrameMs;
+      }
       this.reportOverlay();
       this.adaptQuality();
       this.engine.endFrame();
@@ -612,12 +668,36 @@ export class OfficeScene {
     return this.officeReady;
   }
 
+  isContextLost(): boolean {
+    try {
+      const gl = (this.engine as unknown as { _gl?: WebGLRenderingContext })._gl;
+      return Boolean(gl?.isContextLost?.());
+    } catch {
+      return false;
+    }
+  }
+
+  private applyRendererProfile() {
+    this.glRenderer = readGlRenderer(this.engine);
+    const before = this.profile;
+    this.profile = refineProfileForRenderer(this.profile, this.glRenderer);
+    this.renderQuality = this.profile.initialQuality;
+    this.shadowsDeferred =
+      before.shadowsEnabled && !this.profile.shadowsEnabled && this.profile.variant === "angle";
+    console.info(
+      `[3d] renderer=${this.glRenderer || "unknown"} profile=${this.profile.kind}/${this.profile.variant} lights=${this.profile.maxSimultaneousLights} shadows=${this.profile.shadowsEnabled} attempt=${this.recoveryAttempt}`,
+    );
+  }
+
   /** Dev/E2E: snapshot of loco state for browser verification. */
-  debugLocoSnapshot(): {
+    debugLocoSnapshot(): {
     officeReady: boolean;
     crowdReady: boolean;
     buildHint: number;
     renderQuality: RenderQuality;
+    glRenderer: string;
+    profileKind: string;
+    recoveryAttempts: number;
     hardwareScale: number;
     fps: number;
     centerOffset: { x: number; z: number };
@@ -674,6 +754,9 @@ export class OfficeScene {
       crowdReady: Boolean(this.officeCrowd),
       buildHint: OFFICE_SCENE_BUILD,
       renderQuality: this.renderQuality,
+      glRenderer: this.glRenderer,
+      profileKind: `${this.profile.kind}/${this.profile.variant}`,
+      recoveryAttempts: this.recoveryAttempt,
       hardwareScale: +this.engine.getHardwareScalingLevel().toFixed(3),
       fps: Math.round(this.engine.getFps()),
       centerOffset: {
@@ -901,7 +984,11 @@ export class OfficeScene {
         def.energy >= 46
       ) {
         primaryShadow = new ShadowGenerator(1024, light);
-        primaryShadow.usePercentageCloserFiltering = true;
+        if (this.profile.shadowSampling === "poisson") {
+          primaryShadow.usePoissonSampling = true;
+        } else {
+          primaryShadow.usePercentageCloserFiltering = true;
+        }
         primaryShadow.setDarkness(0.78);
       }
     }
@@ -1009,6 +1096,7 @@ export class OfficeScene {
       const result = await SceneLoader.ImportMeshAsync("", "", file, this.scene);
 
       if (this.disposed) return;
+      this.scene.blockMaterialDirtyMechanism = true;
 
       const root = new TransformNode("office-environment", this.scene);
 
@@ -1072,9 +1160,6 @@ export class OfficeScene {
         })),
       }));
 
-      this.officeReady = true;
-      this.callbacks.onLoadProgress?.(1);
-      this.callbacks.onOfficeReady?.(true);
       // Reset to the device profile's starting tier after the heaviest I/O.
       // Desktop returns to sharp Retina; mobile stays low and earns upgrades
       // through adaptQuality once FPS proves stable.
@@ -1083,9 +1168,14 @@ export class OfficeScene {
       this.goodFpsFrames = 0;
       this.applyRenderQuality(this.renderQuality);
 
-      // All material/texture mutations (toneDownEmissive, sanitize passes,
-      // light exclusions) are done — the environment can be frozen now.
-      this.freezeStaticEnvironment(result.meshes);
+      this.scene.blockMaterialDirtyMechanism = false;
+      // Ready as soon as the GLB is centered. Shaders compile on first draw —
+      // never forceCompilation (Windows ANGLE freezes on a sync compile).
+      this.officeReady = true;
+      this.callbacks.onLoadProgress?.(1);
+      this.callbacks.onOfficeReady?.(true);
+
+      this.freezeStaticEnvironment(result.meshes, false);
 
       // Bake Recast navmesh + crowd (async); agents fall back to A* until ready.
       void this.bakeOfficeCrowd();
@@ -1098,6 +1188,11 @@ export class OfficeScene {
       });
     } catch (err) {
       console.warn("[OfficeScene] failed to load office environment GLB", err);
+      try {
+        this.scene.blockMaterialDirtyMechanism = false;
+      } catch {
+        /* scene may already be disposed */
+      }
       this.callbacks.onLoadProgress?.(1);
       this.callbacks.onOfficeReady?.(false);
     }
@@ -1403,13 +1498,13 @@ export class OfficeScene {
    * active-mesh selection (re-evaluated whenever avatars spawn/despawn).
    * Purely CPU savings — the rendered image is identical.
    */
-  private freezeStaticEnvironment(envMeshes: AbstractMesh[]) {
+  private freezeStaticEnvironment(envMeshes: AbstractMesh[], freezeMaterials = true) {
     const frozenMaterials = new Set<unknown>();
     for (const mesh of envMeshes) {
       mesh.freezeWorldMatrix();
       mesh.doNotSyncBoundingInfo = true;
       const mat = mesh.material;
-      if (mat && !frozenMaterials.has(mat)) {
+      if (freezeMaterials && mat && !frozenMaterials.has(mat)) {
         frozenMaterials.add(mat);
         mat.freeze();
       }
@@ -3125,6 +3220,11 @@ export class OfficeScene {
     const fps = this.engine.getFps();
     if (fps <= 0) return;
 
+    if (this.profile.variant === "angle") {
+      this.adaptAngleQuality(fps);
+      return;
+    }
+
     // Thresholds are relative to the profile's frame cap: a tablet capped at
     // 30 fps must not read its own cap as "sustained low FPS" and degrade.
     const lowThreshold = Math.min(32, this.profile.maxFps * 0.7);
@@ -3156,12 +3256,51 @@ export class OfficeScene {
       if (this.goodFpsFrames > 120) next = "high";
     }
 
-    if (next === this.renderQuality) return;
-    this.renderQuality = next;
-    // Reset counters so we don't thrash tiers every few frames.
-    this.lowFpsFrames = 0;
-    this.goodFpsFrames = 0;
-    this.applyRenderQuality(next);
+    if (next !== this.renderQuality) {
+      this.renderQuality = next;
+      this.lowFpsFrames = 0;
+      this.goodFpsFrames = 0;
+      this.applyRenderQuality(next);
+    }
+
+    if (
+      this.shadowsDeferred &&
+      this.renderQuality === "high" &&
+      this.goodFpsFrames > 90 &&
+      this.officeReady
+    ) {
+      this.shadowsDeferred = false;
+      this.profile = { ...this.profile, shadowsEnabled: true };
+      this.recreateBlenderLights(this.centerOffset.x, this.centerOffset.y, this.centerOffset.z);
+    }
+  }
+
+  /** ANGLE starts at low (8 lights, bloom off). Climb only after 90 frames > 25 FPS. */
+  private adaptAngleQuality(fps: number) {
+    if (fps > 25) {
+      this.goodFpsFrames += 1;
+      this.lowFpsFrames = Math.max(0, this.lowFpsFrames - 1);
+    } else {
+      this.lowFpsFrames += 1;
+      this.goodFpsFrames = 0;
+    }
+
+    let next: RenderQuality = this.renderQuality;
+    if (this.renderQuality === "low") {
+      if (this.goodFpsFrames > 90) next = "medium";
+    } else if (this.renderQuality === "medium") {
+      if (this.goodFpsFrames > 90) next = "high";
+      if (this.lowFpsFrames > 150) next = "low";
+    } else if (this.lowFpsFrames > 120) {
+      next = "medium";
+    }
+
+    if (next !== this.renderQuality) {
+      this.renderQuality = next;
+      this.lowFpsFrames = 0;
+      this.goodFpsFrames = 0;
+      this.applyRenderQuality(next);
+    }
   }
 
   /** Apply a quality tier using the device profile's settings for that tier. */
@@ -3265,6 +3404,10 @@ export class OfficeScene {
     this.disposed = true;
     cancelAnimationFrame(this.renderHandle);
     this.canvas.removeEventListener("webglcontextlost", this.handleContextLost, false);
+    this.canvas.removeEventListener("webglcontextrestored", this.handleContextRestored, false);
+    if (typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", this.handleVisibilityChange);
+    }
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
     for (const avatar of this.avatars.values()) {
@@ -3292,6 +3435,29 @@ export class OfficeScene {
  * snapshot to tell "the logic moved the agent" apart from "the body the
  * viewer sees actually moved".
  */
+function readGlRenderer(engine: Engine): string {
+  try {
+    const info = (
+      engine as unknown as { getGlInfo?: () => { renderer?: string } }
+    ).getGlInfo?.();
+    if (info?.renderer) return info.renderer;
+  } catch {
+    /* some engines throw if the context is already gone */
+  }
+  try {
+    const gl = (engine as unknown as { _gl?: WebGLRenderingContext })._gl;
+    const ext = gl?.getExtension("WEBGL_debug_renderer_info") as {
+      UNMASKED_RENDERER_WEBGL?: number;
+    } | null;
+    if (gl && ext?.UNMASKED_RENDERER_WEBGL != null) {
+      return String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL));
+    }
+  } catch {
+    /* ignore */
+  }
+  return "";
+}
+
 function meshCentre(avatar: AvatarNode): { x: number; z: number } | null {
   let minX = Infinity;
   let maxX = -Infinity;

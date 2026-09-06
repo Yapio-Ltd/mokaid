@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo } from "react";
+import { useMemo } from "react";
 import { AlertTriangle, Bot, CheckCircle2, ClipboardList, Users } from "lucide-react";
 import { useAgents, useTasks, useWorkspace } from "@/api/hooks";
 import { KpiCard } from "@/components/ui/kpi-card";
@@ -13,11 +13,7 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { useUiStore } from "@/stores/ui-store";
 import { AgentProfilePanel } from "@/components/agents/agent-profile-panel";
 import { formatRelative } from "@/lib/format";
-
-// Babylon.js is heavy, so load the 3D office chunk only when the dashboard renders.
-const OfficeCanvas = lazy(() =>
-  import("@/three/office-canvas").then((m) => ({ default: m.OfficeCanvas })),
-);
+import { OfficeCanvas } from "@/three/office-canvas";
 
 export function DashboardPage() {
   const { data: agentsData, isLoading: agentsLoading } = useAgents();
@@ -73,13 +69,11 @@ export function DashboardPage() {
         {show3dOffice && (
           <Card className="overflow-hidden">
             <div className="relative h-[560px]">
-              <Suspense fallback={<Skeleton className="h-full w-full rounded-none" />}>
-                <OfficeCanvas
-                  agents={agents}
-                  selectedAgentId={selectedAgentId}
-                  onSelectAgent={selectAgent}
-                />
-              </Suspense>
+              <OfficeCanvas
+                agents={agents}
+                selectedAgentId={selectedAgentId}
+                onSelectAgent={selectAgent}
+              />
             </div>
           </Card>
         )}

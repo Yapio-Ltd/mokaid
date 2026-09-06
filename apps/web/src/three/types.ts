@@ -32,8 +32,10 @@ export interface SceneCallbacks {
   /** Local locomotion activity when no server activity is set (e.g. walking). */
   onAgentActivity?: (agentId: string, activity: SecondaryActivity) => void;
   /**
-   * WebGL context was lost (iOS reclaims it under memory pressure).
-   * The React layer should tear the host down and show the 2D fallback.
+   * WebGL context was lost (tab eviction / GPU reset).
+   * The host rebuilds a fresh canvas; React shows a restoring overlay.
    */
   onContextLost?: () => void;
+  /** Browser restored the context (we still rebuild from a new canvas). */
+  onContextRestored?: () => void;
 }

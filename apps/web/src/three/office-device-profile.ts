@@ -30,8 +30,15 @@ export interface QualityTierSettings {
   scaleMul: number;
 }
 
+export type OfficeProfileVariant = "default" | "angle" | "safe";
+export type ShadowSampling = "pcf" | "poisson";
+
 export interface OfficeDeviceProfile {
   kind: "desktop" | "mobile";
+  /** Diagnostic label: default desktop/mobile, ANGLE/D3D tweak, or recovery-safe. */
+  variant: OfficeProfileVariant;
+  /** Shadow map filter. Poisson avoids PCF's sampler2DShadow HLSL cost on ANGLE. */
+  shadowSampling: ShadowSampling;
   /** Cap passed to Engine adaptToDeviceRatio (render buffer dpr ceiling). */
   limitDeviceRatio: number;
   /**
@@ -63,6 +70,8 @@ export interface OfficeDeviceProfile {
 
 const DESKTOP_PROFILE: OfficeDeviceProfile = {
   kind: "desktop",
+  variant: "default",
+  shadowSampling: "pcf",
   limitDeviceRatio: 2,
   maxFps: 60,
   powerPreference: "high-performance",
@@ -82,6 +91,8 @@ const DESKTOP_PROFILE: OfficeDeviceProfile = {
 
 const MOBILE_PROFILE: OfficeDeviceProfile = {
   kind: "mobile",
+  variant: "default",
+  shadowSampling: "pcf",
   limitDeviceRatio: 1.5,
   maxFps: 30,
   powerPreference: "default",
@@ -120,4 +131,59 @@ export function detectOfficeDeviceProfile(): OfficeDeviceProfile {
     return MOBILE_PROFILE;
   }
   return DESKTOP_PROFILE;
+}
+
+/**
+ * Chrome Windows reports strings like
+ * "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Direct3D11 vs_5_0 ps_5_0, D3D11)".
+ * Metal / Apple GPU / SwiftShader must not take this path.
+ */
+export function isAngleDirect3D(glRenderer: string): boolean {
+  const r = glRenderer.toLowerCase();
+  return r.includes("angle") && r.includes("direct3d");
+}
+
+/**
+ * Bound PBR light loops + cheaper shadows on ANGLE/D3D11 (fxc).
+ * Key lights, bloom and Retina resolution stay intact.
+ */
+export function refineProfileForRenderer(
+  profile: OfficeDeviceProfile,
+  glRenderer: string,
+): OfficeDeviceProfile {
+  if (profile.variant === "safe") return profile;
+  if (!isAngleDirect3D(glRenderer)) return profile;
+
+  return {
+    ...profile,
+    variant: "angle",
+    initialQuality: "low",
+    maxSimultaneousLights: 8,
+    minAreaLightEnergy: Math.max(profile.minAreaLightEnergy, 45),
+    shadowsEnabled: false,
+    shadowSampling: "poisson",
+    tiers: {
+      high: { bloomEnabled: true, bloomWeightMul: 0.6, samples: 1, fxaa: true, scaleMul: 1.15 },
+      medium: { bloomEnabled: true, bloomWeightMul: 0.4, samples: 1, fxaa: true, scaleMul: 1.25 },
+      low: { bloomEnabled: false, bloomWeightMul: 0, samples: 1, fxaa: true, scaleMul: 1.5 },
+    },
+  };
+}
+
+/** Recovery attempt 2+: cheap enough to compile on any GPU, all OS. */
+export function safeOfficeProfile(base: OfficeDeviceProfile): OfficeDeviceProfile {
+  return {
+    ...base,
+    variant: "safe",
+    maxSimultaneousLights: 8,
+    minAreaLightEnergy: Math.max(base.minAreaLightEnergy, 120),
+    shadowsEnabled: false,
+    shadowSampling: "poisson",
+    initialQuality: base.kind === "mobile" ? "low" : "medium",
+    tiers: {
+      high: { bloomEnabled: true, bloomWeightMul: 0.45, samples: 1, fxaa: true, scaleMul: 1.15 },
+      medium: { bloomEnabled: true, bloomWeightMul: 0.35, samples: 1, fxaa: true, scaleMul: 1.25 },
+      low: { bloomEnabled: false, bloomWeightMul: 0, samples: 1, fxaa: true, scaleMul: 1.5 },
+    },
+  };
 }
