@@ -1,5 +1,5 @@
 /**
- * Always-mounted park — sole parent of the office WebGL canvas.
+ * Always-mounted park — sole parent of the office WebGL view.
  * Lives outside AppShell's routeKey remount. Never uses visibility:hidden
  * or display:none (Chrome evicts the WebGL context). Off-dashboard the
  * park sits at left:-10000px with the same size; on-dashboard the host
@@ -10,12 +10,13 @@ import { useLayoutEffect, useRef } from "react";
 import { useWorkspace } from "@/api/hooks";
 import { env } from "@/lib/env";
 import { useAuthStore } from "@/stores/auth-store";
-import { ensureOfficeHost, setOfficePark } from "./office-scene-host";
+import { ensureOfficeHost, setOfficeOverlayEl, setOfficePark } from "./office-scene-host";
 
 const PARK_HEIGHT = 560;
 
 export function OfficePark() {
   const parkRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const workspaceId = useAuthStore((s) => s.workspaceId);
   const { data: workspaceData } = useWorkspace();
   const enabled =
@@ -25,19 +26,23 @@ export function OfficePark() {
 
   useLayoutEffect(() => {
     setOfficePark(parkRef.current);
-    return () => setOfficePark(null);
+    setOfficeOverlayEl(overlayRef.current);
+    return () => {
+      setOfficeOverlayEl(null);
+      setOfficePark(null);
+    };
   }, []);
 
   useLayoutEffect(() => {
     if (!enabled || !workspaceId || !parkRef.current) return;
     setOfficePark(parkRef.current);
+    setOfficeOverlayEl(overlayRef.current);
     ensureOfficeHost(workspaceId);
   }, [enabled, workspaceId]);
 
   return (
     <div
       ref={parkRef}
-      aria-hidden
       className="pointer-events-none"
       style={{
         position: "fixed",
@@ -47,6 +52,12 @@ export function OfficePark() {
         height: PARK_HEIGHT,
         zIndex: -1,
       }}
-    />
+    >
+      <div
+        ref={overlayRef}
+        data-office-overlay
+        className="pointer-events-none absolute inset-0 z-10"
+      />
+    </div>
   );
 }

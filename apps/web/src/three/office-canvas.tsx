@@ -9,6 +9,7 @@ import {
   type DragEvent,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { toVisualState } from "@mokaid/shared-types";
 import { UploadCloud } from "lucide-react";
 import type { Agent } from "@/api/types";
@@ -33,7 +34,9 @@ import {
   parkOfficeHost,
   getOfficeHostScene,
   getOfficeHostStatus,
+  getOfficeOverlayEl,
   getOfficeParkEl,
+  subscribeOfficeOverlayEl,
   OFFICE_SCENE_BUILD,
   resetOfficeRecovery,
   subscribeOfficeHostStatus,
@@ -155,7 +158,13 @@ function toSceneAgents(
  * Drop target covering the whole office view: any file dragged from the OS
  * highlights the zone; dropping opens the smart dispatch flow.
  */
-function OfficeDropzone({ children }: { children: ReactNode }) {
+function OfficeDropzone({
+  children,
+  highlightTarget,
+}: {
+  children: ReactNode;
+  highlightTarget?: HTMLElement | null;
+}) {
   const [dragActive, setDragActive] = useState(false);
   const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
   const [showDispatch, setShowDispatch] = useState(false);
@@ -216,6 +225,22 @@ function OfficeDropzone({ children }: { children: ReactNode }) {
     };
   }, [onDragEnter, onDragOver, onDragLeave, onDrop]);
 
+  const dropHighlight = (
+    <div className="pointer-events-none absolute inset-0 z-20 p-2">
+      <div className="mk-dropzone-active flex h-full w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary/70 bg-bg/70 backdrop-blur-sm">
+        <span className="mk-dropzone-icon flex h-14 w-14 items-center justify-center rounded-full bg-primary-muted text-primary-light">
+          <UploadCloud size={26} />
+        </span>
+        <div className="text-center">
+          <p className="text-sm font-semibold text-text">Drop your files here</p>
+          <p className="mt-0.5 text-xs text-text-muted">
+            Any format. The dispatcher will route them to the right agent
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div
       className="relative h-full w-full"
@@ -226,21 +251,10 @@ function OfficeDropzone({ children }: { children: ReactNode }) {
     >
       {children}
 
-      {dragActive && (
-        <div className="pointer-events-none absolute inset-0 z-20 p-2">
-          <div className="mk-dropzone-active flex h-full w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary/70 bg-bg/70 backdrop-blur-sm">
-            <span className="mk-dropzone-icon flex h-14 w-14 items-center justify-center rounded-full bg-primary-muted text-primary-light">
-              <UploadCloud size={26} />
-            </span>
-            <div className="text-center">
-              <p className="text-sm font-semibold text-text">Drop your files here</p>
-              <p className="mt-0.5 text-xs text-text-muted">
-                Any format. The dispatcher will route them to the right agent
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {dragActive &&
+        (highlightTarget
+          ? createPortal(dropHighlight, highlightTarget)
+          : dropHighlight)}
 
       <DropDispatchModal open={showDispatch} onOpenChange={setShowDispatch} files={droppedFiles} />
     </div>
@@ -304,6 +318,11 @@ export function OfficeCanvas({
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const labelRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const overlayTarget = useSyncExternalStore(
+    subscribeOfficeOverlayEl,
+    getOfficeOverlayEl,
+    getOfficeOverlayEl,
+  );
   const [retryNonce, setRetryNonce] = useState(0);
   const hostStatus = useSyncExternalStore(
     subscribeOfficeHostStatus,
@@ -466,48 +485,48 @@ export function OfficeCanvas({
   const showLoading =
     restoring || (hostStatus === "running" && !sessionReady);
 
-  return (
-    <OfficeDropzone>
-      <div className="pointer-events-none relative z-[3] h-full w-full overflow-hidden">
-        <div ref={hostRef} className="pointer-events-none h-full w-full" />
+  const hud = (
+    <>
+      {labeledAgents.map((agent) => (
+        <AgentSceneLabel
+          key={agent.id}
+          ref={(node) => registerLabel(agent.id, node)}
+          agent={agent}
+          selected={agent.id === selectedAgentId}
+          onClick={() => onSelectAgent(agent.id)}
+          onDoubleClick={agent.kind === "ai" ? () => openChat(agent.id) : undefined}
+          activity={activityByAgent.get(agent.id) ?? null}
+        />
+      ))}
 
-        {/* Status bubbles overlay — positions updated imperatively each frame */}
-        {labeledAgents.map((agent) => (
-          <AgentSceneLabel
-            key={agent.id}
-            ref={(node) => registerLabel(agent.id, node)}
-            agent={agent}
-            selected={agent.id === selectedAgentId}
-            onClick={() => onSelectAgent(agent.id)}
-            onDoubleClick={agent.kind === "ai" ? () => openChat(agent.id) : undefined}
-            activity={activityByAgent.get(agent.id) ?? null}
-          />
-        ))}
-
-        {showLoading && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-bg-deep/70 backdrop-blur-sm">
-            <div className="h-1.5 w-48 overflow-hidden rounded-full bg-surface-overlay">
-              <div
-                className="h-full rounded-full bg-primary transition-[width] duration-200"
-                style={{ width: `${Math.round(loadProgress * 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-text-muted">
-              {restoring
-                ? "Restoring 3D view…"
-                : `Loading office… ${Math.round(loadProgress * 100)}%`}
-            </p>
+      {showLoading && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-bg-deep/70 backdrop-blur-sm">
+          <div className="h-1.5 w-48 overflow-hidden rounded-full bg-surface-overlay">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-200"
+              style={{ width: `${Math.round(loadProgress * 100)}%` }}
+            />
           </div>
-        )}
-
-        {/* Knowledge zone legend (Graphify-inspired community → office mapping) */}
-        <OfficeKnowledgeZones />
-
-        {/* FPS monitor */}
-        <div className="absolute bottom-3 right-3 rounded-md border border-border bg-surface-overlay/80 px-2 py-1 text-[10px] font-mono text-text-muted backdrop-blur">
-          {fps} FPS
+          <p className="text-xs text-text-muted">
+            {restoring
+              ? "Restoring 3D view…"
+              : `Loading office… ${Math.round(loadProgress * 100)}%`}
+          </p>
         </div>
+      )}
+
+      <OfficeKnowledgeZones />
+
+      <div className="absolute bottom-3 right-3 rounded-md border border-border bg-surface-overlay/80 px-2 py-1 text-[10px] font-mono text-text-muted backdrop-blur">
+        {fps} FPS
       </div>
+    </>
+  );
+
+  return (
+    <OfficeDropzone highlightTarget={overlayTarget}>
+      <div ref={hostRef} className="pointer-events-none h-full w-full" />
+      {overlayTarget ? createPortal(hud, overlayTarget) : hud}
     </OfficeDropzone>
   );
 }

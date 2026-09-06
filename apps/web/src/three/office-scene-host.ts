@@ -42,8 +42,10 @@ let lastAgents: SceneAgent[] = [];
 /** Always-mounted park — sole parent of the canvas for the whole session. */
 let parkEl: HTMLElement | null = null;
 let officeSlot: HTMLElement | null = null;
+let overlayEl: HTMLElement | null = null;
 let slotObserver: ResizeObserver | null = null;
 let slotLayoutBound = false;
+const overlayListeners = new Set<(el: HTMLElement | null) => void>();
 const PARK_OFFSCREEN_LEFT = "-10000px";
 const PARK_HEIGHT_PX = 560;
 
@@ -133,6 +135,34 @@ function teardownHost() {
   host = null;
 }
 
+function notifyOverlayListeners() {
+  for (const listener of overlayListeners) listener(overlayEl);
+}
+
+function ensureOverlay(park: HTMLElement): HTMLElement {
+  let overlay = park.querySelector("[data-office-overlay]") as HTMLElement | null;
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.dataset.officeOverlay = "";
+    overlay.style.position = "absolute";
+    overlay.style.inset = "0";
+    overlay.style.zIndex = "10";
+    overlay.style.pointerEvents = "none";
+    park.appendChild(overlay);
+  }
+  if (overlayEl !== overlay) {
+    overlayEl = overlay;
+    notifyOverlayListeners();
+  }
+  return overlay;
+}
+
+function attachCanvasToPark(park: HTMLElement, canvas: HTMLCanvasElement) {
+  const overlay = ensureOverlay(park);
+  if (canvas.parentElement === park) return;
+  park.insertBefore(canvas, overlay);
+}
+
 function ensureParkElement(): HTMLElement {
   if (parkEl) return parkEl;
   const el = document.createElement("div");
@@ -141,6 +171,7 @@ function ensureParkElement(): HTMLElement {
   applyParkOffscreen(el);
   document.body.appendChild(el);
   parkEl = el;
+  ensureOverlay(el);
   return el;
 }
 
@@ -154,6 +185,7 @@ function applyParkOffscreen(el: HTMLElement) {
   el.style.zIndex = "-1";
   el.style.visibility = "visible";
   el.style.overflow = "hidden";
+  el.setAttribute("aria-hidden", "true");
 }
 
 function applyParkLayout() {
@@ -171,6 +203,7 @@ function applyParkLayout() {
     parkEl.style.pointerEvents = "auto";
     parkEl.style.zIndex = "2";
     parkEl.style.overflow = "hidden";
+    parkEl.removeAttribute("aria-hidden");
     return;
   }
   applyParkOffscreen(parkEl);
@@ -205,7 +238,7 @@ function createFreshHost(useSafeProfile: boolean, recoveryAttempt: number): Offi
   }
   teardownHost();
   const canvas = createCanvas();
-  home.appendChild(canvas);
+  attachCanvasToPark(home, canvas);
   const scene = new OfficeScene(canvas, bindHostCallbacks(lastCallbacks), {
     useSafeProfile,
     recoveryAttempt,
@@ -357,26 +390,43 @@ export function setOfficePark(el: HTMLElement | null) {
     parkEl = null;
     if (host && typeof document !== "undefined") {
       const fallback = ensureParkElement();
-      if (host.canvas.parentElement !== fallback) fallback.appendChild(host.canvas);
+      attachCanvasToPark(fallback, host.canvas);
       applyParkLayout();
     }
     return;
   }
   if (parkEl && parkEl !== el) {
     if (host && host.canvas.parentElement === parkEl) {
-      el.appendChild(host.canvas);
+      attachCanvasToPark(el, host.canvas);
     }
     if (parkEl.dataset.officePark === "fallback") parkEl.remove();
   }
   parkEl = el;
+  ensureOverlay(el);
   if (host && host.canvas.parentElement !== el) {
-    el.appendChild(host.canvas);
+    attachCanvasToPark(el, host.canvas);
   }
   applyParkLayout();
 }
 
+export function setOfficeOverlayEl(el: HTMLElement | null) {
+  overlayEl = el;
+  notifyOverlayListeners();
+}
+
 export function getOfficeParkEl(): HTMLElement | null {
   return parkEl;
+}
+
+export function getOfficeOverlayEl(): HTMLElement | null {
+  return overlayEl;
+}
+
+export function subscribeOfficeOverlayEl(listener: (el: HTMLElement | null) => void): () => void {
+  overlayListeners.add(listener);
+  return () => {
+    overlayListeners.delete(listener);
+  };
 }
 
 const NOOP_CALLBACKS: SceneCallbacks = {
@@ -396,17 +446,21 @@ export function ensureOfficeHost(workspaceId: string, callbacks?: SceneCallbacks
   if (host && (host.workspaceId !== workspaceId || host.build !== OFFICE_SCENE_BUILD)) {
     teardownHost();
   }
-  if (host) return host.scene;
+  if (host) {
+    if (officeSlot) host.scene.resume();
+    return host.scene;
+  }
   try {
     const canvas = createCanvas();
-    home.appendChild(canvas);
+    attachCanvasToPark(home, canvas);
     const scene = new OfficeScene(canvas, bindHostCallbacks(lastCallbacks ?? NOOP_CALLBACKS), {
       useSafeProfile: false,
       recoveryAttempt: 0,
     });
     host = { canvas, scene, workspaceId, build: OFFICE_SCENE_BUILD };
     if (lastAgents.length) scene.updateAgents(lastAgents);
-    scene.pause();
+    if (officeSlot) scene.resume();
+    else scene.pause();
     setStatus("running");
     return scene;
   } catch (err) {
@@ -469,7 +523,7 @@ export function attachOfficeHost(
     try {
       const home = ensureParkElement();
       const canvas = createCanvas();
-      home.appendChild(canvas);
+      attachCanvasToPark(home, canvas);
       const scene = new OfficeScene(canvas, bindHostCallbacks(callbacks), {
         useSafeProfile: false,
         recoveryAttempt: 0,
