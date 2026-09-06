@@ -136,16 +136,22 @@ export function detectOfficeDeviceProfile(): OfficeDeviceProfile {
 /**
  * Chrome Windows reports strings like
  * "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Direct3D11 vs_5_0 ps_5_0, D3D11)".
- * Metal / Apple GPU / SwiftShader must not take this path.
+ * Drivers may use either `Direct3D11` or the short `D3D11` spelling. Metal /
+ * Apple GPU / SwiftShader must not take this path.
  */
 export function isAngleDirect3D(glRenderer: string): boolean {
   const r = glRenderer.toLowerCase();
-  return r.includes("angle") && r.includes("direct3d");
+  return r.includes("angle") && /(?:direct3d|\bd3d(?:11|12)?\b)/.test(r);
 }
 
 /**
- * Bound PBR light loops + cheaper shadows on ANGLE/D3D11 (fxc).
- * Key lights, bloom and Retina resolution stay intact.
+ * Bound PBR light loops + cheaper shadows on ANGLE/D3D (fxc).
+ *
+ * Windows ANGLE drivers commonly expose only 12 vertex uniform-buffer
+ * bindings. A skinned PBR avatar already consumes several; compiling the
+ * previous 36-light environment (or even an 8-light fallback) then exceeds
+ * that limit and Babylon falls back to its slow compatibility path. Four is
+ * Babylon's proven PBR default and keeps the authored emissive lighting.
  */
 export function refineProfileForRenderer(
   profile: OfficeDeviceProfile,
@@ -158,7 +164,7 @@ export function refineProfileForRenderer(
     ...profile,
     variant: "angle",
     initialQuality: "low",
-    maxSimultaneousLights: 8,
+    maxSimultaneousLights: 4,
     minAreaLightEnergy: Math.max(profile.minAreaLightEnergy, 45),
     shadowsEnabled: false,
     shadowSampling: "poisson",

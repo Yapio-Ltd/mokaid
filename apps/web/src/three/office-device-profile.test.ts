@@ -8,6 +8,8 @@ import {
 
 const ANGLE_D3D11 =
   "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Direct3D11 vs_5_0 ps_5_0, D3D11-31.0.15.5123)";
+const ANGLE_D3D11_SHORT =
+  "ANGLE (Intel, Intel(R) UHD Graphics 630 (0x00003E92) D3D11 vs_5_0 ps_5_0, D3D11)";
 const ANGLE_METAL = "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)";
 const APPLE_GPU = "Apple M2";
 const SWIFTSHADER = "Google SwiftShader";
@@ -15,6 +17,7 @@ const SWIFTSHADER = "Google SwiftShader";
 describe("isAngleDirect3D", () => {
   it("matches Chrome Windows ANGLE/D3D", () => {
     expect(isAngleDirect3D(ANGLE_D3D11)).toBe(true);
+    expect(isAngleDirect3D(ANGLE_D3D11_SHORT)).toBe(true);
   });
 
   it("rejects Metal, Apple GPU and SwiftShader", () => {
@@ -32,7 +35,7 @@ describe("refineProfileForRenderer", () => {
     expect(refined.variant).toBe("angle");
     expect(refined.initialQuality).toBe("low");
     expect(refined.shadowsEnabled).toBe(false);
-    expect(refined.maxSimultaneousLights).toBe(8);
+    expect(refined.maxSimultaneousLights).toBe(4);
     expect(refined.minAreaLightEnergy).toBeGreaterThanOrEqual(45);
     expect(refined.shadowSampling).toBe("poisson");
     expect(refined.tiers.low.bloomEnabled).toBe(false);
