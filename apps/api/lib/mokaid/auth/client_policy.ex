@@ -46,7 +46,8 @@ defmodule Mokaid.Auth.ClientPolicy do
   def enabled?, do: Application.get_env(:mokaid, :desktop_only_business, false) == true
 
   def desktop?(%{desktop_session_id: id, access_expires_at: expires})
-      when is_binary(id) and is_integer(expires), do: true
+      when is_binary(id) and is_integer(expires),
+      do: true
 
   def desktop?(_), do: false
 

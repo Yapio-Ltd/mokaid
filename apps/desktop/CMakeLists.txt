@@ -32,6 +32,26 @@ if(APPLE)
   enable_language(OBJCXX)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Minimum macOS" FORCE)
 endif()
+# C++20 language mode alone does not imply a complete standard library: Xcode
+# 16.4 accepts -std=c++20 but lacks jthread/stop_token. Fail at configure time.
+include(CheckCXXSourceCompiles)
+include(CMakePushCheckState)
+find_package(Threads REQUIRED)
+cmake_push_check_state(RESET)
+set(CMAKE_REQUIRED_LIBRARIES Threads::Threads)
+check_cxx_source_compiles([[
+  #include <stop_token>
+  #include <thread>
+  int main() {
+    std::jthread worker([](std::stop_token token) { (void)token.stop_requested(); });
+    worker.request_stop();
+    worker.join();
+  }
+]] MOKAID_HAS_CXX20_STOPPABLE_THREADS)
+cmake_pop_check_state()
+if(NOT MOKAID_HAS_CXX20_STOPPABLE_THREADS)
+  message(FATAL_ERROR "Mokaid requires std::jthread and std::stop_token. On macOS select Xcode 26 or newer; do not raise the macOS 13 deployment target or disable this check.")
+endif()
 include(CTest)
 add_library(mokaid_options INTERFACE)
 if(MSVC)

@@ -41,6 +41,7 @@ build/
 !infra/terraform/bootstrap/.terraform.lock.hcl
 !infra/terraform/environments/prod/.terraform.lock.hcl
 !infra/terraform/modules/desktop-downloads/.terraform.lock.hcl
+!infra/terraform/modules/desktop-signing/.terraform.lock.hcl
 crash.log
 # IDE / OS
 .DS_Store

@@ -143,14 +143,18 @@ a real release-image staging pass.
 
 ### Local execution evidence — 2026-09-14
 
-Full API + WEB smoke passed on Colima/Docker 29.5.2, Linux ARM64, using:
+Full API + WEB + CRM smoke passed on Colima/Docker 29.5.2, Linux ARM64, using:
 
 - API `sha256:43cbf2db34e148ff49bda75561aaccef5a411fd5b54d7181e02d9962ae61126f`.
 - WEB `sha256:b2506e66a24e7591790c43f85db93a3b593456445db8993b2b5e50eddf6a8f92`.
+- CRM `sha256:66aeebf9d26e6f770e50beb2886f08b9df1b03dc173c64748c3cacbbacae6383`.
 - PostgreSQL and Node verifier pins recorded above.
 
 Real release migrations, schema/TLS query, API health, both anonymous 401
-checks and the unchanged production web verifier all passed. Subsequent
+checks, the unchanged production web verifier, and actual CRM `/login` HTML
+all passed. The CRM was built from `infra/docker/crm.Dockerfile` without source
+changes; Next.js compilation, type/lint checks and 17-page generation passed.
+Subsequent
 Docker inventory checks found **zero** containers and networks with the
 staging ownership label. The disposable database volume was removed through
 its owning container's `docker rm --volumes`; pre-existing local UI-validation
@@ -162,8 +166,9 @@ image IDs, Docker's internal-network publishing behavior, and the verifier's
 canonical port-80 origin check; each owned-resource cleanup completed. The
 final harness fixes those integration issues without relaxing isolation.
 
-No current CRM image was present locally, so CRM's optional HTML check has
-not yet been executed against a real image. Linux AMD64 and all three exact
+The CRM build's npm install reported six dependency vulnerabilities (one
+moderate, four high, one critical). This functional pass does not clear those
+security findings or weaken the release scan gate. Linux AMD64 and all three exact
 CI release digests must still pass in the deployment workflow. No AWS,
 production database, worker execution or external provider validation is
 claimed by this local result.

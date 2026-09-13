@@ -64,15 +64,26 @@ jobs:
         with: { python-version: '3.12' }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: '22' }
+      - name: Select Xcode 26.3 with complete C++20 threading support
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          test -d /Applications/Xcode_26.3.app/Contents/Developer
+          printf '%s\n' 'DEVELOPER_DIR=/Applications/Xcode_26.3.app/Contents/Developer' >> "$GITHUB_ENV"
+          DEVELOPER_DIR=/Applications/Xcode_26.3.app/Contents/Developer xcodebuild -version
       - if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@a102174a2b586eec2ea151a69e6fd14404a8ce7c # v1.13.0
         with: { arch: x64 }
-      - uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005 # v4.3.0
+      # Call the pinned Node action directly; the composite wrapper invokes a mutable @v4.
+      - uses: jurplel/install-qt-action/action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005 # v4.3.0
         with:
           version: '6.11.2'
           host: ${{ matrix.qt-os }}
           target: desktop
           arch: ${{ matrix.qt-arch }}
+          # Upstream Qt 6.11 Windows architecture-directory fix; not yet in aqt 3.3.0.
+          aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@7e5a5c3d95cf962cfc2f36c86ffa0d2c07f1a0d4'
+          py7zrversion: '==1.0.0'
           modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets qtshadertools qtimageformats qttasktree'
           cache: true
       - run: python -m pip install cmake==4.1.0 ninja==1.13.0 conan==2.19.1 -r apps/desktop/distribution/requirements.txt

@@ -21,7 +21,64 @@ MODE = {"protected_branches": False, "custom_branch_policies": True}
 
 @pytest.fixture
 def document() -> dict[str, Any]:
-    return json.loads(Path(policy.__file__).with_name("desired.json").read_text())
+    # Fixed pre-provisioning fixture: real public ARNs/keys can be populated in
+    # desired.json without changing the operation set exercised by unit tests.
+    # The actual reviewed file is independently checked below, never normalized.
+    environments: dict[str, Any] = {
+        "prod": {
+            "refs": [
+                {"type": "branch", "name": "main"},
+                {"type": "branch", "name": "prod"},
+            ],
+            "require_reviewer": False,
+            "prevent_self_review": False,
+            "wait_timer": 0,
+            "variables": {"MOKAID_DESKTOP_ONLY": "false"},
+        }
+    }
+    for category in ("signing", "public"):
+        for channel in ("stable", "beta"):
+            keys = (
+                (
+                    "MOKAID_SIGNING_AWS_ROLE_ARN",
+                    "MOKAID_MACOS_SIGNING_SECRET_ARN",
+                    "MOKAID_WINDOWS_SIGNING_SECRET_ARN",
+                )
+                if category == "signing"
+                else (
+                    "MOKAID_PUBLISH_AWS_ROLE_ARN",
+                    "MOKAID_DOWNLOADS_BUCKET",
+                    "MOKAID_DOWNLOADS_DISTRIBUTION_ID",
+                )
+            )
+            environments[f"desktop-{category}-{channel}"] = {
+                "refs": [
+                    (
+                        {"type": "tag", "name": "desktop-v*"}
+                        if category == "signing"
+                        else {"type": "branch", "name": "main"}
+                    )
+                ],
+                "require_reviewer": True,
+                "prevent_self_review": False,
+                "wait_timer": 0,
+                "variables": {
+                    "MOKAID_AWS_REGION": "il-central-1",
+                    **dict.fromkeys(keys),
+                    "MOKAID_UPDATE_PUBLIC_KEY": None,
+                },
+            }
+    return {
+        "schema_version": 1,
+        "repository": "Yapio-Ltd/mokaid",
+        "default_branch": "main",
+        "reviewer": {"login": "Tomyshh", "id": 113070134},
+        "repository_variables": {
+            "AWS_DEPLOY_ROLE_ARN": "arn:aws:iam::660601648321:role/mokaid-github-deploy",
+            "MOKAID_DESKTOP_ONLY": "false",
+        },
+        "environments": environments,
+    }
 
 
 @pytest.fixture
@@ -187,6 +244,46 @@ def test_default_plan_is_read_only_and_exact(config: policy.Configuration) -> No
         for op in plan.operations
         if op.endpoint.endswith("variables")
     )
+
+
+def test_real_reviewed_configuration_preserves_all_resolved_public_values() -> None:
+    actual = json.loads(Path(policy.__file__).with_name("desired.json").read_text())
+    actual_config = policy.Configuration.parse(actual)
+    assert actual["repository_variables"]["MOKAID_DESKTOP_ONLY"] == "false"
+    assert actual["environments"]["prod"]["variables"]["MOKAID_DESKTOP_ONLY"] == "false"
+    stable = actual["environments"]["desktop-signing-stable"]["variables"]
+    assert stable["MOKAID_MACOS_SIGNING_SECRET_ARN"] == (
+        "arn:aws:secretsmanager:il-central-1:660601648321:secret:"
+        "mokaid/desktop/stable/macos-signing-8pPQkT"
+    )
+    scopes = {
+        f"{ROOT}/actions/variables": actual["repository_variables"],
+        **{
+            f"{ROOT}/environments/{name}/variables": env["variables"]
+            for name, env in actual["environments"].items()
+        },
+    }
+    expected = {
+        (scope, key, value)
+        for scope, values in scopes.items()
+        for key, value in values.items()
+        if value is not None
+    }
+    api = FakeApi()
+    plan = policy.build_plan(actual_config, snapshot(api, actual_config))
+    assert {
+        (op.endpoint, op.body["name"], op.body["value"])
+        for op in plan.operations
+        if op.endpoint.endswith("/variables")
+    } == expected
+    assert all(method == "GET" for method, _, _ in api.calls)
+    converged_api = converged(actual_config)
+    assert converged_api.variables == {
+        f"{scope}/{key}": value for scope, key, value in expected
+    }
+    assert not policy.build_plan(
+        actual_config, snapshot(converged_api, actual_config)
+    ).operations
 
 
 def test_idempotent_apply_then_noop(config: policy.Configuration) -> None:
@@ -678,6 +775,7 @@ def test_gh_blocks_unapproved_writes_and_secret_endpoints(
 def test_help_version_and_default_readonly(capsys: pytest.CaptureFixture[str]) -> None:
     args = policy.parser().parse_args([])
     assert args.apply is False
+    assert args.config == Path(policy.__file__).with_name("desired.json")
     for option in ("--help", "--version"):
         with pytest.raises(SystemExit) as caught:
             policy.parser().parse_args([option])
@@ -698,7 +796,8 @@ def test_cli_validates_before_network(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_cli_default_plan_and_reviewed_apply(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
-    config: policy.Configuration,
+    document: dict[str, Any],
+    tmp_path: Path,
 ) -> None:
     api = FakeApi()
     flags: list[bool] = []
@@ -708,14 +807,17 @@ def test_cli_default_plan_and_reviewed_apply(
         return api
 
     monkeypatch.setattr(policy, "GhApi", factory)
-    assert asyncio.run(policy.run(policy.parser().parse_args([]))) == 0
+    source = tmp_path / "desired-fixture.json"
+    source.write_text(json.dumps(document), encoding="utf-8")
+    arguments = ["--config", str(source)]
+    assert asyncio.run(policy.run(policy.parser().parse_args(arguments))) == 0
     result = json.loads(capsys.readouterr().out)
     assert flags == [False] and api.write_count == 0
     assert (
         asyncio.run(
             policy.run(
                 policy.parser().parse_args(
-                    ["--apply", "--expect-plan", result["plan_sha256"]]
+                    [*arguments, "--apply", "--expect-plan", result["plan_sha256"]]
                 )
             )
         )

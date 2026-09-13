@@ -2,10 +2,10 @@ name: Desktop Infrastructure Validation
 
 on:
   pull_request:
-    paths: ['infra/terraform/modules/desktop-downloads/**', 'infra/terraform/environments/prod/**', '.github/workflows/desktop-infrastructure.yml']
+    paths: ['infra/terraform/modules/desktop-downloads/**', 'infra/terraform/modules/desktop-signing/**', 'infra/terraform/environments/prod/**', '.github/workflows/desktop-infrastructure.yml']
   push:
     branches: [prod]
-    paths: ['infra/terraform/modules/desktop-downloads/**', 'infra/terraform/environments/prod/**', '.github/workflows/desktop-infrastructure.yml']
+    paths: ['infra/terraform/modules/desktop-downloads/**', 'infra/terraform/modules/desktop-signing/**', 'infra/terraform/environments/prod/**', '.github/workflows/desktop-infrastructure.yml']
   workflow_dispatch:
 
 permissions:
@@ -31,7 +31,16 @@ jobs:
         working-directory: infra/terraform/modules/desktop-downloads
         run: |
           terraform fmt -check -recursive
-          terraform init -backend=false -input=false
+          terraform init -backend=false -input=false -lockfile=readonly
+          terraform validate
+          tflint --init
+          tflint
+          terraform test -no-color
+      - name: Validate the independent stable signing boundary without credentials
+        working-directory: infra/terraform/modules/desktop-signing
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false -lockfile=readonly
           terraform validate
           tflint --init
           tflint
@@ -41,6 +50,6 @@ jobs:
         env:
           TF_DATA_DIR: ${{ runner.temp }}/desktop-prod-terraform-validation
         run: |
-          terraform fmt -check desktop_downloads.tf
+          terraform fmt -check desktop_downloads.tf desktop_signing.tf
           terraform init -backend=false -input=false -lockfile=readonly
           terraform validate

@@ -2,9 +2,15 @@
 
 The repository now contains the build, packaging and publication implementation.
 It does not contain private signing credentials or a previously tested signed
-release. A valid local **Developer ID Application: Yapio (4KH7528725)** identity
-was verified in the owner's Keychain during setup; no private key was exported.
-CI certificate access, App Store Connect notarization credentials, Windows signing,
+release. The owner-approved **Developer ID Application: Yapio (4KH7528725)**
+identity was securely exported and provisioned in the stable AWS secret, then
+reread and verified. The owner-supplied Team API key also passed a read-only
+`notarytool history` authentication check, without any release upload, and its
+notarization credentials were imported and reread successfully in the same stable
+secret. The separately approved stable update key was generated in that secret;
+only its public counterpart is recorded in the repository. See the
+[credential runbook](release-credentials.md).
+CI-role certificate access, a real notarization submission, Windows signing,
 the downloads distribution and physical-machine acceptance must still be verified
 before public release. The package command deliberately fails if signing is
 unconfigured. The local development DMG remains ad-hoc signed, not notarized.
@@ -19,6 +25,8 @@ It is not an approval to publish or a claim of complete product acceptance.
 | Certificate and DNS validation | The certificate-only plan was approved and applied in account `660601648321`; ACM issued the `downloads.mokaid.com` certificate in `us-east-1`. Its validation CNAME was added and reread in Hostinger. | Keep the validation CNAME for renewal. |
 | Download infrastructure | An approved targeted apply created **12 of 16** planned resources: certificate validation, S3 and its controls, the unavailable object, two publisher roles, and CloudFront cache/header/OAC configuration. | AWS refused the distribution with **403: account verification required**. CloudFront, two publisher inline policies and the bucket policy remain uncreated. Contact AWS Support; do not retry creation or invent a substitute hostname. Add the separate `downloads` CNAME only after CloudFront really exists. |
 | Application deploy permissions | After explicit approval, the reviewed bootstrap plan was applied: **0 created, 1 changed, 0 destroyed**. Only the existing `mokaid-github-deploy` inline policy changed in place. | Validate CI-role task registration and deployment separately; this IAM change did not update any ECS service. |
+| Apple signing credentials | The exact owner-approved Developer ID identity, designated authenticated Team API key and separately approved stable update seed were provisioned in the stable AWS secret and reread successfully. Only the update public key is recorded in the repository; beta remains unconfigured. | Validate CI-role access and real notarization. Credential provisioning does not establish either. |
+| Stable Mac signing role | The separately approved `mokaid-desktop-signing-stable` role and its sole inline policy were created: **2 added, 0 changed, 0 destroyed**. IAM read-back confirms the exact GitHub environment trust and secret ARN. Policy simulation permits the Mac-secret read and denies both writes and an out-of-scope API-secret read. The verified role/secret ARNs and update public key are configured in GitHub. | A policy simulation is not an actual GitHub OIDC signing run. Verify that separately; Windows and beta credentials remain unconfigured. |
 | Production application | Deployment, migration, smoke-test and desktop-auth changes exist in source and have local checks. | No production application deployment from this implementation has been performed at this checkpoint. Existing services continue to run their prior versions. |
 | Public native release | A separately identified, ad-hoc signed development DMG was verified locally. | No public signed installer, update feed or release manifest has been published. Developer ID CI access, notarization, Windows signing and the full acceptance record remain gates. |
 
@@ -60,8 +68,8 @@ reviewed migration to the protected remote backend before shared infrastructure
 maintenance; never combine it with this narrow IAM change. Only apply the
 explicitly reviewed saved plan, not a blanket production `terraform apply`.
 
-The bootstrap, production root and standalone downloads-module test root each
-version their `.terraform.lock.hcl`; only those three lockfiles are exempted from
+The bootstrap, production root and standalone downloads/signing module test roots
+version their `.terraform.lock.hcl`; only those four lockfiles are exempted from
 the repository ignore rule. Checksums were obtained from the official registry
 for `linux_amd64`, `linux_arm64`, `darwin_arm64` and `windows_amd64`. The selections
 remain AWS **5.100.0**, TLS **4.3.0** (bootstrap) and Random **3.9.0** (production):
@@ -259,9 +267,12 @@ Give Terraform only the returned exact secret **ARN**, through
 `desktop_signing_secret_arns.stable`; the signer role then gets read access only
 to that ARN. The JSON and P12 never enter Terraform or GitHub. Provisioning the
 certificate alone intentionally leaves packaging blocked on the real notarization
-credentials and channel update-signing key. At this checkpoint the helper's
-public inspection and synthetic tests have run, but **no real key export or secret
-write has been performed by this implementation agent**.
+credentials and channel update-signing key. The main task has now performed the
+owner-authorized stable export/import and verified the current secret at
+`arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid/desktop/stable/macos-signing-8pPQkT`.
+No beta copy was made. This is not yet a CI-role signing or public-release test.
+Use the separate [credential runbook](release-credentials.md) for the approved P8
+and the explicit update-key action; the certificate exporter never creates either.
 
 ### Notarization key setup — separate from the Developer ID certificate
 

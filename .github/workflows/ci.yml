@@ -187,12 +187,13 @@ jobs:
 
       - name: Validate modules
         run: |
-          for dir in infra/terraform/bootstrap/ infra/terraform/environments/*/ infra/terraform/modules/desktop-downloads/; do
+          for dir in infra/terraform/bootstrap/ infra/terraform/environments/*/ infra/terraform/modules/desktop-downloads/ infra/terraform/modules/desktop-signing/; do
             echo "== $dir"
             terraform -chdir="$dir" init -backend=false -input=false -lockfile=readonly
             terraform -chdir="$dir" validate
           done
           terraform -chdir=infra/terraform/modules/desktop-downloads test
+          terraform -chdir=infra/terraform/modules/desktop-signing test
 
   deployment-policy:
     name: Deployment policy (offline)
