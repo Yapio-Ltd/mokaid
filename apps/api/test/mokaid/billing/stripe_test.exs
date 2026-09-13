@@ -31,6 +31,23 @@ defmodule Mokaid.Billing.StripeTest do
   end
 
   describe "checkout_form/1" do
+    test "account-only portal return paths preserve checkout status without network calls" do
+      for path <- ["/account/billing", "/account/spending"] do
+        form =
+          Stripe.checkout_form(%{
+            kind: "credits",
+            amount_cents: 1_900,
+            description: "Public billing test fixture",
+            invoice_id: "fixture-invoice",
+            workspace_id: "fixture-workspace",
+            return_path: path
+          })
+
+        assert form["success_url"] == "https://app.example.com#{path}?checkout=success"
+        assert form["cancel_url"] == "https://app.example.com#{path}?checkout=canceled"
+      end
+    end
+
     test "subscription session includes recurring price_data and metadata" do
       form =
         Stripe.checkout_form(%{

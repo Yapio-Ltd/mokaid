@@ -11,6 +11,7 @@ defmodule MokaidWeb.Router do
 
   pipeline :authenticated do
     plug MokaidWeb.Plugs.Authenticate
+    plug MokaidWeb.Plugs.ClientAccess
   end
 
   pipeline :workspace do
@@ -36,6 +37,10 @@ defmodule MokaidWeb.Router do
     post "/auth/register", AuthController, :register
     post "/auth/logout", AuthController, :logout
 
+    post "/desktop/auth/requests", DesktopAuthController, :create
+    post "/desktop/auth/token", DesktopAuthController, :token
+    post "/desktop/auth/revoke", DesktopAuthController, :revoke
+
     get "/auth/google/status", AuthController, :google_status
     post "/auth/google/start", AuthController, :google_start
     post "/auth/google/callback", AuthController, :google_callback
@@ -53,6 +58,8 @@ defmodule MokaidWeb.Router do
     pipe_through [:api, :authenticated]
 
     get "/me", AuthController, :me
+    get "/desktop/auth/requests/:id", DesktopAuthController, :show
+    post "/desktop/auth/requests/:id/approve", DesktopAuthController, :approve
     patch "/me", AuthController, :update_me
     post "/me/password", AuthController, :change_password
     get "/me/avatar", AuthController, :avatar

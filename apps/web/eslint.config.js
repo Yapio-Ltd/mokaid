@@ -18,6 +18,7 @@ export default [
         URL: "readonly",
         performance: "readonly",
         HTMLCanvasElement: "readonly",
+        WebGLRenderingContext: "readonly",
         HTMLButtonElement: "readonly",
         HTMLInputElement: "readonly",
         HTMLDivElement: "readonly",

@@ -1,0 +1,9 @@
+/build/
+/.tools/
+/.venv/
+/sdk/
+/dist/
+/assets/cooked/
+/CMakeUserPresets.json
+*.user
+.DS_Store

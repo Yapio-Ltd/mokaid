@@ -1,5 +1,15 @@
 .git
 .github
+.codex
+.agents
+**/.env
+**/.env.*
+!**/.env.example
+**/.terraform
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfplan
+apps/desktop
 node_modules
 **/node_modules
 **/_build

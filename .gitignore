@@ -27,6 +27,9 @@ build/
 !.env.example
 *.pem
 *.key
+*.p8
+*.p12
+*.pfx
 # Terraform
 **/.terraform/
 *.tfstate
@@ -34,6 +37,10 @@ build/
 *.tfvars
 !*.auto.tfvars.example
 .terraform.lock.hcl
+# Reviewed provider versions/checksums, never state or credentials.
+!infra/terraform/bootstrap/.terraform.lock.hcl
+!infra/terraform/environments/prod/.terraform.lock.hcl
+!infra/terraform/modules/desktop-downloads/.terraform.lock.hcl
 crash.log
 # IDE / OS
 .DS_Store
@@ -50,6 +57,8 @@ logs/
 coverage/
 cover/
 htmlcov/
+.coverage
+.coverage.*
 # Local data
 .minio-data/
 .postgres-data/

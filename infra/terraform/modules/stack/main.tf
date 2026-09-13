@@ -563,9 +563,9 @@ module "api_service" {
     # Gmail users.watch pushes to this GCP Pub/Sub topic, which forwards to /api/webhooks/gmail.
     GMAIL_PUBSUB_TOPIC    = var.gmail_pubsub_topic
     GMAIL_PUBSUB_AUDIENCE = var.app_domain != "" ? "https://${var.app_domain}/api/webhooks/gmail" : "https://mokaid.com/api/webhooks/gmail"
-    API_BASE_URL            = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
-    WEB_BASE_URL            = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
-    MOKAID_LOG_GROUPS       = "/ecs/${local.name}-api,/ecs/${local.name}-ai-worker,/ecs/${local.name}-crm"
+    API_BASE_URL          = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
+    WEB_BASE_URL          = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
+    MOKAID_LOG_GROUPS     = "/ecs/${local.name}-api,/ecs/${local.name}-ai-worker,/ecs/${local.name}-crm"
   }
 
   secrets = {

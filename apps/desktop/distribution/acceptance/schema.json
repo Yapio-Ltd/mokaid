@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reviewed Mokaid desktop release acceptance",
+  "type": "object",
+  "required": ["schemaVersion", "version", "channel", "sourceCommit", "artifacts", "approvedBy", "approvedAt", "checks"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "version": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-beta\\.[1-9][0-9]*)?$"},
+    "channel": {"enum": ["stable", "beta"]},
+    "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "artifacts": {
+      "type": "object", "required": ["macos-arm64", "windows-x64"], "additionalProperties": false,
+      "properties": {
+        "macos-arm64": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "windows-x64": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "approvedBy": {"type": "string", "minLength": 3},
+    "approvedAt": {"type": "string", "format": "date-time"},
+    "checks": {
+      "type": "array", "minItems": 12, "maxItems": 12,
+      "items": {
+        "type": "object", "required": ["id", "status", "evidence"],
+        "properties": {
+          "id": {"enum": ["client-17-screen-parity", "admin-15-screen-parity", "office-avatar-visual-parity", "auth-isolation-reconnection", "html-sandbox-recovery-accessibility", "macos-clean-install-signed-upgrade", "windows-clean-install-signed-upgrade", "update-failure-recovery", "mac-m1-8gb-performance", "intel-iris-xe-16gb-performance", "nvidia-performance", "dependency-and-asset-licenses"]},
+          "status": {"const": "passed"},
+          "evidence": {"type": "string", "format": "uri", "pattern": "^https://"}
+        }
+      }
+    }
+  },
+  "$comment": "release.py additionally requires each check exactly once and verifies candidate signatures, exact installer hashes, source/channel consistency, evidence URLs and approval time. The template is intentionally invalid until real acceptance is complete."
+}

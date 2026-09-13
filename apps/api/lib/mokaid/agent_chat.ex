@@ -185,6 +185,28 @@ defmodule Mokaid.AgentChat do
     |> Enum.reverse()
   end
 
+  @doc "Reads a conversation only when it belongs to the requested workspace and agent."
+  def list_scoped_conversation_messages(workspace_id, agent_id, conversation_id) do
+    with {:ok, conversation_id} <- Ecto.UUID.cast(conversation_id),
+         %Conversation{agent_id: ^agent_id} <- get_conversation(workspace_id, conversation_id) do
+      messages =
+        Repo.all(
+          from m in ChatMessage,
+            where:
+              m.workspace_id == ^workspace_id and m.agent_id == ^agent_id and
+                m.conversation_id == ^conversation_id,
+            order_by: [desc: m.inserted_at],
+            limit: @history_limit,
+            preload: [author_member: :user]
+        )
+        |> Enum.reverse()
+
+      {:ok, messages}
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
   @doc """
   Member sends a message to an agent. Inserts, broadcasts, marks the sender's
   own cursor as read, and then decides what the agent does:

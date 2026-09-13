@@ -7,6 +7,7 @@
     "dev": "NODE_OPTIONS='--max-http-header-size=65536' vite",
     "build": "vite build",
     "prerender": "node scripts/prerender.mjs",
+    "test:seo": "node --test scripts/prerender-policy.test.mjs",
     "build:seo": "vite build && node scripts/prerender.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",

@@ -9,16 +9,12 @@ defmodule MokaidWeb.Plugs.Authenticate do
   import Plug.Conn
   import Phoenix.Controller, only: [json: 2]
 
-  alias Mokaid.Accounts
-  alias Mokaid.Accounts.User
-
   def init(opts), do: opts
 
   def call(conn, _opts) do
     with ["Bearer " <> token] <- get_req_header(conn, "authorization"),
-         {:ok, user} <- resolve_user(token),
-         :ok <- ensure_active(user) do
-      assign(conn, :current_user, user)
+         {:ok, user, metadata} <- Mokaid.Auth.Session.authenticate(token) do
+      conn |> assign(:current_user, user) |> assign(:auth_session, metadata)
     else
       {:error, :inactive} ->
         conn
@@ -36,30 +32,6 @@ defmodule MokaidWeb.Plugs.Authenticate do
         |> put_status(:unauthorized)
         |> json(%{error: %{code: "unauthorized", message: "Invalid or missing token"}})
         |> halt()
-    end
-  end
-
-  defp ensure_active(%User{} = user) do
-    if User.active?(user), do: :ok, else: {:error, :inactive}
-  end
-
-  defp ensure_active(_), do: {:error, :inactive}
-
-  defp resolve_user(token) do
-    case Application.fetch_env!(:mokaid, :auth)[:mode] do
-      :cognito ->
-        with {:ok, claims} <- Mokaid.Auth.Cognito.verify_token(token) do
-          Accounts.upsert_from_cognito(claims)
-        end
-
-      :dev_fallback ->
-        with {:ok, user_id} <- Mokaid.Auth.Token.verify(token),
-             %{} = user <- Accounts.get_user(user_id) do
-          {:ok, user}
-        else
-          nil -> {:error, :not_found}
-          error -> error
-        end
     end
   end
 end

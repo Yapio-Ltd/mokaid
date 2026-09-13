@@ -1,0 +1,8 @@
+add_executable(mokaid_engine_tests engine_tests.cpp)
+target_link_libraries(mokaid_engine_tests PRIVATE mokaid_engine)
+add_test(NAME desktop.engine COMMAND mokaid_engine_tests)
+set_tests_properties(desktop.engine PROPERTIES TIMEOUT 30)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../../build/assets/office.mokaidasset")
+  add_test(NAME desktop.real_assets COMMAND mokaid_engine_tests "${CMAKE_CURRENT_SOURCE_DIR}/../../build/assets")
+  set_tests_properties(desktop.real_assets PROPERTIES TIMEOUT 60)
+endif()

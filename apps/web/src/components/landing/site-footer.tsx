@@ -6,6 +6,7 @@ import {
   Bot,
   Building2,
   Cookie,
+  Download,
   GitCompare,
   Handshake,
   Lightbulb,
@@ -56,28 +57,29 @@ export function SiteFooter() {
               {
                 name: "Product",
                 Icon: Blocks,
-                href: "#product",
+                href: "/#product",
               },
               {
                 name: "Agents",
                 Icon: Bot,
-                href: "#agents",
+                href: "/#agents",
               },
               {
                 name: "Connectors",
                 Icon: Webhook,
-                href: "#connectors",
+                href: "/#connectors",
               },
               {
                 name: "Why mokaid",
                 Icon: Sparkles,
-                href: "#why",
+                href: "/#why",
               },
               {
                 name: "Pricing",
                 Icon: BadgeDollarSign,
                 href: "/pricing",
               },
+              { name: "Download desktop", Icon: Download, href: "/download" },
             ],
           },
           {

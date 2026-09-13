@@ -252,8 +252,15 @@ resource "aws_ecs_service" "this" {
   deployment_minimum_healthy_percent = 100
   deployment_maximum_percent         = 200
 
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
   lifecycle {
-    ignore_changes = [desired_count]
+    # CI owns immutable application revisions; infrastructure applies must not
+    # silently roll back a successfully deployed image to an old Terraform tag.
+    ignore_changes = [desired_count, task_definition]
   }
 
   tags = var.tags

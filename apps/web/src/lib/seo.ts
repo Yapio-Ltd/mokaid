@@ -1,4 +1,5 @@
 /** Site-wide SEO constants and JSON-LD builders for the public marketing pages. */
+import { DESKTOP_ONLY_WEB } from "@/lib/desktop-rollout";
 
 export const SITE = {
   name: "mokaid",
@@ -37,7 +38,7 @@ export const SOFTWARE_JSONLD = {
   "@id": `${SITE.url}/#software`,
   name: "mokaid",
   applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
+  operatingSystem: DESKTOP_ONLY_WEB ? "macOS 13 or later (Apple Silicon), Windows 11 (x64)" : "Web",
   url: SITE.url,
   description:
     "AI Workforce OS: hire autonomous AI employees — SDRs, marketers, developers, assistants — and watch them work in a real-time 3D virtual office with tasks, approvals, and full audit trails.",

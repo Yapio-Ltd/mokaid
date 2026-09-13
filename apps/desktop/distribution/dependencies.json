@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "qt": "6.11.2",
+  "sparkle": {
+    "version": "2.9.6",
+    "url": "https://github.com/sparkle-project/Sparkle/releases/download/2.9.6/Sparkle-2.9.6.tar.xz",
+    "sha256": "52bf9e88cdd972fc0c81501377a880e90d47031bd8ca5462488f843e2609e192"
+  },
+  "dxc": {
+    "version": "1.9.2607",
+    "url": "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2607/dxc_2026_07_29.zip",
+    "sha256": "a1dfb116ba3eeae6a1582291b53a8e7bf65ad760676bd3194685c8f7367cd241"
+  },
+  "winsparkle": {
+    "version": "0.9.4",
+    "url": "https://github.com/vslavik/winsparkle/releases/download/v0.9.4/WinSparkle-0.9.4.zip",
+    "sha256": "6037df37fc263bd1650a1c4949681a9d40ffe991d01f35892a406cb5d103c976"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "./schema.json",
+  "schemaVersion": 1,
+  "version": "",
+  "channel": "stable",
+  "sourceCommit": "",
+  "artifacts": {"macos-arm64": "", "windows-x64": ""},
+  "approvedBy": "",
+  "approvedAt": "",
+  "checks": [
+    {"id": "client-17-screen-parity", "status": "not_run", "evidence": ""},
+    {"id": "admin-15-screen-parity", "status": "not_run", "evidence": ""},
+    {"id": "office-avatar-visual-parity", "status": "not_run", "evidence": ""},
+    {"id": "auth-isolation-reconnection", "status": "not_run", "evidence": ""},
+    {"id": "html-sandbox-recovery-accessibility", "status": "not_run", "evidence": ""},
+    {"id": "macos-clean-install-signed-upgrade", "status": "not_run", "evidence": ""},
+    {"id": "windows-clean-install-signed-upgrade", "status": "not_run", "evidence": ""},
+    {"id": "update-failure-recovery", "status": "not_run", "evidence": ""},
+    {"id": "mac-m1-8gb-performance", "status": "not_run", "evidence": ""},
+    {"id": "intel-iris-xe-16gb-performance", "status": "not_run", "evidence": ""},
+    {"id": "nvidia-performance", "status": "not_run", "evidence": ""},
+    {"id": "dependency-and-asset-licenses", "status": "not_run", "evidence": ""}
+  ]
+}

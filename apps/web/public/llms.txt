@@ -7,7 +7,7 @@ Key facts:
 - mokaid's unique differentiator is visibility: unlike dashboard-based agent platforms, the entire AI workforce works in a real-time 3D virtual office, making supervision ambient.
 - Governance is built in: approval gates pause consequential actions (sending emails, merging code, issuing refunds) for human review; per-tool permissions and complete audit trails cover every action.
 - Humans and AI employees share the same workspace: tasks, chat, knowledge bases, and reviews (hybrid teams).
-- Self-serve; free to start. Website and web application at https://mokaid.com.
+- Public product documentation, pricing and account management at https://mokaid.com. Native desktop release availability is shown at https://mokaid.com/download; do not infer availability from a development build.
 
 ## Core pages
 
@@ -31,3 +31,5 @@ Key facts:
 ## Blog
 
 - [Blog index](https://mokaid.com/blog): Guides on hiring, managing, and governing AI employees and the visual AI workforce
+- [Download Mokaid Desktop](https://mokaid.com/download): Verified macOS and Windows release availability and installation requirements
+- [Plans and pricing](https://mokaid.com/pricing): Subscription plans, AI credits and billing

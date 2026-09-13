@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "repository": "Yapio-Ltd/mokaid",
+  "default_branch": "main",
+  "reviewer": {"login": "Tomyshh", "id": 113070134},
+  "repository_variables": {
+    "AWS_DEPLOY_ROLE_ARN": "arn:aws:iam::660601648321:role/mokaid-github-deploy",
+    "MOKAID_DESKTOP_ONLY": "false"
+  },
+  "environments": {
+    "prod": {
+      "refs": [{"type": "branch", "name": "main"}, {"type": "branch", "name": "prod"}],
+      "require_reviewer": false,
+      "prevent_self_review": false,
+      "wait_timer": 0,
+      "variables": {"MOKAID_DESKTOP_ONLY": "false"}
+    },
+    "desktop-signing-stable": {
+      "refs": [{"type": "tag", "name": "desktop-v*"}],
+      "require_reviewer": true,
+      "prevent_self_review": false,
+      "wait_timer": 0,
+      "variables": {
+        "MOKAID_AWS_REGION": "il-central-1",
+        "MOKAID_SIGNING_AWS_ROLE_ARN": null,
+        "MOKAID_MACOS_SIGNING_SECRET_ARN": "arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid/desktop/stable/macos-signing-8pPQkT",
+        "MOKAID_WINDOWS_SIGNING_SECRET_ARN": null,
+        "MOKAID_UPDATE_PUBLIC_KEY": null
+      }
+    },
+    "desktop-signing-beta": {
+      "refs": [{"type": "tag", "name": "desktop-v*"}],
+      "require_reviewer": true,
+      "prevent_self_review": false,
+      "wait_timer": 0,
+      "variables": {
+        "MOKAID_AWS_REGION": "il-central-1",
+        "MOKAID_SIGNING_AWS_ROLE_ARN": null,
+        "MOKAID_MACOS_SIGNING_SECRET_ARN": null,
+        "MOKAID_WINDOWS_SIGNING_SECRET_ARN": null,
+        "MOKAID_UPDATE_PUBLIC_KEY": null
+      }
+    },
+    "desktop-public-stable": {
+      "refs": [{"type": "branch", "name": "main"}],
+      "require_reviewer": true,
+      "prevent_self_review": false,
+      "wait_timer": 0,
+      "variables": {
+        "MOKAID_AWS_REGION": "il-central-1",
+        "MOKAID_PUBLISH_AWS_ROLE_ARN": null,
+        "MOKAID_DOWNLOADS_BUCKET": null,
+        "MOKAID_DOWNLOADS_DISTRIBUTION_ID": null,
+        "MOKAID_UPDATE_PUBLIC_KEY": null
+      }
+    },
+    "desktop-public-beta": {
+      "refs": [{"type": "branch", "name": "main"}],
+      "require_reviewer": true,
+      "prevent_self_review": false,
+      "wait_timer": 0,
+      "variables": {
+        "MOKAID_AWS_REGION": "il-central-1",
+        "MOKAID_PUBLISH_AWS_ROLE_ARN": null,
+        "MOKAID_DOWNLOADS_BUCKET": null,
+        "MOKAID_DOWNLOADS_DISTRIBUTION_ID": null,
+        "MOKAID_UPDATE_PUBLIC_KEY": null
+      }
+    }
+  }
+}

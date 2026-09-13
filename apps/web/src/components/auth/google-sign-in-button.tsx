@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { apiFetch } from "@/api/client";
 import { GoogleLogo } from "@/components/brand/google-logo";
+import { authReturnFromSearch } from "@/lib/desktop-rollout";
 
 interface GoogleSignInButtonProps {
   intent?: "login" | "signup";
@@ -23,15 +24,14 @@ export function GoogleSignInButton({
   onError,
 }: GoogleSignInButtonProps) {
   const [loading, setLoading] = useState(false);
-  const text =
-    label ?? (intent === "signup" ? "Continue with Google" : "Sign in with Google");
+  const text = label ?? (intent === "signup" ? "Continue with Google" : "Sign in with Google");
 
   const start = async () => {
     setLoading(true);
     try {
       const redirectUri = googleAuthRedirectUri();
       sessionStorage.setItem("google_auth_intent", intent);
-      sessionStorage.setItem("google_auth_return", window.location.pathname);
+      sessionStorage.setItem("google_auth_return", authReturnFromSearch(window.location.search));
 
       const res = await apiFetch<{ data: { authorize_url: string } }>("/api/auth/google/start", {
         method: "POST",

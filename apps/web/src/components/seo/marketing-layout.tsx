@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { useAuthStore } from "@/stores/auth-store";
 import type { BreadcrumbItem, FaqItem } from "@/lib/seo";
+import { accountEntryPath, DESKTOP_ONLY_WEB } from "@/lib/desktop-rollout";
 
 const navLinks = [
   { href: "/ai-employees", label: "AI Employees" },
   { href: "/use-cases", label: "Use Cases" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/download", label: "Download" },
   { href: "/compare", label: "Compare" },
   { href: "/blog", label: "Blog" },
   { href: "/glossary", label: "Glossary" },
@@ -79,9 +81,9 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center justify-end gap-1.5 sm:gap-2.5">
             {token ? (
-              <Link to="/dashboard">
+              <Link to={accountEntryPath()}>
                 <Button size="sm" className="min-h-9 px-3.5 sm:min-h-9">
-                  Open app <ArrowRight size={14} />
+                  {DESKTOP_ONLY_WEB ? "My account" : "Open app"} <ArrowRight size={14} />
                 </Button>
               </Link>
             ) : (
@@ -211,9 +213,9 @@ export function CtaBanner({
         <h2 className="mk-seo-display text-2xl font-bold sm:text-3xl">{heading}</h2>
         <p className="mx-auto mt-3 max-w-xl text-text-secondary">{body}</p>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-          <Link to="/signup">
+          <Link to={DESKTOP_ONLY_WEB ? "/download" : "/signup"}>
             <Button className="min-h-11 px-6 shadow-glow">
-              Get started free <ArrowRight size={15} />
+              {DESKTOP_ONLY_WEB ? "Download Mokaid" : "Get started free"} <ArrowRight size={15} />
             </Button>
           </Link>
           <Link to="/">

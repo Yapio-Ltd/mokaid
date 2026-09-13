@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/stores/auth-store";
+import { accountEntryPath, safeAuthReturn } from "@/lib/desktop-rollout";
 
 const RETURN_KEY = "oauth_return_to";
 const STEP_KEY = "onboarding_restore_step";
@@ -10,10 +11,10 @@ export function setOauthReturn(path: string, onboardingStep?: number) {
   }
 }
 
-export function consumeOauthReturn(fallback = "/dashboard"): string {
+export function consumeOauthReturn(fallback = accountEntryPath()): string {
   const path = sessionStorage.getItem(RETURN_KEY) ?? fallback;
   sessionStorage.removeItem(RETURN_KEY);
-  return path;
+  return safeAuthReturn(path);
 }
 
 export function consumeOnboardingRestoreStep(): number | null {

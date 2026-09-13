@@ -26,18 +26,19 @@ defmodule MokaidWeb.AgentChatController do
 
   def show(conn, %{"agent_id" => agent_id} = params) do
     with :ok <- Permissions.authorize(current_member(conn), "agents.view"),
-         %{} = _agent <- Agents.get_agent(workspace_id(conn), agent_id) do
-      messages =
-        case params["conversation_id"] do
-          conv_id when is_binary(conv_id) and conv_id != "" ->
-            AgentChat.list_messages_for_conversation(conv_id)
-
-          _ ->
-            AgentChat.list_messages(workspace_id(conn), agent_id)
-        end
-
+         %{} = _agent <- Agents.get_agent(workspace_id(conn), agent_id),
+         {:ok, messages} <- messages_for_request(workspace_id(conn), agent_id, params) do
       json(conn, %{data: Enum.map(messages, &Serializer.agent_chat_message/1)})
     end
+  end
+
+  defp messages_for_request(workspace_id, agent_id, %{"conversation_id" => id})
+       when is_binary(id) and id != "" do
+    AgentChat.list_scoped_conversation_messages(workspace_id, agent_id, id)
+  end
+
+  defp messages_for_request(workspace_id, agent_id, _params) do
+    {:ok, AgentChat.list_messages(workspace_id, agent_id)}
   end
 
   def create(conn, %{"agent_id" => agent_id} = params) do

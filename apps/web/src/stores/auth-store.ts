@@ -1,10 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-/** Dynamic import — never pull Babylon into the auth/landing entry graph. */
-function disposeOfficeHostLazy() {
-  void import("@/three/office-scene-host").then((m) => m.disposeOfficeHost());
-}
+import { disposeOfficeIfLoaded } from "@/lib/office-lifecycle";
 
 export interface AuthUser {
   id: string;
@@ -36,11 +32,7 @@ interface AuthState {
   workspaces: WorkspaceSummary[];
   setSession: (token: string, user: AuthUser) => void;
   /** Atomically set auth + workspaces so a stale workspaceId from another account never leaks. */
-  establishSession: (
-    token: string,
-    user: AuthUser,
-    workspaces: WorkspaceSummary[],
-  ) => void;
+  establishSession: (token: string, user: AuthUser, workspaces: WorkspaceSummary[]) => void;
   patchUser: (patch: Partial<AuthUser>) => void;
   setWorkspaces: (workspaces: WorkspaceSummary[]) => void;
   selectWorkspace: (id: string) => void;
@@ -69,7 +61,7 @@ export const useAuthStore = create<AuthState>()(
         const prevWorkspace = get().workspaceId;
         const nextWorkspace = pickWorkspaceId(workspaces, prevWorkspace);
         if (prevWorkspace && nextWorkspace && prevWorkspace !== nextWorkspace) {
-          disposeOfficeHostLazy();
+          disposeOfficeIfLoaded();
         }
         set({
           token,
@@ -88,7 +80,7 @@ export const useAuthStore = create<AuthState>()(
       selectWorkspace: (id) => {
         // Drop the WebGL context when switching workspaces so seats/POIs remount cleanly.
         const prev = get().workspaceId;
-        if (prev && prev !== id) disposeOfficeHostLazy();
+        if (prev && prev !== id) disposeOfficeIfLoaded();
         set({ workspaceId: id });
       },
       addWorkspace: (workspace) =>
@@ -98,7 +90,7 @@ export const useAuthStore = create<AuthState>()(
           workspaces: state.workspaces.map((w) => (w.id === id ? { ...w, ...patch } : w)),
         })),
       logout: () => {
-        disposeOfficeHostLazy();
+        disposeOfficeIfLoaded();
         set({ token: null, user: null, workspaceId: null, workspaces: [] });
       },
     }),

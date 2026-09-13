@@ -1,0 +1,10 @@
+add_library(mokaid_preview STATIC preview_controller.cpp
+    include/mokaid/preview/preview_controller.hpp include/mokaid/preview/resource_policy.hpp)
+target_include_directories(mokaid_preview PUBLIC include)
+target_link_libraries(mokaid_preview PUBLIC Qt6::Core Qt6::WebEngineQuick mokaid_application PRIVATE Qt6::Gui mokaid_options)
+if(BUILD_TESTING)
+  qt_add_executable(mokaid_preview_policy_tests tests/resource_policy_tests.cpp)
+  target_include_directories(mokaid_preview_policy_tests PRIVATE include)
+  target_link_libraries(mokaid_preview_policy_tests PRIVATE Qt6::Core Qt6::Test)
+  add_test(NAME preview_resource_policy COMMAND mokaid_preview_policy_tests)
+endif()

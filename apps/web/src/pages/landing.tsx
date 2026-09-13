@@ -15,6 +15,7 @@ import { useSeo } from "@/lib/use-seo";
 import { useSmoothScroll } from "@/lib/use-smooth-scroll";
 import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
+import { accountEntryPath, DESKTOP_ONLY_WEB } from "@/lib/desktop-rollout";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -292,9 +293,9 @@ export function LandingPage() {
 
           <div className="flex items-center justify-end gap-1.5 sm:gap-2.5">
             {token ? (
-              <Link to="/dashboard">
+              <Link to={accountEntryPath()}>
                 <Button size="sm" className="min-h-9 px-3.5 sm:min-h-9">
-                  Open app <ArrowRight size={14} />
+                  {DESKTOP_ONLY_WEB ? "My account" : "Open app"} <ArrowRight size={14} />
                 </Button>
               </Link>
             ) : (

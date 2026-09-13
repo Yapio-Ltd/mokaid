@@ -1,0 +1,14 @@
+add_library(mokaid_application STATIC session_controller.cpp office_controller.cpp artifact_service.cpp activity_controller.cpp
+    include/mokaid/application/session_controller.hpp include/mokaid/application/office_controller.hpp include/mokaid/application/artifact_service.hpp
+    include/mokaid/application/activity_controller.hpp)
+target_include_directories(mokaid_application PUBLIC include)
+target_link_libraries(mokaid_application PUBLIC mokaid_network mokaid_platform mokaid_storage PRIVATE Qt6::Gui mokaid_options)
+add_subdirectory(features)
+if(BUILD_TESTING)
+  qt_add_executable(mokaid_activity_tests ../tests/activity_tests.cpp)
+  target_link_libraries(mokaid_activity_tests PRIVATE mokaid_application Qt6::Test mokaid_options)
+  add_test(NAME desktop-activity-contracts COMMAND mokaid_activity_tests)
+  qt_add_executable(mokaid_authorization_policy_tests ../tests/authorization_policy_tests.cpp)
+  target_link_libraries(mokaid_authorization_policy_tests PRIVATE mokaid_application Qt6::Test mokaid_options)
+  add_test(NAME desktop-authorization-policy COMMAND mokaid_authorization_policy_tests)
+endif()

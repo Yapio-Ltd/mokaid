@@ -1,0 +1,1 @@
+{"name":"mokaid-desktop-asset-cooker","private":true,"type":"module","scripts":{"cook":"node cook.mjs","test":"node --test source-policy.test.mjs"},"dependencies":{"@gltf-transform/core":"4.2.1","@gltf-transform/extensions":"4.2.1","draco3dgltf":"1.5.7","sharp":"0.34.3"},"engines":{"node":">=20"}}

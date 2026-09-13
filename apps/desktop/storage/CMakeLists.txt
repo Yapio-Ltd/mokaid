@@ -1,0 +1,8 @@
+add_library(mokaid_storage STATIC cache_store.cpp include/mokaid/storage/cache_store.hpp)
+target_include_directories(mokaid_storage PUBLIC include)
+target_link_libraries(mokaid_storage PUBLIC Qt6::Core PRIVATE Qt6::Sql mokaid_options)
+if(BUILD_TESTING)
+  qt_add_executable(mokaid_cache_tests tests/cache_tests.cpp)
+  target_link_libraries(mokaid_cache_tests PRIVATE mokaid_storage Qt6::Test mokaid_options)
+  add_test(NAME desktop-cache-budget COMMAND mokaid_cache_tests)
+endif()

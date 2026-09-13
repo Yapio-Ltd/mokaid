@@ -10,6 +10,8 @@ export interface SeoOptions {
   ogImage?: string;
   /** Extra JSON-LD objects. Organization is always included. */
   jsonLd?: object[];
+  /** Authenticated/account/error views must never be indexed. */
+  noindex?: boolean;
   articleMeta?: { publishedTime: string; modifiedTime?: string };
 }
 
@@ -34,7 +36,7 @@ function removeMeta(attr: "name" | "property", key: string) {
  * search engines and social crawlers see.
  */
 export function useSeo(options: SeoOptions) {
-  const { title, description, path, ogType = "website", ogImage = SITE.ogImage } = options;
+  const { title, description, path, ogType = "website", ogImage = SITE.ogImage, noindex = false } = options;
   // Serialize for the dependency array: options object identity changes every render.
   const jsonLdSerialized = JSON.stringify([ORGANIZATION_JSONLD, ...(options.jsonLd ?? [])]);
   const articleSerialized = JSON.stringify(options.articleMeta ?? null);
@@ -44,6 +46,7 @@ export function useSeo(options: SeoOptions) {
 
     document.title = title;
     upsertMeta("name", "description", description);
+    upsertMeta("name", "robots", noindex ? "noindex, nofollow" : "index, follow, max-image-preview:large");
 
     let link = document.head.querySelector('link[rel="canonical"]');
     if (!link) {
@@ -72,6 +75,8 @@ export function useSeo(options: SeoOptions) {
       upsertMeta("property", "article:published_time", articleMeta.publishedTime);
       if (articleMeta.modifiedTime) {
         upsertMeta("property", "article:modified_time", articleMeta.modifiedTime);
+      } else {
+        removeMeta("property", "article:modified_time");
       }
     } else {
       removeMeta("property", "article:published_time");
@@ -83,8 +88,9 @@ export function useSeo(options: SeoOptions) {
       const script = document.createElement("script");
       script.type = "application/ld+json";
       script.setAttribute("data-seo-jsonld", "");
-      script.textContent = JSON.stringify(obj);
+      // Safe when page.content() is persisted as raw HTML by the SSG build.
+      script.textContent = JSON.stringify(obj).replace(/</g, "\\u003c");
       document.head.appendChild(script);
     }
-  }, [title, description, path, ogType, ogImage, jsonLdSerialized, articleSerialized]);
+  }, [title, description, path, ogType, ogImage, noindex, jsonLdSerialized, articleSerialized]);
 }

@@ -1,0 +1,9 @@
+# Runtime-only builds explicitly include dist, excluded by the root context.
+**
+!apps
+!apps/web
+!apps/web/dist
+!apps/web/dist/**
+!infra
+!infra/docker
+!infra/docker/nginx.conf

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Isolated HTML graphics fixture</title>
+<style>
+body{font:16px system-ui,sans-serif;margin:0;padding:28px;background:#fff;color:#17202f}h1{font-size:26px;line-height:1.1}.tag{font-size:11px;letter-spacing:.12em;color:#6248d5}label{display:block;margin:26px 0 8px}textarea{box-sizing:border-box;width:100%;min-height:115px;padding:12px;border:1px solid #8589a1;border-radius:8px;font:inherit}button{margin:15px 0;padding:12px 18px;background:#6248d5;color:white;border:0;border-radius:8px;font:inherit}#result{background:#edf8f0;padding:14px;border-radius:8px;font-size:13px}small{color:#656a78;display:block;margin-top:25px}
+</style>
+<p class="tag">TEST FIXTURE · NO WORKSPACE DATA</p><h1>HTML and native 3D together</h1>
+<p>This document uses the production isolated preview profile.</p>
+<form><label for="draft">Protected draft</label><textarea id="draft" placeholder="A draft must survive hide and resize"></textarea>
+<button type="button" id="action">Run JavaScript action</button></form>
+<p id="result">Checking document restrictions…</p>
+<small>No account, API session or native JavaScript bridge is exposed here.</small>
+<script>
+globalThis.__probeState = {ready:true, clicks:0, fileBlocked:null, apiBlocked:null, apiCspBlocked:false};
+addEventListener('securitypolicyviolation',event=>{
+  if(event.effectiveDirective==='connect-src' && event.blockedURI.startsWith('https://api.mokaid.invalid')) globalThis.__probeState.apiCspBlocked=true;
+});
+document.querySelector('#action').addEventListener('click',()=>{globalThis.__probeState.clicks++;render()});
+function render(){document.querySelector('#result').textContent = 'Clicks: '+globalThis.__probeState.clicks+' · file blocked: '+globalThis.__probeState.fileBlocked+' · API blocked: '+globalThis.__probeState.apiBlocked}
+async function denied(url){try{await fetch(url);return false}catch{return true}}
+// The native harness supplies an existing harmless temporary file, so denial
+// cannot be mistaken for a missing file. The API host is reserved .invalid; the
+// test also requires an actual connect-src CSP violation, not a DNS failure.
+Promise.all([denied(LOCAL_FILE_URL),denied('https://api.mokaid.invalid/api/desktop/auth/session')]).then(([fileBlocked,apiBlocked])=>{Object.assign(globalThis.__probeState,{fileBlocked,apiBlocked});render()});
+</script></html>

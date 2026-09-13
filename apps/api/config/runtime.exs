@@ -1,5 +1,19 @@
 import Config
 
+# OFF until signed installers and their update channel are publicly available.
+# Invalid rollout values fail explicitly rather than accidentally restricting users.
+desktop_only_business =
+  case System.get_env("MOKAID_DESKTOP_ONLY_BUSINESS", "false") do
+    "true" -> true
+    "false" -> false
+    _ -> raise "MOKAID_DESKTOP_ONLY_BUSINESS must be true or false"
+  end
+
+config :mokaid, :desktop_only_business, desktop_only_business
+
+config :mokaid, :desktop_auth,
+  web_base_url: System.get_env("DESKTOP_AUTH_WEB_BASE_URL") || "https://mokaid.com"
+
 if System.get_env("PHX_SERVER") do
   config :mokaid, MokaidWeb.Endpoint, server: true
 end

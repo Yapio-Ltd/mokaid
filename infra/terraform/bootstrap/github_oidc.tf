@@ -110,15 +110,30 @@ data "aws_iam_policy_document" "github_deploy" {
     resources = [
       "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/mokaid-*",
     ]
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["ecs-tasks.amazonaws.com"]
+    }
   }
 
   statement {
-    sid    = "EcsRunTask"
-    effect = "Allow"
-    actions = [
-      "iam:GetRole",
-    ]
-    resources = ["*"]
+    sid       = "StopTimedOutMigration"
+    effect    = "Allow"
+    actions   = ["ecs:StopTask"]
+    resources = ["arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task/mokaid-prod/*"]
+  }
+
+  statement {
+    sid       = "PreserveTaskDefinitionTags"
+    effect    = "Allow"
+    actions   = ["ecs:TagResource"]
+    resources = ["arn:aws:ecs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:task-definition/mokaid-prod-*:*"]
+    condition {
+      test     = "StringEquals"
+      variable = "ecs:CreateAction"
+      values   = ["RegisterTaskDefinition"]
+    }
   }
 }
 

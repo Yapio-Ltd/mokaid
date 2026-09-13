@@ -1,0 +1,46 @@
+name: Desktop Infrastructure Validation
+
+on:
+  pull_request:
+    paths: ['infra/terraform/modules/desktop-downloads/**', 'infra/terraform/environments/prod/**', '.github/workflows/desktop-infrastructure.yml']
+  push:
+    branches: [prod]
+    paths: ['infra/terraform/modules/desktop-downloads/**', 'infra/terraform/environments/prod/**', '.github/workflows/desktop-infrastructure.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      TF_IN_AUTOMATION: 'true'
+      AWS_EC2_METADATA_DISABLED: 'true'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with: { persist-credentials: false }
+      - name: Guard the tracked non-secret production rollout switches
+        run: python3 -m unittest discover -s apps/desktop/distribution/tests -p test_ci.py -k production_rollout -v
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with: { terraform_version: '1.15.7' }
+      - uses: terraform-linters/setup-tflint@90f302c255ef959cbfb4bd10581afecdb7ece3e6 # v4.1.1
+        with: { tflint_version: 'v0.55.1' }
+      - name: Validate the native distribution module with a mocked AWS provider
+        working-directory: infra/terraform/modules/desktop-downloads
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false
+          terraform validate
+          tflint --init
+          tflint
+          terraform test -no-color
+      - name: Validate integration with production without a backend or credentials
+        working-directory: infra/terraform/environments/prod
+        env:
+          TF_DATA_DIR: ${{ runner.temp }}/desktop-prod-terraform-validation
+        run: |
+          terraform fmt -check desktop_downloads.tf
+          terraform init -backend=false -input=false -lockfile=readonly
+          terraform validate

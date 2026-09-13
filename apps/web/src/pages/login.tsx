@@ -10,6 +10,8 @@ import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { useQueryClient } from "@tanstack/react-query";
+import { authReturnFromSearch, DESKTOP_ONLY_WEB, localNavigation } from "@/lib/desktop-rollout";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -32,6 +34,7 @@ interface LoginResponse {
 interface MeResponse {
   user: LoginResponse["user"];
   workspaces: Array<{ id: string; name: string; slug: string; logo_url: string | null }>;
+  client_policy?: { desktop_only_business?: boolean };
 }
 
 const agentCards = [
@@ -66,6 +69,8 @@ const agentCards = [
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const returnTo = new URLSearchParams(window.location.search).get("returnTo") ?? undefined;
   const establishSession = useAuthStore((s) => s.establishSession);
   const [error, setError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -85,7 +90,11 @@ export function LoginPage() {
         .timeline({ defaults: { ease: "power3.out" } })
         .from("[data-login-left]", { xPercent: -6, opacity: 0, duration: 0.7 })
         .from("[data-agent-card]", { y: 26, opacity: 0, stagger: 0.12, duration: 0.55 }, "-=0.3")
-        .from("[data-login-form] > *", { y: 18, opacity: 0, stagger: 0.07, duration: 0.5, clearProps: "opacity,transform" }, "-=0.5");
+        .from(
+          "[data-login-form] > *",
+          { y: 18, opacity: 0, stagger: 0.07, duration: 0.5, clearProps: "opacity,transform" },
+          "-=0.5",
+        );
     }, rootRef);
     return () => ctx.revert();
   }, []);
@@ -98,12 +107,21 @@ export function LoginPage() {
         body: values,
         skipWorkspace: true,
       });
+      await queryClient.cancelQueries();
+      queryClient.clear();
       // Bind the new token before /me so Authorization is correct.
       useAuthStore.getState().setSession(response.token, response.user);
       const me = await apiFetch<MeResponse>("/api/me", { skipWorkspace: true });
       establishSession(response.token, me.user, me.workspaces);
 
-      navigate({ to: "/dashboard" });
+      await navigate(
+        localNavigation(
+          authReturnFromSearch(
+            window.location.search,
+            DESKTOP_ONLY_WEB || me.client_policy?.desktop_only_business === true,
+          ),
+        ),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     }
@@ -112,10 +130,7 @@ export function LoginPage() {
   return (
     <div ref={rootRef} className="flex h-full bg-bg-deep">
       {/* Left panel: the agents */}
-      <div
-        data-login-left
-        className="relative hidden w-[52%] overflow-hidden lg:block"
-      >
+      <div data-login-left className="relative hidden w-[52%] overflow-hidden lg:block">
         <picture className="contents">
           <source srcSet="/desk-illustrations.webp" type="image/webp" />
           <img
@@ -144,7 +159,11 @@ export function LoginPage() {
 
         <div className="relative flex h-full flex-col justify-between p-10">
           <Link to="/" className="mk-focus-ring inline-flex w-fit items-center gap-2.5 rounded-md">
-            <img src="/branding/logo-without-bg.png" alt="mokaid" className="h-9 w-9 object-contain" />
+            <img
+              src="/branding/logo-without-bg.png"
+              alt="mokaid"
+              className="h-9 w-9 object-contain"
+            />
             <span className="text-lg font-bold tracking-tight text-white">mokaid</span>
           </Link>
 
@@ -169,7 +188,9 @@ export function LoginPage() {
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2 text-sm font-semibold text-text">
                         {agent.name}
-                        <span className="text-[11px] font-normal text-text-muted">{agent.role}</span>
+                        <span className="text-[11px] font-normal text-text-muted">
+                          {agent.role}
+                        </span>
                       </span>
                       <span className="block truncate text-xs text-text-secondary">
                         {agent.activity}
@@ -190,8 +211,8 @@ export function LoginPage() {
                 <span className="mk-gradient-text block">at work.</span>
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-                AI agents and human teammates, one office, one flow. Sign in to see what
-                they have been up to.
+                AI agents and human teammates, one office, one flow. Sign in to see what they have
+                been up to.
               </p>
             </div>
           </div>
@@ -204,10 +225,7 @@ export function LoginPage() {
 
       {/* Right panel: the form */}
       <div className="relative flex flex-1 items-center justify-center p-6">
-        <div
-          className="pointer-events-none absolute inset-0 overflow-hidden"
-          aria-hidden
-        >
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
           <div className="absolute -top-40 left-1/2 h-[420px] w-[560px] -translate-x-1/2 rounded-full bg-primary/10 blur-[120px]" />
         </div>
 
@@ -228,7 +246,9 @@ export function LoginPage() {
             <div className="text-center lg:text-left">
               <h1 className="text-[26px] font-bold tracking-tight text-text">Welcome back</h1>
               <p className="mt-1.5 text-sm text-text-muted">
-                Sign in to your workspace and meet your agents.
+                {DESKTOP_ONLY_WEB
+                  ? "Manage your account, billing and desktop access."
+                  : "Sign in to your workspace and meet your agents."}
               </p>
             </div>
           </div>
@@ -300,7 +320,7 @@ export function LoginPage() {
 
           <p className="mt-4 text-center text-xs text-text-muted lg:text-left">
             New to Mokaid?{" "}
-            <Link to="/signup" className="text-primary-light hover:underline">
+            <Link to="/signup" search={{ returnTo }} className="text-primary-light hover:underline">
               Create your workspace
             </Link>
           </p>

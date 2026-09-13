@@ -10,6 +10,7 @@
 import { OFFICE_SCENE_BUILD, OfficeScene } from "./office-scene";
 import { nextRecoveryStep, resetRecoveryState, shouldRebuildOnAttach } from "./office-recovery";
 import type { SceneAgent, SceneCallbacks } from "./types";
+import { registerOfficeCleanup } from "@/lib/office-lifecycle";
 
 /**
  * Bump when collision/socket logic changes so the singleton is recreated.
@@ -634,11 +635,13 @@ export function bindOfficeDebugGlobal() {
 }
 
 bindOfficeDebugGlobal();
+const unregisterOfficeCleanup = registerOfficeCleanup(disposeOfficeHost);
 
 // Hot reload: drop the singleton so the next attach gets fresh collision/socket code.
 // React re-attaches when OFFICE_SCENE_BUILD bumps; office-canvas also re-pushes agents
 // on attach + officeReady so HMR never leaves an empty avatars map.
 if (import.meta.hot) {
+  import.meta.hot.dispose(unregisterOfficeCleanup);
   import.meta.hot.accept(() => {
     disposeOfficeHost();
   });

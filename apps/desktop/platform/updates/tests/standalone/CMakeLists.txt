@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.30)
+project(MokaidUpdaterContract LANGUAGES CXX)
+include(CTest)
+find_package(Qt6 6.11.2 EXACT REQUIRED COMPONENTS Core)
+add_subdirectory(../.. updates)

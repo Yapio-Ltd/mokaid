@@ -100,6 +100,7 @@ defmodule MokaidWeb.AuthController do
 
     json(conn, %{
       user: Serializer.user(user),
+      client_policy: Mokaid.Auth.ClientPolicy.public_settings(),
       workspaces:
         Enum.map(workspaces, fn {workspace, role_name} ->
           workspace |> Serializer.workspace() |> Map.put(:role_name, role_name)

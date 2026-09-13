@@ -5,6 +5,7 @@ import {
   createRouter,
   redirect,
   Outlet,
+  useRouterState,
 } from "@tanstack/react-router";
 import { useAuthStore } from "@/stores/auth-store";
 import { shouldSkipLanding } from "@/lib/session-entry";
@@ -12,6 +13,18 @@ import { CookieConsent } from "@/components/legal/cookie-consent";
 import { LandingPage } from "@/pages/landing";
 import { LoginPage } from "@/pages/login";
 import { SignupPage } from "@/pages/signup";
+import { apiFetch } from "@/api/client";
+import { waitForAuthHydration } from "@/lib/oauth-callback";
+import {
+  ACCOUNT_LINKS,
+  DESKTOP_ONLY_WEB,
+  accountEntryPath,
+  authReturnFromSearch,
+  legacyAccountDestination,
+  localNavigation,
+  safeAuthReturn,
+} from "@/lib/desktop-rollout";
+import { useSeo } from "@/lib/use-seo";
 
 /** Wrap a lazy page so route transitions don't blank the shell without feedback. */
 function lazyPage(loader: () => Promise<{ default: ComponentType }>) {
@@ -31,61 +44,66 @@ function lazyPage(loader: () => Promise<{ default: ComponentType }>) {
   };
 }
 
-const AppShell = lazyPage(() =>
-  import("@/components/layout/app-shell").then((m) => ({ default: m.AppShell })),
-);
+// These literal branches are removed by Rollup in the account-only build.
+// Keeping the import itself inside the branch also excludes Babylon's graph.
+const UnavailableExperience = () => null;
+const AppShell = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/components/layout/app-shell").then((m) => ({ default: m.AppShell })));
 
-const DashboardPage = lazyPage(() =>
-  import("@/pages/dashboard").then((m) => ({ default: m.DashboardPage })),
-);
-const AgentsPage = lazyPage(() =>
-  import("@/pages/agents").then((m) => ({ default: m.AgentsPage })),
-);
-const AgentsNewPage = lazyPage(() =>
-  import("@/pages/agents-new").then((m) => ({ default: m.AgentsNewPage })),
-);
-const AgentTrainingPage = lazyPage(() =>
-  import("@/pages/agent-training").then((m) => ({ default: m.AgentTrainingPage })),
-);
-const AgentDetailPage = lazyPage(() =>
-  import("@/pages/agent-detail").then((m) => ({ default: m.AgentDetailPage })),
-);
-const TasksPage = lazyPage(() =>
-  import("@/pages/tasks").then((m) => ({ default: m.TasksPage })),
-);
-const ProjectsPage = lazyPage(() =>
-  import("@/pages/projects").then((m) => ({ default: m.ProjectsPage })),
-);
-const KnowledgePage = lazyPage(() =>
-  import("@/pages/knowledge").then((m) => ({ default: m.KnowledgePage })),
-);
-const DrivePage = lazyPage(() =>
-  import("@/pages/drive").then((m) => ({ default: m.DrivePage })),
-);
-const CalendarPage = lazyPage(() =>
-  import("@/pages/calendar").then((m) => ({ default: m.CalendarPage })),
-);
-const MailPage = lazyPage(() =>
-  import("@/pages/mail").then((m) => ({ default: m.MailPage })),
-);
-const AnalyticsPage = lazyPage(() =>
-  import("@/pages/analytics").then((m) => ({ default: m.AnalyticsPage })),
-);
-const SettingsPage = lazyPage(() =>
-  import("@/pages/settings").then((m) => ({ default: m.SettingsPage })),
-);
+const DashboardPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/dashboard").then((m) => ({ default: m.DashboardPage })));
+const AgentsPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/agents").then((m) => ({ default: m.AgentsPage })));
+const AgentsNewPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/agents-new").then((m) => ({ default: m.AgentsNewPage })));
+const AgentTrainingPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() =>
+      import("@/pages/agent-training").then((m) => ({ default: m.AgentTrainingPage })),
+    );
+const AgentDetailPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/agent-detail").then((m) => ({ default: m.AgentDetailPage })));
+const TasksPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/tasks").then((m) => ({ default: m.TasksPage })));
+const ProjectsPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/projects").then((m) => ({ default: m.ProjectsPage })));
+const KnowledgePage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/knowledge").then((m) => ({ default: m.KnowledgePage })));
+const DrivePage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/drive").then((m) => ({ default: m.DrivePage })));
+const CalendarPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/calendar").then((m) => ({ default: m.CalendarPage })));
+const MailPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/mail").then((m) => ({ default: m.MailPage })));
+const AnalyticsPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/analytics").then((m) => ({ default: m.AnalyticsPage })));
+const SettingsPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/settings").then((m) => ({ default: m.SettingsPage })));
 const ProfilePage = lazyPage(() =>
   import("@/pages/profile").then((m) => ({ default: m.ProfilePage })),
 );
-const MembersPage = lazyPage(() =>
-  import("@/pages/members").then((m) => ({ default: m.MembersPage })),
-);
-const McpHubPage = lazyPage(() =>
-  import("@/pages/mcp-hub").then((m) => ({ default: m.McpHubPage })),
-);
-const BillingPage = lazyPage(() =>
-  import("@/pages/billing").then((m) => ({ default: m.BillingPage })),
-);
+const MembersPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/members").then((m) => ({ default: m.MembersPage })));
+const McpHubPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/mcp-hub").then((m) => ({ default: m.McpHubPage })));
+const BillingPage = DESKTOP_ONLY_WEB
+  ? UnavailableExperience
+  : lazyPage(() => import("@/pages/billing").then((m) => ({ default: m.BillingPage })));
 const FigmaCallbackPage = lazyPage(() =>
   import("@/pages/figma-callback").then((m) => ({ default: m.FigmaCallbackPage })),
 );
@@ -94,6 +112,12 @@ const GoogleCallbackPage = lazyPage(() =>
 );
 const GoogleAuthCallbackPage = lazyPage(() =>
   import("@/pages/google-auth-callback").then((m) => ({ default: m.GoogleAuthCallbackPage })),
+);
+const DesktopAuthorizePage = lazyPage(() =>
+  import("@/pages/desktop-authorize").then((m) => ({ default: m.DesktopAuthorizePage })),
+);
+const DownloadPage = lazyPage(() =>
+  import("@/pages/download").then((m) => ({ default: m.DownloadPage })),
 );
 const GithubCallbackPage = lazyPage(() =>
   import("@/pages/github-callback").then((m) => ({ default: m.GithubCallbackPage })),
@@ -113,17 +137,25 @@ const MicrosoftCallbackPage = lazyPage(() =>
 const PrivacyPage = lazyPage(() =>
   import("@/pages/privacy").then((m) => ({ default: m.PrivacyPage })),
 );
-const TermsPage = lazyPage(() =>
-  import("@/pages/terms").then((m) => ({ default: m.TermsPage })),
-);
+const TermsPage = lazyPage(() => import("@/pages/terms").then((m) => ({ default: m.TermsPage })));
 const CookiesPage = lazyPage(() =>
   import("@/pages/cookies").then((m) => ({ default: m.CookiesPage })),
 );
-const LegalPage = lazyPage(() =>
-  import("@/pages/legal").then((m) => ({ default: m.LegalPage })),
-);
+const LegalPage = lazyPage(() => import("@/pages/legal").then((m) => ({ default: m.LegalPage })));
 const RefundPage = lazyPage(() =>
   import("@/pages/refund").then((m) => ({ default: m.RefundPage })),
+);
+const AccountShell = lazyPage(() =>
+  import("@/components/account/account-shell").then((m) => ({ default: m.AccountShell })),
+);
+const AccountPage = lazyPage(() =>
+  import("@/pages/account").then((m) => ({ default: m.AccountPage })),
+);
+const AccountSecurityPage = lazyPage(() =>
+  import("@/pages/account").then((m) => ({ default: m.AccountSecurityPage })),
+);
+const AccountBillingPage = lazyPage(() =>
+  import("@/pages/account-billing").then((m) => ({ default: m.AccountBillingPage })),
 );
 
 // Public SEO/content pages (prerendered post-build for search engines).
@@ -158,9 +190,25 @@ const PricingPage = lazyPage(() =>
   import("@/pages/seo/pricing").then((m) => ({ default: m.PricingPage })),
 );
 
+function PrivateRouteMetadata({ path }: { path: string }) {
+  useSeo({
+    title: "Mokaid account",
+    description: "Manage your Mokaid account securely.",
+    path,
+    noindex: true,
+  });
+  return null;
+}
+
 function RootLayout() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isPrivate =
+    /^\/(account|login|signup|desktop|oauth|auth|dashboard|agents|tasks|projects|knowledge|drive|mail|calendar|analytics|settings|profile|members|integrations|billing)(\/|$)/.test(
+      pathname,
+    );
   return (
     <>
+      {isPrivate && <PrivateRouteMetadata path={pathname} />}
       <Outlet />
       <CookieConsent />
     </>
@@ -169,6 +217,22 @@ function RootLayout() {
 
 const rootRoute = createRootRoute({
   component: RootLayout,
+  errorComponent: () => (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg-deep p-6 text-text">
+      <PrivateRouteMetadata path={window.location.pathname} />
+      <h1 className="text-xl font-semibold">This page could not be loaded</h1>
+      <p className="text-sm text-text-muted">Check your connection and try again.</p>
+      <button
+        className="mk-focus-ring rounded-md bg-primary px-4 py-2 text-white"
+        onClick={() => window.location.reload()}
+      >
+        Try again
+      </button>
+      <a href="/account" className="text-primary-light">
+        Back to account
+      </a>
+    </main>
+  ),
 });
 
 const landingRoute = createRoute({
@@ -176,8 +240,11 @@ const landingRoute = createRoute({
   path: "/",
   component: LandingPage,
   beforeLoad: ({ location }) => {
-    if (shouldSkipLanding(location.searchStr, Boolean(useAuthStore.getState().token))) {
-      throw redirect({ to: "/dashboard" });
+    if (
+      !DESKTOP_ONLY_WEB &&
+      shouldSkipLanding(location.searchStr, Boolean(useAuthStore.getState().token))
+    ) {
+      throw redirect({ to: accountEntryPath() });
     }
   },
 });
@@ -186,20 +253,34 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
   component: LoginPage,
-  beforeLoad: () => {
+  validateSearch: (search: Record<string, unknown>): { returnTo?: string } => ({
+    returnTo: typeof search.returnTo === "string" ? search.returnTo : undefined,
+  }),
+  beforeLoad: async ({ location }) => {
+    await waitForAuthHydration();
     if (useAuthStore.getState().token) {
-      throw redirect({ to: "/dashboard" });
+      throw redirect(localNavigation(authReturnFromSearch(location.searchStr)));
     }
   },
+});
+
+const desktopAuthorizeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/desktop/authorize",
+  component: DesktopAuthorizePage,
 });
 
 const signupRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/signup",
   component: SignupPage,
-  beforeLoad: () => {
+  validateSearch: (search: Record<string, unknown>): { returnTo?: string } => ({
+    returnTo: typeof search.returnTo === "string" ? search.returnTo : undefined,
+  }),
+  beforeLoad: async ({ location }) => {
+    await waitForAuthHydration();
     if (useAuthStore.getState().token) {
-      throw redirect({ to: "/dashboard" });
+      throw redirect(localNavigation(authReturnFromSearch(location.searchStr)));
     }
   },
 });
@@ -208,12 +289,56 @@ const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "app",
   component: AppShell,
-  beforeLoad: () => {
+  beforeLoad: async ({ location }) => {
+    if (DESKTOP_ONLY_WEB)
+      throw redirect({
+        ...localNavigation(legacyAccountDestination(location.pathname, location.searchStr)),
+        replace: true,
+      });
+    await waitForAuthHydration();
     if (!useAuthStore.getState().token) {
-      throw redirect({ to: "/login" });
+      throw redirect({ to: "/login", search: { returnTo: safeAuthReturn(location.href) } });
+    }
+    // The server can tighten policy before a cached older web build is replaced.
+    // Check before mounting AppShell, which owns Channels and the 3D renderer.
+    const policy = await apiFetch<{ client_policy?: { desktop_only_business?: boolean } }>(
+      "/api/me",
+      { skipWorkspace: true },
+    );
+    if (policy.client_policy?.desktop_only_business) {
+      throw redirect({
+        ...localNavigation(legacyAccountDestination(location.pathname, location.searchStr)),
+        replace: true,
+      });
     }
   },
 });
+
+const accountRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "account-shell",
+  component: AccountShell,
+  beforeLoad: async ({ location }) => {
+    await waitForAuthHydration();
+    if (!useAuthStore.getState().token)
+      throw redirect({ to: "/login", search: { returnTo: safeAuthReturn(location.href) } });
+  },
+});
+
+const accountRoutes = ACCOUNT_LINKS.map(({ path }) =>
+  createRoute({
+    getParentRoute: () => accountRoute,
+    path,
+    component:
+      path === "/account"
+        ? AccountPage
+        : path === "/account/profile"
+          ? ProfilePage
+          : path === "/account/security"
+            ? AccountSecurityPage
+            : AccountBillingPage,
+  }),
+);
 
 const pages = [
   { path: "/dashboard", component: DashboardPage },
@@ -309,6 +434,12 @@ const privacyRoute = createRoute({
   component: PrivacyPage,
 });
 
+const downloadRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/download",
+  component: DownloadPage,
+});
+
 const termsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/terms",
@@ -357,6 +488,8 @@ const routeTree = rootRoute.addChildren([
   figmaCallbackRoute,
   googleCallbackRoute,
   googleAuthCallbackRoute,
+  desktopAuthorizeRoute,
+  downloadRoute,
   githubCallbackRoute,
   linearCallbackRoute,
   slackCallbackRoute,
@@ -368,6 +501,7 @@ const routeTree = rootRoute.addChildren([
   legalRoute,
   refundRoute,
   ...seoRoutes,
+  accountRoute.addChildren(accountRoutes),
   appRoute.addChildren([...pageRoutes, agentsNewRoute, agentTrainingRoute, agentDetailRoute]),
 ]);
 

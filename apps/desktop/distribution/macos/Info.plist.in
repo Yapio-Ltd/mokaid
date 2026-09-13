@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleExecutable</key><string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
+  <key>CFBundleIdentifier</key><string>@MOKAID_BUNDLE_ID@</string>
+  <key>CFBundleName</key><string>@MOKAID_PRODUCT_NAME@</string>
+  <key>CFBundleDisplayName</key><string>@MOKAID_PRODUCT_NAME@</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleIconFile</key><string>Mokaid.icns</string>
+  <key>CFBundleShortVersionString</key><string>@MOKAID_RELEASE_VERSION@</string>
+  <key>CFBundleVersion</key><string>@MOKAID_BUILD_VERSION@</string>
+  <key>LSMinimumSystemVersion</key><string>13.0</string>
+  <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSPrincipalClass</key><string>NSApplication</string>
+  <key>SUFeedURL</key><string>https://downloads.mokaid.com/@MOKAID_RELEASE_CHANNEL@/macos-arm64.xml</string>
+  <key>SUPublicEDKey</key><string>@MOKAID_UPDATE_PUBLIC_KEY@</string>
+  <key>SUEnableAutomaticChecks</key><@MOKAID_AUTOMATIC_UPDATE_CHECKS@/>
+  <key>SUAutomaticallyUpdate</key><false/>
+  <key>SUSendProfileInfo</key><false/>
+  <key>SUScheduledCheckInterval</key><integer>86400</integer>
+</dict></plist>

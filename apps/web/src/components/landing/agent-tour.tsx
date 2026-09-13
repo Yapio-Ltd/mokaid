@@ -1,12 +1,38 @@
 import { lazy, Suspense, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { DESKTOP_ONLY_WEB } from "@/lib/desktop-rollout";
+import { Avatar } from "@/components/ui/avatar";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const AgentPreview3D = lazy(() =>
-  import("@/three/agent-preview").then((m) => ({ default: m.AgentPreview3D })),
-);
+function StaticAgentPreview({
+  name,
+  color,
+  width,
+  height,
+  className,
+}: {
+  name: string;
+  color: string;
+  width: number;
+  height: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={className}
+      style={{ width, height, display: "flex", alignItems: "center", justifyContent: "center" }}
+    >
+      <Avatar name={name} color={color} size="xl" isAi />
+    </div>
+  );
+}
+
+// Same fallback as the original renderer; account-only builds do not ship WebGL.
+const AgentPreview3D = DESKTOP_ONLY_WEB
+  ? StaticAgentPreview
+  : lazy(() => import("@/three/agent-preview").then((m) => ({ default: m.AgentPreview3D })));
 
 const agents = [
   {
@@ -212,10 +238,7 @@ export function AgentTour() {
         scrub: 0.75,
         anticipatePin: 1,
         onUpdate: (self) => {
-          const i = Math.min(
-            agents.length - 1,
-            Math.floor(self.progress * agents.length * 0.999),
-          );
+          const i = Math.min(agents.length - 1, Math.floor(self.progress * agents.length * 0.999));
           showStop(i);
 
           const local = self.progress * agents.length - i;
@@ -236,7 +259,6 @@ export function AgentTour() {
     }, section);
 
     return () => ctx.revert();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const current = agents[active];
@@ -283,10 +305,7 @@ export function AgentTour() {
                     )}
                   </div>
 
-                  <article
-                    data-agent-panel
-                    className={`mk-agent-tour-copy is-${textSide}`}
-                  >
+                  <article data-agent-panel className={`mk-agent-tour-copy is-${textSide}`}>
                     <p className="mk-agent-tour-domain" data-agent-reveal>
                       {agent.domain}
                     </p>

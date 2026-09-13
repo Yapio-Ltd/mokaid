@@ -2,6 +2,7 @@ import Config
 
 config :mokaid,
   ecto_repos: [Mokaid.Repo],
+  desktop_only_business: false,
   generators: [timestamp_type: :utc_datetime_usec, binary_id: true]
 
 config :mokaid, Mokaid.Repo,
@@ -31,6 +32,7 @@ config :mokaid, Oban,
        {"45 3 * * *", Mokaid.Billing.Workers.InvoiceCleanupWorker},
        {"0 4 * * *", Mokaid.Billing.Workers.AwsCostSyncWorker},
        {"0 5 * * *", Mokaid.Workers.UserAnonymizationWorker},
+       {"35 * * * *", Mokaid.Auth.PruneDesktopSessionsWorker},
        {"0 * * * *", Mokaid.Billing.Workers.SubscriptionRenewalWorker},
        {"15 * * * *", Mokaid.Billing.Workers.MonthlyCreditsWorker},
        {"*/15 * * * *", Mokaid.Tasks.Workers.OverdueTaskWorker},
@@ -97,6 +99,18 @@ config :ex_aws,
 config :jason, :encoder, escape: :json
 
 config :phoenix, :json_library, Jason
+
+# Keep PKCE material, single-use authorization codes and refresh credentials
+# out of Phoenix request parameter logs, including nested JSON bodies.
+config :phoenix, :filter_parameters, [
+  "password",
+  "token",
+  "secret",
+  "code",
+  "state",
+  "code_verifier",
+  "code_challenge"
+]
 
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

@@ -1,0 +1,26 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 30, "patch": 0 },
+  "configurePresets": [
+    { "name": "base", "hidden": true, "generator": "Ninja", "binaryDir": "${sourceDir}/build/${presetName}", "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "BUILD_TESTING": "ON" } },
+    { "name": "macos-debug", "inherits": "base", "cacheVariables": { "CMAKE_OSX_ARCHITECTURES": "arm64" } },
+    { "name": "windows-debug", "inherits": "base" },
+    { "name": "macos-release", "inherits": "macos-debug", "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON" } },
+    { "name": "windows-release", "inherits": "windows-debug", "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON" } },
+    { "name": "portable-tests", "inherits": "base", "cacheVariables": { "MOKAID_BUILD_APP": "OFF" } },
+    { "name": "asan", "inherits": "macos-debug", "cacheVariables": { "MOKAID_ENABLE_SANITIZERS": "ON" } }
+  ],
+  "buildPresets": [
+    { "name": "macos-debug", "configurePreset": "macos-debug" },
+    { "name": "windows-debug", "configurePreset": "windows-debug" },
+    { "name": "macos-release", "configurePreset": "macos-release" },
+    { "name": "windows-release", "configurePreset": "windows-release" },
+    { "name": "portable-tests", "configurePreset": "portable-tests" },
+    { "name": "asan", "configurePreset": "asan" }
+  ],
+  "testPresets": [
+    { "name": "macos-debug", "configurePreset": "macos-debug", "output": { "outputOnFailure": true } },
+    { "name": "windows-debug", "configurePreset": "windows-debug", "output": { "outputOnFailure": true } },
+    { "name": "portable-tests", "configurePreset": "portable-tests", "output": { "outputOnFailure": true } }
+  ]
+}

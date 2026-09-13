@@ -1,0 +1,8 @@
+add_library(mokaid_core INTERFACE)
+target_include_directories(mokaid_core INTERFACE include)
+target_compile_features(mokaid_core INTERFACE cxx_std_20)
+if(BUILD_TESTING)
+  add_executable(mokaid_core_tests tests/policy_tests.cpp)
+  target_link_libraries(mokaid_core_tests PRIVATE mokaid_core mokaid_options)
+  add_test(NAME desktop.core COMMAND mokaid_core_tests)
+endif()

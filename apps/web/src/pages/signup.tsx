@@ -8,6 +8,8 @@ import { apiFetch } from "@/api/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { useQueryClient } from "@tanstack/react-query";
+import { authReturnFromSearch, DESKTOP_ONLY_WEB, localNavigation } from "@/lib/desktop-rollout";
 
 const signupSchema = z.object({
   full_name: z.string().min(2, "Tell us your name"),
@@ -26,6 +28,8 @@ interface RegisterResponse {
 
 export function SignupPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const returnTo = new URLSearchParams(window.location.search).get("returnTo") ?? undefined;
   const establishSession = useAuthStore((s) => s.establishSession);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,10 +47,12 @@ export function SignupPage() {
         body: values,
         skipWorkspace: true,
       });
+      await queryClient.cancelQueries();
+      queryClient.clear();
       establishSession(response.token, { ...response.user, has_password: true }, [
-        { ...response.workspace, role_name: "Owner" } as never,
+        { ...response.workspace, role_name: "Owner" },
       ]);
-      navigate({ to: "/dashboard" });
+      await navigate(localNavigation(authReturnFromSearch(window.location.search)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed");
     }
@@ -74,17 +80,22 @@ export function SignupPage() {
           />
           <div className="text-center">
             <h1 className="text-[26px] font-bold tracking-tight text-text">
-              Create your workspace
+              {DESKTOP_ONLY_WEB ? "Create your account" : "Create your workspace"}
             </h1>
             <p className="mt-1.5 text-sm text-text-muted">
-              You'll be guided step by step. Your first agent is 2 minutes away.
+              {DESKTOP_ONLY_WEB
+                ? "Manage your subscription online, then meet your team in Mokaid Desktop."
+                : "You'll be guided step by step. Your first agent is 2 minutes away."}
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
-            <label htmlFor="full_name" className="mb-1.5 block text-xs font-medium text-text-secondary">
+            <label
+              htmlFor="full_name"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
+            >
               Your name
             </label>
             <input
@@ -115,7 +126,10 @@ export function SignupPage() {
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-1.5 block text-xs font-medium text-text-secondary">
+            <label
+              htmlFor="password"
+              className="mb-1.5 block text-xs font-medium text-text-secondary"
+            >
               Password
             </label>
             <input
@@ -166,7 +180,7 @@ export function SignupPage() {
           </p>
 
           <Button type="submit" size="lg" className="w-full shadow-glow" loading={isSubmitting}>
-            <Sparkles size={15} /> Create workspace
+            <Sparkles size={15} /> {DESKTOP_ONLY_WEB ? "Create account" : "Create workspace"}
           </Button>
         </form>
 
@@ -195,7 +209,7 @@ export function SignupPage() {
 
         <p className="mt-6 text-center text-xs text-text-muted">
           Already have an account?{" "}
-          <Link to="/login" className="text-primary-light hover:underline">
+          <Link to="/login" search={{ returnTo }} className="text-primary-light hover:underline">
             Sign in
           </Link>
         </p>

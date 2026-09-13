@@ -1,0 +1,3 @@
+# Only this reviewed, non-secret rollout state is versioned. Other tfvars remain
+# excluded by the repository policy; never place credentials in this file.
+!desktop.auto.tfvars

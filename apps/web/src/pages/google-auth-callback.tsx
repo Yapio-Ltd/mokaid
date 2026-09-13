@@ -5,8 +5,10 @@ import { apiFetch } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
 import { googleAuthRedirectUri } from "@/components/auth/google-sign-in-button";
-import { waitForAuthHydration } from "@/lib/oauth-callback";
+import { runOauthOnce, waitForAuthHydration } from "@/lib/oauth-callback";
 import { useAuthStore } from "@/stores/auth-store";
+import { useQueryClient } from "@tanstack/react-query";
+import { DESKTOP_ONLY_WEB, localNavigation, safeAuthReturn } from "@/lib/desktop-rollout";
 
 type Status = "working" | "success" | "error";
 
@@ -32,6 +34,7 @@ interface GoogleAuthResponse {
 /** Completes Google identity OAuth (login / signup), not integrations. */
 export function GoogleAuthCallbackPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const establishSession = useAuthStore((s) => s.establishSession);
 
   const [status, setStatus] = useState<Status>("working");
@@ -63,27 +66,34 @@ export function GoogleAuthCallbackPage() {
 
       const dedupeKey = `google_auth:${code}`;
       if (sessionStorage.getItem(dedupeKey) === "done") {
-        navigate({ to: "/dashboard" });
+        const destination = safeAuthReturn(sessionStorage.getItem("google_auth_return"));
+        sessionStorage.removeItem("google_auth_return");
+        void navigate(localNavigation(destination));
         return;
       }
 
       try {
-        const result = await apiFetch<GoogleAuthResponse>("/api/auth/google/callback", {
-          method: "POST",
-          body: {
-            code,
-            state,
-            redirect_uri: googleAuthRedirectUri(),
-          },
-          skipWorkspace: true,
-        });
+        const result = await runOauthOnce(dedupeKey, () =>
+          apiFetch<GoogleAuthResponse>("/api/auth/google/callback", {
+            method: "POST",
+            body: {
+              code,
+              state,
+              redirect_uri: googleAuthRedirectUri(),
+            },
+            skipWorkspace: true,
+          }),
+        );
 
         if (cancelled) return;
 
+        await queryClient.cancelQueries();
+        if (cancelled) return;
+        queryClient.clear();
         sessionStorage.setItem(dedupeKey, "done");
         establishSession(result.token, result.user, result.workspaces ?? []);
 
-        if (!result.workspaces?.length) {
+        if (!result.workspaces?.length && !DESKTOP_ONLY_WEB) {
           setStatus("error");
           setMessage("Signed in, but no workspace is available. Please contact support.");
           return;
@@ -93,9 +103,13 @@ export function GoogleAuthCallbackPage() {
         setMessage(
           result.status === "created"
             ? "Welcome! Your workspace is ready."
-            : "Signed in. Taking you to your workspace…",
+            : DESKTOP_ONLY_WEB
+              ? "Signed in. Taking you to your account…"
+              : "Signed in. Taking you to your workspace…",
         );
-        navigate({ to: "/dashboard" });
+        const destination = safeAuthReturn(sessionStorage.getItem("google_auth_return"));
+        sessionStorage.removeItem("google_auth_return");
+        void navigate(localNavigation(destination));
       } catch (err) {
         if (cancelled) return;
         setStatus("error");
@@ -107,7 +121,7 @@ export function GoogleAuthCallbackPage() {
     return () => {
       cancelled = true;
     };
-  }, [navigate, establishSession]);
+  }, [navigate, establishSession, queryClient]);
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 bg-bg-deep px-6">
