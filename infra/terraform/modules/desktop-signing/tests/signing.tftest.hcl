@@ -8,7 +8,7 @@ mock_provider "aws" {
 
 variables {
   github_oidc_provider_arn = "arn:aws:iam::660601648321:oidc-provider/token.actions.githubusercontent.com"
-  github_repository       = "Yapio-Ltd/mokaid"
+  github_repository        = "Yapio-Ltd/mokaid"
   macos_signing_secret_arn = "arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid/desktop/stable/macos-signing-8pPQkT"
 }
 

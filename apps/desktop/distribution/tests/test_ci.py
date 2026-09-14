@@ -144,11 +144,12 @@ class CiTests(unittest.TestCase):
     def test_assets_are_cooked_before_cmake_and_real_asset_test_is_required(
         self,
     ) -> None:
-        for registered in (True, False):
-            with self.subTest(registered=registered):
-                self.assert_asset_test_gate(registered)
+        for system in ("Darwin", "Windows"):
+            for registered in (True, False):
+                with self.subTest(system=system, registered=registered):
+                    self.assert_asset_test_gate(registered, system)
 
-    def assert_asset_test_gate(self, registered: bool) -> None:
+    def assert_asset_test_gate(self, registered: bool, system: str) -> None:
         with tempfile.TemporaryDirectory(prefix="mokaid-ci-test-") as temp:
             desktop = Path(temp)
             (desktop / "build").mkdir()
@@ -156,6 +157,14 @@ class CiTests(unittest.TestCase):
 
             def command(*args: object, **kwargs: object) -> str:
                 events.append(args)
+                if args[:2] == ("conan", "install"):
+                    self.assertIn("tools.cmake.cmaketoolchain:generator=Ninja", args)
+                    toolchain = (
+                        desktop
+                        / "build/conan/build/Release/generators/conan_toolchain.cmake"
+                    )
+                    toolchain.parent.mkdir(parents=True)
+                    toolchain.touch()
                 if "sdk" in args:
                     return str(desktop / "sdk")
                 if "--show-only=json-v1" in args:
@@ -169,7 +178,7 @@ class CiTests(unittest.TestCase):
                 return ""
 
             with patch.object(ci, "DESKTOP", desktop), patch(
-                "ci.platform.system", return_value="Darwin"
+                "ci.platform.system", return_value=system
             ), patch.object(
                 ci, "cook_assets", side_effect=lambda: events.append(("cook-fixture",))
             ), patch.object(
@@ -191,11 +200,50 @@ class CiTests(unittest.TestCase):
                 if event[:2] == ("cmake", "--preset")
             )
             self.assertLess(cooked, configured)
+            self.assertIn(
+                f"-DCMAKE_TOOLCHAIN_FILE={desktop / 'build/conan/build/Release/generators/conan_toolchain.cmake'}",
+                events[configured],
+            )
             ran_tests = any(
                 event[0] == "ctest" and "--output-on-failure" in event
                 for event in events
             )
             self.assertEqual(ran_tests, registered)
+
+    def test_missing_conan_toolchain_stops_before_sdk_and_cmake(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="mokaid-ci-toolchain-test-") as temp:
+            with patch.object(ci, "DESKTOP", Path(temp)), patch(
+                "ci.platform.system", return_value="Windows"
+            ), patch.object(ci, "cook_assets"), patch.object(
+                ci, "run"
+            ) as command, self.assertRaisesRegex(
+                ValueError, "Release Ninja toolchain"
+            ):
+                ci.configure(argparse.Namespace(release=False))
+            self.assertFalse(
+                any(
+                    call.args[0] == "cmake" or "sdk" in call.args
+                    for call in command.call_args_list
+                )
+            )
+
+    def test_release_presets_share_the_single_configuration_ninja_generator(
+        self,
+    ) -> None:
+        presets = json.loads((ci.DESKTOP / "CMakePresets.json").read_text())
+        configurations = {entry["name"]: entry for entry in presets["configurePresets"]}
+        self.assertEqual(configurations["base"]["generator"], "Ninja")
+        for system in ("macos", "windows"):
+            self.assertEqual(
+                configurations[f"{system}-release"]["inherits"], f"{system}-debug"
+            )
+            self.assertEqual(configurations[f"{system}-debug"]["inherits"], "base")
+            self.assertEqual(
+                configurations[f"{system}-release"]["cacheVariables"][
+                    "CMAKE_BUILD_TYPE"
+                ],
+                "Release",
+            )
 
     def test_staging_reuses_tested_assets_without_running_the_cooker(self) -> None:
         with tempfile.TemporaryDirectory(prefix="mokaid-ci-test-") as temp:

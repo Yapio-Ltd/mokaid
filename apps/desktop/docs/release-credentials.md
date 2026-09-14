@@ -48,6 +48,15 @@ does not establish successful release
 notarization, a trusted clean-machine installation, public download availability,
 or CI-role access. Those remain separate checks.
 
+The separate `distribution/probe_test.py --profile mokaid --run` was also executed
+successfully against this exact AWS secret. It reused the production importer,
+signed only a locally compiled harmless fixture, verified the Apple Developer ID
+requirement, Team ID and exact certificate fingerprint, and ran that fixture.
+The temporary keychain was removed and the owner's keychain search list was
+verified unchanged. Nine mocked safety tests additionally cover this probe.
+This is real certificate import/signing evidence, **not** a timestamped installer,
+notarization, public release, or GitHub OIDC session test.
+
 ## 1. Metadata-only planning
 
 The default command checks the explicit key ID, its exact `AuthKey_<ID>.p8`
