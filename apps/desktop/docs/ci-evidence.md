@@ -1,11 +1,14 @@
 # Native CI evidence — 2026-09-14
 
-The [Desktop CI run 34791353523](https://github.com/Yapio-Ltd/mokaid/actions/runs/34791353523)
+The [Desktop CI run 34799144738](https://github.com/Yapio-Ltd/mokaid/actions/runs/34799144738)
 completed successfully for commit
-`d2d5429b17fbed1f069dcefa1ad4c985c0684db0` on the production-delivery PR.
-The [application CI run 34791353524](https://github.com/Yapio-Ltd/mokaid/actions/runs/34791353524)
+`4996d2c48a2d0229ab29bad09b10ea307d3a17cf` on the production-delivery PR.
+The [application CI run 34799144733](https://github.com/Yapio-Ltd/mokaid/actions/runs/34799144733)
 also passed, including API, web, CRM, worker, Terraform, deployment-policy tests
 and the four Docker builds with real nginx verification.
+The [infrastructure CI run 34799144753](https://github.com/Yapio-Ltd/mokaid/actions/runs/34799144753)
+passed on that same commit. These runs include the npm/runtime security changes
+and four-service staging implementation, but precede the separate Hex corrections.
 
 - Portable: real cooked assets, tests and ASan/UBSan checks passed.
 - macOS 15 runner, Xcode 26.3: Qt 6.11.2 installation, C++20 compilation,

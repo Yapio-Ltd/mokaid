@@ -36,7 +36,7 @@ ECR release references:
 
 | Component | Image ID | Scan scope/result |
 | --- | --- | --- |
-| API | `sha256:70a5815f8247e92f7d0d041b1173c966839f3bb7501c81c567cd11ec24b96740` | No fixable HIGH/CRITICAL OS findings; Trivy found no BEAM package inventory |
+| API | `sha256:34e7d82a1923c664e8de6fb7768e8e56d72bd5792d922f485e47d63e597e130c` | No OS findings; Trivy found no BEAM package inventory; separate Hex 2.5.1 audit passes |
 | CRM | `sha256:7f8d141e3a4cfc91d65d671371b31119e7cb34575efcac7d39e707bb1432fb7e` | No Node findings and no OS findings with a published fix; 219 unfixed OS findings remain |
 | Web | `sha256:45d3ca7bb72a6cf397f9e14ccc0828bed7ab944a1fffa8ec065b63831723563a` | No OS findings; minified browser code needs its separate lockfile audit |
 | Worker | `sha256:d6336ca4c619a869c138e1f8af255f80add1ebf91199672e0413f1e075c52120` | No Python findings or fixable HIGH/CRITICAL OS findings; 154 OS findings remain, including 44 unfixed HIGH/CRITICAL |
@@ -46,6 +46,15 @@ database TLS, API health and anonymous guards, actual prerendered nginx
 responses, CRM login HTML, and uvicorn worker startup/health/anonymous 401.
 No AI task, provider request or production mutation was performed. All owned
 disposable containers/networks were removed afterwards.
+
+The final API follows the authorized Hex audit and targeted transport migration.
+Six dependency versions were corrected and nine unused dependencies removed;
+Hex 2.5.1 reports zero security advisories or retirements (previously 19 advisories
+in seven packages), without exclusions. The complete API suite passes 230 tests,
+including transport/Storage regression checks. A clean ARM64 release build
+reran the Hex audit before compilation, and the four-service staging harness
+was repeated with the new API image ID above. See the [API dependency report](../../apps/api/SECURITY_DEPENDENCIES.md)
+for exact versions, HTTP adapter changes and test boundaries.
 
 The final web/CRM images include the resolved Vite 6.4.3, Vitest 4.1.11 and
 patched runtime lockfile. A real npm 10 `ci` and complete npm audit pass with
@@ -64,7 +73,9 @@ is free of vulnerabilities. Unfixed findings need continued review.
 ## Coverage limits and release blockers
 
 Trivy's API release scan did not detect an Elixir dependency inventory. A green
-OS scan therefore does not clear the separately identified Hex advisories.
+OS scan therefore cannot replace the separate Hex advisory audit. CI and the
+API Dockerfile now pin Hex 2.5.1 and fail on advisories or retired dependencies
+before compilation. CI also rejects an installation that changes `mix.lock`.
 Similarly, the nginx image contains compiled static JavaScript, not an npm
 package inventory. CI performs an additional lockfile audit, including build
 tools, before building production images.

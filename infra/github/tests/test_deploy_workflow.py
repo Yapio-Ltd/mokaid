@@ -183,3 +183,32 @@ def test_ci_audits_javascript_before_building_release_images():
     assert audit["run"] == "npm audit --audit-level=high"
     assert "continue-on-error" not in audit
     assert steps.index(install) < steps.index(audit) < steps.index(build)
+
+
+def test_ci_audits_hex_advisories_before_compiling_release_dependencies():
+    steps = workflow("ci.yml")["jobs"]["api"]["steps"]
+    auditor = command_step(steps, "mix local.hex")
+    install = command_step(steps, "mix deps.get")
+    audit = command_step(steps, "mix hex.audit")
+    compile_step = command_step(steps, "mix compile")
+    assert auditor["run"] == "mix local.hex 2.5.1 --force"
+    assert "git diff --exit-code -- mix.lock" in install["run"]
+    assert audit["run"] == "mix hex.audit"
+    assert audit["working-directory"] == "apps/api"
+    assert audit["env"] == {
+        "HEX_IGNORE_ADVISORIES": "",
+        "HEX_IGNORE_RETIREMENTS": "",
+    }
+    assert "continue-on-error" not in audit
+    assert (
+        steps.index(auditor)
+        < steps.index(install)
+        < steps.index(audit)
+        < steps.index(compile_step)
+    )
+    project = (ROOT / "apps/api/mix.exs").read_text()
+    assert "ignore_advisories" not in project
+    assert "ignore_retirements" not in project
+    dockerfile = (ROOT / "infra/docker/api.Dockerfile").read_text()
+    assert "mix local.hex 2.5.1 --force" in dockerfile
+    assert "mix deps.get --only prod && mix hex.audit && mix deps.compile" in dockerfile

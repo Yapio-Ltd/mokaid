@@ -94,7 +94,8 @@ config :hammer,
   backend: {Hammer.Backend.ETS, [expiry_ms: 60_000 * 60 * 2, cleanup_interval_ms: 60_000 * 10]}
 
 config :ex_aws,
-  json_codec: Jason
+  json_codec: Jason,
+  http_client: ExAws.Request.Req
 
 config :jason, :encoder, escape: :json
 

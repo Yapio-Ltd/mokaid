@@ -103,8 +103,13 @@ defmodule Mokaid.Storage do
 
   defp object_content_type(headers) do
     Enum.find_value(headers, fn
-      {"Content-Type", value} -> value |> String.split(";") |> hd() |> String.trim()
-      _ -> nil
+      {name, value} when is_binary(name) ->
+        if String.downcase(name, :ascii) == "content-type" do
+          value |> String.split(";") |> hd() |> String.trim()
+        end
+
+      _ ->
+        nil
     end) || "application/octet-stream"
   end
 

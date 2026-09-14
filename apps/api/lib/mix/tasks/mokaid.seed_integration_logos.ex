@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Mokaid.SeedIntegrationLogos do
   def run(_args) do
     Mix.Task.run("app.config")
 
-    for app <- [:logger, :postgrex, :ecto_sql, :hackney, :ex_aws, :sweet_xml, :jason, :req] do
+    for app <- [:logger, :postgrex, :ecto_sql, :req, :ex_aws, :sweet_xml, :jason] do
       Application.ensure_all_started(app)
     end
 

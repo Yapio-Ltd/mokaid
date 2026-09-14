@@ -218,3 +218,32 @@ The deployment's exact Linux ARM64 ECR digests must still pass their own scans
 and this exact-image gate. CI's additional Linux AMD64 builds do not replace
 that verification. This evidence is not a production
 deployment or an authenticated end-to-end test against real providers.
+
+### API transport/security refresh — four-image rerun, 2026-09-14
+
+After confirmation of the new API image's successful security scan, the
+unchanged harness passed again on the local Colima Unix-socket daemon with
+this exact immutable set:
+
+- API `sha256:34e7d82a1923c664e8de6fb7768e8e56d72bd5792d922f485e47d63e597e130c`.
+- WEB `sha256:45d3ca7bb72a6cf397f9e14ccc0828bed7ab944a1fffa8ec065b63831723563a`.
+- CRM `sha256:7f8d141e3a4cfc91d65d671371b31119e7cb34575efcac7d39e707bb1432fb7e`.
+- WORKER `sha256:d6336ca4c619a869c138e1f8af255f80add1ebf91199672e0413f1e075c52120`.
+
+The process returned **0** after real release migrations, API startup,
+PostgreSQL schema/TLS verification, API health, both anonymous API/desktop
+consent 401 guards, the production web verifier, CRM login HTML, actual worker
+startup/health and its anonymous run-access 401 guard. The internal-only
+network and generated fixture configuration were unchanged; no ports were
+published and no business operation, provider or AWS call was requested.
+
+Cleanup returned successfully after ownership-checked removal of the exact
+created containers, their anonymous volumes and network. A subsequent Docker
+inventory filtered by `com.mokaid.staging.run` contained no containers or
+networks. No global prune or removal of pre-existing resources was performed.
+
+This rerun verifies the refreshed API image together with the other three
+images; it does not prove live AWS transport or IAM compatibility, because
+the isolation prelude intentionally disables external transports. It is local
+release-image evidence, not a production deployment or a substitute for the
+deployment gate on the eventual ECR digests.

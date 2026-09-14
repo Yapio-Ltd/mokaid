@@ -8,10 +8,12 @@ WORKDIR /app
 
 ENV MIX_ENV=prod
 
-RUN mix local.hex --force && mix local.rebar --force
+RUN mix local.hex 2.5.1 --force && mix local.rebar --force
 
 COPY apps/api/mix.exs apps/api/mix.lock* ./
-RUN mix deps.get --only prod && mix deps.compile
+# Release containers do not retain a BEAM package inventory that the OS image
+# scanner can audit. Check the lock with Hex before compiling it into a release.
+RUN mix deps.get --only prod && mix hex.audit && mix deps.compile
 
 COPY apps/api/config ./config
 COPY apps/api/lib ./lib

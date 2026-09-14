@@ -136,9 +136,24 @@ jobs:
           key: mix-${{ runner.os }}-${{ hashFiles('apps/api/mix.lock') }}
           restore-keys: mix-${{ runner.os }}-
 
+      # Hex 2.5.1 audits security advisories as well as retired packages.
+      # Older versions only checked retirements and are not a security gate.
+      - name: Install pinned Hex security auditor
+        working-directory: apps/api
+        run: mix local.hex 2.5.1 --force
+
       - name: Install dependencies
         working-directory: apps/api
-        run: mix deps.get
+        run: |
+          mix deps.get
+          git diff --exit-code -- mix.lock
+
+      - name: Audit locked Elixir dependencies
+        working-directory: apps/api
+        env:
+          HEX_IGNORE_ADVISORIES: ''
+          HEX_IGNORE_RETIREMENTS: ''
+        run: mix hex.audit
 
       - name: Check formatting
         working-directory: apps/api
