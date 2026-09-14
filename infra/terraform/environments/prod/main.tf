@@ -108,6 +108,8 @@ module "stack" {
   crm_domain                = var.crm_domain
   alb_certificate_arn       = var.alb_certificate_arn
   waf_allowed_country_codes = ["IL", "FR"]
+  # Worldwide site + same-Host API only; CRM and ALB names stay geo-restricted.
+  waf_globally_allowed_hosts = [var.app_domain]
 
   auth_mode = "dev_fallback"
 

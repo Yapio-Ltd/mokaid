@@ -57,6 +57,50 @@ default remains off; preparing a task does not activate it.
 
 ## Success, failure and cancellation
 
+### Circuit breaker is part of the authorized rollout
+
+Every actual rollout or rollback `UpdateService` now submits the exact revision
+and its deployment configuration together. The script copies the most recently
+read configuration, preserving maximum/minimum task percentages, alarm names and
+settings, lifecycle hooks, and optional breaker threshold/reset settings. It
+changes only `deploymentCircuitBreaker.enable` and `.rollback` to `true`.
+It supports only the ECS controller with the `ROLLING` strategy (or its absent
+legacy default), and fails closed when the current configuration is incomplete.
+No desired count, image, network, IAM role or task-definition registration is
+changed by this configuration step. Preparation still registers its explicitly
+requested revision, but does not call `UpdateService`.
+
+The update acknowledgement must identify the requested service, cluster/account,
+and exact revision, acknowledge both flags as actual JSON booleans, and preserve
+all supplied configuration fields. Extra AWS-provided default fields are allowed.
+The final healthy-state check rechecks protection and the submitted settings;
+an HTTP-success response or a healthy revision with the breaker disabled is not
+sufficient. Rollback reads the current configuration again instead of restoring
+a stale copy of alarm settings from before the failed rollout.
+
+Reads, preparation and migration do not repair protection. An already healthy
+previous revision also receives no forced deployment merely to enable the
+breaker; if it is unprotected, recovery reports operator attention. A batch that
+restores other eligible services still fails if any such no-op cannot be verified.
+These guards do not remove the documented race with an independent operator:
+ECS `UpdateService` has no conditional-update token. Serialize authorized releases.
+
+This implements the protection already declared in Terraform without applying
+unrelated infrastructure drift. A targeted production Terraform plan for the
+four ECS services on 2026-09-14 proposed **four flag updates plus three task
+definition replacements** (web, CRM and worker, pulled in as dependencies).
+The service-level `ignore_changes = [task_definition]` did not stop Terraform
+from replacing the separate task-definition resources. That plan was rejected
+and not applied; changing variables, hiding drift or bypassing the lock was not
+used to make it appear safe.
+
+AWS documents the [deployment configuration shape](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_DeploymentConfiguration.html),
+the [rolling-only circuit breaker and automatic rollback](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_DeploymentCircuitBreaker.html),
+and the [combined UpdateService request/response](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_UpdateService.html).
+Actual production enforcement occurs only when the staged, approved release
+reaches its existing rollout/rollback step; these code changes did not themselves
+modify any live service.
+
 Deployment succeeds only when the live service references the exact requested ARN,
 has one primary deployment marked `COMPLETED`, zero pending tasks, and its running
 counts equal its positive desired count. A service that stabilizes on the previous
@@ -66,7 +110,8 @@ On rollout failure or a handled interruption, restore and verify the captured
 previous ARN. The step remains failed even if rollback succeeds. If a third
 revision has taken control, do not overwrite it. Failure to verify rollback reports
 that operator attention is required. A forced runner termination cannot execute
-cleanup; configure an ECS circuit breaker and operational monitoring independently.
+cleanup; the rollout's server-side circuit breaker remains necessary, together
+with independent operational monitoring.
 
 The workflow renews its one-hour AWS OIDC session after builds, scans and staging,
 before any production task preparation. Recovery gets a separate fresh one-hour

@@ -134,6 +134,13 @@ variable "waf_allowed_country_codes" {
   default     = ["IL", "FR"]
 }
 
+variable "waf_globally_allowed_hosts" {
+  description = "Opt-in exact lowercase public Hosts exempt from geo restrictions; validated by the WAF module."
+  type        = set(string)
+  default     = []
+  nullable    = false
+}
+
 variable "cloudfront_certificate_arn" {
   type    = string
   default = ""
@@ -250,10 +257,11 @@ module "waf" {
   source = "../waf"
 
   # Keep the existing ACL name so terraform can manage the live resource.
-  name                  = "allow-israel-only"
-  alb_arn               = module.alb.alb_arn
-  allowed_country_codes = var.waf_allowed_country_codes
-  tags                  = local.tags
+  name                   = "allow-israel-only"
+  alb_arn                = module.alb.alb_arn
+  allowed_country_codes  = var.waf_allowed_country_codes
+  globally_allowed_hosts = var.waf_globally_allowed_hosts
+  tags                   = local.tags
 }
 
 # ---------- Registries (managed in bootstrap; shared across environments) ----------

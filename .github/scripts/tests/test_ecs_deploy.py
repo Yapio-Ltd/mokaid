@@ -21,8 +21,11 @@ SERVICE, CONTAINER = "service-api", "mokaid-prod-api"
 SENSITIVE = "FIXTURE_LEGACY_ENV_MUST_NOT_APPEAR_IN_LOGS"
 
 
-def service(arn=OLD, rollout="COMPLETED", running=1):
+def service(arn=OLD, rollout="COMPLETED", running=1, protected=True):
     return {"status": "ACTIVE", "serviceName": SERVICE, "taskDefinition": arn,
+            "clusterArn": "arn:aws:ecs:eu-west-1:123456789012:cluster/mokaid-prod",
+            "deploymentConfiguration": {"maximumPercent": 200, "minimumHealthyPercent": 100,
+                "deploymentCircuitBreaker": {"enable": protected, "rollback": protected}},
             "deploymentController": {"type": "ECS"}, "desiredCount": 1, "runningCount": running,
             "pendingCount": 0, "platformVersion": "1.4.0",
             "deployments": [{"taskDefinition": arn, "status": "PRIMARY", "rolloutState": rollout,
@@ -77,7 +80,9 @@ class MockAws:
             value.update(taskDefinitionArn=NEW, status="ACTIVE")
             return {"taskDefinition": value}
         if operation == "update-service":
-            return {"service": {"taskDefinition": arguments[5]}}
+            assert not arguments
+            return {"service": dict(service(payload["taskDefinition"]),
+                                    deploymentConfiguration=copy.deepcopy(payload["deploymentConfiguration"]))}
         if operation == "run-task":
             self.run_payload = copy.deepcopy(payload)
             return copy.deepcopy(self.run_result)
@@ -111,6 +116,9 @@ class BatchAws:
         self.changes = {}
         self.update_failures = set()
         self.stalled = set()
+        self.configurations = {entry["service"]: copy.deepcopy(service()["deploymentConfiguration"])
+                               for entry in self.entries}
+        self.update_configurations = []
 
     def call(self, operation, *arguments, payload=None):
         self.calls.append((operation, arguments))
@@ -119,16 +127,21 @@ class BatchAws:
             self.reads[name] += 1
             if (name, self.reads[name]) in self.changes:
                 self.current[name] = self.changes[(name, self.reads[name])]
-            return {"services": [dict(service(self.current[name], "IN_PROGRESS" if name in self.stalled else "COMPLETED"), serviceName=name)], "failures": []}
+            return {"services": [dict(service(self.current[name], "IN_PROGRESS" if name in self.stalled else "COMPLETED"), serviceName=name,
+                                      deploymentConfiguration=copy.deepcopy(self.configurations[name]))], "failures": []}
         if operation == "describe-task-definition":
             return {"taskDefinition": definition(arguments[1])}
         if operation == "update-service":
-            name, arn = arguments[3], arguments[5]
+            assert not arguments
+            name, arn = payload["service"], payload["taskDefinition"]
             self.updates.append((name, arn))
+            self.update_configurations.append(copy.deepcopy(payload["deploymentConfiguration"]))
             if name in self.update_failures:
                 raise ecs.Failure("Mock update denied")
             self.current[name] = arn
-            return {"service": {"taskDefinition": arn}}
+            self.configurations[name] = copy.deepcopy(payload["deploymentConfiguration"])
+            return {"service": dict(service(arn), serviceName=name,
+                                    deploymentConfiguration=copy.deepcopy(self.configurations[name]))}
         raise AssertionError(f"Unexpected external operation {operation}")
 
 
@@ -149,7 +162,7 @@ class EcsTests(unittest.TestCase):
         self.enterContext(patch.object(ecs.subprocess, "run", side_effect=AssertionError("External commands forbidden in unit tests")))
 
     def updates(self, aws):
-        return [args[5] for operation, args, _ in aws.calls if operation == "update-service"]
+        return [payload["taskDefinition"] for operation, _, payload in aws.calls if operation == "update-service"]
 
     def test_prepare_uses_active_revision_and_named_nonfirst_container(self):
         aws = MockAws()
@@ -233,6 +246,130 @@ class EcsTests(unittest.TestCase):
         self.assertEqual(self.updates(aws), [NEW])
         self.assertIn("Verified deployment", self.stdout.getvalue())
 
+    def test_rollout_enables_breaker_and_preserves_all_current_settings(self) -> None:
+        baseline = service(protected=False)
+        baseline["deploymentConfiguration"].update({
+            "maximumPercent": 150, "minimumHealthyPercent": 75, "strategy": "ROLLING",
+            "alarms": {"alarmNames": ["fixture-health"], "enable": True, "rollback": False},
+            "lifecycleHooks": [{"hookTargetArn": SENSITIVE, "lifecycleStages": ["PRE_SCALE_UP"]}]})
+        baseline["deploymentConfiguration"]["deploymentCircuitBreaker"].update({
+            "resetOnHealthyTask": False, "thresholdConfiguration": {"type": "PERCENTAGE", "value": 40}})
+        original = copy.deepcopy(baseline)
+        expected = copy.deepcopy(baseline["deploymentConfiguration"])
+        expected["deploymentCircuitBreaker"].update(enable=True, rollback=True)
+        healthy = dict(service(NEW), deploymentConfiguration=copy.deepcopy(expected))
+        aws = MockAws([baseline, healthy])
+        ecs.deploy(self.env, aws)
+        payloads = [payload for operation, _, payload in aws.calls if operation == "update-service"]
+        self.assertEqual(payloads, [{"cluster": "mokaid-prod", "service": SERVICE,
+            "taskDefinition": NEW, "forceNewDeployment": True, "deploymentConfiguration": expected}])
+        self.assertEqual(baseline, original)
+        self.assertNotIn(SENSITIVE, self.stdout.getvalue() + self.stderr.getvalue())
+
+    def test_missing_breaker_is_added_without_mutating_current_configuration(self) -> None:
+        baseline = service()
+        baseline["deploymentConfiguration"].pop("deploymentCircuitBreaker")
+        expected = ecs.protected_configuration(baseline)
+        self.assertEqual(expected["deploymentCircuitBreaker"], {"enable": True, "rollback": True})
+        self.assertNotIn("deploymentCircuitBreaker", baseline["deploymentConfiguration"])
+
+    def test_read_prepare_and_migration_never_enable_a_disabled_breaker(self) -> None:
+        for operation in (lambda env, aws: ecs.service(aws, env["CLUSTER"], env["SERVICE"]),
+                          ecs.prepare, ecs.migrate):
+            aws = MockAws([service(protected=False)])
+            operation(self.env, aws)
+            self.assertEqual(self.updates(aws), [])
+            self.assertEqual(aws.services[0]["deploymentConfiguration"]["deploymentCircuitBreaker"],
+                             {"enable": False, "rollback": False})
+
+    def test_invalid_current_configuration_refuses_rollout_without_update(self) -> None:
+        valid = service()["deploymentConfiguration"]
+        invalid = [None, [], {}, dict(valid, maximumPercent=True),
+                   dict(valid, minimumHealthyPercent="100"),
+                   dict(valid, deploymentCircuitBreaker=None),
+                   dict(valid, deploymentCircuitBreaker={"enable": 1}),
+                   *[dict(valid, strategy=value) for value in ("BLUE_GREEN", "LINEAR", "CANARY")]]
+        for configuration in invalid:
+            aws = MockAws([dict(service(), deploymentConfiguration=configuration)])
+            with self.subTest(configuration=configuration), self.assertRaises(ecs.Failure):
+                ecs.deploy(self.env, aws)
+            self.assertEqual(self.updates(aws), [])
+
+    def test_update_rejects_wrong_family_and_cluster_before_any_mutation(self) -> None:
+        cases = [(NEW.replace("mokaid-prod-api", "another-family"), service()),
+                 (NEW, dict(service(), clusterArn="arn:aws:ecs:eu-west-1:123456789012:cluster/other")),
+                 (NEW, dict(service(), clusterArn="arn:aws:ecs:eu-west-1:999999999999:cluster/mokaid-prod")),
+                 (NEW, dict(service(), serviceName="other-service"))]
+        for arn, baseline in cases:
+            aws = MockAws()
+            with self.subTest(arn=arn), self.assertRaises(ecs.Failure):
+                ecs.update(aws, "mokaid-prod", SERVICE, arn, baseline)
+            self.assertEqual(aws.calls, [])
+
+    def test_update_requires_acknowledged_identity_revision_and_protection(self) -> None:
+        accepted = service(NEW)
+        invalid = [None, {}, dict(accepted, serviceName="different-service"),
+                   dict(accepted, taskDefinition=OLD), dict(accepted, clusterArn="wrong-cluster"),
+                   dict(accepted, deploymentController={"type": "CODE_DEPLOY"}),
+                   dict(accepted, deploymentConfiguration=None)]
+        for flag in (False, 1, "true"):
+            changed = copy.deepcopy(accepted)
+            changed["deploymentConfiguration"]["deploymentCircuitBreaker"]["rollback"] = flag
+            invalid.append(changed)
+        changed = copy.deepcopy(accepted)
+        changed["deploymentConfiguration"]["maximumPercent"] = 101
+        invalid.append(changed)
+        for acknowledged in invalid:
+            aws = MockAws()
+            with self.subTest(acknowledged=acknowledged), patch.object(aws, "call", return_value={"service": acknowledged}):
+                with self.assertRaises(ecs.Failure):
+                    ecs.update(aws, "mokaid-prod", SERVICE, NEW, service())
+
+    def test_update_ack_preserves_alarms_and_allows_aws_added_defaults(self) -> None:
+        baseline = service()
+        baseline["deploymentConfiguration"]["alarms"] = {
+            "alarmNames": ["fixture-health"], "enable": True, "rollback": True}
+        ack = dict(service(NEW), deploymentConfiguration=copy.deepcopy(baseline["deploymentConfiguration"]))
+        ack["deploymentConfiguration"]["deploymentCircuitBreaker"]["resetOnHealthyTask"] = True
+        aws = MockAws()
+        with patch.object(aws, "call", return_value={"service": ack}):
+            ecs.update(aws, "mokaid-prod", SERVICE, NEW, baseline)
+        ack["deploymentConfiguration"].pop("alarms")
+        with patch.object(aws, "call", return_value={"service": ack}):
+            with self.assertRaisesRegex(ecs.Failure, "preserve"):
+                ecs.update(aws, "mokaid-prod", SERVICE, NEW, baseline)
+
+    def test_final_health_cannot_hide_disabled_breaker_or_changed_thresholds(self) -> None:
+        expected = service()["deploymentConfiguration"]
+        altered = dict(service(NEW), deploymentConfiguration=dict(expected, minimumHealthyPercent=0))
+        for current in (service(NEW, protected=False), altered):
+            with self.subTest(current=current), self.assertRaises(ecs.Failure):
+                ecs.await_service(MockAws([current]), "mokaid-prod", SERVICE, NEW, OLD, 2, 1,
+                                  expected_configuration=expected)
+
+    def test_failed_rollout_uses_fresh_configuration_when_restoring_previous(self) -> None:
+        failed = service(NEW, "FAILED", protected=False)
+        failed["deploymentConfiguration"].update({
+            "maximumPercent": 150, "minimumHealthyPercent": 50,
+            "alarms": {"alarmNames": ["updated-alarm"], "enable": True, "rollback": False}})
+        restored = copy.deepcopy(failed)
+        restored.update(service())
+        restored["deploymentConfiguration"] = ecs.protected_configuration(failed)
+        aws = MockAws([service(protected=False), failed, failed, restored])
+        with self.assertRaisesRegex(ecs.Failure, "previous revision is healthy"):
+            ecs.deploy(self.env, aws)
+        payloads = [payload for operation, _, payload in aws.calls if operation == "update-service"]
+        self.assertEqual([payload["taskDefinition"] for payload in payloads], [NEW, OLD])
+        self.assertEqual(payloads[1]["deploymentConfiguration"], restored["deploymentConfiguration"])
+
+    def test_failed_update_does_not_force_repair_of_healthy_unprotected_baseline(self) -> None:
+        aws = MockAws([service(protected=False)])
+        aws.failures.add("update-service")
+        with self.assertRaisesRegex(ecs.Failure, "operator attention"):
+            ecs.deploy(self.env, aws)
+        self.assertEqual(self.updates(aws), [NEW])
+        self.assertNotIn("restored and verified", self.stderr.getvalue())
+
     def test_failed_rollout_restores_and_verifies_previous_but_stays_failed(self):
         aws = MockAws([service(), service(NEW, "FAILED"), service(NEW, "FAILED"), service()])
         with self.assertRaisesRegex(ecs.Failure, "previous revision is healthy"):
@@ -266,7 +403,7 @@ class EcsTests(unittest.TestCase):
         aws = MockAws([service(), service(NEW, "FAILED"), service(NEW, "FAILED")])
         original = aws.call
         def fail_previous(operation, *arguments, **kwargs):
-            if operation == "update-service" and arguments[5] == OLD:
+            if operation == "update-service" and kwargs["payload"]["taskDefinition"] == OLD:
                 raise ecs.Failure("Mock rollback denied")
             return original(operation, *arguments, **kwargs)
         with patch.object(aws, "call", side_effect=fail_previous):
@@ -392,6 +529,29 @@ class EcsTests(unittest.TestCase):
         self.assertEqual(len(aws.updates), 3)
         self.assertNotIn(aws.entries[1]["service"], [name for name, _ in aws.updates])
 
+    def test_batch_rollback_preserves_settings_and_enables_protection(self) -> None:
+        aws = BatchAws()
+        for name, configuration in aws.configurations.items():
+            configuration.update(maximumPercent=150, minimumHealthyPercent=75,
+                                 alarms={"alarmNames": [name], "enable": True, "rollback": False})
+            configuration["deploymentCircuitBreaker"] = {"enable": False, "rollback": False}
+        ecs.rollback_batch(dict(self.env, ROLLBACK_BATCH_JSON=json.dumps(aws.entries)), aws)
+        for configuration in aws.update_configurations:
+            self.assertEqual(configuration["maximumPercent"], 150)
+            self.assertEqual(configuration["minimumHealthyPercent"], 75)
+            self.assertFalse(configuration["alarms"]["rollback"])
+            self.assertEqual(configuration["deploymentCircuitBreaker"], {"enable": True, "rollback": True})
+
+    def test_batch_noop_unprotected_previous_requires_attention_not_an_update(self) -> None:
+        aws = BatchAws()
+        name = aws.entries[1]["service"]
+        aws.current[name] = aws.entries[1]["previous_task_definition"]
+        aws.configurations[name]["deploymentCircuitBreaker"] = {"enable": False, "rollback": False}
+        with self.assertRaisesRegex(ecs.Failure, "incomplete for 1"):
+            ecs.rollback_batch(dict(self.env, ROLLBACK_BATCH_JSON=json.dumps(aws.entries)), aws)
+        self.assertNotIn(name, [service_name for service_name, _ in aws.updates])
+        self.assertEqual(len(aws.updates), 3)
+
     def test_batch_preserves_third_party_and_restores_other_owned_services(self):
         for change_after_preflight in (False, True):
             aws = BatchAws()
@@ -459,6 +619,48 @@ class EcsTests(unittest.TestCase):
             with self.assertRaises(ecs.Failure) as failure:
                 ecs.Aws().call("register-task-definition", payload={"environment": SENSITIVE})
         self.assertNotIn(SENSITIVE, str(failure.exception) + self.stdout.getvalue() + self.stderr.getvalue())
+
+    def test_update_cli_payload_is_private_and_removed_after_acknowledgement(self) -> None:
+        baseline = service(protected=False)
+        baseline["deploymentConfiguration"]["lifecycleHooks"] = [{"hookDetails": {"fixture": SENSITIVE}}]
+        paths = []
+
+        def external(command, **kwargs):
+            self.assertEqual(command[:3], ["aws", "ecs", "update-service"])
+            self.assertNotIn(SENSITIVE, " ".join(command))
+            path = Path(command[command.index("--cli-input-json") + 1].removeprefix("file://"))
+            paths.append(path)
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            payload = json.loads(path.read_text())
+            acknowledged = service(NEW)
+            acknowledged["deploymentConfiguration"] = payload["deploymentConfiguration"]
+            return subprocess.CompletedProcess(command, 0, json.dumps({"service": acknowledged}), "")
+
+        with patch.object(ecs.subprocess, "run", side_effect=external):
+            configuration = ecs.update(ecs.Aws(), "mokaid-prod", SERVICE, NEW, baseline)
+        self.assertTrue(configuration["deploymentCircuitBreaker"]["enable"])
+        self.assertTrue(paths and all(not path.exists() for path in paths))
+        self.assertNotIn(SENSITIVE, self.stdout.getvalue() + self.stderr.getvalue())
+
+    def test_update_cli_transport_and_malformed_responses_fail_without_disclosing_contents(self) -> None:
+        for response in (SENSITIVE, "[]", "null"):
+            with self.subTest(response_type=response):
+                result = subprocess.CompletedProcess([], 0, response, SENSITIVE)
+                with patch.object(ecs.subprocess, "run", return_value=result):
+                    with self.assertRaises(ecs.Failure) as failure:
+                        ecs.update(ecs.Aws(), "mokaid-prod", SERVICE, NEW, service())
+                self.assertNotIn(SENSITIVE, str(failure.exception))
+        for error in (OSError(SENSITIVE), subprocess.TimeoutExpired("aws", 60, output=SENSITIVE)):
+            with patch.object(ecs.subprocess, "run", side_effect=error):
+                with self.assertRaises(ecs.Failure) as failure:
+                    ecs.update(ecs.Aws(), "mokaid-prod", SERVICE, NEW, service())
+            self.assertNotIn(SENSITIVE, str(failure.exception))
+
+    def test_final_verification_rejects_an_unexpected_deployment_strategy(self) -> None:
+        current = service(NEW)
+        current["deploymentConfiguration"]["strategy"] = "BLUE_GREEN"
+        with self.assertRaisesRegex(ecs.Failure, "no longer rolling"):
+            ecs.verify_protection(current)
 
 
 if __name__ == "__main__":

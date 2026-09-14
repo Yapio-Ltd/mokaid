@@ -212,3 +212,28 @@ def test_ci_audits_hex_advisories_before_compiling_release_dependencies():
     dockerfile = (ROOT / "infra/docker/api.Dockerfile").read_text()
     assert "mix local.hex 2.5.1 --force" in dockerfile
     assert "mix deps.get --only prod && mix hex.audit && mix deps.compile" in dockerfile
+
+
+def test_public_waf_boundary_is_tested_before_deployment_images_are_built():
+    ci = workflow("ci.yml")["jobs"]
+    assert "terraform" in ci["docker"]["needs"]
+    validation = command_step(ci["terraform"]["steps"], "modules/waf test")
+    assert "infra/terraform/modules/waf/" in validation["run"]
+    assert "-lockfile=readonly" in validation["run"]
+    assert "continue-on-error" not in validation
+
+    infrastructure = workflow("desktop-infrastructure.yml")
+    for event in ("push", "pull_request"):
+        assert "infra/terraform/modules/waf/**" in infrastructure["on"][event]["paths"]
+        assert "infra/terraform/modules/stack/**" in infrastructure["on"][event]["paths"]
+    job = infrastructure["jobs"]["validate"]
+    assert job["env"]["AWS_EC2_METADATA_DISABLED"] == "true"
+    waf = next(
+        step
+        for step in job["steps"]
+        if step.get("working-directory") == "infra/terraform/modules/waf"
+    )
+    for command in ("terraform validate", "tflint", "terraform test -no-color"):
+        assert command in waf["run"]
+    assert "-lockfile=readonly" in waf["run"]
+    assert "continue-on-error" not in waf

@@ -2,10 +2,10 @@ name: Desktop Infrastructure Validation
 
 on:
   pull_request:
-    paths: ['infra/terraform/modules/desktop-downloads/**', 'infra/terraform/modules/desktop-signing/**', 'infra/terraform/environments/prod/**', '.github/workflows/desktop-infrastructure.yml']
+    paths: ['infra/terraform/modules/desktop-downloads/**', 'infra/terraform/modules/desktop-signing/**', 'infra/terraform/modules/waf/**', 'infra/terraform/modules/stack/**', 'infra/terraform/environments/prod/**', '.github/workflows/desktop-infrastructure.yml']
   push:
     branches: [prod]
-    paths: ['infra/terraform/modules/desktop-downloads/**', 'infra/terraform/modules/desktop-signing/**', 'infra/terraform/environments/prod/**', '.github/workflows/desktop-infrastructure.yml']
+    paths: ['infra/terraform/modules/desktop-downloads/**', 'infra/terraform/modules/desktop-signing/**', 'infra/terraform/modules/waf/**', 'infra/terraform/modules/stack/**', 'infra/terraform/environments/prod/**', '.github/workflows/desktop-infrastructure.yml']
   workflow_dispatch:
 
 permissions:
@@ -53,3 +53,12 @@ jobs:
           terraform fmt -check desktop_downloads.tf desktop_signing.tf
           terraform init -backend=false -input=false -lockfile=readonly
           terraform validate
+      - name: Validate the public-host WAF boundary without credentials
+        working-directory: infra/terraform/modules/waf
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false -lockfile=readonly
+          terraform validate
+          tflint --init
+          tflint
+          terraform test -no-color
