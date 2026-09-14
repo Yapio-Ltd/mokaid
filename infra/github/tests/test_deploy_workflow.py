@@ -61,10 +61,15 @@ def test_exact_scanned_images_pass_staging_before_production_mutations():
         assert scan["with"]["exit-code"] == "1"
         assert "@${{ steps." in scan["with"]["image-ref"]
     assert steps.index(stage) < steps.index(prepare)
-    for service in ("api", "web", "crm"):
+    for service, repository in (
+        ("api", "api"),
+        ("web", "web"),
+        ("crm", "crm"),
+        ("worker", "ai-worker"),
+    ):
         assert stage["env"][service.upper() + "_IMAGE"] == (
             "${{ steps.registry.outputs.registry }}/mokaid-"
-            + service
+            + repository
             + "@${{ steps."
             + service
             + "_image.outputs.digest }}"
@@ -168,3 +173,13 @@ def test_ci_gates_docker_on_tests_and_verifies_the_real_nginx_target():
     assert "python3 -m unittest discover -s .github/scripts/tests -v" in "\n".join(
         step.get("run", "") for step in jobs["web"]["steps"]
     )
+
+
+def test_ci_audits_javascript_before_building_release_images():
+    steps = workflow("ci.yml")["jobs"]["web"]["steps"]
+    install = command_step(steps, "npm ci")
+    audit = command_step(steps, "npm audit")
+    build = next(step for step in steps if step.get("name") == "Build")
+    assert audit["run"] == "npm audit --audit-level=high"
+    assert "continue-on-error" not in audit
+    assert steps.index(install) < steps.index(audit) < steps.index(build)

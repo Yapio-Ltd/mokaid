@@ -119,11 +119,31 @@ def fixture_environment(desktop_only: str) -> dict[str, str]:
     }
 
 
+def worker_fixture_environment() -> dict[str, str]:
+    """Disable dispatch, persistence and external providers without changing code."""
+    return {
+        "WORKER_AUTH_TOKEN": secrets.token_hex(32),
+        "AI_RUNS_QUEUE_URL": "", "DATABASE_URL": "", "AWS_REGION": "",
+        "PHOENIX_API_URL": "http://127.0.0.1:9", "S3_ENDPOINT": "http://127.0.0.1:9",
+        "S3_ACCESS_KEY_ID": "", "S3_SECRET_ACCESS_KEY": "",
+        "OPENAI_API_KEY": "", "ANTHROPIC_API_KEY": "", "DEEPSEEK_API_KEY": "",
+        "TAVILY_API_KEY": "", "LANGSMITH_API_KEY": "", "LANGCHAIN_API_KEY": "",
+        "LANGSMITH_TRACING": "false", "LANGCHAIN_TRACING_V2": "false",
+        "OTEL_SDK_DISABLED": "true", "OTEL_TRACES_EXPORTER": "none",
+        "OTEL_METRICS_EXPORTER": "none", "OTEL_LOGS_EXPORTER": "none",
+        "AWS_EC2_METADATA_DISABLED": "true", "AWS_ACCESS_KEY_ID": "",
+        "AWS_SECRET_ACCESS_KEY": "", "AWS_SESSION_TOKEN": "", "AWS_PROFILE": "",
+        "AWS_SHARED_CREDENTIALS_FILE": "/dev/null", "AWS_CONFIG_FILE": "/dev/null",
+        "AWS_WEB_IDENTITY_TOKEN_FILE": "", "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI": "",
+        "AWS_CONTAINER_CREDENTIALS_FULL_URI": "",
+    }
+
+
 class Smoke:
     def __init__(self, images: dict[str, str], timeout: int = 420) -> None:
         self.images = {key: image_ref(value, key) for key, value in images.items()}
-        if set(self.images) not in ({"api", "web"}, {"api", "web", "crm"}):
-            raise SmokeError("Both API_IMAGE and WEB_IMAGE are required")
+        if not {"api", "web"} <= set(self.images) <= {"api", "web", "crm", "worker"}:
+            raise SmokeError("API_IMAGE and WEB_IMAGE are required; only CRM_IMAGE and WORKER_IMAGE are optional")
         if not 60 <= timeout <= 900:
             raise SmokeError("STAGING_TIMEOUT_SECONDS must be between 60 and 900")
         self.timeout = timeout
@@ -133,14 +153,19 @@ class Smoke:
         self.containers: list[str] = []
         self.resolved: dict[str, str] = {}
         self.fixture = fixture_environment(os.environ.get("MOKAID_DESKTOP_ONLY_BUSINESS", "false"))
+        self.worker_fixture = worker_fixture_environment()
         self.env = host_environment()
         self.checks: list[str] = []
 
-    def command(self, args: list[str], *, fixture: bool = False, timeout: int = 45,
+    def command(self, args: list[str], *, fixture: bool = False, worker_fixture: bool = False, timeout: int = 45,
                 check: bool = True) -> subprocess.CompletedProcess[str]:
+        if fixture and worker_fixture:
+            raise SmokeError("API and worker fixture environments must remain separate")
         env = dict(self.env)
         if fixture:
             env.update(self.fixture)
+        if worker_fixture:
+            env.update(self.worker_fixture)
         try:
             result = subprocess.run(args, env=env, text=True, capture_output=True, timeout=timeout, check=False)
         except (OSError, subprocess.TimeoutExpired) as error:
@@ -214,13 +239,16 @@ class Smoke:
         elif key == "api":
             args.extend(["--cap-drop", "ALL"])
             names = tuple(name for name in self.fixture if not name.startswith("POSTGRES_"))
+        elif key == "worker":
+            args.extend(["--cap-drop", "ALL"])
+            names = tuple(self.worker_fixture)
         else:
             names = ()
         for env_name in names:
             args.extend(["--env", env_name])
         args.extend([self.resolved[key], *command])
         self.containers.append(name)
-        self.docker(*args, fixture=True)
+        self.docker(*args, fixture=key != "worker", worker_fixture=key == "worker")
         data = self.inspect("container", name)
         if data.get("Image") != self.resolved[key] or data.get("Config", {}).get("Labels", {}).get(LABEL) != self.run_id:
             raise SmokeError("Container image or ownership mismatch")
@@ -260,7 +288,8 @@ class Smoke:
         sharing the target namespace keeps both the production image unchanged
         and its network isolated. The verifier receives no fixture environment.
         """
-        port, path = {"api": (4000, "/api/health"), "web": (80, "/"), "crm": (3001, "/login")}[role]
+        port, path = {"api": (4000, "/api/health"), "web": (80, "/"),
+                      "crm": (3001, "/login"), "worker": (8100, "/health")}[role]
         data = self.inspect("container", target)
         identity = data.get("Id", "")
         if (not ID_PATTERN.fullmatch(identity) or
@@ -295,6 +324,13 @@ for (const path of ["/api/me", "/api/desktop/auth/requests/00000000-0000-4000-80
   const response = await fetch(smokeOrigin + path, {redirect: "manual", signal: AbortSignal.timeout(5000)});
   if (response.status !== 401) throw new Error("Anonymous authorization guard failed at " + path);
 }
+'''
+        elif role == "worker":
+            code += '''
+const health = await (await fetch(smokeOrigin + "/health", {method: "GET", redirect: "manual", signal: AbortSignal.timeout(5000)})).json();
+if (health.status !== "ok") throw new Error("Invalid worker health payload");
+const denied = await fetch(smokeOrigin + "/runs/fixture-validation", {method: "GET", redirect: "manual", signal: AbortSignal.timeout(5000)});
+if (denied.status !== 401) throw new Error("Anonymous worker authorization guard failed");
 '''
         else:
             code += '''
@@ -366,10 +402,19 @@ if (!/<html/i.test(html)) throw new Error("Missing CRM login HTML");
             self.docker("start", crm)
             self.probe("crm", crm)
             self.checks.append("crm-login-html")
+        if "worker" in self.images:
+            # Preserve the image's uvicorn command and app lifespan. The empty
+            # queue prevents consumption; no POST or authenticated job is sent.
+            worker = self.create("worker")
+            self.docker("start", worker)
+            self.probe("worker", worker)
+            self.checks.extend(["worker-health", "worker-unauthenticated-401"])
+            print("Staging: actual worker startup, HTTP health and anonymous authorization guard passed.", flush=True)
 
     def redact(self, value: str) -> str:
         for key in ("DATABASE_URL", "POSTGRES_PASSWORD", "SECRET_KEY_BASE", "AI_WORKER_TOKEN"):
             value = value.replace(self.fixture[key], "[REDACTED]")
+        value = value.replace(self.worker_fixture["WORKER_AUTH_TOKEN"], "[REDACTED]")
         value = re.sub(r"(?i)(?:ecto|postgres(?:ql)?)://[^\s\"']+", "[REDACTED_DATABASE_URL]", value)
         value = re.sub(r"(?i)(bearer\s+|(?:access_token|refresh_token)[\s\"':=]+)[^\s\"',}]+", r"\1[REDACTED]", value)
         return value
@@ -435,6 +480,8 @@ def main() -> int:
         images = {key: os.environ.get(key.upper() + "_IMAGE", "") for key in ("api", "web")}
         if os.environ.get("CRM_IMAGE"):
             images["crm"] = os.environ["CRM_IMAGE"]
+        if os.environ.get("WORKER_IMAGE"):
+            images["worker"] = os.environ["WORKER_IMAGE"]
         smoke = Smoke(images, int(os.environ.get("STAGING_TIMEOUT_SECONDS", "420")))
         def interrupted(_signum, _frame):
             raise SmokeError("Staging interrupted")

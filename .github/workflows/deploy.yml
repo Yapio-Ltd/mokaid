@@ -193,6 +193,7 @@ jobs:
           API_IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-api@${{ steps.api_image.outputs.digest }}
           WEB_IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-web@${{ steps.web_image.outputs.digest }}
           CRM_IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-crm@${{ steps.crm_image.outputs.digest }}
+          WORKER_IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-ai-worker@${{ steps.worker_image.outputs.digest }}
           MOKAID_DESKTOP_ONLY_BUSINESS: ${{ env.DESKTOP_ONLY }}
         run: python3 .github/scripts/staging_smoke.py
 

@@ -36,6 +36,75 @@ class StagingTests(unittest.TestCase):
             with self.assertRaises(staging.SmokeError):
                 staging.Smoke({"api": IMAGE, "web": IMAGE}, timeout)
 
+    def test_worker_is_optional_and_uses_the_same_immutable_image_contract(self) -> None:
+        for optional in ({}, {"crm": IMAGE}, {"worker": IMAGE}, {"crm": IMAGE, "worker": IMAGE}):
+            with self.subTest(optional=tuple(optional)):
+                smoke = staging.Smoke({"api": IMAGE, "web": IMAGE, **optional}, 60)
+                self.assertEqual(smoke.images, {"api": IMAGE, "web": IMAGE, **optional})
+        for images in ({"api": IMAGE, "worker": IMAGE},
+                       {"api": IMAGE, "web": IMAGE, "worker": "worker:latest"},
+                       {"api": IMAGE, "web": IMAGE, "unknown": IMAGE}):
+            with self.subTest(images=images), self.assertRaises(staging.SmokeError):
+                staging.Smoke(images, 60)
+
+    def test_worker_environment_disables_consumers_providers_and_tracing(self) -> None:
+        production = {"AI_RUNS_QUEUE_URL": "https://queue.production", "DATABASE_URL": "production-db",
+                      "WORKER_AUTH_TOKEN": "production-token", "OPENAI_API_KEY": "production-key",
+                      "AWS_SECRET_ACCESS_KEY": "production-aws", "LANGSMITH_API_KEY": "production-trace",
+                      "OTEL_EXPORTER_OTLP_HEADERS": "secret-header", "HTTPS_PROXY": "http://proxy"}
+        with patch.dict(os.environ, production):
+            first = staging.worker_fixture_environment()
+            second = staging.worker_fixture_environment()
+            host = staging.host_environment()
+        self.assertNotEqual(first["WORKER_AUTH_TOKEN"], second["WORKER_AUTH_TOKEN"])
+        self.assertEqual(len(first["WORKER_AUTH_TOKEN"]), 64)
+        for name in ("AI_RUNS_QUEUE_URL", "DATABASE_URL", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                     "DEEPSEEK_API_KEY", "TAVILY_API_KEY", "LANGSMITH_API_KEY", "LANGCHAIN_API_KEY",
+                     "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"):
+            self.assertEqual(first[name], "")
+        self.assertEqual(first["PHOENIX_API_URL"], "http://127.0.0.1:9")
+        self.assertEqual(first["S3_ENDPOINT"], "http://127.0.0.1:9")
+        self.assertEqual(first["LANGSMITH_TRACING"], "false")
+        self.assertEqual(first["LANGCHAIN_TRACING_V2"], "false")
+        self.assertEqual(first["OTEL_SDK_DISABLED"], "true")
+        self.assertEqual(first["AWS_EC2_METADATA_DISABLED"], "true")
+        self.assertFalse(set(host) & set(production))
+
+    def test_worker_container_preserves_real_entrypoint_and_separate_fixture(self) -> None:
+        smoke = self.smoke()
+        smoke.network = smoke.prefix
+        smoke.resolved = {"worker": IMAGE}
+        inspected = {"Image": IMAGE, "Config": {"Labels": {staging.LABEL: smoke.run_id}},
+                     "NetworkSettings": {"Networks": {smoke.network: {}}}}
+        with patch.object(smoke, "docker", return_value=result()) as docker, patch.object(smoke, "inspect", return_value=inspected):
+            name = smoke.create("worker")
+        args = docker.call_args.args
+        self.assertEqual(args[-1], IMAGE)
+        self.assertNotIn("--entrypoint", args)
+        self.assertNotIn("--publish", args)
+        self.assertNotIn("--volume", args)
+        self.assertNotIn("--mount", args)
+        self.assertIn("--pids-limit", args)
+        self.assertIn("--memory", args)
+        self.assertIn("--cpus", args)
+        self.assertIn("--cap-drop", args)
+        self.assertIn("WORKER_AUTH_TOKEN", args)
+        self.assertNotIn("AI_WORKER_TOKEN", args)
+        self.assertNotIn("POSTGRES_PASSWORD", args)
+        self.assertNotIn("SECRET_KEY_BASE", args)
+        self.assertNotIn(smoke.worker_fixture["WORKER_AUTH_TOKEN"], args)
+        self.assertEqual(docker.call_args.kwargs, {"fixture": False, "worker_fixture": True})
+        self.assertEqual(smoke.containers, [name])
+        with patch.object(staging.subprocess, "run", return_value=result()) as command:
+            smoke.command(["docker", "version"], worker_fixture=True)
+        passed = command.call_args.kwargs["env"]
+        self.assertEqual(passed["DATABASE_URL"], "")
+        self.assertNotIn("SECRET_KEY_BASE", passed)
+        self.assertNotIn("POSTGRES_PASSWORD", passed)
+        self.assertNotIn("AI_WORKER_TOKEN", passed)
+        with self.assertRaises(staging.SmokeError):
+            smoke.command(["docker", "version"], fixture=True, worker_fixture=True)
+
     def test_generated_fixtures_do_not_inherit_production_credentials(self):
         with patch.dict(os.environ, {"DATABASE_URL": "production-secret", "AWS_SECRET_ACCESS_KEY": "aws-secret",
                                      "STRIPE_SECRET_KEY": "stripe-secret", "HTTP_PROXY": "http://proxy"}):
@@ -110,6 +179,69 @@ class StagingTests(unittest.TestCase):
                 smoke.probe("api", "foreign")
         docker.assert_not_called()
 
+    def test_worker_probe_uses_real_loopback_http_and_anonymous_get_only(self) -> None:
+        smoke = self.smoke()
+        smoke.network = smoke.prefix
+        smoke.resolved = {"probe": IMAGE}
+        target = {"Id": IDENTITY, "Config": {"Labels": {staging.LABEL: smoke.run_id}},
+                  "NetworkSettings": {"Networks": {smoke.network: {}}}}
+        probe = {"Image": IMAGE, "Config": {"Labels": {staging.LABEL: smoke.run_id}},
+                 "HostConfig": {"NetworkMode": "container:" + IDENTITY}}
+        with patch.object(smoke, "inspect", side_effect=[target, probe]), patch.object(smoke, "docker", return_value=result()) as docker, patch.object(smoke, "wait_for"):
+            smoke.probe("worker", "owned-worker")
+        args = docker.call_args_list[0].args
+        code = args[-1]
+        self.assertIn("container:" + IDENTITY, args)
+        self.assertIn('const smokeOrigin = "http://127.0.0.1:8100";', code)
+        self.assertIn('health.status !== "ok"', code)
+        self.assertIn('"/runs/fixture-validation"', code)
+        self.assertIn('denied.status !== 401', code)
+        self.assertIn('method: "GET"', code)
+        self.assertNotIn("POST", code)
+        self.assertNotIn("Authorization", code)
+        self.assertNotIn("Bearer", code)
+        self.assertNotIn("--env", args)
+        self.assertNotIn("--publish", args)
+        self.assertNotIn(smoke.worker_fixture["WORKER_AUTH_TOKEN"], code)
+
+    def test_worker_and_verifier_cleanup_removes_only_owned_ids_in_reverse_order(self) -> None:
+        smoke = self.smoke()
+        worker = smoke.prefix + "-worker"
+        probe = smoke.prefix + "-probe-worker"
+        smoke.containers = [worker, probe]
+        ids = {worker: "c" * 64, probe: "d" * 64}
+        calls: list[tuple[str, ...]] = []
+        def docker(*args: str, **kwargs: object) -> subprocess.CompletedProcess[str]:
+            calls.append(args)
+            if args[:2] == ("container", "inspect"):
+                return result(json.dumps([{"Id": ids[args[2]], "Config": {"Labels": {staging.LABEL: smoke.run_id}}}]))
+            return result()
+        with patch.object(smoke, "docker", side_effect=docker):
+            self.assertEqual(smoke.cleanup(), [])
+        self.assertEqual([call for call in calls if call[0] == "rm"],
+                         [("rm", "--force", "--volumes", ids[probe]),
+                          ("rm", "--force", "--volumes", ids[worker])])
+
+    def test_optional_worker_runs_its_image_command_then_http_probe(self) -> None:
+        smoke = staging.Smoke({"api": IMAGE, "web": IMAGE, "worker": IMAGE}, 60)
+        with patch("builtins.print"), patch.object(smoke, "validate_daemon"), patch.object(smoke, "resolve_images"), patch.object(smoke, "create_network"), patch.object(smoke, "command"), patch.object(smoke, "docker"), patch.object(staging.os, "chmod"), patch.object(smoke, "create", side_effect=lambda role, **kwargs: role) as create, patch.object(smoke, "wait_for"), patch.object(smoke, "probe") as probe:
+            smoke.execute()
+        create.assert_any_call("worker")
+        probe.assert_any_call("worker", "worker")
+        self.assertEqual(smoke.checks[-2:], ["worker-health", "worker-unauthenticated-401"])
+
+    def test_entrypoint_accepts_worker_digest_and_always_cleans_up_after_failure(self) -> None:
+        images = {"API_IMAGE": IMAGE, "WEB_IMAGE": IMAGE, "WORKER_IMAGE": IMAGE}
+        with patch("builtins.print"), patch.dict(os.environ, images, clear=True), patch.object(staging.sys, "argv", ["staging_smoke.py"]), patch.object(staging.signal, "signal"), patch.object(staging, "Smoke") as factory:
+            smoke = factory.return_value
+            smoke.execute.side_effect = staging.SmokeError("Actual worker loopback verification failed")
+            smoke.diagnostics.return_value = None
+            smoke.cleanup.return_value = []
+            self.assertEqual(staging.main(), 1)
+        factory.assert_called_once_with({"api": IMAGE, "web": IMAGE, "worker": IMAGE}, 420)
+        smoke.execute.assert_called_once_with()
+        smoke.cleanup.assert_called_once_with()
+
     def test_migration_requires_exit_zero_and_completion_marker(self):
         smoke = self.smoke()
         for state in [{"Running": False, "Status": "exited", "ExitCode": 1},
@@ -164,6 +296,8 @@ class StagingTests(unittest.TestCase):
             self.assertNotIn(smoke.fixture[key], redacted)
         self.assertNotIn("secret-token", redacted)
         self.assertNotIn("u:secret", redacted)
+        self.assertNotIn(smoke.worker_fixture["WORKER_AUTH_TOKEN"],
+                         smoke.redact(smoke.worker_fixture["WORKER_AUTH_TOKEN"]))
 
     def test_fixed_prelude_preserves_real_migrations_and_db_tls(self):
         self.assertIn("Mokaid.Release.migrate()", staging.MIGRATE)

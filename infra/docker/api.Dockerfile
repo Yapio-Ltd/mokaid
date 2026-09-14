@@ -22,8 +22,12 @@ RUN mix compile && mix release
 # --- Runtime stage ---
 FROM debian:bookworm-slim AS runtime
 
+# Explicitly refresh PCRE2 inherited from the base; unrelated installs can keep
+# the vulnerable base version. Refuse a mirror that lacks the fixed revision.
 RUN apt-get update -y \
-    && apt-get install -y libstdc++6 openssl libncurses6 locales ca-certificates \
+    && apt-get install -y --no-install-recommends \
+        libstdc++6 openssl libncurses6 locales ca-certificates libpcre2-8-0 \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libpcre2-8-0)" ge '10.42-1+deb12u1' \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 

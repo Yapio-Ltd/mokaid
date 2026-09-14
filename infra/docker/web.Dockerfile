@@ -22,8 +22,16 @@ ENV NODE_OPTIONS=--max-old-space-size=1536
 RUN npm run build --workspace=apps/web \
     && cp apps/web/dist/index.html apps/web/dist/spa.html
 
+# --- Shared runtime: patched distro package on the pinned nginx base ---
+FROM nginx:1.30.4-alpine@sha256:dc5069ad14f19660b141b21236140b91656bf89bbc3e2417c70ae650cd66104c AS nginx-runtime
+
+# The base contains util-linux/libuuid 2.42.1. Keep the distro's signed
+# security update in both runtime targets; fail if the patch is unavailable.
+RUN apk add --no-cache --upgrade 'libuuid>=2.42.3-r1' \
+    && apk info --exists 'libuuid>=2.42.3-r1'
+
 # --- CI runtime: SPA shell only (no Playwright pull / prerender) ---
-FROM nginx:1.30.4-alpine@sha256:dc5069ad14f19660b141b21236140b91656bf89bbc3e2417c70ae650cd66104c AS runtime-ci
+FROM nginx-runtime AS runtime-ci
 
 COPY infra/docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=assets /repo/apps/web/dist /usr/share/nginx/html
@@ -45,7 +53,7 @@ COPY --from=assets /repo /repo
 RUN npm run prerender --workspace=apps/web
 
 # --- Production runtime (default) ---
-FROM nginx:1.30.4-alpine@sha256:dc5069ad14f19660b141b21236140b91656bf89bbc3e2417c70ae650cd66104c AS runtime
+FROM nginx-runtime AS runtime
 
 COPY infra/docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=seo /repo/apps/web/dist /usr/share/nginx/html

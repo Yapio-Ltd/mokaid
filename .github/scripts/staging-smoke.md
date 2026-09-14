@@ -11,6 +11,8 @@ image content selected for the production release. It creates no AWS resources.
   Local validation also accepts `sha256:<64 lowercase hex>` image IDs already
   present in the Docker daemon. Tags, partial IDs and missing images fail closed.
 - Optional `CRM_IMAGE`: same immutable contract; adds CRM startup/login HTML.
+- Optional `WORKER_IMAGE`: same immutable contract; adds real uvicorn startup,
+  successful `/health` JSON and anonymous `GET /runs/fixture-validation` 401.
 - Optional `MOKAID_DESKTOP_ONLY_BUSINESS`: literal `true` or `false`, default
   `false`. This is not the signed-desktop readiness gate; the release workflow
   must enforce that gate independently before enabling the production flag.
@@ -39,6 +41,7 @@ with a different build. Keep workflow concurrency protection for production.
 API_IMAGE=registry.example/api@sha256:... \
 WEB_IMAGE=registry.example/web@sha256:... \
 CRM_IMAGE=registry.example/crm@sha256:... \
+WORKER_IMAGE=registry.example/ai-worker@sha256:... \
 STAGING_DIAGNOSTICS_DIR="$RUNNER_TEMP/mokaid-staging-diagnostics" \
 python3 .github/scripts/staging_smoke.py
 ```
@@ -68,6 +71,14 @@ The ellipses are documentation placeholders, deliberately invalid as inputs.
 6. If supplied, the exact CRM image runs its normal entrypoint and must serve
    real `/login` HTML successfully. This does not assert an authenticated CRM
    workflow or desktop admin parity.
+7. If supplied, the exact worker image runs its unchanged uvicorn entrypoint
+   and application lifespan on port 8100, without publishing that port. Its
+   separate generated fixture token is never given to the verifier. The queue
+   URL and database URL are empty; provider keys are empty, tracing and cloud
+   metadata are disabled, and API/S3 destinations point at closed loopback
+   port 9. The verifier requires `/health` to contain `status: "ok"` and
+   anonymous `GET /runs/fixture-validation` to return 401. It sends no POST,
+   authenticated request, AI job, queue message or provider request.
 
 No ports are published, including the API/web ports. A pinned Node verifier
 shares each target container's network namespace and calls `127.0.0.1` there.
@@ -96,11 +107,13 @@ not prove S3 access and do not replace production migration verification.
 
 Consequently, this gate proves packaging, schema migrations on an empty
 pgvector database, production-config parsing, API boot/anonymous auth guards,
-and actual web delivery. It **does not** prove upgrades from a production data
+actual web delivery and, when selected, real worker HTTP startup and its
+anonymous authorization guard. It **does not** prove upgrades from a production data
 snapshot, real Cognito login, worker/AI jobs, payment flows, email, OAuth
 providers, IAM, RDS certificate verification, S3, ECS networking, ALB routing,
 CloudFront or clean-machine desktop installers. Worker image scans remain
-separate; the worker is not staged here. Production smoke and rollback are
+separate and mandatory; HTTP startup does not prove AI execution, provider
+access, checkpoint persistence or queue consumption. Production smoke and rollback are
 still required. No automatic database rollback is attempted.
 
 ## Cleanup and diagnostics

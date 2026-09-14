@@ -59,7 +59,8 @@ export default defineConfig(({ mode }) => {
   },
   server: {
     port: 5173,
-    host: true,
+    // Development is local by default; explicit --host remains available for containers.
+    host: "127.0.0.1",
     proxy: {
       "/api": devProxy(proxyTarget),
       "/socket": devProxy(proxyTarget, true),
