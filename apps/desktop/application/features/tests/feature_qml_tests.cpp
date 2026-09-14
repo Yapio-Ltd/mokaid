@@ -70,7 +70,9 @@ private slots:
                     const auto bytes=socket->property("request").toByteArray()+socket->readAll(); socket->setProperty("request",bytes);
                     if (!bytes.contains("\r\n\r\n") || socket->property("handled").toBool()) return;
                     socket->setProperty("handled",true); const auto path=QString::fromUtf8(bytes.split(' ').value(1)); paths.append(path);
-                    const QByteArray body=path=="/api/drive"?"{\"data\":["+folder+"]}":path=="/api/drive/folder-a"?"{\"data\":"+folder+"}":"{\"data\":[]}";
+                    const QByteArray body=path=="/api/drive" ? "{\"data\":["+folder+"]}"
+                        : path=="/api/drive/folder-a" ? "{\"data\":"+folder+"}"
+                        : QByteArrayLiteral("{\"data\":[]}");
                     socket->write("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: "+QByteArray::number(body.size())+"\r\n\r\n"+body); socket->disconnectFromHost();
                 });
             }
