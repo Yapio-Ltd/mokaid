@@ -181,7 +181,40 @@ final harness fixes those integration issues without relaxing isolation.
 
 The CRM build's npm install reported six dependency vulnerabilities (one
 moderate, four high, one critical). This functional pass does not clear those
-security findings or weaken the release scan gate. Linux AMD64 and all three exact
-CI release digests must still pass in the deployment workflow. No AWS,
+security findings or weaken the release scan gate. CI's separate Linux AMD64
+builds and the deployment's exact Linux ARM64 release digests need their own
+verification. No AWS,
 production database, worker execution or external provider validation is
 claimed by this local result.
+
+### Corrected four-image local evidence — 2026-09-14
+
+After the dependency and runtime corrections, the final local ARM64 set
+passed together with the extended worker check:
+
+- API `sha256:70a5815f8247e92f7d0d041b1173c966839f3bb7501c81c567cd11ec24b96740`.
+- WEB `sha256:45d3ca7bb72a6cf397f9e14ccc0828bed7ab944a1fffa8ec065b63831723563a`.
+- CRM `sha256:7f8d141e3a4cfc91d65d671371b31119e7cb34575efcac7d39e707bb1432fb7e`.
+- WORKER `sha256:d6336ca4c619a869c138e1f8af255f80add1ebf91199672e0413f1e075c52120`.
+
+Real release migrations, database TLS/schema verification, API health and both
+anonymous authorization guards passed. The production web verifier, CRM login
+HTML, actual worker Uvicorn startup, worker health and anonymous run-access
+401 passed. No worker job, business mutation, payment, upload, provider or AWS
+operation was invoked. Cleanup completed successfully; inventory checks found
+no staging-owned containers or networks. All 67 safety unit tests passed.
+
+This WEB uses Vite 6.4.3 and the corrected shared lockfile; CRM uses Next
+15.5.24/Sharp 0.35.4, a pinned Node build/runtime base and `npm ci`. The final
+unfiltered npm audit reports zero findings, including development dependencies.
+The CRM's separate offline Trivy scan reports zero Node findings and zero OS
+findings with a fixed version, but still lists 219 unfiltered OS findings
+without a published fix; no finding was suppressed. See
+[`SECURITY_DEPENDENCIES.md`](../../apps/crm/SECURITY_DEPENDENCIES.md) for scope,
+versions, browser acceptance and scanner limitations. These local functional
+checks do not waive any API/worker findings recorded by their separate audits.
+
+The deployment's exact Linux ARM64 ECR digests must still pass their own scans
+and this exact-image gate. CI's additional Linux AMD64 builds do not replace
+that verification. This evidence is not a production
+deployment or an authenticated end-to-end test against real providers.

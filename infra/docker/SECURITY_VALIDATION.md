@@ -29,7 +29,7 @@ Upstream version evidence: [Alpine libuuid](https://pkgs.alpinelinux.org/package
 Package-level findings are not assertions that every affected code path is
 reachable through Mokaid. No exploit was run against a live service.
 
-## Tested intermediate image set
+## Final local security-patch image set (not a production release)
 
 All are local Linux ARM64 **Docker daemon image IDs**, not public download or
 ECR release references:
@@ -37,8 +37,8 @@ ECR release references:
 | Component | Image ID | Scan scope/result |
 | --- | --- | --- |
 | API | `sha256:70a5815f8247e92f7d0d041b1173c966839f3bb7501c81c567cd11ec24b96740` | No fixable HIGH/CRITICAL OS findings; Trivy found no BEAM package inventory |
-| CRM | `sha256:41cacc04f1be4747bd6a7ea5c9610971ecbf8b7bc567fc101a6ae8408b81487f` | No Node findings and no OS findings with a published fix; 219 unfixed OS findings remain |
-| Web | `sha256:76ac9be4e0e03abac7f32edece0c714d70705ea7c2c101c4de65fc6e25fb0ffd` | No OS findings; minified browser code needs its separate lockfile audit |
+| CRM | `sha256:7f8d141e3a4cfc91d65d671371b31119e7cb34575efcac7d39e707bb1432fb7e` | No Node findings and no OS findings with a published fix; 219 unfixed OS findings remain |
+| Web | `sha256:45d3ca7bb72a6cf397f9e14ccc0828bed7ab944a1fffa8ec065b63831723563a` | No OS findings; minified browser code needs its separate lockfile audit |
 | Worker | `sha256:d6336ca4c619a869c138e1f8af255f80add1ebf91199672e0413f1e075c52120` | No Python findings or fixable HIGH/CRITICAL OS findings; 154 OS findings remain, including 44 unfixed HIGH/CRITICAL |
 
 This set passed the real four-image staging harness: API release migrations,
@@ -47,7 +47,14 @@ responses, CRM login HTML, and uvicorn worker startup/health/anonymous 401.
 No AI task, provider request or production mutation was performed. All owned
 disposable containers/networks were removed afterwards.
 
-These are intermediate images. Subsequent lockfile or Dockerfile changes
+The final web/CRM images include the resolved Vite 6.4.3, Vitest 4.1.11 and
+patched runtime lockfile. A real npm 10 `ci` and complete npm audit pass with
+zero findings, including development tools. Web acceptance passed 154 tests,
+five SEO contracts, four actual Chromium account-only journeys and 36 public
+prerenders. CRM uses the pinned Node base and `npm ci`. The earlier intermediate
+sets remain documented in the staging and CRM runbooks.
+
+These are local validation images, not published releases. Subsequent lockfile or Dockerfile changes
 require another build, scan and staging pass of the exact selected images.
 The deployment workflow gates mutations on all four immutable release-image
 scans and stages those same digests. `ignore-unfixed` means the HIGH/CRITICAL
