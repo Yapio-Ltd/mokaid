@@ -37,6 +37,9 @@ public:
     void cancelRequests(QObject* owner);
     void request(const QByteArray& method, const QString& path, const QJsonObject& body,
                  core::Scope scope, QObject* owner, Completion completion);
+    // Successful file responses are opaque, including JSON files. HTTP errors
+    // still use the API error envelope. Transfers are bounded to 32 MiB.
+    void getBytes(const QString& path, core::Scope scope, QObject* owner, Completion completion);
     void upload(const QString& path, const QList<QUrl>& files, const QJsonObject& fields,
                 core::Scope scope, QObject* owner, Completion completion);
 signals:
@@ -44,9 +47,11 @@ signals:
     void administratorDenied();
     void onlineChanged(bool online);
 private:
+    enum class ResponseMode { json, bytes };
     struct Cancellation { bool cancelled{}; };
     QNetworkRequest makeRequest(const QString& path, core::Scope scope) const;
-    void track(QNetworkReply* reply, core::Scope scope, QObject* owner, Completion completion);
+    void track(QNetworkReply* reply, core::Scope scope, QObject* owner, Completion completion,
+               ResponseMode mode = ResponseMode::json);
     QUrl origin_;
     QNetworkAccessManager manager_;
     QByteArray token_;

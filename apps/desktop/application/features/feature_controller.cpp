@@ -69,7 +69,7 @@ bool externalUrlAllowed(const QUrl& url) {
 }
 
 FeatureController::FeatureController(ApiClient& api, SessionController& session, CacheStore& cache, QObject* parent)
-    : QObject(parent),api_(api),session_(session),cache_(cache),records_(this),detailView_(this),searchTimer_(this) {
+    : QObject(parent),api_(api),session_(session),cache_(cache),records_(this),detailView_(this),driveDownload_(api,this),searchTimer_(this) {
     connect(this,&FeatureController::changed,this,[this] {
         detailView_.setDocument(details_,currentPage_+":"+selectedId_,detailHeading_.isEmpty()?QString("Overview"):detailHeading_,currentPage_,detailCollection_);
     });
@@ -82,6 +82,7 @@ FeatureController::FeatureController(ApiClient& api, SessionController& session,
     connect(&session_,&SessionController::workspaceChanged,this,&FeatureController::sessionChanged);
     connect(&session_,&SessionController::cleared,this,[this]{clear();contextTag_.clear();currentPage_="office";emit changed();});
     connect(&api_,&ApiClient::onlineChanged,this,[this](bool online) {
+        if (!online) driveDownload_.cancelForConnectionLoss();
         const auto* feature=findFeature(currentPage_);
         if (!online && feature && feature->scope==core::Scope::administration) {
             clear(); currentPage_="office"; fail("Administration requires a verified online session.");
@@ -121,6 +122,7 @@ QVariantList FeatureController::fieldsForAction(const QString& id) const {
             else if (key=="plan_key") current=data.value("plan").toMap().value("key");
         }
         if (id=="create" && currentPage_=="agent-new" && key=="archetype_key") current=records_.record(selectedId_).value("key");
+        if (currentPage_=="drive" && (id=="create" || id=="upload") && key=="parent_id" && !driveFolderId().isEmpty()) current=driveFolderId();
         field.insert("value",current); field.insert("defaultValue",current); value=field;
     }
     return fields;
@@ -131,7 +133,7 @@ QVariantList FeatureController::actions() const {
     for (const auto& action : feature->actions) {
         const bool hasSelection=!selectedId_.isEmpty();
         list.append(QVariantMap{{"id",action.id},{"title",action.title},{"selection",action.selection},{"destructive",action.destructive},
-            {"fields",fieldsForAction(action.id)},{"enabled",!busy_ && (!action.selection || hasSelection) && permitted(*feature,action.method!="GET" && action.method!="DELIVERY")},
+            {"fields",fieldsForAction(action.id)},{"enabled",!busy_ && (!action.selection || hasSelection) && driveActionAllowed(action.id,selectedId_) && permitted(*feature,action.method!="GET" && action.method!="DELIVERY")},
             {"confirmation",action.destructive ? QString("%1? This changes live data. Confirm the selected account and workspace before continuing.").arg(action.title) : QString{}}});
     }
     return list;
@@ -141,10 +143,87 @@ const FeatureAction* FeatureController::findAction(const QString& id) const {
     for (const auto& action : feature->actions) if (action.id==id) return &action;
     return nullptr;
 }
+QString FeatureController::actionContext(const QString& id) const {
+    const auto* action=findAction(id); if (!action) return {};
+    // Opaque UI freshness token only; this is never an authorization credential.
+    const QJsonObject context{{"server",api_.origin().toString()},{"user",identityUser(api_,session_)},
+        {"workspace",identityWorkspace(api_,session_)},{"session",QString::number(api_.context().generation)},
+        {"view",QString::number(viewGeneration_)},{"page",currentPage_},{"action",id},
+        {"selected",action->selection?selectedId_:QString{}},{"online",api_.context().online},{"admin",api_.context().platform_admin}};
+    return QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(context).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+}
 void FeatureController::clear() {
-    ++epoch_; ++detailEpoch_; busy_=false; offline_=false; nextPage_=0; loadingMore_=false;
+    ++epoch_; ++detailEpoch_; ++viewGeneration_; busy_=false; offline_=false; nextPage_=0; loadingMore_=false;
     api_.cancelRequests(this); pendingSelection_.clear(); detailHeading_.clear(); detailCollection_.clear(); overview_.clear();
     error_.clear(); selectedId_.clear(); details_.clear(); editDetails_.clear(); records_.setRecords({}); retryKeys_.clear(); searchTimer_.stop();
+    driveBreadcrumbs_={QVariantMap{{"id",QString{}},{"name","Drive"}}}; driveTrash_=false; driveDownload_.reset();
+}
+bool FeatureController::driveActionAllowed(const QString& action,const QString& id) const {
+    if (currentPage_!="drive") return true;
+    if (action=="trash") return true;
+    if (action=="create" || action=="upload") return !driveTrash_;
+    // Selection actions must refer to a row in this exact view, not an injected
+    // action _id or an off-page record loaded by global search.
+    const auto record=records_.record(id);
+    if (id.isEmpty() || id!=selectedId_ || record.isEmpty()) return false;
+    if (action=="restore") return driveTrash_ && record.value("status")=="trashed";
+    if (driveTrash_ || record.value("status")!="active") return false;
+    if (action=="children") return record.value("kind")=="folder";
+    if (action=="open" || action=="download") return record.value("kind")=="file";
+    return true;
+}
+bool FeatureController::driveCanDownload() const {
+    const auto* feature=findFeature(currentPage_);
+    return currentPage_=="drive" && feature && !busy_ && api_.context().online && permitted(*feature,false)
+        && driveActionAllowed("download",selectedId_);
+}
+void FeatureController::requestDriveDownload() {
+    if (!driveCanDownload()) { fail("Select an active file while connected to its workspace."); return; }
+    driveDownload_.request(records_.record(selectedId_));
+}
+QString FeatureController::driveListPath() const {
+    if (driveTrash_) return "/api/drive-trash";
+    if (driveFolderId().isEmpty()) return "/api/drive";
+    return resolvePath("/api/drive/{id}/children",driveFolderId());
+}
+void FeatureController::changeDriveLocation(QVariantList breadcrumbs,bool trash) {
+    if (currentPage_!="drive" || !permitted(*findFeature("drive"),false)) return;
+    clear(); driveBreadcrumbs_=std::move(breadcrumbs); driveTrash_=trash;
+    search_.clear(); records_.setQuery({}); emit changed(); refresh();
+}
+void FeatureController::openDriveFolder(const QString& id) {
+    const auto record=records_.record(id);
+    if (currentPage_!="drive" || driveTrash_ || record.value("kind")!="folder" || record.value("status")!="active"
+        || resolvePath("/api/drive/{id}/children",id).isEmpty()) return;
+    auto breadcrumbs=driveBreadcrumbs_;
+    // Bound breadcrumb state, including a malformed cyclic server hierarchy.
+    if (breadcrumbs.size()>=128) { fail("This folder hierarchy is too deep to navigate."); return; }
+    for (const auto& crumb : breadcrumbs) if (crumb.toMap().value("id")==id) { fail("The folder hierarchy contains a cycle."); return; }
+    breadcrumbs.append(QVariantMap{{"id",id},{"name",record.value("name").toString()}});
+    changeDriveLocation(std::move(breadcrumbs),false);
+}
+void FeatureController::navigateDriveBreadcrumb(int index) {
+    if (index<0 || index>=driveBreadcrumbs_.size()) return;
+    changeDriveLocation(driveBreadcrumbs_.mid(0,index+1),false);
+}
+void FeatureController::driveBack() {
+    if (driveTrash_) setDriveTrash(false);
+    else if (driveBreadcrumbs_.size()>1) navigateDriveBreadcrumb(static_cast<int>(driveBreadcrumbs_.size())-2);
+}
+void FeatureController::setDriveTrash(bool trash) {
+    if (trash!=driveTrash_) changeDriveLocation(driveBreadcrumbs_,trash);
+}
+void FeatureController::invalidateDriveCache(const QString& id,const QString& oldParent,const QString& newParent) {
+    // A JSON null tombstone invalidates, rather than inventing an empty listing. The
+    // current location is immediately fetched again; unvisited locations must
+    // synchronize before they can be consulted offline after a mutation.
+    QStringList paths{"/api/drive","/api/drive-trash",driveListPath()};
+    if (!id.isEmpty()) paths.append(resolvePath("/api/drive/{id}",id));
+    for (const auto& parent : {oldParent,newParent})
+        if (!parent.isEmpty()) paths.append(resolvePath("/api/drive/{id}/children",parent));
+    paths.removeDuplicates();
+    // A null QByteArray would bind SQL NULL and violate the payload constraint.
+    for (const auto& path : paths) if (!path.isEmpty()) cache_.write(cacheKey(path),QByteArrayLiteral("null"));
 }
 void FeatureController::sessionChanged() {
     const auto tag=QString::fromStdString(core::cacheKey(api_.origin().toString().toStdString(),
@@ -178,7 +257,7 @@ void FeatureController::loadMore() { if (nextPage_>0 && !busy_ && !loadingMore_)
 void FeatureController::load(int page,bool append) {
     const auto* feature=findFeature(currentPage_); if (!feature) return;
     if (!permitted(*feature,false)) { fail(feature->scope==core::Scope::workspace ? "Select a workspace to continue." : "Sign in to continue."); return; }
-    auto path=resolvePath(feature->path,{});
+    auto path=currentPage_=="drive" ? driveListPath() : resolvePath(feature->path,{});
     if (path.isEmpty()) { fail("Select a workspace to continue."); return; }
     if (feature->paginated) {
         QUrl url(path); QUrlQuery query(url); query.addQueryItem("page",QString::number(page)); query.addQueryItem("per_page","100");
@@ -224,7 +303,7 @@ void FeatureController::acceptList(const QJsonObject& response,bool append) {
         const auto id = pendingSelection_; pendingSelection_.clear(); select(id); return;
     }
     if (selectedId_.isEmpty()) { details_=overview_; editDetails_=details_; detailHeading_="Overview"; detailCollection_.clear(); }
-    else if (records_.record(selectedId_).isEmpty() && feature->detailPath.isEmpty()) clearSelection();
+    else if (records_.record(selectedId_).isEmpty() && (feature->detailPath.isEmpty() || currentPage_=="drive")) clearSelection();
     else select(selectedId_);
 }
 void FeatureController::select(const QString& id) {
@@ -294,11 +373,17 @@ QString FeatureController::resolvePath(QString path,const QString& id,const QVar
 void FeatureController::submit(const QString& actionId,const QVariantMap& values) {
     const auto* descriptor=findFeature(currentPage_); const auto* definition=findAction(actionId);
     if (!descriptor || !definition || busy_) return;
+    if (values.contains("_context") && values.value("_context").toString()!=actionContext(actionId)) {
+        fail("This form belongs to a previous view or session. Reopen the action before submitting."); return;
+    }
     const auto action=*definition; const auto feature=*descriptor;
     const auto id=values.value("_id",selectedId_).toString();
     if (action.selection && id.isEmpty()) { fail("Select a record first."); return; }
+    if (!driveActionAllowed(actionId,id)) { fail("This action is not available for the selected item in this view."); return; }
     const bool mutation=action.method!="GET" && action.method!="DELIVERY";
     if (!permitted(feature,mutation)) { fail("This action requires an online session with the appropriate permissions."); return; }
+    if (currentPage_=="drive" && actionId=="children") { openDriveFolder(id); return; }
+    if (currentPage_=="drive" && actionId=="trash") { setDriveTrash(true); return; }
     if (action.destructive && values.value("_confirmed").metaType().id()!=QMetaType::Bool) { fail("Confirm this action before continuing."); return; }
     if (action.destructive && !values.value("_confirmed").toBool()) { fail("Confirm this action before continuing."); return; }
     if (action.method=="DELIVERY") { auto record=records_.record(id); if (record.isEmpty() && id==selectedId_) record=editDetails_; if (!record.isEmpty()) emit openDelivery(record); return; }
@@ -324,6 +409,7 @@ void FeatureController::submit(const QString& actionId,const QVariantMap& values
         if (parsed.isNull() && action.method=="PATCH" && !editDetails_.contains(key)) continue;
         body.insert(key,parsed);
     }
+    if (currentPage_=="drive" && (actionId=="create" || actionId=="upload") && !values.contains("parent_id") && !driveFolderId().isEmpty()) body.insert("parent_id",driveFolderId());
     const auto path=resolvePath(action.path,id,values);
     if (path.isEmpty()) { fail("This action needs a valid record identifier."); return; }
     if (actionId=="password" && body.value("password")!=body.value("password_confirmation")) { fail("The new passwords do not match."); return; }
@@ -362,7 +448,9 @@ void FeatureController::submit(const QString& actionId,const QVariantMap& values
     };
     if (action.method=="GET" && !api_.context().online) { readCachedAction(); return; }
     // Keep one completion path for multipart and JSON mutations.
-    auto completion=[this,epoch,generation,detailEpoch,path,action,retryHash,readCachedAction](ApiResponse response) {
+    const auto oldParent=records_.record(id).value("parent_id").toString();
+    const auto submittedContext=actionContext(actionId);
+    auto completion=[this,epoch,generation,detailEpoch,path,action,retryHash,readCachedAction,id,oldParent,body,submittedContext](ApiResponse response) {
         if (epoch!=epoch_ || generation!=api_.context().generation) return;
         busy_=false;
         if (action.method=="GET") {
@@ -382,8 +470,10 @@ void FeatureController::submit(const QString& actionId,const QVariantMap& values
             if (externalUrlAllowed(external)) emit requestExternal(external);
             else { fail("The service returned an invalid external link."); return; }
         }
+        emit actionSucceeded(submittedContext);
         if (currentPage_=="profile" || currentPage_=="settings") session_.reloadIdentity();
-        if (action.method=="DELETE") clearSelection();
+        if (currentPage_=="drive") invalidateDriveCache(id,oldParent,data.value("parent_id").toString(body.value("parent_id").toString()));
+        if (action.method=="DELETE" || (currentPage_=="drive" && action.id=="restore")) clearSelection();
         refresh(); emit changed();
     };
     if (action.method=="UPLOAD") api_.upload(path,files,body,feature.scope,this,std::move(completion));

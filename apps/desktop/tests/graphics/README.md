@@ -8,17 +8,28 @@ script, scheme handler, request interceptor and CSP. Its only external-navigatio
 handler is a recording test double; no system browser is opened.
 
 Build `mokaid_graphics_probe` with the normal desktop toolchain, then run it from
-a visible macOS/Windows desktop session:
+a visible macOS/Windows desktop session. On Windows, run
+`mokaid_graphics_probe.exe` from the build's `tests/graphics` directory, providing
+the `--assets`, `--output` and `--machine-label` arguments below with local paths.
+
+On macOS the probe is a separate `.app`, with the distinct identifier
+`com.mokaid.desktop.graphicsprobe`. Launch it through LaunchServices in the
+foreground, using absolute paths for its arguments (launched apps do not inherit
+the shell's working directory):
 
 ```sh
-apps/desktop/build/macos-debug/tests/graphics/mokaid_graphics_probe \
-  --assets apps/desktop/build/assets \
+open -W -n /absolute/build/tests/graphics/mokaid_graphics_probe.app --args \
+  --assets /absolute/build/assets \
   --output /private/tmp/mokaid-graphics-probe-results \
-  --machine-label "Apple M4 Pro — local development host, not target M1"
+  --machine-label "Actual physical development host — not a target-device substitute"
 ```
 
-The exact executable path can have an `.app/Contents/MacOS` suffix when the host
-CMake configuration enables bundles. `--help` describes the portable flags.
+Keep the test window visible and focused until it closes. The terminal command's
+exit alone is not a test result: inspect `report.json` and require `status=passed`;
+only interpret timings when `performanceSampleQualified=true`. Starting the bare
+`.app/Contents/MacOS/mokaid_graphics_probe` executable behind another window can
+produce an occluded-window timeout or zero frames. Such runs remain failures,
+not successful performance evidence. `--help` describes the portable flags.
 For independent iteration, `tests/graphics/standalone` is an alternative CMake
 source directory that compiles the same production modules without configuring
 the main application's build directory. Supply Qt's `CMAKE_PREFIX_PATH` and the

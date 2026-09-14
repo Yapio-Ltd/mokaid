@@ -11,7 +11,6 @@ public:
     using Completion = std::function<void(ArtifactResult)>;
     ArtifactService(ApiClient&, SessionController&, CacheStore&, QObject* parent = nullptr);
     void fetch(const QString& id, QObject* owner, Completion completion);
-    QUrl browserFilesUrl() const;
 private:
     ApiClient& api_;
     SessionController& session_;

@@ -8,7 +8,6 @@ ArtifactService::ArtifactService(ApiClient& api, SessionController& session, Cac
     connect(&session_, &SessionController::cleared, this, [this] { ++generation_; });
     connect(&session_, &SessionController::workspaceChanged, this, [this] { ++generation_; });
 }
-QUrl ArtifactService::browserFilesUrl() const { return api_.origin().resolved(QUrl("/drive")); }
 void ArtifactService::fetch(const QString& id, QObject* owner, Completion completion) {
     static const QRegularExpression validId("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
     if (!validId.match(id).hasMatch() || !session_.authenticated() || session_.workspaceId().isEmpty()) {
@@ -27,7 +26,7 @@ void ArtifactService::fetch(const QString& id, QObject* owner, Completion comple
         });
     };
     if (!session_.online()) { fallback(); return; }
-    api_.request("GET", path, {}, core::Scope::workspace, owner,
+    api_.getBytes(path, core::Scope::workspace, owner,
         [this, key, guard, generation, fallback, completion = std::move(completion)](ApiResponse response) {
             if (!guard || generation != generation_) return;
             if (response.networkError) { fallback(); return; }

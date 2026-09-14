@@ -18,6 +18,7 @@ ApplicationWindow {
     property bool adminMode: features.currentPage.indexOf("admin-") === 0
     property bool previewsRetained: preview.documents[0] !== null || preview.documents[1] !== null
     property bool workProtected: office.hasDrafts || office.sending || actionDialog.opened || activityPanels.protectedWork || previewsRetained
+        || features.driveDownload.busy || features.driveDownload.pendingTransaction.length > 0
     onWorkProtectedChanged: updates.setInstallationAllowed(!workProtected)
     Component.onCompleted: updates.setInstallationAllowed(!workProtected)
     onClosing: function(close) {
@@ -31,7 +32,7 @@ ApplicationWindow {
     Connections {
         target: updates
         function onError(message) { notice.text = message; notice.open() }
-        function onSaveRequired() { notice.text = "Finish sending messages, save your forms, and close all deliverables before installing the update."; notice.open() }
+        function onSaveRequired() { notice.text = "Finish sending messages and downloading files, save your forms, and close all deliverables before installing the update."; notice.open() }
     }
     Connections {
         target: session
@@ -139,7 +140,14 @@ ApplicationWindow {
                     MokaidLabel { text: "Create your workspace to start building your AI team, or ask a workspace owner for an invitation."; color: Theme.secondary; Layout.fillWidth: true; wrapMode: Text.Wrap }
                     MokaidButton { text: "Create a workspace"; highlighted: true; enabled: session.online; onClicked: activityPanels.openWorkspace() }
                 }
-                PreviewPanel { anchors.fill: parent; visible: preview.visible }
+                PreviewPanel {
+                    anchors.fill: parent; visible: preview.visible
+                    onFilesRequested: {
+                        // Hide without evicting either document or its form state.
+                        preview.visible = false
+                        features.navigate("drive")
+                    }
+                }
             }
         }
     }
@@ -176,7 +184,7 @@ ApplicationWindow {
     Dialog {
         id: quitDialog; anchors.centerIn: parent; modal: true; title: "Close Mokaid?"
         standardButtons: Dialog.Discard | Dialog.Cancel
-        MokaidLabel { text: "There are drafts, forms, or deliverables still open.\nDiscard this local work and quit?"; color: Theme.secondary }
+        MokaidLabel { text: "There are drafts, forms, downloads, or deliverables still open.\nDiscard this local work, cancel downloads, and quit?"; color: Theme.secondary }
         onDiscarded: { window.quitting = true; window.close() }
     }
     Dialog {

@@ -53,7 +53,6 @@ public:
     Q_INVOKABLE void activate(int index);
     Q_INVOKABLE void setVisible(bool visible);
     Q_INVOKABLE void openExternal(const QUrl& url);
-    Q_INVOKABLE void openInBrowser();
     Q_INVOKABLE void clear();
     Q_INVOKABLE void commitClear();
 signals:

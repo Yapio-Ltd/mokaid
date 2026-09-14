@@ -87,6 +87,14 @@ void ApiClient::request(const QByteArray& method, const QString& path, const QJs
         : manager_.sendCustomRequest(req, method, QJsonDocument(body).toJson(QJsonDocument::Compact));
     track(reply, scope, owner, std::move(done));
 }
+void ApiClient::getBytes(const QString& path, core::Scope scope, QObject* owner, Completion done) {
+    if (!context_.online || !core::isSafeApiPath(path.toStdString()) || !core::mayRequest(context_, scope, false)) {
+        done({0, {}, {}, "Download requires an active connection and the appropriate permissions.", false}); return;
+    }
+    auto request = makeRequest(path, scope);
+    request.setRawHeader("Accept", "*/*");
+    track(manager_.get(request), scope, owner, std::move(done), ResponseMode::bytes);
+}
 void ApiClient::upload(const QString& path, const QList<QUrl>& files, const QJsonObject& fields,
                        core::Scope scope, QObject* owner, Completion done) {
     if (!core::isSafeApiPath(path.toStdString()) || !core::mayRequest(context_, scope, true)) {
@@ -115,7 +123,7 @@ void ApiClient::upload(const QString& path, const QList<QUrl>& files, const QJso
     multi->setParent(reply); multi.release();
     track(reply, scope, owner, std::move(done));
 }
-void ApiClient::track(QNetworkReply* reply, core::Scope scope, QObject* owner, Completion done) {
+void ApiClient::track(QNetworkReply* reply, core::Scope scope, QObject* owner, Completion done, ResponseMode mode) {
     const auto cancellation = std::make_shared<Cancellation>();
     operations_.insert(owner, cancellation);
     replies_.insert(reply);
@@ -125,37 +133,48 @@ void ApiClient::track(QNetworkReply* reply, core::Scope scope, QObject* owner, C
     QPointer<QObject> guard(owner);
     struct Transfer { QByteArray bytes; bool oversized{}; };
     auto transfer = std::make_shared<Transfer>();
-    const qsizetype maximum = reply->url().path().endsWith("/raw") ? 32 * 1024 * 1024 : 8 * 1024 * 1024;
+    const qsizetype maximum = mode == ResponseMode::bytes || reply->url().path().endsWith("/raw")
+        ? 32 * 1024 * 1024 : 8 * 1024 * 1024;
     reply->setReadBufferSize(256 * 1024);
     connect(reply, &QNetworkReply::readyRead, this, [reply, transfer, maximum] {
         auto chunk = reply->readAll();
+        if (transfer->oversized) return;
         if (transfer->bytes.size() + chunk.size() > maximum) {
             transfer->oversized = true; transfer->bytes.clear(); reply->abort(); return;
         }
         transfer->bytes.append(chunk);
     });
-    connect(reply, &QNetworkReply::finished, this, [this, reply, transfer, generation, guard, scope, cancellation, ownerKey = owner, done = std::move(done)]() mutable {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, transfer, generation, guard, scope, mode, cancellation, ownerKey = owner, done = std::move(done)]() mutable {
         replies_.remove(reply);
         owners_.remove(reply);
         const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const bool cancelled = reply->error() == QNetworkReply::OperationCanceledError;
-        const bool networkError = status == 0 && reply->error() != QNetworkReply::NoError && !cancelled;
-        const bool jsonResponse = reply->header(QNetworkRequest::ContentTypeHeader).toString().contains("json", Qt::CaseInsensitive) && status != 204;
+        const bool successStatus = status >= 200 && status < 300;
+        // An HTTP 200 header can precede a truncated transfer. Never expose its
+        // partial payload as a successful download or cache entry. Qt also maps
+        // ordinary HTTP 4xx/5xx to errors; those are not connectivity failures.
+        const bool networkError = (status == 0 || successStatus)
+            && reply->error() != QNetworkReply::NoError && !cancelled;
+        const bool jsonResponse = !networkError && (mode == ResponseMode::json || !successStatus)
+            && reply->header(QNetworkRequest::ContentTypeHeader).toString().contains("json", Qt::CaseInsensitive) && status != 204;
         reply->deleteLater();
         if (!guard || generation != context_.generation || cancellation->cancelled || (cancelled && !transfer->oversized)) {
             operations_.remove(ownerKey, cancellation); return;
         }
-        if (transfer->oversized) { operations_.remove(ownerKey, cancellation); done({status, {}, {}, "The response exceeds the safe size limit. Use the browser to download large files.", false}); return; }
+        if (transfer->oversized) { operations_.remove(ownerKey, cancellation); done({status, {}, {}, "The response exceeds the safe size limit. No file was saved.", false}); return; }
+        if (networkError) transfer->bytes.clear();
         if (networkError) setOnline(false); else if (status != 0) setOnline(true);
         auto finish = [this, transfer, guard, generation, status, networkError, scope, cancellation, ownerKey, done = std::move(done)](DecodedBody decoded) mutable {
             operations_.remove(ownerKey, cancellation);
             if (!guard || generation != context_.generation || cancellation->cancelled) return;
             auto json = std::move(decoded.value);
             QString error;
-            if (status < 200 || status >= 300) {
+            if (networkError) {
+                error = "The transfer was interrupted. Your recent data remains available offline. Please reconnect and retry.";
+            } else if (status < 200 || status >= 300) {
                 const auto problem = json.value("error");
                 error = problem.isString() ? problem.toString() : problem.toObject().value("message").toString();
-                if (error.isEmpty()) error = networkError ? "Unable to reach Mokaid. Your recent data remains available offline." : QString("Request failed (%1).").arg(status);
+                if (error.isEmpty()) error = QString("Request failed (%1).").arg(status);
             } else if (!decoded.valid) error = "Mokaid returned an invalid JSON response. Please retry.";
             if (status == 401 && scope != core::Scope::public_api) emit sessionExpired();
             if (status == 403 && scope == core::Scope::administration) { context_.platform_admin = false; emit administratorDenied(); }

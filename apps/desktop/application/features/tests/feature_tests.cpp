@@ -2,6 +2,8 @@
 #include <mokaid/features/feature_controller.hpp>
 #include <mokaid/features/record_list_model.hpp>
 #include <QAbstractItemModelTester>
+#include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QSet>
@@ -28,6 +30,7 @@ class LocalApi final : public QObject {
 public:
     QTcpServer server;
     QStringList paths;
+    QStringList methods;
     QList<QJsonObject> bodies;
     std::function<void(QTcpSocket*,const QString&)> handler;
     LocalApi() {
@@ -48,6 +51,7 @@ public:
                     if (body.size()<length) return;
                     socket->setProperty("handled",true);
                     const auto path=QString::fromUtf8(bytes.split(' ').value(1)); paths.append(path);
+                    methods.append(QString::fromUtf8(bytes.split(' ').value(0)));
                     bodies.append(QJsonDocument::fromJson(body.left(length)).object());
                     if (handler) handler(socket,path);
                 });
@@ -55,15 +59,309 @@ public:
         });
     }
     QUrl origin() const { return QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())); }
-    static void reply(QTcpSocket* socket,const QByteArray& json,int status=200) {
-        socket->write("HTTP/1.1 "+QByteArray::number(status)+" Response\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: "+QByteArray::number(json.size())+"\r\n\r\n"+json);
+    static void reply(QTcpSocket* socket,const QByteArray& json,int status=200,const QByteArray& mime="application/json") {
+        socket->write("HTTP/1.1 "+QByteArray::number(status)+" Response\r\nContent-Type: "+mime+"\r\nConnection: close\r\nContent-Length: "+QByteArray::number(json.size())+"\r\n\r\n"+json);
         socket->disconnectFromHost();
     }
+};
+
+struct DriveFixture {
+    LocalApi remote;
+    QTemporaryDir directory;
+    CacheStore cache{directory.path()};
+    ApiClient api{remote.origin()};
+    PhoenixClient realtime;
+    SessionController session{api,realtime};
+    QMap<QString,QJsonObject> items;
+    std::unique_ptr<FeatureController> controller;
+    std::function<bool(QTcpSocket*,const QString&)> intercept;
+    DriveFixture() {
+        for (const auto& item : QJsonArray{
+            QJsonObject{{"id","folder-a"},{"name","Folder A"},{"kind","folder"},{"status","active"}},
+            QJsonObject{{"id","folder-b"},{"name","Folder B"},{"kind","folder"},{"status","active"},{"parent_id","folder-a"}},
+            QJsonObject{{"id","file-a"},{"name","report.json"},{"kind","file"},{"status","active"},{"parent_id","folder-a"},{"size_bytes",12}},
+            QJsonObject{{"id","trash-a"},{"name","Removed file"},{"kind","file"},{"status","trashed"},{"parent_id","folder-a"}}})
+            items.insert(item.toObject().value("id").toString(),item.toObject());
+        remote.handler=[this](QTcpSocket* socket,const QString& path) {
+            if (intercept && intercept(socket,path)) return;
+            const auto method=remote.methods.last();
+            const auto id=path.section('/',3,3);
+            if (method=="POST" && path.endsWith("/restore")) {
+                items[id].insert("status","active"); LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",items[id]}}).toJson());
+            } else if (method=="DELETE") {
+                items[id].insert("status","trashed"); LocalApi::reply(socket,"{}",204);
+            } else if (method=="POST" && path=="/api/drive") {
+                auto record=remote.bodies.last(); record.insert("id","created"); record.insert("status","active"); items.insert("created",record);
+                LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",record}}).toJson(),201);
+            } else if (path=="/api/drive" || path=="/api/drive-trash" || path.endsWith("/children")) {
+                QJsonArray rows;
+                const bool trash=path=="/api/drive-trash";
+                const auto parent=path.endsWith("/children")?id:QString{};
+                for (const auto& item : items) if (item.value("status")== (trash?"trashed":"active")
+                    && (trash || item.value("parent_id").toString()==parent)) rows.append(item);
+                LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",rows}}).toJson());
+            } else LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",items.value(id)}}).toJson());
+        };
+        api.setSession("test-alice","alice",false); api.setWorkspace("workspace-a");
+        controller=std::make_unique<FeatureController>(api,session,cache);
+    }
+    DriveDownload& download() { return *qobject_cast<DriveDownload*>(controller->driveDownload()); }
+    static QByteArray contents(const QString& path) { QFile file(path); return file.open(QIODevice::ReadOnly)?file.readAll():QByteArray{}; }
 };
 
 class FeatureTests final : public QObject {
     Q_OBJECT
 private slots:
+    void actionFormContextCannotCrossFolderSelectionOrAccount() {
+        DriveFixture f; auto& c=*f.controller;
+        c.navigate("drive"); QTRY_VERIFY(!c.busy()); const auto rootContext=c.actionContext("create");
+        c.openDriveFolder("folder-a"); QTRY_VERIFY(!c.busy()); auto requests=f.remote.paths.size();
+        c.submit("create",{{"name","Must not be created"},{"_context",rootContext}});
+        QCOMPARE(f.remote.paths.size(),requests); QVERIFY(c.error().contains("previous view"));
+        c.select("file-a"); QTRY_COMPARE(c.details().value("kind").toString(),QString("file")); const auto selectedContext=c.actionContext("edit");
+        c.select("folder-b"); QTRY_COMPARE(c.details().value("kind").toString(),QString("folder")); requests=f.remote.paths.size();
+        c.submit("edit",{{"name","Must not rename another record"},{"_context",selectedContext}}); QCOMPARE(f.remote.paths.size(),requests);
+        const auto aliceContext=c.actionContext("create"); f.api.setSession("test-bob","bob",false); emit f.session.changed();
+        c.submit("create",{{"name","Must not cross account"},{"_context",aliceContext}}); QCOMPARE(f.remote.paths.size(),requests);
+    }
+    void driveHierarchyUsesPrimaryRowsBreadcrumbsAndCurrentParent() {
+        DriveFixture f; QVERIFY(f.remote.server.isListening()); auto& c=*f.controller;
+        QAbstractItemModelTester modelCheck(c.records(),QAbstractItemModelTester::FailureReportingMode::QtTest);
+        c.navigate("drive"); QTRY_COMPARE(c.records()->rowCount(),1);
+        c.openDriveFolder("file-a"); QVERIFY(c.driveFolderId().isEmpty());
+        c.openDriveFolder("folder-a"); QTRY_COMPARE(c.records()->rowCount(),2);
+        QCOMPARE(c.driveFolderId(),QString("folder-a")); QCOMPARE(c.driveBreadcrumbs().size(),2); QVERIFY(c.driveCanGoBack());
+        for (const auto& value : c.fieldsForAction("create")) if (value.toMap().value("key")=="parent_id")
+            QCOMPARE(value.toMap().value("value").toString(),QString("folder-a"));
+        c.submit("create",{{"name","Nested folder"}}); QTRY_VERIFY(!c.busy()); QCOMPARE(c.records()->rowCount(),3);
+        const auto created=f.remote.methods.indexOf("POST"); QVERIFY(created>=0);
+        QCOMPARE(f.remote.paths[created],QString("/api/drive")); QCOMPARE(f.remote.bodies[created].value("parent_id").toString(),QString("folder-a"));
+        c.select("folder-b"); QTRY_COMPARE(c.details().value("id").toString(),QString("folder-b"));
+        c.submit("children",{}); QTRY_VERIFY(!c.busy()); QCOMPARE(c.records()->rowCount(),0); QCOMPARE(c.driveFolderId(),QString("folder-b"));
+        QCOMPARE(c.driveBreadcrumbs().size(),3); c.driveBack(); QTRY_COMPARE(c.records()->rowCount(),3);
+        c.navigateDriveBreadcrumb(0); QTRY_COMPARE(c.records()->rowCount(),1); QVERIFY(c.driveFolderId().isEmpty()); QVERIFY(!c.driveCanGoBack());
+        c.navigateDriveBreadcrumb(-1); c.navigateDriveBreadcrumb(99); QVERIFY(c.driveFolderId().isEmpty());
+    }
+    void driveTrashRestoresOnlySelectedTrashRowAndClearsSelection() {
+        DriveFixture f; auto& c=*f.controller;
+        c.navigate("drive"); QTRY_VERIFY(!c.busy()); c.openDriveFolder("folder-a"); QTRY_VERIFY(!c.busy());
+        c.submit("trash",{}); QTRY_COMPARE(c.records()->rowCount(),1); QVERIFY(c.driveTrash()); QCOMPARE(c.driveFolderId(),QString("folder-a"));
+        auto requests=f.remote.paths.size(); c.submit("restore",{{"_id","trash-a"}}); QCoreApplication::processEvents(); QCOMPARE(f.remote.paths.size(),requests);
+        c.select("trash-a"); QTRY_COMPARE(c.details().value("status").toString(),QString("trashed"));
+        requests=f.remote.paths.size(); c.submit("restore",{{"_id","file-a"}}); c.submit("create",{{"name","Forbidden in trash"}});
+        c.submit("open",{}); QCoreApplication::processEvents(); QCOMPARE(f.remote.paths.size(),requests); QVERIFY(!c.driveCanDownload());
+        c.submit("restore",{}); QTRY_VERIFY(!c.busy()); QCOMPARE(c.records()->rowCount(),0); QVERIFY(c.selectedId().isEmpty());
+        const auto restored=f.remote.paths.indexOf("/api/drive/trash-a/restore"); QVERIFY(restored>=0); QCOMPARE(f.remote.methods[restored],QString("POST"));
+        c.driveBack(); QTRY_COMPARE(c.records()->rowCount(),3); QVERIFY(!c.driveTrash()); QCOMPARE(c.driveFolderId(),QString("folder-a"));
+        c.select("trash-a"); QTRY_COMPARE(c.details().value("status").toString(),QString("active"));
+        requests=f.remote.paths.size(); c.submit("restore",{}); QCoreApplication::processEvents(); QCOMPARE(f.remote.paths.size(),requests);
+    }
+    void driveRestoreServerDenialPreservesSelectedRow() {
+        DriveFixture f; auto& c=*f.controller;
+        f.intercept=[](QTcpSocket* socket,const QString& path) {
+            if (!path.endsWith("/restore")) return false;
+            LocalApi::reply(socket,R"({"error":{"message":"Permission denied"}})",403); return true;
+        };
+        c.navigate("drive"); QTRY_VERIFY(!c.busy()); c.setDriveTrash(true); QTRY_VERIFY(!c.busy()); c.select("trash-a");
+        QTRY_COMPARE(c.details().value("status").toString(),QString("trashed")); c.submit("restore",{});
+        QTRY_VERIFY(!c.busy()); QVERIFY(!c.error().isEmpty()); QCOMPARE(c.selectedId(),QString("trash-a")); QCOMPARE(c.records()->rowCount(),1);
+    }
+    void driveOfflineNavigationUsesExactPartitionAndBlocksMutations() {
+        DriveFixture f; auto& c=*f.controller;
+        c.navigate("drive"); QTRY_VERIFY(!c.busy()); c.openDriveFolder("folder-a"); QTRY_VERIFY(!c.busy());
+        c.setDriveTrash(true); QTRY_VERIFY(!c.busy()); c.driveBack(); QTRY_VERIFY(!c.busy());
+        f.api.setOnline(false); const auto requests=f.remote.paths.size();
+        c.navigateDriveBreadcrumb(0); QTRY_VERIFY(!c.busy()); QCOMPARE(c.records()->rowCount(),1); QVERIFY(c.offline());
+        c.openDriveFolder("folder-a"); QTRY_VERIFY(!c.busy()); QCOMPARE(c.records()->rowCount(),2);
+        c.setDriveTrash(true); QTRY_VERIFY(!c.busy()); QCOMPARE(c.records()->rowCount(),1);
+        c.select("trash-a"); c.submit("restore",{}); QCOMPARE(f.remote.paths.size(),requests); QVERIFY(!c.error().isEmpty());
+        f.api.setWorkspace("workspace-b"); emit f.session.changed(); c.refresh(); QTRY_VERIFY(!c.busy());
+        QVERIFY(c.driveFolderId().isEmpty()); QVERIFY(!c.driveTrash()); QCOMPARE(c.records()->rowCount(),0); QCOMPARE(f.remote.paths.size(),requests);
+    }
+    void driveNavigationAndAccountChangeCancelLateFolderReplies() {
+        DriveFixture f; auto& c=*f.controller; QPointer<QTcpSocket> pending;
+        f.intercept=[&](QTcpSocket* socket,const QString& path) { if (path!="/api/drive/folder-a/children") return false; pending=socket; return true; };
+        c.navigate("drive"); QTRY_VERIFY(!c.busy()); c.openDriveFolder("folder-a"); QTRY_VERIFY(pending);
+        c.driveBack(); QTRY_VERIFY(!c.busy()); QCOMPARE(c.records()->rowCount(),1); QVERIFY(c.driveFolderId().isEmpty());
+        QTRY_VERIFY(!pending || pending->state()==QAbstractSocket::UnconnectedState);
+        pending=nullptr; c.openDriveFolder("folder-a"); QTRY_VERIFY(pending);
+        f.api.setSession("test-bob","bob",false); emit f.session.changed();
+        QCOMPARE(c.records()->rowCount(),0); QVERIFY(c.driveFolderId().isEmpty()); QVERIFY(!c.driveTrash());
+        QTRY_VERIFY(!pending || pending->state()==QAbstractSocket::UnconnectedState);
+    }
+    void driveMutationInvalidatesCachedOldLocation() {
+        DriveFixture f; auto& c=*f.controller;
+        c.navigate("drive"); QTRY_VERIFY(!c.busy()); c.openDriveFolder("folder-a"); QTRY_VERIFY(!c.busy());
+        c.setDriveTrash(true); QTRY_VERIFY(!c.busy()); c.select("trash-a"); QTRY_COMPARE(c.details().value("status").toString(),QString("trashed"));
+        c.submit("restore",{}); QTRY_VERIFY(!c.busy());
+        const auto key=QString::fromStdString(mokaid::core::cacheKey(f.api.origin().toString().toStdString(),"alice","workspace-a","/api/drive/folder-a/children"));
+        bool checked=false; f.cache.read(key,this,[&](QByteArray bytes) { QCOMPARE(bytes,QByteArray("null")); checked=true; }); QTRY_VERIFY(checked);
+        f.api.setOnline(false);
+        c.driveBack(); QTRY_VERIFY(!c.busy()); QCOMPARE(c.records()->rowCount(),0);
+        QVERIFY(c.error().contains("No synchronized data"));
+    }
+    void driveDownloadSanitizesNamesAndRejectsLargeOrRemoteTargets() {
+        QCOMPARE(DriveDownload::safeFileName("../../report.json"),QString("report.json"));
+        QCOMPARE(DriveDownload::safeFileName("C:\\folder\\CON.txt"),QString("_CON.txt"));
+        QCOMPARE(DriveDownload::safeFileName(QString("<b>report\u202E.txt ")),QString("_b_report.txt"));
+        QCOMPARE(DriveDownload::safeFileName(".."),QString("download")); QVERIFY(DriveDownload::safeFileName(QString(400,QChar(0x00E9))).toUtf8().size()<=180);
+        QCOMPARE(DriveDownload::safeFileName(QString(1000000,'x')).size(),180);
+        DriveFixture f; auto& d=f.download(); QSignalSpy requested(&d,&DriveDownload::saveRequested);
+        auto record=f.items["file-a"].toVariantMap(); record.insert("size_bytes",32*1024*1024+1); d.request(record);
+        QCOMPARE(requested.size(),0); QVERIFY(d.error().contains("32 MiB"));
+        record.insert("size_bytes",12); d.request(record); QCOMPARE(requested.size(),1);
+        d.save(requested.last()[0].toString(),QUrl("file://untrusted-server/share/report.json"));
+        QVERIFY(!d.error().isEmpty()); QCOMPARE(f.remote.paths.size(),0); QVERIFY(!d.busy());
+    }
+    void driveDownloadSavesOpaqueJsonAtomicallyAndIsSingleUse() {
+        DriveFixture f; auto& d=f.download(); const auto path=f.directory.path()+"/report.json";
+        const QByteArray payload("[\"real JSON file\",3]\n");
+        f.intercept=[&](QTcpSocket* socket,const QString& route) {
+            if (!route.endsWith("/raw")) return false; LocalApi::reply(socket,payload); return true;
+        };
+        QFile old(path); QVERIFY(old.open(QIODevice::WriteOnly)); old.write("previous contents"); old.close();
+        QSignalSpy requested(&d,&DriveDownload::saveRequested); d.request(f.items["file-a"].toVariantMap());
+        QCOMPARE(requested.size(),1); const auto transaction=requested[0][0].toString();
+        d.save(transaction,QUrl::fromLocalFile(path)); QTRY_VERIFY(!d.busy()); QVERIFY2(d.error().isEmpty(),qPrintable(d.error()));
+        QCOMPARE(DriveFixture::contents(path),payload); QCOMPARE(d.status(),QString("File saved."));
+        QCOMPARE(f.remote.paths,QStringList{"/api/drive/file-a/raw"}); d.save(transaction,QUrl::fromLocalFile(path));
+        QCoreApplication::processEvents(); QCOMPARE(f.remote.paths.size(),1);
+        QCOMPARE(QDir(f.directory.path()).entryList({".mokaid-download-*"},QDir::Files|QDir::Hidden).size(),0);
+    }
+    void driveDownloadFailureAndChangedTargetNeverOverwrite() {
+        DriveFixture f; auto& d=f.download(); const auto path=f.directory.path()+"/preserved.txt";
+        QFile old(path); QVERIFY(old.open(QIODevice::WriteOnly)); old.write("keep me"); old.close();
+        QSignalSpy requested(&d,&DriveDownload::saveRequested);
+        f.intercept=[](QTcpSocket* socket,const QString& route) {
+            if (!route.endsWith("/raw")) return false; LocalApi::reply(socket,R"({"error":{"message":"No permission"}})",403); return true;
+        };
+        d.request(f.items["file-a"].toVariantMap()); d.save(requested.last()[0].toString(),QUrl::fromLocalFile(path)); QTRY_VERIFY(!d.busy());
+        QVERIFY(!d.error().isEmpty()); QCOMPARE(DriveFixture::contents(path),QByteArray("keep me"));
+        f.intercept=[&](QTcpSocket* socket,const QString& route) {
+            if (!route.endsWith("/raw")) return false;
+            QFile changed(path); if (changed.open(QIODevice::WriteOnly)) { changed.write("changed after confirmation"); changed.close(); }
+            LocalApi::reply(socket,"download bytes",200,"application/octet-stream"); return true;
+        };
+        d.request(f.items["file-a"].toVariantMap()); d.save(requested.last()[0].toString(),QUrl::fromLocalFile(path)); QTRY_VERIFY(!d.busy());
+        QVERIFY(d.error().contains("destination changed")); QCOMPARE(DriveFixture::contents(path),QByteArray("changed after confirmation"));
+        f.intercept=[](QTcpSocket* socket,const QString& route) { if (!route.endsWith("/raw")) return false; LocalApi::reply(socket,"bytes",200,"text/plain"); return true; };
+        d.request(f.items["file-a"].toVariantMap()); d.save(requested.last()[0].toString(),QUrl::fromLocalFile(f.directory.path()+"/missing-parent/file"));
+        QTRY_VERIFY(!d.busy()); QVERIFY(!d.error().isEmpty()); QVERIFY(!QFileInfo::exists(f.directory.path()+"/missing-parent/file"));
+        QCOMPARE(QDir(f.directory.path()).entryList({".mokaid-download-*"},QDir::Files|QDir::Hidden).size(),0);
+    }
+    void driveDownloadCancelAccountSwitchAndStaleDialogCannotWrite() {
+        DriveFixture f; auto& d=f.download(); QPointer<QTcpSocket> pending;
+        f.intercept=[&](QTcpSocket* socket,const QString& path) { if (!path.endsWith("/raw")) return false; pending=socket; return true; };
+        QSignalSpy requested(&d,&DriveDownload::saveRequested); const auto path=f.directory.path()+"/must-not-exist";
+        d.request(f.items["file-a"].toVariantMap()); const auto first=requested.last()[0].toString();
+        d.save(first,QUrl::fromLocalFile(path)); QTRY_VERIFY(pending); d.cancel();
+        QTRY_VERIFY(!pending || pending->state()==QAbstractSocket::UnconnectedState); QVERIFY(!QFileInfo::exists(path));
+        pending=nullptr; d.request(f.items["file-a"].toVariantMap()); const auto second=requested.last()[0].toString();
+        d.save(first,QUrl::fromLocalFile(path)); QVERIFY(!d.busy()); d.cancel(first); QCOMPARE(d.pendingTransaction(),second);
+        d.save(second,QUrl::fromLocalFile(path)); QTRY_VERIFY(pending);
+        f.api.setSession("test-bob","bob",false); emit f.session.changed();
+        QTRY_VERIFY(!d.busy()); QVERIFY(d.pendingTransaction().isEmpty()); QVERIFY(!QFileInfo::exists(path));
+        const auto requests=f.remote.paths.size(); d.save(second,QUrl::fromLocalFile(path)); QCOMPARE(f.remote.paths.size(),requests);
+    }
+    void driveDownloadCancellationBeforeAtomicCommitPreservesDestination() {
+        DriveFixture f; auto& d=f.download(); const auto path=f.directory.path()+"/keep.txt";
+        QFile existing(path); QVERIFY(existing.open(QIODevice::WriteOnly)); existing.write("original"); existing.close();
+        f.intercept=[](QTcpSocket* socket,const QString& route) {
+            if (!route.endsWith("/raw")) return false; LocalApi::reply(socket,QByteArray(1024*1024,'x'),200,"application/octet-stream"); return true;
+        };
+        connect(&d,&DriveDownload::changed,this,[&] {
+            if (d.status()=="Saving…") { f.api.setWorkspace("other-workspace"); emit f.session.changed(); }
+        });
+        QSignalSpy requested(&d,&DriveDownload::saveRequested); d.request(f.items["file-a"].toVariantMap());
+        d.save(requested.last()[0].toString(),QUrl::fromLocalFile(path)); QTRY_VERIFY(!d.busy());
+        QCOMPARE(DriveFixture::contents(path),QByteArray("original")); QVERIFY(d.pendingTransaction().isEmpty());
+    }
+    void driveDownloadConnectionLossExplainsCancellationAndPreservesDestination() {
+        DriveFixture f; auto& d=f.download(); const auto path=f.directory.path()+"/keep.txt";
+        QFile existing(path); QVERIFY(existing.open(QIODevice::WriteOnly)); existing.write("original"); existing.close();
+        f.intercept=[](QTcpSocket* socket,const QString& route) {
+            if (!route.endsWith("/raw")) return false;
+            socket->write("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: application/octet-stream\r\nContent-Length: 1000\r\n\r\nincomplete");
+            socket->disconnectFromHost(); return true;
+        };
+        QSignalSpy requested(&d,&DriveDownload::saveRequested); d.request(f.items["file-a"].toVariantMap());
+        d.save(requested.last()[0].toString(),QUrl::fromLocalFile(path)); QTRY_VERIFY(!d.busy());
+        QCOMPARE(d.error(),QString("Download canceled: connection lost. Destination unchanged."));
+        QCOMPARE(DriveFixture::contents(path),QByteArray("original")); QVERIFY(!f.api.context().online);
+        QVERIFY(d.pendingTransaction().isEmpty());
+    }
+    void driveDownloadCancellationAfterSyncBeforePublication_data() {
+        QTest::addColumn<QString>("change");
+        for (const auto* change : {"cancel", "account", "workspace", "navigation", "connection", "new-request"})
+            QTest::newRow(change) << QString(change);
+    }
+    void driveDownloadReentrantReplacementDoesNotStartOldNetworkOrWriter_data() {
+        QTest::addColumn<QString>("phase");
+        QTest::addColumn<int>("expectedRequests");
+        QTest::newRow("before-network") << QString("Downloading · up to 32 MiB") << 0;
+        QTest::newRow("before-writer") << QString("Saving…") << 1;
+    }
+    void driveDownloadReentrantReplacementDoesNotStartOldNetworkOrWriter() {
+        QFETCH(QString, phase); QFETCH(int, expectedRequests);
+        DriveFixture f; auto& d=f.download(); const auto path=f.directory.path()+"/never-written.txt";
+        f.intercept=[](QTcpSocket* socket,const QString& route) {
+            if (!route.endsWith("/raw")) return false; LocalApi::reply(socket,"old bytes"); return true;
+        };
+        QString nextTransaction;
+        connect(&d,&DriveDownload::changed,this,[&] {
+            if (d.status()!=phase) return;
+            auto record=f.items["file-a"].toVariantMap(); record.insert("id","different-file");
+            d.request(record); nextTransaction=d.pendingTransaction();
+        });
+        d.request(f.items["file-a"].toVariantMap()); const auto first=d.pendingTransaction();
+        d.save(first,QUrl::fromLocalFile(path)); QTRY_VERIFY(!nextTransaction.isEmpty());
+        QVERIFY(first!=nextTransaction); QCOMPARE(d.pendingTransaction(),nextTransaction); QVERIFY(!d.busy());
+        QCOMPARE(f.remote.paths.size(),expectedRequests); QVERIFY(!QFileInfo::exists(path));
+        QVERIFY(QDir(f.directory.path()).entryList({".mokaid-download-*"},QDir::Files|QDir::Hidden).isEmpty());
+    }
+    void driveDownloadCancellationAfterSyncBeforePublication() {
+        QFETCH(QString, change);
+        DriveFixture f; auto& d=f.download(); const auto path=f.directory.path()+"/unchanged.txt";
+        QFile existing(path); QVERIFY(existing.open(QIODevice::WriteOnly)); QCOMPARE(existing.write("original"),8); existing.close();
+        f.intercept=[](QTcpSocket* socket,const QString& route) {
+            if (!route.endsWith("/raw")) return false; LocalApi::reply(socket,QByteArray(1024*1024,'x'),200,"application/octet-stream"); return true;
+        };
+        bool finalized=false; QString nextTransaction;
+        connect(&d,&DriveDownload::changed,this,[&] {
+            if (d.status()!="Finalizing…") return;
+            finalized=true;
+            if (change=="cancel") d.cancel();
+            else if (change=="account") { f.api.setSession("test-bob","bob",false); emit f.session.changed(); }
+            else if (change=="workspace") { f.api.setWorkspace("other-workspace"); emit f.session.changed(); }
+            else if (change=="navigation") f.controller->navigate("drive");
+            else if (change=="connection") f.api.setOnline(false);
+            else { d.request(f.items["file-a"].toVariantMap()); nextTransaction=d.pendingTransaction(); }
+        });
+        d.request(f.items["file-a"].toVariantMap()); const auto transaction=d.pendingTransaction();
+        d.save(transaction,QUrl::fromLocalFile(path)); QTRY_VERIFY(finalized); QTRY_VERIFY(!d.busy());
+        QCOMPARE(DriveFixture::contents(path),QByteArray("original"));
+        QTRY_COMPARE(QDir(f.directory.path()).entryList({".mokaid-download-*"},QDir::Files|QDir::Hidden).size(),0);
+        if (change=="new-request") { QVERIFY(!nextTransaction.isEmpty()); QCOMPARE(d.pendingTransaction(),nextTransaction); QVERIFY(nextTransaction!=transaction); }
+        else QVERIFY(d.pendingTransaction().isEmpty());
+        if (change=="connection") QCOMPARE(d.error(),QString("Download canceled: connection lost. Destination unchanged."));
+    }
+    void driveDownloadDestinationChangedAfterSyncIsNotReplaced() {
+        DriveFixture f; auto& d=f.download(); const auto path=f.directory.path()+"/unchanged.txt";
+        QFile existing(path); QVERIFY(existing.open(QIODevice::WriteOnly)); QCOMPARE(existing.write("original"),8); existing.close();
+        f.intercept=[](QTcpSocket* socket,const QString& route) {
+            if (!route.endsWith("/raw")) return false; LocalApi::reply(socket,"download"); return true;
+        };
+        bool finalized=false;
+        connect(&d,&DriveDownload::changed,this,[&] {
+            if (d.status()!="Finalizing…") return;
+            finalized=true; QFile changed(path);
+            if (changed.open(QIODevice::WriteOnly)) { changed.write("external change after sync"); changed.close(); }
+        });
+        d.request(f.items["file-a"].toVariantMap()); d.save(d.pendingTransaction(),QUrl::fromLocalFile(path));
+        QTRY_VERIFY(finalized); QTRY_VERIFY(!d.busy()); QVERIFY(d.error().contains("destination changed"));
+        QCOMPARE(DriveFixture::contents(path),QByteArray("external change after sync"));
+        QTRY_COMPARE(QDir(f.directory.path()).entryList({".mokaid-download-*"},QDir::Files|QDir::Hidden).size(),0);
+    }
     void catalogSecurityBoundaries() {
         QCOMPARE(featureCatalog().size(),32);
         QSet<QString> pages;

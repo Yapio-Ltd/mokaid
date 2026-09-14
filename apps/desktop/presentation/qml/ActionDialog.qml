@@ -12,6 +12,21 @@ Dialog {
     property var fields: []
     property var values: ({})
     property bool pending: false
+    property string contextToken: ""
+    property bool contextExpired: false
+    property string contextError: ""
+    onClosed: { fields = []; values = {}; contextToken = "" }
+    function validateContext() {
+        if (contextExpired) return false
+        if (contextToken !== features.actionContext(action.id)) {
+            contextExpired = true; pending = false
+            contextError = "The account, workspace, folder or selection changed. This form can no longer be submitted. Close it and reopen the action."
+            fields = []; values = {}; action = ({ title: "Action unavailable" })
+            filePicker.close()
+            return false
+        }
+        return true
+    }
     function setValue(key, value) {
         if (values[key] === value) return
         const next = Object.assign({}, values); next[key] = value; values = next
@@ -30,7 +45,8 @@ Dialog {
     function showAction(next) {
         if (!next.enabled) return
         action = next; fields = features.fieldsForAction(next.id)
-        if (fields.length === 0 && !next.destructive) { features.submit(next.id, {}); return }
+        contextToken = features.actionContext(next.id); contextExpired = false; contextError = ""
+        if (fields.length === 0 && !next.destructive) { features.submit(next.id, { _context: contextToken }); return }
         const initial = {}
         for (const field of fields) {
             if (field.value !== undefined && field.value !== null) initial[field.key] = field.value
@@ -41,10 +57,13 @@ Dialog {
     Connections {
         target: features
         function onChanged() {
+            if (dialog.opened && !dialog.validateContext()) return
             if (dialog.pending && !features.busy) {
                 dialog.pending = false
-                if (!features.error) dialog.close()
             }
+        }
+        function onActionSucceeded(context) {
+            if (!dialog.contextExpired && dialog.contextToken === context) { dialog.pending = false; dialog.close() }
         }
     }
     contentItem: ScrollView {
@@ -108,21 +127,24 @@ Dialog {
                 }
             }
             CheckBox { id: confirmation; visible: dialog.action.destructive || false; text: "I confirm this action on the selected record." }
+            MokaidLabel { Layout.fillWidth: true; visible: dialog.contextError.length > 0; text: dialog.contextError; color: Theme.danger; wrapMode: Text.Wrap }
             MokaidLabel { Layout.fillWidth: true; visible: features.error.length > 0; text: features.error; color: Theme.danger; wrapMode: Text.Wrap }
         }
     }
     footer: DialogButtonBox {
-        MokaidButton { text: "Cancel"; DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; enabled: !features.busy; onClicked: dialog.close() }
+        MokaidButton { text: dialog.contextExpired ? "Close" : "Cancel"; DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; enabled: dialog.contextExpired || !features.busy; onClicked: dialog.close() }
         MokaidButton {
             text: features.busy ? "Working…" : dialog.action.title || "Save"; highlighted: true
-            enabled: !features.busy && (!dialog.action.destructive || confirmation.checked)
+            enabled: !dialog.contextExpired && !features.busy && (!dialog.action.destructive || confirmation.checked)
             onClicked: {
+                if (!dialog.validateContext()) return
                 const payload = Object.assign({}, dialog.values)
                 payload._confirmed = confirmation.checked
+                payload._context = dialog.contextToken
                 dialog.pending = true; features.submit(dialog.action.id, payload)
                 if (!features.busy) dialog.pending = false
             }
         }
     }
-    FileDialog { id: filePicker; property string fieldKey; fileMode: FileDialog.OpenFiles; onAccepted: dialog.setValue(fieldKey, selectedFiles) }
+    FileDialog { id: filePicker; property string fieldKey; fileMode: FileDialog.OpenFiles; onAccepted: { if (dialog.validateContext()) dialog.setValue(fieldKey, selectedFiles) } }
 }

@@ -28,6 +28,7 @@ Item {
             }
             ToolButton { text: "⋯"; Accessible.name: "View actions"; onClicked: viewActions.popup() }
         }
+        DriveNavigation { Layout.fillWidth: true; visible: features.currentPage === "drive"; controller: features }
         MokaidLabel { Layout.fillWidth: true; visible: features.error.length > 0; text: features.error; wrapMode: Text.Wrap; color: Theme.warning }
         SplitView {
             Layout.fillWidth: true; Layout.fillHeight: true; orientation: Qt.Horizontal
@@ -68,7 +69,14 @@ Item {
                             onDoubleClicked: {
                                 features.select(rowId)
                                 if (features.currentPage === "agents") { office.selectAgent(rowId); features.navigate("office") }
-                                else if (features.currentPage === "drive" && record.kind !== "folder") preview.openFile(record)
+                                else if (features.currentPage === "drive" && !features.driveTrash) {
+                                    if (record.kind === "folder") features.openDriveFolder(rowId)
+                                    else preview.openFile(record)
+                                }
+                            }
+                            Keys.onReturnPressed: {
+                                features.select(rowId)
+                                if (features.currentPage === "drive" && record.kind === "folder") features.openDriveFolder(rowId)
                             }
                         }
                         MokaidLabel { anchors.centerIn: parent; visible: records.count === 0 && !features.busy; text: features.offline ? "No saved data for this view." : "Nothing here yet."; color: Theme.secondary }

@@ -16,6 +16,7 @@ set(MOKAID_QML_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/Main.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/Theme.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/FeaturePage.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/DriveNavigation.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/ActionDialog.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/ActivityPanels.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/OfficePage.qml"

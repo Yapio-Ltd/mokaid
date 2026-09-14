@@ -1,4 +1,13 @@
 qt_add_executable(mokaid_graphics_probe probe.cpp)
+if(APPLE)
+    # LaunchServices can foreground this test window as a real GUI application.
+    # A bare executable may stay occluded behind the terminal/Codex, in which
+    # case Qt legitimately stops composing and the timing sample must fail.
+    set_target_properties(mokaid_graphics_probe PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.mokaid.desktop.graphicsprobe"
+        MACOSX_BUNDLE_BUNDLE_NAME "Mokaid Graphics Probe")
+endif()
 target_link_libraries(mokaid_graphics_probe PRIVATE mokaid_viewport mokaid_preview
     Qt6::Quick Qt6::QuickControls2 Qt6::WebEngineQuick Qt6::Test mokaid_options)
 target_compile_features(mokaid_graphics_probe PRIVATE cxx_std_20)

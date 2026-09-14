@@ -122,7 +122,7 @@ void PreviewController::openFile(const QVariantMap& file) {
             if (generation != generation_) return;
             loading_ = false;
             if (!response.error.isEmpty()) { error_ = response.error; emit changed(); return; }
-            if (response.bytes.size() > 32 * 1024 * 1024) { error_ = "This file exceeds the 32 MB preview limit. Open it from Files in your browser."; emit changed(); return; }
+            if (response.bytes.size() > 32 * 1024 * 1024) { error_ = "This file exceeds the 32 MiB preview limit. It was not opened."; emit changed(); return; }
             pending_ = file; pendingBytes_ = std::move(response.bytes);
             pendingIndex_ = !documents_[0] ? 0 : !documents_[1] ? 1 : 1 - active_;
             emit changed(); emit replacementRequested(pendingIndex_);
@@ -144,7 +144,6 @@ void PreviewController::setVisible(bool visible) { visible_ = visible; emit chan
 void PreviewController::openExternal(const QUrl& url) {
     if (url.scheme() == "https" && url.isValid() && url.userInfo().isEmpty()) QDesktopServices::openUrl(url);
 }
-void PreviewController::openInBrowser() { openExternal(artifacts_.browserFilesUrl()); }
 void PreviewController::clear() {
     ++generation_; loading_ = false; visible_ = false; cancelOpen();
     // The presentation destroys both views before acknowledging via commitClear in the next turn.

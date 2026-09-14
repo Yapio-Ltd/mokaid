@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 Rectangle {
     id: root; color: Theme.background
+    signal filesRequested()
     property int replacementIndex: -1
     property var activeView: preview.activeIndex === 0 ? first.item : second.item
     function loader(index) { return index === 0 ? first : second }
@@ -44,7 +45,7 @@ Rectangle {
                 MokaidLabel { text: root.activeView ? root.activeView.document.title : "Deliverable"; color: Theme.text; font.bold: true; Layout.fillWidth: true; elide: Text.ElideRight }
                 MokaidLabel { text: root.activeView ? root.activeView.document.version : ""; color: Theme.muted }
                 ToolButton { text: "↻"; enabled: !!root.activeView; Accessible.name: "Reload deliverable"; onClicked: reloadDialog.open() }
-                MokaidButton { text: "Open Files in browser"; onClicked: preview.openInBrowser() }
+                MokaidButton { objectName: "showNativeFiles"; text: "Show Files"; onClicked: root.filesRequested() }
                 ToolButton { text: "×"; Accessible.name: "Return to workspace, keeping this deliverable"; onClicked: preview.visible = false }
             }
         }

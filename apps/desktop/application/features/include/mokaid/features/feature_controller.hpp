@@ -3,6 +3,7 @@
 #include <mokaid/features/feature_catalog.hpp>
 #include <mokaid/features/record_list_model.hpp>
 #include <mokaid/features/detail_browser.hpp>
+#include <mokaid/features/drive_download.hpp>
 #include <mokaid/storage/cache_store.hpp>
 #include <QHash>
 #include <QTimer>
@@ -23,6 +24,12 @@ class FeatureController final : public QObject {
     Q_PROPERTY(QObject* detailView READ detailView CONSTANT)
     Q_PROPERTY(QString selectedId READ selectedId NOTIFY changed)
     Q_PROPERTY(bool hasMore READ hasMore NOTIFY changed)
+    Q_PROPERTY(QVariantList driveBreadcrumbs READ driveBreadcrumbs NOTIFY changed)
+    Q_PROPERTY(QString driveFolderId READ driveFolderId NOTIFY changed)
+    Q_PROPERTY(bool driveTrash READ driveTrash NOTIFY changed)
+    Q_PROPERTY(bool driveCanGoBack READ driveCanGoBack NOTIFY changed)
+    Q_PROPERTY(bool driveCanDownload READ driveCanDownload NOTIFY changed)
+    Q_PROPERTY(QObject* driveDownload READ driveDownload CONSTANT)
 public:
     FeatureController(ApiClient& api, SessionController& session, CacheStore& cache, QObject* parent = nullptr);
     QVariantList pages() const;
@@ -38,6 +45,17 @@ public:
     QObject* detailView() { return &detailView_; }
     QString selectedId() const { return selectedId_; }
     bool hasMore() const { return nextPage_ > 0; }
+    QVariantList driveBreadcrumbs() const { return driveBreadcrumbs_; }
+    QString driveFolderId() const { return driveBreadcrumbs_.last().toMap().value("id").toString(); }
+    bool driveTrash() const { return driveTrash_; }
+    bool driveCanGoBack() const { return driveTrash_ || driveBreadcrumbs_.size() > 1; }
+    bool driveCanDownload() const;
+    QObject* driveDownload() { return &driveDownload_; }
+    Q_INVOKABLE void openDriveFolder(const QString& id);
+    Q_INVOKABLE void navigateDriveBreadcrumb(int index);
+    Q_INVOKABLE void driveBack();
+    Q_INVOKABLE void setDriveTrash(bool trash);
+    Q_INVOKABLE void requestDriveDownload();
     Q_INVOKABLE void navigate(const QString& page);
     Q_INVOKABLE void openRecord(const QString& page, const QString& id);
     Q_INVOKABLE void refresh();
@@ -49,10 +67,12 @@ public:
     Q_INVOKABLE void showRecordDetails();
     Q_INVOKABLE void loadMore();
     Q_INVOKABLE QVariantList fieldsForAction(const QString& action) const;
+    Q_INVOKABLE QString actionContext(const QString& action) const;
 signals:
     void changed();
     void openDelivery(QVariantMap delivery);
     void requestExternal(QUrl url);
+    void actionSucceeded(QString context);
 private:
     void sessionChanged();
     void clear();
@@ -64,18 +84,25 @@ private:
     void fail(QString message);
     bool permitted(const FeatureDescriptor& feature, bool mutation) const;
     const FeatureAction* findAction(const QString& id) const;
+    bool driveActionAllowed(const QString& action, const QString& id) const;
+    QString driveListPath() const;
+    void changeDriveLocation(QVariantList breadcrumbs, bool trash);
+    void invalidateDriveCache(const QString& id, const QString& oldParent, const QString& newParent);
     ApiClient& api_;
     SessionController& session_;
     CacheStore& cache_;
     RecordListModel records_;
     DetailBrowser detailView_;
+    DriveDownload driveDownload_;
     QTimer searchTimer_;
     QString currentPage_{"office"}, selectedId_, error_, search_, contextTag_;
     QString pendingSelection_, detailHeading_, detailCollection_;
     // Secondary reports may replace displayed details, but never edit defaults.
     QVariantMap details_, editDetails_, overview_;
+    QVariantList driveBreadcrumbs_{{QVariantMap{{"id",QString{}},{"name","Drive"}}}};
+    bool driveTrash_{};
     QHash<QByteArray, QString> retryKeys_;
-    quint64 epoch_{}, detailEpoch_{}, sessionGeneration_{};
+    quint64 epoch_{}, detailEpoch_{}, sessionGeneration_{}, viewGeneration_{};
     int nextPage_{};
     bool busy_{}, offline_{}, loadingMore_{};
 };
