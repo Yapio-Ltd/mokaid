@@ -48,10 +48,24 @@ def configuration() -> tuple[str, str, str]:
     return version, channel, version.split("-")[0]
 
 
+def probe_configuration(version: str) -> tuple[str, str, str]:
+    """Use an explicit non-publishing CI mode, never a forged GitHub tag."""
+    from macos_signing_probe import context
+
+    context(version)
+    return version, "stable", version
+
+
 def configure(args: argparse.Namespace) -> None:
     release = args.release
+    probe_version = getattr(args, "probe_version", None)
+    require(
+        not (release and probe_version), "Release and private probe are distinct modes"
+    )
     version, channel, numeric = (
-        configuration() if release else ("0.1.0", "stable", "0.1.0")
+        probe_configuration(probe_version)
+        if probe_version
+        else configuration() if release else ("0.1.0", "stable", "0.1.0")
     )
     preset = "macos-release" if platform.system() == "Darwin" else "windows-release"
     target = "macos-arm64" if platform.system() == "Darwin" else "windows-x64"
@@ -125,7 +139,7 @@ def configure(args: argparse.Namespace) -> None:
             .splitlines()[-1]
         )
         compiler_options.append(f"-DMOKAID_DXC={Path(dxc) / 'bin/x64/dxc.exe'}")
-    if release:
+    if release or probe_version:
         key = required_env("MOKAID_UPDATE_PUBLIC_KEY")
     else:
         import base64
@@ -291,7 +305,14 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument("--release", action="store_true")
+    parser.add_argument(
+        "--probe-version", help="Private manual reviewed-main signing probe only"
+    )
     args = parser.parse_args()
+    require(
+        not args.probe_version or args.command == "configure-build-test",
+        "Probe version is only valid for configure-build-test",
+    )
     if args.command == "configure-build-test":
         configure(args)
     elif args.command == "cook-assets":
