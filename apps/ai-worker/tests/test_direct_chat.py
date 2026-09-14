@@ -268,6 +268,7 @@ async def test_reply_persists_final_message_before_done(monkeypatch, phoenix):
         }
 
     async def fake_stream(**_kwargs):
+        assert _kwargs["conversation_id"] == "original-conversation"
         return "Voici la réponse complète."
 
     monkeypatch.setattr("app.agents.direct_chat.llm.is_configured", lambda: True)
@@ -279,6 +280,7 @@ async def test_reply_persists_final_message_before_done(monkeypatch, phoenix):
             "workspace_id": "ws-1",
             "agent_id": "agent-1",
             "member_id": "member-1",
+            "conversation_id": "original-conversation",
             "agent": {"display_name": "Pablo", "skills": []},
             "conversation": [{"author": "Tom", "body": "Réponds-moi"}],
         },
@@ -288,8 +290,47 @@ async def test_reply_persists_final_message_before_done(monkeypatch, phoenix):
     assert posted
     assert phoenix.calls[-2][0] == "chat"
     assert phoenix.calls[-2][1]["body"] == "Voici la réponse complète."
+    assert phoenix.calls[-2][1]["conversation_id"] == "original-conversation"
     assert phoenix.calls[-1][0] == "stream"
     assert phoenix.calls[-1][1]["done"] is True
+    assert phoenix.calls[-1][1]["conversation_id"] == "original-conversation"
+
+
+@pytest.mark.asyncio
+async def test_stream_deltas_keep_execution_conversation(monkeypatch, phoenix):
+    from app.agents.direct_chat import _stream_reply
+
+    async def fake_llm(**_kwargs):
+        yield "A scoped reply."
+
+    monkeypatch.setattr("app.agents.direct_chat.llm.chat_stream", fake_llm)
+    assert await _stream_reply(system="system", user="prompt", phoenix=phoenix,
+                               workspace_id="ws", agent_id="agent", stream_id="stream",
+                               conversation_id="original") == "A scoped reply."
+    assert phoenix.calls == [("stream", {"agent_id": "agent", "stream_id": "stream",
+                                          "chunk": "A scoped reply.", "done": False,
+                                          "conversation_id": "original"})]
+
+
+@pytest.mark.asyncio
+async def test_phoenix_transport_preserves_optional_conversation_id(monkeypatch):
+    from app.clients.phoenix import PhoenixClient
+
+    client = PhoenixClient()
+    calls = []
+
+    async def capture(path, payload):
+        calls.append((path, payload))
+        return {"data": {"ok": True}}
+
+    monkeypatch.setattr(client, "_post", capture)
+    await client.stream_agent_chat_chunk("ws", "agent", "stream", "delta", conversation_id="original")
+    assert await client.post_agent_chat_message("ws", "agent", "final", stream_id="stream", conversation_id="original")
+    assert all(payload["conversation_id"] == "original" for _, payload in calls)
+    calls.clear()
+    await client.stream_agent_chat_chunk("ws", "agent", "stream", "legacy")
+    await client.post_agent_chat_message("ws", "agent", "legacy final")
+    assert all("conversation_id" not in payload for _, payload in calls)
 
 
 @pytest.mark.asyncio

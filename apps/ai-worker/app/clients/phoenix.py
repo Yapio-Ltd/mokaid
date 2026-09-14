@@ -358,6 +358,7 @@ class PhoenixClient:
         skip_ack: bool = False,
         language: str | None = None,
         stream_id: str | None = None,
+        conversation_id: str | None = None,
     ) -> bool:
         """Posts the agent's reply in its direct chat thread (floating dock).
 
@@ -382,6 +383,8 @@ class PhoenixClient:
             payload["language"] = language
         if stream_id:
             payload["stream_id"] = stream_id
+        if conversation_id:
+            payload["conversation_id"] = conversation_id
         result = await self._post(
             f"/api/worker/agents/{agent_id}/chat-message", payload
         )
@@ -394,6 +397,7 @@ class PhoenixClient:
         stream_id: str,
         chunk: str,
         done: bool = False,
+        conversation_id: str | None = None,
     ) -> None:
         """Relays a live delta of the agent's in-progress DM reply. Phoenix
         broadcasts `agent_chat.chunk` so the dock renders a typewriter draft."""
@@ -404,6 +408,7 @@ class PhoenixClient:
                 "stream_id": stream_id,
                 "chunk": chunk,
                 "done": done,
+                **({"conversation_id": conversation_id} if conversation_id else {}),
             },
         )
 

@@ -224,11 +224,17 @@ defmodule MokaidWeb.WorkerResourceController do
     body = params["body"] || ""
 
     with %{} = agent <- Agents.get_agent(workspace_id, id),
+         {:ok, conversation_id} <- chat_conversation(workspace_id, agent.id, params),
          {:ok, message} <-
            Mokaid.AgentChat.post_agent_message(workspace_id, agent.id, body,
-             stream_id: params["stream_id"]
+             stream_id: params["stream_id"],
+             conversation_id: conversation_id
            ) do
-      maybe_start_chat_task(workspace_id, agent, params)
+      maybe_start_chat_task(
+        workspace_id,
+        agent,
+        Map.put(params, "conversation_id", message.conversation_id)
+      )
 
       conn
       |> put_status(:created)
@@ -236,10 +242,16 @@ defmodule MokaidWeb.WorkerResourceController do
         data: %{
           id: message.id,
           agent_id: agent.id,
+          conversation_id: message.conversation_id,
           stream_id: params["stream_id"]
         }
       })
     else
+      {:error, :conversation_not_found} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: %{code: "not_found", message: "conversation not found"}})
+
       nil ->
         conn
         |> put_status(:not_found)
@@ -256,15 +268,41 @@ defmodule MokaidWeb.WorkerResourceController do
   the complete message arrives separately via `agent_chat_message`.
   """
   def agent_chat_stream(conn, %{"id" => id, "workspace_id" => workspace_id} = params) do
-    Mokaid.Realtime.broadcast_workspace(workspace_id, "agent_chat.chunk", %{
-      agent_id: id,
-      stream_id: params["stream_id"],
-      chunk: params["chunk"] || "",
-      done: params["done"] == true
-    })
+    with %{} <- Agents.get_agent(workspace_id, id),
+         {:ok, conversation_id} <- chat_conversation(workspace_id, id, params) do
+      Mokaid.Realtime.broadcast_workspace(workspace_id, "agent_chat.chunk", %{
+        agent_id: id,
+        conversation_id: conversation_id,
+        stream_id: params["stream_id"],
+        chunk: params["chunk"] || "",
+        done: params["done"] == true
+      })
 
-    json(conn, %{data: %{ok: true}})
+      json(conn, %{data: %{ok: true}})
+    else
+      _ ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: %{code: "not_found", message: "conversation or agent not found"}})
+    end
   end
+
+  # Optional for old workers; absence is explicitly unscoped, never inferred
+  # from the active conversation at relay time. Invalid supplied IDs fail closed.
+  # Legacy final-message requests (without this ID) retain their historical
+  # active-thread behavior for compatibility; they do NOT prove execution scope.
+  # Updated AgentChatWorker never dispatches an unscoped trigger.
+  defp chat_conversation(workspace_id, agent_id, %{"conversation_id" => id})
+       when not is_nil(id) do
+    with {:ok, id} <- Ecto.UUID.cast(id),
+         %{agent_id: ^agent_id} <- Mokaid.AgentChat.get_conversation(workspace_id, id) do
+      {:ok, id}
+    else
+      _ -> {:error, :conversation_not_found}
+    end
+  end
+
+  defp chat_conversation(_workspace_id, _agent_id, _params), do: {:ok, nil}
 
   # The worker asks us to start a task from a text-only chat request it judged
   # actionable. The member who initiated the thread is the task creator.
@@ -279,7 +317,11 @@ defmodule MokaidWeb.WorkerResourceController do
     attachments = recover_attachments(workspace_id, params)
 
     if member && instruction != "" do
-      pseudo_message = %Mokaid.AgentChat.ChatMessage{body: instruction, attachments: attachments}
+      pseudo_message = %Mokaid.AgentChat.ChatMessage{
+        body: instruction,
+        attachments: attachments,
+        conversation_id: params["conversation_id"]
+      }
 
       Mokaid.AgentChat.resume_or_start_chat_task(
         workspace_id,

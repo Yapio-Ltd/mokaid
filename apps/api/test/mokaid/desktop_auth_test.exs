@@ -50,14 +50,14 @@ defmodule Mokaid.Auth.DesktopTest do
     assert {:ok, result} = Desktop.exchange(exchange_attrs(query["code"]))
     assert result.expires_in == 600
     assert result.user.id == user.id
-    assert {:ok, _, %{desktop_session_id: _}} = Session.authenticate(result.access_token)
+    assert {:ok, _, %{desktop_session_id: session_id}} = Session.authenticate(result.access_token)
     assert {:error, :invalid_grant} = Desktop.exchange(exchange_attrs(query["code"]))
 
     stored_request = Repo.get!(DesktopRequest, request.id)
     assert stored_request.code_hash == :crypto.hash(:sha256, query["code"])
     refute stored_request.code_hash == query["code"]
 
-    assert Repo.one!(DesktopRefreshToken).token_hash ==
+    assert Repo.one!(from t in DesktopRefreshToken, where: t.session_id == ^session_id).token_hash ==
              :crypto.hash(:sha256, result.refresh_token)
   end
 
@@ -107,12 +107,12 @@ defmodule Mokaid.Auth.DesktopTest do
     assert {:ok, second} = Desktop.refresh(first.refresh_token)
     assert second.refresh_token != first.refresh_token
     assert {:ok, third} = Desktop.refresh(second.refresh_token)
-    assert {:ok, _, _} = Desktop.verify_access(third.access_token)
+    assert {:ok, _, %{desktop_session_id: session_id}} = Desktop.verify_access(third.access_token)
     assert {:error, :invalid_grant} = Desktop.refresh(first.refresh_token)
     assert {:error, :invalid_grant} = Desktop.refresh(third.refresh_token)
     assert {:error, :unauthorized} = Desktop.verify_access(first.access_token)
     assert {:error, :unauthorized} = Desktop.verify_access(third.access_token)
-    assert Repo.one!(DesktopSession).revoked_at
+    assert Repo.get!(DesktopSession, session_id).revoked_at
   end
 
   test "revocation accepts spent refresh token, disconnects socket and leaves another family active" do

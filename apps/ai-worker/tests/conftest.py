@@ -1,16 +1,24 @@
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
 
-from app.config import get_settings
+from app.config import Settings, get_settings
 
 
 @pytest.fixture(autouse=True)
-def offline_llm(monkeypatch):
-    """Tests never call an LLM provider: force the no-key fallback paths."""
+def offline_llm(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Isolate tests from personal dotenv files, provider keys, and persistence."""
+    # Settings still accepts environment variables explicitly supplied by a test.
+    # Only the implicit personal dotenv source is disabled and restored afterward.
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
     monkeypatch.setenv("OPENAI_API_KEY", "")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "")
+    # Pydantic also loads a developer's .env. Unit fixtures use in-memory runs,
+    # not whichever persistence DB happens to be configured on this machine.
+    monkeypatch.setenv("DATABASE_URL", "")
+    monkeypatch.setenv("LANGSMITH_API_KEY", "")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -102,6 +110,7 @@ class FakePhoenixClient:
         stream_id: str,
         chunk: str,
         done: bool = False,
+        conversation_id: str | None = None,
     ) -> None:
         self.calls.append(
             (
@@ -111,6 +120,7 @@ class FakePhoenixClient:
                     "stream_id": stream_id,
                     "chunk": chunk,
                     "done": done,
+                    "conversation_id": conversation_id,
                 },
             )
         )

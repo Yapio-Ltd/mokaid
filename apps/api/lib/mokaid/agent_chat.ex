@@ -268,47 +268,44 @@ defmodule Mokaid.AgentChat do
   def post_agent_message(workspace_id, agent_id, body, opts \\ []) do
     attachments = normalize_attachments(Keyword.get(opts, :attachments, []))
 
-    conv = resolve_conversation(workspace_id, agent_id, Keyword.get(opts, :conversation_id))
+    with {:ok, conv} <-
+           resolve_conversation(workspace_id, agent_id, Keyword.get(opts, :conversation_id)) do
+      result =
+        %ChatMessage{}
+        |> ChatMessage.changeset(%{
+          "workspace_id" => workspace_id,
+          "agent_id" => agent_id,
+          "conversation_id" => conv.id,
+          "author_kind" => "agent",
+          "body" => body,
+          "attachments" => attachments,
+          "task_id" => Keyword.get(opts, :task_id)
+        })
+        |> Ecto.Changeset.foreign_key_constraint(:conversation_id)
+        |> Repo.insert()
 
-    result =
-      %ChatMessage{}
-      |> ChatMessage.changeset(%{
-        "workspace_id" => workspace_id,
-        "agent_id" => agent_id,
-        "conversation_id" => conv.id,
-        "author_kind" => "agent",
-        "body" => body,
-        "attachments" => attachments,
-        "task_id" => Keyword.get(opts, :task_id)
-      })
-      |> Repo.insert()
+      with {:ok, message} <- result do
+        Repo.update_all(
+          from(a in Agents.Agent, where: a.workspace_id == ^workspace_id and a.id == ^agent_id),
+          set: [last_active_at: DateTime.utc_now()]
+        )
 
-    with {:ok, message} <- result do
-      Repo.update_all(
-        from(a in Agents.Agent, where: a.workspace_id == ^workspace_id and a.id == ^agent_id),
-        set: [last_active_at: DateTime.utc_now()]
-      )
-
-      broadcast_message(message, stream_id: Keyword.get(opts, :stream_id))
-      {:ok, message}
+        broadcast_message(message, stream_id: Keyword.get(opts, :stream_id))
+        {:ok, message}
+      end
     end
   end
 
-  defp resolve_conversation(workspace_id, agent_id, conversation_id)
-       when is_binary(conversation_id) do
-    case get_conversation(workspace_id, conversation_id) do
-      %Conversation{agent_id: ^agent_id} = conv ->
-        conv
+  defp resolve_conversation(workspace_id, agent_id, nil),
+    do: get_or_create_active_conversation(workspace_id, agent_id)
 
-      _ ->
-        {:ok, conv} = get_or_create_active_conversation(workspace_id, agent_id)
-        conv
+  defp resolve_conversation(workspace_id, agent_id, conversation_id) do
+    with {:ok, id} <- Ecto.UUID.cast(conversation_id),
+         %Conversation{agent_id: ^agent_id} = conv <- get_conversation(workspace_id, id) do
+      {:ok, conv}
+    else
+      _ -> {:error, :not_found}
     end
-  end
-
-  defp resolve_conversation(workspace_id, agent_id, _) do
-    {:ok, conv} = get_or_create_active_conversation(workspace_id, agent_id)
-    conv
   end
 
   @doc """
@@ -422,9 +419,8 @@ defmodule Mokaid.AgentChat do
     skip_ack? = Keyword.get(opts, :skip_ack, false)
     language = Keyword.get(opts, :language)
 
-    {:ok, conv} = get_or_create_active_conversation(workspace_id, agent.id)
-
-    with {:ok, task} <-
+    with {:ok, conv} <- task_conversation(workspace_id, agent.id, message, opts),
+         {:ok, task} <-
            Mokaid.Tasks.create_task(
              workspace_id,
              %{
@@ -487,20 +483,35 @@ defmodule Mokaid.AgentChat do
   end
 
   @doc """
-  Resumes a recently failed chat-born task in the active conversation when
+  Resumes a recently failed chat-born task in the triggering conversation when
   possible; otherwise starts a fresh chat task.
   """
   def resume_or_start_chat_task(workspace_id, agent, member, message, attachments, opts \\ []) do
     instruction = message_instruction(message, attachments)
-    {:ok, conv} = get_or_create_active_conversation(workspace_id, agent.id)
 
-    case find_resumable_chat_task(workspace_id, agent.id, conv.id) do
-      %Mokaid.Tasks.Task{} = task when instruction != "" ->
-        resume_chat_task(workspace_id, agent, member, task, instruction, attachments, opts)
+    with {:ok, conv} <- task_conversation(workspace_id, agent.id, message, opts) do
+      opts = Keyword.put(opts, :conversation_id, conv.id)
 
-      _ ->
-        start_chat_task(workspace_id, agent, member, message, attachments, opts)
+      case find_resumable_chat_task(workspace_id, agent.id, conv.id) do
+        %Mokaid.Tasks.Task{} = task when instruction != "" ->
+          resume_chat_task(workspace_id, agent, member, task, instruction, attachments, opts)
+
+        _ ->
+          start_chat_task(workspace_id, agent, member, message, attachments, opts)
+      end
     end
+  end
+
+  # Explicit conversation identity is a security boundary, not a hint that can
+  # fall back to whichever thread became active while the worker was running.
+  defp task_conversation(workspace_id, agent_id, message, opts) do
+    supplied = Keyword.get(opts, :conversation_id)
+
+    resolve_conversation(
+      workspace_id,
+      agent_id,
+      if(is_nil(supplied), do: Map.get(message, :conversation_id), else: supplied)
+    )
   end
 
   defp find_resumable_chat_task(workspace_id, agent_id, conversation_id) do
@@ -512,7 +523,8 @@ defmodule Mokaid.AgentChat do
           where:
             t.workspace_id == ^workspace_id and t.assigned_agent_id == ^agent_id and
               t.status in ["to_do", "in_progress", "blocked", "waiting"] and
-              t.inserted_at >= ^since,
+              t.inserted_at >= ^since and
+              fragment("?->>'conversation_id' = ?", t.metadata, ^conversation_id),
           order_by: [desc: t.updated_at],
           limit: 10,
           preload: [
@@ -523,7 +535,7 @@ defmodule Mokaid.AgentChat do
 
     Enum.find(tasks, fn task ->
       meta = task.metadata || %{}
-      conv_match? = meta["conversation_id"] == conversation_id or meta["source"] == "chat"
+      conv_match? = meta["conversation_id"] == conversation_id
       latest = List.first(task.execution_runs || [])
       failed? = match?(%{status: "failed"}, latest)
       conv_match? and failed?
@@ -535,12 +547,7 @@ defmodule Mokaid.AgentChat do
     language = Keyword.get(opts, :language)
     skip_ack? = Keyword.get(opts, :skip_ack, false)
 
-    conv_id =
-      get_in(task.metadata || %{}, ["conversation_id"]) ||
-        case active_conversation(workspace_id, agent.id) do
-          %{id: id} -> id
-          _ -> nil
-        end
+    conv_id = Keyword.fetch!(opts, :conversation_id)
 
     meta =
       Map.merge(task.metadata || %{}, %{

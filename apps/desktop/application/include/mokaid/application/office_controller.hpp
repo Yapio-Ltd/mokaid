@@ -2,6 +2,7 @@
 #include <mokaid/application/session_controller.hpp>
 #include <mokaid/storage/cache_store.hpp>
 #include <QVariantList>
+#include <QSet>
 
 namespace mokaid::desktop {
 class OfficeController final : public QObject {
@@ -19,6 +20,7 @@ class OfficeController final : public QObject {
     Q_PROPERTY(bool hasDrafts READ hasDrafts NOTIFY changed)
 public:
     OfficeController(ApiClient&, SessionController&, PhoenixClient&, CacheStore&, QObject* parent = nullptr);
+    ~OfficeController() override;
     QVariantList agents() const { return agents_; }
     QVariantMap selectedAgent() const { return selected_; }
     QVariantList messages() const { return messages_; }
@@ -26,7 +28,7 @@ public:
     QString conversationId() const { return conversation_; }
     QString draft() const { return draft_; }
     QString stream() const { return stream_; }
-    QString error() const { return error_; }
+    QString error() const { return error_.isEmpty() ? streamNotice_ : error_; }
     bool loading() const { return loading_; }
     bool sending() const { return sending_; }
     bool hasDrafts() const;
@@ -45,7 +47,19 @@ signals:
     void streamChanged();
 private:
     QString cacheKey(const QString& path) const;
-    void get(const QString& path, std::function<void(QJsonObject)> done);
+    QString contextKey() const;
+    QString workspaceId() const;
+    QString viewedConversation() const;
+    void contextChanged();
+    void get(const QString& path, QObject* owner, std::function<bool()> applicable, std::function<void(QJsonObject)> done);
+    void loadMessages(quint64 request);
+    void invalidateChat();
+    void clearStreams();
+    void retireStream(const QString& id);
+    void publishStreams();
+    bool accepts(const QVariantMap& message) const;
+    void mergeMessage(const QVariantMap& message);
+    void cacheMessages();
     void reset();
     void receive(const QString& topic, const QString& event, const QJsonObject& payload);
     ApiClient& api_;
@@ -55,9 +69,15 @@ private:
     QVariantList agents_, messages_, conversations_;
     QVariantMap selected_;
     QHash<QString, QString> drafts_;
-    QString conversation_, draft_, stream_, streamId_, error_;
+    struct Stream { QString text; };
+    QHash<QString, Stream> streams_;
+    QStringList streamOrder_, retiredOrder_;
+    QSet<QString> retiredStreams_;
+    QHash<QString, QVariantMap> realtimeMessages_;
+    QString conversation_, activeConversation_, draft_, stream_, error_, streamNotice_, context_;
+    QObject agentsOwner_, historyOwner_, mutationOwner_;
     QTimer publishStream_, debounceRefresh_;
-    quint64 generation_{}, chatGeneration_{};
-    bool loading_{}, sending_{};
+    quint64 generation_{}, chatGeneration_{}, historyRequest_{}, agentsRequest_{}, apiGeneration_{};
+    bool loading_{}, sending_{}, conversationKnown_{};
 };
 }

@@ -248,6 +248,7 @@ async def _stream_reply(
     agent_id: str,
     stream_id: str,
     usage: llm.UsageTracker | None = None,
+    conversation_id: str | None = None,
 ) -> str:
     """Streams a pure chat reply (no control header) and returns the full text."""
     text_parts: list[str] = []
@@ -258,7 +259,8 @@ async def _stream_reply(
             return
         try:
             await phoenix.stream_agent_chat_chunk(
-                workspace_id, agent_id, stream_id, chunk
+                workspace_id, agent_id, stream_id, chunk,
+                conversation_id=conversation_id,
             )
         except Exception as exc:  # noqa: BLE001
             log.warning("direct_chat_stream_failed", error=str(exc))
@@ -609,6 +611,8 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
     workspace_id = payload["workspace_id"]
     agent_id = payload["agent_id"]
     stream_id = uuid.uuid4().hex
+    # Fixed by Phoenix from the triggering message, never the current UI thread.
+    conversation_id = payload.get("conversation_id")
 
     user_prompt = (
         "DM thread (most recent last — 'you' lines are your own previous "
@@ -630,6 +634,7 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
         agent_id=agent_id,
         stream_id=stream_id,
         usage=usage,
+        conversation_id=conversation_id,
     )
 
     # Meter the whole DM turn (decision + attachment vision + streamed reply)
@@ -657,6 +662,7 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
         skip_ack=True,
         language=language,
         stream_id=stream_id,
+        conversation_id=conversation_id,
     )
     if posted:
         # Persist and broadcast the canonical message before closing its
@@ -664,7 +670,8 @@ async def reply(payload: dict[str, Any], phoenix: PhoenixClient | None = None) -
         # the final message was still in flight (or during a socket reconnect).
         try:
             await phoenix.stream_agent_chat_chunk(
-                workspace_id, agent_id, stream_id, "", done=True
+                workspace_id, agent_id, stream_id, "", done=True,
+                conversation_id=conversation_id,
             )
         except Exception as exc:  # noqa: BLE001
             log.warning("direct_chat_stream_finalize_failed", error=str(exc))

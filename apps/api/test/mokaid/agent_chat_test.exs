@@ -43,6 +43,38 @@ defmodule Mokaid.AgentChatTest do
   end
 
   describe "post_agent_message/4" do
+    test "malformed, deleted or wrong-agent explicit conversations never fall back to active" do
+      {workspace, _owner} = workspace_fixture()
+
+      {:ok, agent} =
+        Agents.create_agent(workspace.id, %{"kind" => "ai", "display_name" => "Scoped"})
+
+      {:ok, active} = AgentChat.create_conversation(workspace.id, agent.id)
+
+      other =
+        %Agents.Agent{}
+        |> Agents.Agent.create_changeset(%{
+          "workspace_id" => workspace.id,
+          "kind" => "ai",
+          "display_name" => "Other"
+        })
+        |> Repo.insert!()
+
+      {:ok, foreign} = AgentChat.create_conversation(workspace.id, other.id)
+      {:ok, deleted} = AgentChat.create_conversation(workspace.id, agent.id)
+      Repo.delete!(deleted)
+
+      for id <- ["invalid", false, deleted.id, foreign.id] do
+        assert {:error, :not_found} =
+                 AgentChat.post_agent_message(workspace.id, agent.id, "Never reassign",
+                   conversation_id: id
+                 )
+      end
+
+      assert AgentChat.list_messages_for_conversation(active.id) == []
+      assert AgentChat.list_messages_for_conversation(foreign.id) == []
+    end
+
     test "persists the reply and accepts a stream_id for broadcast" do
       {workspace, _owner} = workspace_fixture()
 
@@ -119,6 +151,77 @@ defmodule Mokaid.AgentChatTest do
   end
 
   describe "resume_or_start_chat_task/6" do
+    test "late execution creates and resumes only tasks from its original conversation" do
+      {workspace, owner} = workspace_fixture()
+      member = owner_member(workspace, owner)
+
+      {:ok, agent} =
+        Agents.create_agent(workspace.id, %{"kind" => "ai", "display_name" => "Scoped"})
+
+      {:ok, original} = AgentChat.create_conversation(workspace.id, agent.id)
+      original |> Ecto.Changeset.change(status: "archived") |> Repo.update!()
+      {:ok, current} = AgentChat.create_conversation(workspace.id, agent.id)
+
+      current_message = %AgentChat.ChatMessage{
+        body: "New thread work",
+        conversation_id: current.id
+      }
+
+      {:ok, current_task} =
+        AgentChat.start_chat_task(workspace.id, agent, member, current_message, [],
+          skip_ack: true
+        )
+
+      fail_runs(workspace.id, current_task)
+      late = %AgentChat.ChatMessage{body: "Old thread late work", conversation_id: original.id}
+
+      assert {:ok, old_task} =
+               AgentChat.resume_or_start_chat_task(workspace.id, agent, member, late, [],
+                 skip_ack: true
+               )
+
+      refute old_task.id == current_task.id
+      assert old_task.metadata["conversation_id"] == original.id
+      assert Tasks.get_task(workspace.id, current_task.id).description == "New thread work"
+      fail_runs(workspace.id, old_task)
+
+      assert {:ok, resumed} =
+               AgentChat.resume_or_start_chat_task(
+                 workspace.id,
+                 agent,
+                 member,
+                 %{late | body: "Continue original work"},
+                 [],
+                 skip_ack: true
+               )
+
+      assert resumed.id == old_task.id
+      assert resumed.metadata["conversation_id"] == original.id
+      assert Tasks.get_task(workspace.id, current_task.id).description == "New thread work"
+    end
+
+    test "invalid explicit conversation cannot fall back to the active thread" do
+      {workspace, owner} = workspace_fixture()
+      member = owner_member(workspace, owner)
+
+      {:ok, agent} =
+        Agents.create_agent(workspace.id, %{"kind" => "ai", "display_name" => "Scoped"})
+
+      message = %AgentChat.ChatMessage{
+        body: "Must not create task",
+        conversation_id: Ecto.UUID.generate()
+      }
+
+      assert {:error, :not_found} =
+               AgentChat.start_chat_task(workspace.id, agent, member, message, [])
+
+      assert {:error, :not_found} =
+               AgentChat.resume_or_start_chat_task(workspace.id, agent, member, message, [])
+
+      assert Repo.aggregate(from(t in Tasks.Task, where: t.workspace_id == ^workspace.id), :count) ==
+               0
+    end
+
     test "resumes a failed chat task in the same conversation instead of creating a new one" do
       {workspace, owner} = workspace_fixture()
       member = owner_member(workspace, owner)
@@ -164,6 +267,26 @@ defmodule Mokaid.AgentChatTest do
       assert resumed.description == "alors fais une simple moustache"
       assert resumed.metadata["instruction"] == "alors fais une simple moustache"
     end
+  end
+
+  defp fail_runs(workspace_id, task) do
+    task = Tasks.get_task(workspace_id, task.id)
+
+    runs =
+      case task.execution_runs do
+        [] ->
+          {:ok, run} = Tasks.create_execution_run(task, %{"chat_task" => true})
+          [run]
+
+        runs ->
+          runs
+      end
+
+    for run <- runs do
+      Tasks.update_run_progress(run, %{"status" => "failed", "error" => "fixture failure"})
+    end
+
+    Tasks.update_task(task, %{"status" => "to_do", "progress_percent" => 0})
   end
 
   describe "deliver_task_output/4" do
