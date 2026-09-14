@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -76,6 +77,47 @@ def test_exact_scanned_images_pass_staging_before_production_mutations():
         )
     assert stage["env"]["MOKAID_DESKTOP_ONLY_BUSINESS"] == "${{ env.DESKTOP_ONLY }}"
     assert "continue-on-error" not in stage
+
+
+@pytest.mark.parametrize(
+    ("service", "repository"),
+    (("api", "api"), ("worker", "ai-worker"), ("web", "web"), ("crm", "crm")),
+)
+def test_each_scan_explicitly_targets_its_built_arm64_image_without_weakening_gate(
+    service, repository
+):
+    steps = deployment()["steps"]
+    build = next(step for step in steps if step.get("id") == service + "_image")
+    image = (
+        "${{ steps.registry.outputs.registry }}/mokaid-"
+        + repository
+        + "@${{ steps."
+        + service
+        + "_image.outputs.digest }}"
+    )
+    scans = [
+        step
+        for step in steps
+        if "trivy-action@" in step.get("uses", "")
+        and step.get("with", {}).get("image-ref") == image
+    ]
+    assert len(scans) == 1
+    scan = scans[0]
+    assert build["with"]["platforms"] == "linux/arm64"
+    # Step-local literal prevents omission, runner-default amd64 selection, or
+    # an accidentally overridden job/workflow environment expression.
+    assert scan.get("env") == {"TRIVY_PLATFORM": build["with"]["platforms"]}
+    assert scan["uses"] == (
+        "aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1"
+    )
+    assert scan["with"] == {
+        "image-ref": image,
+        "severity": "HIGH,CRITICAL",
+        "ignore-unfixed": "true",
+        "exit-code": "1",
+    }
+    assert "if" not in scan
+    assert "continue-on-error" not in scan
 
 
 def test_migration_precedes_every_rollout_and_uses_prepared_exact_revision():
@@ -225,7 +267,9 @@ def test_public_waf_boundary_is_tested_before_deployment_images_are_built():
     infrastructure = workflow("desktop-infrastructure.yml")
     for event in ("push", "pull_request"):
         assert "infra/terraform/modules/waf/**" in infrastructure["on"][event]["paths"]
-        assert "infra/terraform/modules/stack/**" in infrastructure["on"][event]["paths"]
+        assert (
+            "infra/terraform/modules/stack/**" in infrastructure["on"][event]["paths"]
+        )
     job = infrastructure["jobs"]["validate"]
     assert job["env"]["AWS_EC2_METADATA_DISABLED"] == "true"
     waf = next(

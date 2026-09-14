@@ -160,6 +160,9 @@ jobs:
 
       - name: Scan API image
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        # The pinned composite action forwards Trivy's CLI environment flags.
+        env:
+          TRIVY_PLATFORM: linux/arm64
         with:
           image-ref: ${{ steps.registry.outputs.registry }}/mokaid-api@${{ steps.api_image.outputs.digest }}
           severity: HIGH,CRITICAL
@@ -167,6 +170,8 @@ jobs:
           exit-code: '1'
       - name: Scan worker image
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        env:
+          TRIVY_PLATFORM: linux/arm64
         with:
           image-ref: ${{ steps.registry.outputs.registry }}/mokaid-ai-worker@${{ steps.worker_image.outputs.digest }}
           severity: HIGH,CRITICAL
@@ -174,6 +179,8 @@ jobs:
           exit-code: '1'
       - name: Scan web image
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        env:
+          TRIVY_PLATFORM: linux/arm64
         with:
           image-ref: ${{ steps.registry.outputs.registry }}/mokaid-web@${{ steps.web_image.outputs.digest }}
           severity: HIGH,CRITICAL
@@ -181,6 +188,8 @@ jobs:
           exit-code: '1'
       - name: Scan CRM image
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        env:
+          TRIVY_PLATFORM: linux/arm64
         with:
           image-ref: ${{ steps.registry.outputs.registry }}/mokaid-crm@${{ steps.crm_image.outputs.digest }}
           severity: HIGH,CRITICAL

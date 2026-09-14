@@ -14,6 +14,40 @@ checks cannot prevent an independent operator racing an update.
 4. Run the migration from that exact prepared revision, before rolling the API.
 5. Deploy the API revision; prepare/deploy the remaining services after success.
 
+### Scan the explicitly built platform
+
+Every production build targets `linux/arm64`, and each of the four Trivy steps
+sets the literal step-local environment variable `TRIVY_PLATFORM=linux/arm64`.
+The pinned composite action has no `platform` input; it forwards this environment
+flag to Trivy. Do not infer image selection from the GitHub runner's architecture.
+The scans still use exact registry digests, the same pinned action/version,
+`HIGH,CRITICAL`, `ignore-unfixed: true` and failure exit code 1.
+
+On 2026-09-14, [run 34833723676](https://github.com/Yapio-Ltd/mokaid/actions/runs/34833723676)
+built all four images but stopped at the API scan: Trivy 0.69.3 selected
+`linux/amd64` from an ARM64-only OCI index and failed before vulnerability
+analysis. Staging, migrations, ECS changes and public smoke were not executed.
+The error was reproduced against that exact ECR digest with the same scanner
+version. Setting only the platform environment variable allowed the API image
+to be analyzed successfully with the gate unchanged. All four exact ECR images
+from that run subsequently passed a local Trivy 0.69.3 audit with ARM64 selected:
+zero reported fixable HIGH/CRITICAL vulnerabilities and zero reported secrets
+at those severities. This does not claim absence of lower-severity or unfixed
+findings and does not replace the next CI run's scans. Hex auditing remains
+necessary separately: this API image's Trivy report does not inventory BEAM
+dependencies. Four regression cases failed before the fix and passed afterward;
+they bind each scan's literal platform to its build and preserve all gate inputs.
+
+See the pinned [action definition](https://github.com/aquasecurity/trivy-action/blob/57a97c7e7821a5776cebc9bb87c984fa69cba8f1/action.yaml),
+[entrypoint](https://github.com/aquasecurity/trivy-action/blob/57a97c7e7821a5776cebc9bb87c984fa69cba8f1/entrypoint.sh)
+and Trivy's [platform flag](https://github.com/aquasecurity/trivy/blob/v0.69.3/pkg/flag/image_flags.go).
+
+After a workflow correction, promote its new reviewed commit through CI again;
+do not rerun the old code or delete previously published tags to force a retry.
+Some ECR repositories enforce immutable commit tags, so a partial successful
+push is not undone when a later scan fails. Live task definitions always use
+digests, including for a repository whose tag policy is mutable.
+
 | Script | Required environment | Result |
 | --- | --- | --- |
 | `prepare-ecs-task.sh` | `CLUSTER`, `SERVICE`, `CONTAINER`, `IMAGE`, `GITHUB_OUTPUT` | Register a new task revision based on the revision actually used by the active service. |
