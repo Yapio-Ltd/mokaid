@@ -76,6 +76,26 @@ occurs after preparation. Existing resources, runtime platform, sidecars, secret
 environment and task tags are retained; only the named container's image and the
 following explicitly permitted API settings may change.
 
+### Existing task-definition tags
+
+`DescribeTaskDefinition --include TAGS` may omit `tags` or return an empty array
+for an untagged revision. Preparation must **omit** that optional registration
+field in both cases: ECS rejects an explicitly supplied `tags: []` with
+`ClientException: Tags can not be empty.` Nonempty tag lists are preserved
+unchanged, including optional missing values and valid empty-string values.
+Malformed tag structures fail before registration, without logging tag values.
+No synthetic tags or extra IAM privileges are added as a workaround.
+
+[Run 34839480778](https://github.com/Yapio-Ltd/mokaid/actions/runs/34839480778)
+on 2026-09-14 passed all four ARM64 scans, isolated staging and the renewed OIDC
+session, then failed registering the API revision. The exact CloudTrail event
+confirmed a present array with zero tags and the above ClientException. Its
+request values were not displayed. Migrations and rollouts were skipped; the
+four prior ECS service revisions were subsequently confirmed healthy and
+unchanged. Regression tests reproduce the rejection, cover absent/empty tags,
+preserve nonempty tags and reject malformed responses. This code correction
+still requires a new successful CI/deployment run before production is updated.
+
 ## Desktop rollout settings
 
 Preparation optionally accepts `MOKAID_DESKTOP_ONLY_BUSINESS`, exactly `true` or

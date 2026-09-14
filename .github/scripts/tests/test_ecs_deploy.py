@@ -62,6 +62,7 @@ class MockAws:
         self.run_result = {"tasks": [migration_task("RUNNING")], "failures": []}
         self.task_result = {"tasks": [migration_task()], "failures": []}
         self.failures = set()
+        self.definition_tags = {"tags": [{"key": "project", "value": "mokaid"}]}
 
     def call(self, operation, *arguments, payload=None):
         self.calls.append((operation, arguments, copy.deepcopy(payload)))
@@ -73,8 +74,11 @@ class MockAws:
             return {"services": [copy.deepcopy(value)], "failures": []}
         if operation == "describe-task-definition":
             assert arguments[0] == "--task-definition"
-            return {"taskDefinition": copy.deepcopy(self.definitions[arguments[1]]), "tags": [{"key": "project", "value": "mokaid"}]}
+            return {"taskDefinition": copy.deepcopy(self.definitions[arguments[1]]),
+                    **copy.deepcopy(self.definition_tags)}
         if operation == "register-task-definition":
+            if "tags" in payload and payload["tags"] == []:
+                raise ecs.Failure("Tags can not be empty.")
             self.registered = copy.deepcopy(payload)
             value = copy.deepcopy(payload)
             value.update(taskDefinitionArn=NEW, status="ACTIVE")
@@ -186,6 +190,48 @@ class EcsTests(unittest.TestCase):
             with self.assertRaises(ecs.Failure):
                 ecs.prepare(dict(self.env, IMAGE=value), aws)
             self.assertEqual(aws.calls, [])
+
+    def test_prepare_omits_absent_or_empty_tags_for_aws_registration(self) -> None:
+        for tags_response in ({}, {"tags": []}):
+            with self.subTest(tags_response=tags_response):
+                aws = MockAws()
+                aws.definition_tags = tags_response
+                original = copy.deepcopy(aws.definitions[OLD])
+                ecs.prepare(self.env, aws)
+                self.assertNotIn("tags", aws.registered)
+                self.assertEqual(aws.definitions[OLD], original)
+                self.assertEqual(aws.definition_tags, tags_response)
+                self.assertEqual(self.updates(aws), [])
+
+    def test_prepare_preserves_nonempty_tags_exactly_without_logging_values(self) -> None:
+        tags = [{"key": "project", "value": SENSITIVE},
+                {"key": "empty-value", "value": ""}, {"key": "key-only"}]
+        aws = MockAws()
+        aws.definition_tags = {"tags": copy.deepcopy(tags)}
+        ecs.prepare(self.env, aws)
+        self.assertEqual(aws.registered["tags"], tags)
+        self.assertEqual(aws.definition_tags["tags"], tags)
+        self.assertNotIn(SENSITIVE, self.stdout.getvalue() + self.stderr.getvalue()
+                         + self.output.read_text())
+        self.assertEqual(self.updates(aws), [])
+
+    def test_prepare_rejects_malformed_tags_before_registering_without_values_in_error(self) -> None:
+        invalid = [None, {}, SENSITIVE, [None], [SENSITIVE], [{}],
+                   [{"key": ""}], [{"key": 1}], [{"value": SENSITIVE}],
+                   [{"key": "project", "value": None}],
+                   [{"key": "project", "value": 123}],
+                   [{"key": "project", "value": SENSITIVE, "unknown": "field"}]]
+        for tags in invalid:
+            with self.subTest(tags=tags):
+                aws = MockAws()
+                aws.definition_tags = {"tags": tags}
+                with self.assertRaisesRegex(ecs.Failure, "tags.*malformed") as failure:
+                    ecs.prepare(self.env, aws)
+                self.assertIsNone(aws.registered)
+                self.assertFalse(any(call[0] == "register-task-definition" for call in aws.calls))
+                self.assertEqual(self.updates(aws), [])
+                self.assertNotIn(SENSITIVE, str(failure.exception)
+                                 + self.stdout.getvalue() + self.stderr.getvalue())
 
     def test_prepare_rejects_wrong_or_duplicate_container(self):
         for duplicate in (False, True):

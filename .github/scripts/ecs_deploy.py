@@ -170,7 +170,14 @@ def definition(aws: AwsClient, arn: str) -> tuple[dict[str, Any], list[dict[str,
     task = response.get("taskDefinition", {})
     if task.get("taskDefinitionArn") != arn or task.get("status") != "ACTIVE":
         raise Failure("The exact task-definition revision is missing or inactive")
-    return task, response.get("tags", [])
+    tags = response.get("tags", [])
+    if not isinstance(tags, list) or any(
+            not isinstance(tag, dict) or set(tag) - {"key", "value"}
+            or not isinstance(tag.get("key"), str) or not tag["key"]
+            or ("value" in tag and not isinstance(tag["value"], str))
+            for tag in tags):
+        raise Failure("The task-definition tags response is malformed")
+    return task, tags
 
 
 def named_container(task: dict[str, Any], name: str) -> dict[str, Any]:
@@ -226,7 +233,8 @@ def prepare(env: Mapping[str, str], aws: AwsClient) -> None:
     for key in ("taskDefinitionArn", "revision", "status", "requiresAttributes", "compatibilities",
                 "registeredAt", "registeredBy", "deregisteredAt"):
         task.pop(key, None)
-    task["tags"] = tags
+    if tags:
+        task["tags"] = tags
     registered = aws.call("register-task-definition", payload=task).get("taskDefinition", {})
     prepared = exact_definition(registered.get("taskDefinitionArn", ""))
     if prepared == previous or not same_family(previous, prepared) or registered.get("status") != "ACTIVE":
