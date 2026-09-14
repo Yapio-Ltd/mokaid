@@ -10,7 +10,7 @@ authenticated `gh` CLI. It has no third-party runtime dependencies and performs
 | Environment | Permitted deployment refs | Required reviewer |
 | --- | --- | --- |
 | `prod` | Branches `main`, `prod` | None added |
-| `desktop-signing-stable` | Tags `desktop-v*` | `Tomyshh`, user ID `113070134` |
+| `desktop-signing-stable` | Tags `desktop-v*`, branch `main` | `Tomyshh`, user ID `113070134` |
 | `desktop-signing-beta` | Tags `desktop-v*` | `Tomyshh`, user ID `113070134` |
 | `desktop-public-stable` | Branch `main` | `Tomyshh`, user ID `113070134` |
 | `desktop-public-beta` | Branch `main` | `Tomyshh`, user ID `113070134` |
@@ -20,11 +20,23 @@ the default branch `main`, while its source CI run targets `prod`. The deploymen
 workflow must additionally validate the successful source workflow, source branch
 and exact commit. The environment branch rule alone does not establish this.
 
-Desktop signing starts from a `desktop-v*` tag; the release workflow additionally
+Desktop candidate signing starts from a `desktop-v*` tag; the release workflow additionally
 checks the tagged commit's ancestry and chooses stable/beta from its validated
 version. Public promotion is a default-branch workflow dispatch and reuses the
 verified candidate binaries. These workflow checks and AWS OIDC subjects remain
 separate controls; this tool does not modify or certify them.
+
+The owner-approved stable-only `main` extension admits the manually dispatched
+[private Mac signing probe](../../apps/desktop/docs/private-macos-signing-probe.md).
+It does not add `main` to beta, grant public promotion, change AWS roles, activate
+desktop-only, or add a repository ruleset. An environment ref policy admits any
+job on that ref which names this environment; it is not a workflow-file allowlist.
+Before approving a main probe job, inspect its exact workflow/source SHA, the
+current `main` SHA and the verified current-run unsigned archive identity. The
+same required reviewer must approve access; no run is automatically approved.
+The owner separately authorized the unsigned intermediate Actions artifact with
+one-day retention on this public repository. This utility never uploads that
+artifact, dispatches the probe, or publishes signed output.
 
 **Before approving either signing environment**, the operator must inspect the
 exact tag commit SHA, the workflow source at that SHA, its source ancestry, and
@@ -81,6 +93,48 @@ variables, never lists arbitrary variable values, and cannot call secret APIs.
 Its process timeout is 45 seconds per request, with at most four concurrent reads.
 Writes are sequential, and failures are not retried automatically.
 
+### One-time stable signing main migration
+
+The extension was explicitly authorized on 2026-09-14; the reviewed source base
+was `4765db93fc399ed3919866b06f7a4d57c3854ba9`. This records authorization and desired
+state, **not proof that the GitHub policy has been applied**. From a checkout of
+this reviewed reconciler, use the dedicated bounded mode:
+
+```sh
+python3 infra/github/reconcile.py --stable-signing-main --plan
+# Review the complete output and its plan_sha256 before the next command.
+python3 infra/github/reconcile.py --stable-signing-main --apply --expect-plan REVIEWED_SHA256
+python3 infra/github/reconcile.py --stable-signing-main --plan
+```
+
+The only permitted mutation is:
+
+```text
+POST repos/Yapio-Ltd/mokaid/environments/desktop-signing-stable/deployment-branch-policies
+{"type":"branch","name":"main"}
+```
+
+The environment must already exist in custom-ref mode, with its exact existing
+tag `desktop-v*`, the required reviewer `Tomyshh` / `113070134`, and known bypass
+controls. There is no environment PUT, tag replacement/deletion, reviewer
+rewrite, variable change, bootstrap or collateral repair. A missing environment,
+missing reviewer, any other ref set, or any operation needed elsewhere stops the
+entire migration before writes. Existing longer wait timers, self-review bans
+and disabled administrator bypass remain untouched. Unresolved (`null`) public
+variables remain unmanaged as before, not a claim of release readiness.
+
+The mode is included in the plan digest. Apply recomputes the allowed operation,
+checks the exact observed baseline immediately before the POST and reads back
+all observed state afterwards. It accepts only the added main rule and a possible
+server-owned `updated_at` change on the target environment; existing tag rule
+IDs, protections, other environments and observed variables must be unchanged.
+Once both refs already exist, this mode is a no-op; it still rejects all other
+required mutations. A failed/ambiguous POST, stale digest or unexpected readback
+stops without retry or rollback. Inspect a fresh plan after any uncertainty.
+The generic mode still refuses to expand an existing custom ref set; the explicit
+flag is mandatory for this migration. GitHub has no atomic cross-endpoint
+transaction: pause concurrent environment administration until verification ends.
+
 The apply path reconstructs the plan, checks its digest, re-reads all relevant
 state immediately before writing, and requires the original fingerprint to match.
 It then re-reads state and requires an empty remaining plan. A second run after a
@@ -100,7 +154,8 @@ automatic deletion, rollback, or assumption that an interrupted apply succeeded.
 
 - Existing longer wait timers, stronger self-review requirements, and additional
   reviewer requirements on `prod` are preserved.
-- Existing custom ref rules must match exactly. Narrower rules, extra rules,
+- Existing custom ref rules must match exactly, except for the explicitly selected
+  stable-only migration above. Other narrower rules, extra rules,
   protected-branch mode, unexpected protection types, custom deployment
   protection rules, and incomplete API pages stop the entire plan before writes.
 - A configured public variable with a different existing value stops planning;

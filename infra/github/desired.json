@@ -16,7 +16,7 @@
       "variables": {"MOKAID_DESKTOP_ONLY": "false"}
     },
     "desktop-signing-stable": {
-      "refs": [{"type": "tag", "name": "desktop-v*"}],
+      "refs": [{"type": "tag", "name": "desktop-v*"}, {"type": "branch", "name": "main"}],
       "require_reviewer": true,
       "prevent_self_review": false,
       "wait_timer": 0,
