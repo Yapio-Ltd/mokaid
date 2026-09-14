@@ -14,7 +14,7 @@ import json
 import re
 import sys
 from contextlib import suppress
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Literal, Protocol, TypeAlias, cast
 from urllib.parse import quote
@@ -24,7 +24,10 @@ Object: TypeAlias = dict[str, Json]
 Method: TypeAlias = Literal["GET", "PUT", "POST", "PATCH"]
 REPOSITORY = "Yapio-Ltd/mokaid"
 API_ROOT = f"repos/{REPOSITORY}"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
+STABLE_SIGNING = "desktop-signing-stable"
+SIGNING_TAG_REFS = (("tag", "desktop-v*"),)
+STABLE_SIGNING_REFS = (("branch", "main"), *SIGNING_TAG_REFS)
 ENVIRONMENTS = {
     "prod",
     "desktop-signing-stable",
@@ -223,9 +226,13 @@ class Configuration:
                 (("branch", "main"), ("branch", "prod"))
                 if name == "prod"
                 else (
-                    (("tag", "desktop-v*"),)
-                    if name.startswith("desktop-signing-")
-                    else (("branch", "main"),)
+                    STABLE_SIGNING_REFS
+                    if name == STABLE_SIGNING
+                    else (
+                        SIGNING_TAG_REFS
+                        if name == "desktop-signing-beta"
+                        else (("branch", "main"),)
+                    )
                 )
             )
             if allowed != expected:
@@ -484,6 +491,7 @@ class Plan:
     baseline: str
     operations: tuple[Operation, ...]
     warnings: tuple[str, ...]
+    stable_signing_main: bool = False
 
     def digest(self) -> str:
         """Bind approval to both changes and their observed preconditions."""
@@ -491,6 +499,7 @@ class Plan:
             canonical(
                 {
                     "baseline": self.baseline,
+                    "stable_signing_main": self.stable_signing_main,
                     "operations": [op.json() for op in self.operations],
                 }
             ).encode()
@@ -500,15 +509,23 @@ class Plan:
         """Machine-readable plan; operational messages go to stderr."""
         return {
             "repository": REPOSITORY,
+            "stable_signing_main": self.stable_signing_main,
             "plan_sha256": self.digest(),
             "operations": [op.json() for op in self.operations],
             "warnings": list(self.warnings),
         }
 
 
-def build_plan(config: Configuration, state: Snapshot) -> Plan:
+def build_plan(
+    config: Configuration, state: Snapshot, *, stable_signing_main: bool = False
+) -> Plan:
     """Only add protections or preserve stronger ones; reject ambiguous drift."""
     operations: list[Operation] = []
+    main_rule = Operation(
+        "POST",
+        f"{API_ROOT}/environments/{STABLE_SIGNING}/deployment-branch-policies",
+        {"type": "branch", "name": "main"},
+    )
     warnings = [
         "Branch protection/rulesets and administrator bypass are not managed by this tool.",
         "No signing readiness is inferred. MOKAID_DESKTOP_ONLY stays false.",
@@ -537,6 +554,11 @@ def build_plan(config: Configuration, state: Snapshot) -> Plan:
         name = desired.name
         base = f"{API_ROOT}/environments/{name}"
         current = state.environments[name]
+        if stable_signing_main and name == STABLE_SIGNING:
+            if current is None or type(current.get("can_admins_bypass")) is not bool:
+                raise PolicyError(
+                    "Stable main migration requires an existing environment with known bypass controls"
+                )
         if state.custom_rules[name]:
             raise PolicyError(
                 f"{name}: custom deployment protections exist; no automatic changes"
@@ -606,11 +628,21 @@ def build_plan(config: Configuration, state: Snapshot) -> Plan:
             },
         }
         mode = current.get("deployment_branch_policy") if current else None
+        if stable_signing_main and name == STABLE_SIGNING and mode is None:
+            raise PolicyError(
+                "Stable main migration requires the existing custom branch policy mode"
+            )
         if mode is not None and mode != wanted["deployment_branch_policy"]:
             raise PolicyError(
                 f"{name}: protected-branch policy cannot be safely compared to custom refs"
             )
-        if mode is not None and old_refs != desired.allowed_refs:
+        migrate_main = (
+            stable_signing_main
+            and name == STABLE_SIGNING
+            and old_refs == SIGNING_TAG_REFS
+            and desired.allowed_refs == STABLE_SIGNING_REFS
+        )
+        if mode is not None and old_refs != desired.allowed_refs and not migrate_main:
             raise PolicyError(
                 f"{name}: existing custom refs differ (including narrower/empty policies); no broadening/removal. Review partial applies manually."
             )
@@ -639,9 +671,55 @@ def build_plan(config: Configuration, state: Snapshot) -> Plan:
                         {"type": kind, "name": pattern},
                     )
                 )
+        elif migrate_main:
+            operations.append(main_rule)
         variable_ops(f"{base}/variables", desired.variables)
     variable_ops(f"{API_ROOT}/actions/variables", config.variables)
-    return Plan(state.fingerprint(), tuple(operations), tuple(warnings))
+    if stable_signing_main:
+        if operations and operations != [main_rule]:
+            raise PolicyError(
+                "Stable main migration permits only the single main branch POST or a no-op; other drift must be reviewed separately"
+            )
+        warnings.append(
+            "Explicit stable-only main migration: no environment PUT, ref removal, variable mutation, workflow dispatch or artifact upload is authorized."
+        )
+    return Plan(
+        state.fingerprint(), tuple(operations), tuple(warnings), stable_signing_main
+    )
+
+
+def verify_stable_main_preservation(
+    before: Snapshot, after: Snapshot, *, added: bool
+) -> None:
+    """Verify exact preservation beyond minimum desired controls after the POST.
+
+    Only the new main rule and the target environment's server-owned updated_at
+    may change. Existing rule identities, stronger controls, other environments
+    and every observed public variable must remain identical. A no-op permits
+    no changes at all. A mismatch never triggers a repair or retry.
+    """
+    normalized = after
+    if added:
+        previous = object_value(before.environments[STABLE_SIGNING], STABLE_SIGNING)
+        current = dict(object_value(after.environments[STABLE_SIGNING], STABLE_SIGNING))
+        if "updated_at" in previous:
+            current["updated_at"] = previous["updated_at"]
+        else:
+            current.pop("updated_at", None)
+        branches = [
+            rule
+            for rule in after.branches[STABLE_SIGNING]
+            if refs([rule], STABLE_SIGNING) != (("branch", "main"),)
+        ]
+        normalized = replace(
+            after,
+            environments={**after.environments, STABLE_SIGNING: current},
+            branches={**after.branches, STABLE_SIGNING: branches},
+        )
+    if normalized.fingerprint() != before.fingerprint():
+        raise PolicyError(
+            "Stable main migration read-back did not preserve the reviewed state; inspect immediately, no automatic repair or retry"
+        )
 
 
 async def execute(
@@ -660,14 +738,21 @@ async def execute(
         )
     if fresh.fingerprint() != plan.baseline:
         raise PolicyError("GitHub state changed after planning; no writes performed")
+    if plan.stable_signing_main:
+        checked = build_plan(config, fresh, stable_signing_main=True)
+        if checked.digest() != plan.digest():
+            raise PolicyError("Stable main migration differs from the reviewed plan")
     for operation in plan.operations:
         print(f"Applying {operation.method} {operation.endpoint}", file=sys.stderr)
         await api.request(operation.method, operation.endpoint, operation.body)
-    verified = build_plan(config, await collect(api, config))
+    after = await collect(api, config)
+    verified = build_plan(config, after, stable_signing_main=plan.stable_signing_main)
     if verified.operations:
         raise PolicyError(
             "Post-apply verification did not converge; inspect state, do not blindly retry"
         )
+    if plan.stable_signing_main:
+        verify_stable_main_preservation(fresh, after, added=bool(plan.operations))
     return verified
 
 
@@ -680,6 +765,11 @@ def parser() -> argparse.ArgumentParser:
         "--apply",
         action="store_true",
         help="Apply the exact reviewed plan; requires --expect-plan",
+    )
+    result.add_argument(
+        "--stable-signing-main",
+        action="store_true",
+        help="Only add branch main to the already protected stable signing environment; reject all other mutations",
     )
     result.add_argument(
         "--expect-plan",
@@ -708,7 +798,11 @@ async def run(arguments: argparse.Namespace) -> int:
         cast(Json, json.loads(arguments.config.read_text(encoding="utf-8")))
     )
     api = GhApi(allow_writes=arguments.apply)
-    planned = build_plan(config, await collect(api, config))
+    planned = build_plan(
+        config,
+        await collect(api, config),
+        stable_signing_main=arguments.stable_signing_main,
+    )
     print(json.dumps(planned.json(), indent=2))
     if arguments.apply:
         await execute(api, config, planned, arguments.expect_plan)

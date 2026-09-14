@@ -16,6 +16,7 @@ import reconcile as policy
 
 ROOT = policy.API_ROOT
 PUBLIC = "desktop-public-stable"
+SIGNING = "desktop-signing-stable"
 MODE = {"protected_branches": False, "custom_branch_policies": True}
 
 
@@ -68,6 +69,7 @@ def document() -> dict[str, Any]:
                     "MOKAID_UPDATE_PUBLIC_KEY": None,
                 },
             }
+    environments[SIGNING]["refs"].append({"type": "branch", "name": "main"})
     return {
         "schema_version": 1,
         "repository": "Yapio-Ltd/mokaid",
@@ -209,7 +211,7 @@ def converged(config: policy.Configuration) -> FakeApi:
 def test_default_plan_is_read_only_and_exact(config: policy.Configuration) -> None:
     api = FakeApi()
     plan = policy.build_plan(config, snapshot(api, config))
-    assert len(plan.operations) == 18
+    assert len(plan.operations) == 19
     assert all(method == "GET" for method, _, _ in api.calls)
     assert not any(
         "/secrets" in endpoint or "AWS_DEPLOY_ENABLED" in endpoint
@@ -237,7 +239,7 @@ def test_default_plan_is_read_only_and_exact(config: policy.Configuration) -> No
                 if op.endpoint.endswith("deployment-branch-policies")
             ]
         )
-        == 6
+        == 7
     )
     assert not any(
         op.body.get("value") is None
@@ -251,6 +253,13 @@ def test_real_reviewed_configuration_preserves_all_resolved_public_values() -> N
     actual_config = policy.Configuration.parse(actual)
     assert actual["repository_variables"]["MOKAID_DESKTOP_ONLY"] == "false"
     assert actual["environments"]["prod"]["variables"]["MOKAID_DESKTOP_ONLY"] == "false"
+    assert policy.refs(actual["environments"][SIGNING]["refs"], SIGNING) == (
+        ("branch", "main"),
+        ("tag", "desktop-v*"),
+    )
+    assert policy.refs(
+        actual["environments"]["desktop-signing-beta"]["refs"], "beta"
+    ) == (("tag", "desktop-v*"),)
     stable = actual["environments"]["desktop-signing-stable"]["variables"]
     assert stable["MOKAID_MACOS_SIGNING_SECRET_ARN"] == (
         "arn:aws:secretsmanager:il-central-1:660601648321:secret:"
@@ -292,6 +301,315 @@ def test_idempotent_apply_then_noop(config: policy.Configuration) -> None:
     assert not plan.operations
     assert not asyncio.run(policy.execute(api, config, plan, plan.digest())).operations
     assert api.write_count == 0
+
+
+def legacy_signing(config: policy.Configuration) -> FakeApi:
+    """Exact pre-migration public metadata, including an existing tag rule ID."""
+    api = converged(config)
+    api.branches[SIGNING] = [
+        {"id": 71, "node_id": "synthetic-tag-rule", "type": "tag", "name": "desktop-v*"}
+    ]
+    return api
+
+
+def migration_plan(api: FakeApi, config: policy.Configuration) -> policy.Plan:
+    return policy.build_plan(config, snapshot(api, config), stable_signing_main=True)
+
+
+def test_stable_main_migration_is_one_post_preserving_stronger_controls(
+    config: policy.Configuration,
+) -> None:
+    api = legacy_signing(config)
+    env = api.environments[SIGNING]
+    env["can_admins_bypass"] = False
+    env["protection_rules"][0]["prevent_self_review"] = True
+    env["protection_rules"].append({"type": "wait_timer", "wait_timer": 30})
+    before = copy.deepcopy(api.environments)
+    branches = copy.deepcopy(api.branches)
+    variables = copy.deepcopy(api.variables)
+    plan = migration_plan(api, config)
+    assert plan.json()["stable_signing_main"] is True
+    assert [op.json() for op in plan.operations] == [
+        {
+            "method": "POST",
+            "endpoint": f"{ROOT}/environments/{SIGNING}/deployment-branch-policies",
+            "body": {"type": "branch", "name": "main"},
+        }
+    ]
+    assert api.write_count == 0
+    verified = asyncio.run(policy.execute(api, config, plan, plan.digest()))
+    assert not verified.operations
+    assert api.write_count == 1
+    assert api.environments == before
+    assert api.variables == variables
+    branches[SIGNING].append({"type": "branch", "name": "main"})
+    assert api.branches == branches
+    assert not migration_plan(api, config).operations
+
+
+def test_stable_main_migration_requires_explicit_mode(
+    config: policy.Configuration,
+) -> None:
+    api = legacy_signing(config)
+    with pytest.raises(policy.PolicyError, match="custom refs differ"):
+        policy.build_plan(config, snapshot(api, config))
+    assert api.write_count == 0
+
+
+def test_stable_main_noop_is_bound_to_mode_and_keeps_all_controls(
+    config: policy.Configuration,
+) -> None:
+    api = converged(config)
+    before = snapshot(api, config)
+    normal = policy.build_plan(config, before)
+    plan = migration_plan(api, config)
+    assert not plan.operations
+    assert plan.digest() != normal.digest()
+    asyncio.run(policy.execute(api, config, plan, plan.digest()))
+    assert api.write_count == 0
+    assert snapshot(api, config).fingerprint() == before.fingerprint()
+
+
+@pytest.mark.parametrize(
+    "name", ["prod", "desktop-signing-beta", PUBLIC, "desktop-public-beta"]
+)
+def test_stable_main_mode_blocks_other_environment_mutations(
+    config: policy.Configuration,
+    name: str,
+) -> None:
+    api = legacy_signing(config)
+    del api.environments[name]
+    with pytest.raises(policy.PolicyError, match="only.*main"):
+        migration_plan(api, config)
+    assert api.write_count == 0
+
+
+@pytest.mark.parametrize(
+    "target", ["missing", "unrestricted", "reviewer", "variable", "bypass-unknown"]
+)
+def test_stable_main_mode_never_bootstraps_or_repairs_other_drift(
+    config: policy.Configuration,
+    target: str,
+) -> None:
+    api = legacy_signing(config)
+    if target == "missing":
+        del api.environments[SIGNING]
+    elif target == "unrestricted":
+        api.environments[SIGNING]["deployment_branch_policy"] = None
+        api.branches[SIGNING] = []
+    elif target == "reviewer":
+        api.environments[SIGNING]["protection_rules"] = [{"type": "branch_policy"}]
+    elif target == "variable":
+        del api.variables[f"{ROOT}/actions/variables/MOKAID_DESKTOP_ONLY"]
+    else:
+        del api.environments[SIGNING]["can_admins_bypass"]
+    with pytest.raises(policy.PolicyError, match="main"):
+        migration_plan(api, config)
+    assert api.write_count == 0
+
+
+@pytest.mark.parametrize(
+    "rules",
+    [
+        [],
+        [{"type": "branch", "name": "desktop-v*"}],
+        [{"type": "tag", "name": "desktop-v*"}, {"type": "tag", "name": "main"}],
+        [{"type": "tag", "name": "desktop-v*"}, {"type": "branch", "name": "prod"}],
+        [{"type": "tag", "name": "desktop-v*"}, {"type": "branch", "name": "*"}],
+    ],
+)
+def test_stable_main_mode_rejects_every_other_starting_ref_set(
+    config: policy.Configuration,
+    rules: list[Any],
+) -> None:
+    api = legacy_signing(config)
+    api.branches[SIGNING] = rules
+    with pytest.raises(policy.PolicyError, match="custom refs differ"):
+        migration_plan(api, config)
+    assert api.write_count == 0
+
+
+@pytest.mark.parametrize(
+    "name", ["desktop-signing-beta", "prod", PUBLIC, "desktop-public-beta"]
+)
+def test_configuration_cannot_extend_migration_to_another_environment(
+    document: dict[str, Any],
+    name: str,
+) -> None:
+    document["environments"][name]["refs"].append(
+        {"type": "branch", "name": "unexpected"}
+    )
+    with pytest.raises(policy.PolicyError, match="refs differ"):
+        policy.Configuration.parse(document)
+
+
+@pytest.mark.parametrize(
+    "change", ["already-added", "timer", "reviewer", "other-environment"]
+)
+def test_stable_main_stale_plan_never_writes(
+    config: policy.Configuration, change: str
+) -> None:
+    api = legacy_signing(config)
+    plan = migration_plan(api, config)
+    if change == "already-added":
+        api.branches[SIGNING].append({"type": "branch", "name": "main"})
+    elif change == "timer":
+        api.environments[SIGNING]["protection_rules"].append(
+            {"type": "wait_timer", "wait_timer": 1}
+        )
+    elif change == "reviewer":
+        api.environments[SIGNING]["protection_rules"][0]["reviewers"][0]["reviewer"][
+            "id"
+        ] = 2
+    else:
+        api.environments[PUBLIC]["can_admins_bypass"] = False
+    with pytest.raises(policy.PolicyError, match="state changed"):
+        asyncio.run(policy.execute(api, config, plan, plan.digest()))
+    assert api.write_count == 0
+
+
+@pytest.mark.parametrize(
+    "change", ["timer", "self-review", "bypass", "tag-id", "other-environment"]
+)
+def test_stable_main_readback_rejects_lost_stronger_controls_without_repair(
+    config: policy.Configuration,
+    monkeypatch: pytest.MonkeyPatch,
+    change: str,
+) -> None:
+    api = legacy_signing(config)
+    api.environments[SIGNING]["can_admins_bypass"] = False
+    api.environments[SIGNING]["protection_rules"][0]["prevent_self_review"] = True
+    api.environments[SIGNING]["protection_rules"].append(
+        {"type": "wait_timer", "wait_timer": 30}
+    )
+    plan = migration_plan(api, config)
+    original = api.request
+
+    async def request(
+        method: str, endpoint: str, body: Any = None, *, missing_ok: bool = False
+    ) -> Any:
+        result = await original(method, endpoint, body, missing_ok=missing_ok)
+        if method == "POST":
+            if change == "timer":
+                api.environments[SIGNING]["protection_rules"][-1]["wait_timer"] = 29
+            elif change == "self-review":
+                api.environments[SIGNING]["protection_rules"][0][
+                    "prevent_self_review"
+                ] = False
+            elif change == "bypass":
+                api.environments[SIGNING]["can_admins_bypass"] = True
+            elif change == "tag-id":
+                api.branches[SIGNING][0]["id"] = 72
+            else:
+                api.environments[PUBLIC]["can_admins_bypass"] = False
+        return result
+
+    monkeypatch.setattr(api, "request", request)
+    with pytest.raises(policy.PolicyError, match="preserv"):
+        asyncio.run(policy.execute(api, config, plan, plan.digest()))
+    assert api.write_count == 1
+
+
+@pytest.mark.parametrize("failure", ["error", "ignored"])
+def test_stable_main_failed_post_never_retries(
+    config: policy.Configuration, failure: str
+) -> None:
+    api = legacy_signing(config)
+    plan = migration_plan(api, config)
+    if failure == "error":
+        api.fail_write = 1
+    else:
+        api.ignore_writes = True
+    with pytest.raises(policy.PolicyError, match="interrupted|did not converge"):
+        asyncio.run(policy.execute(api, config, plan, plan.digest()))
+    assert api.write_count == 1
+    assert api.branches[SIGNING] == [
+        {"id": 71, "node_id": "synthetic-tag-rule", "type": "tag", "name": "desktop-v*"}
+    ]
+
+
+def test_stable_main_revalidates_operation_scope_before_any_write(
+    config: policy.Configuration,
+) -> None:
+    api = legacy_signing(config)
+    plan = migration_plan(api, config)
+    changed = policy.replace(plan, operations=())
+    with pytest.raises(policy.PolicyError, match="differs from the reviewed plan"):
+        asyncio.run(policy.execute(api, config, changed, changed.digest()))
+    assert api.write_count == 0
+
+
+def test_stable_main_readback_accepts_only_target_server_timestamp_change(
+    config: policy.Configuration,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    api = legacy_signing(config)
+    api.environments[SIGNING]["updated_at"] = "2026-09-14T00:00:00Z"
+    plan = migration_plan(api, config)
+    original = api.request
+
+    async def request(
+        method: str, endpoint: str, body: Any = None, *, missing_ok: bool = False
+    ) -> Any:
+        result = await original(method, endpoint, body, missing_ok=missing_ok)
+        if method == "POST":
+            api.environments[SIGNING]["updated_at"] = "2026-09-14T01:00:00Z"
+            api.branches[SIGNING][-1].update(id=72, node_id="synthetic-main-rule")
+        return result
+
+    monkeypatch.setattr(api, "request", request)
+    assert not asyncio.run(policy.execute(api, config, plan, plan.digest())).operations
+    assert api.write_count == 1
+    assert api.branches[SIGNING][0]["id"] == 71
+
+
+@pytest.mark.parametrize("stale", [False, True])
+def test_stable_main_cli_plan_apply_is_explicit_and_digest_bound(
+    config: policy.Configuration,
+    document: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+    stale: bool,
+) -> None:
+    api = legacy_signing(config)
+    flags: list[bool] = []
+
+    def factory(*, allow_writes: bool) -> FakeApi:
+        flags.append(allow_writes)
+        return api
+
+    monkeypatch.setattr(policy, "GhApi", factory)
+    source = tmp_path / "desired-fixture.json"
+    source.write_text(json.dumps(document), encoding="utf-8")
+    arguments = ["--config", str(source), "--stable-signing-main"]
+    assert (
+        asyncio.run(policy.run(policy.parser().parse_args([*arguments, "--plan"]))) == 0
+    )
+    result = json.loads(capsys.readouterr().out)
+    assert result["stable_signing_main"] is True
+    assert len(result["operations"]) == 1
+    assert flags == [False] and api.write_count == 0
+    if stale:
+        api.environments[PUBLIC]["can_admins_bypass"] = False
+    apply_args = policy.parser().parse_args(
+        [
+            *arguments,
+            "--apply",
+            "--expect-plan",
+            result["plan_sha256"],
+        ]
+    )
+    if stale:
+        with pytest.raises(policy.PolicyError, match="fingerprint"):
+            asyncio.run(policy.run(apply_args))
+        assert api.write_count == 0
+    else:
+        assert asyncio.run(policy.run(apply_args)) == 0
+        assert api.write_count == 1
+        assert "applied and verified" in capsys.readouterr().err
+        assert asyncio.run(policy.run(policy.parser().parse_args(arguments))) == 0
+        assert json.loads(capsys.readouterr().out)["operations"] == []
 
 
 def test_signing_gate_upgrade_is_exactly_two_protective_puts(
@@ -371,7 +689,7 @@ def test_post_apply_convergence_is_verified(config: policy.Configuration) -> Non
     plan = policy.build_plan(config, snapshot(api, config))
     with pytest.raises(policy.PolicyError, match="did not converge"):
         asyncio.run(policy.execute(api, config, plan, plan.digest()))
-    assert api.write_count == 18
+    assert api.write_count == 19
 
 
 @pytest.mark.parametrize(
@@ -522,7 +840,7 @@ def test_existing_variable_preserved_or_conflict_fails(
     path = f"{ROOT}/actions/variables/AWS_DEPLOY_ROLE_ARN"
     api.variables[path] = config.variables["AWS_DEPLOY_ROLE_ARN"] or ""
     plan = policy.build_plan(config, snapshot(api, config))
-    assert len(plan.operations) == 17
+    assert len(plan.operations) == 18
     api.variables[path] = "arn:aws:iam::660601648321:role/another-public-role"
     with pytest.raises(policy.PolicyError, match="existing value differs") as caught:
         policy.build_plan(config, snapshot(api, config))
@@ -725,6 +1043,7 @@ def test_gh_response_parsing(
     [
         (b"garbage", 1, "unavailable"),
         (b"HTTP/2.0 403 Forbidden\n\nsecret", 1, "HTTP 403"),
+        (b"HTTP/2.0 303 See Other\n\nconcurrent branch policy", 1, "HTTP 303"),
         (b"HTTP/2.0 200 OK\n\nno-json", 0, "malformed JSON"),
     ],
 )
@@ -823,7 +1142,7 @@ def test_cli_default_plan_and_reviewed_apply(
         )
         == 0
     )
-    assert flags == [False, True] and api.write_count == 18
+    assert flags == [False, True] and api.write_count == 19
     output = capsys.readouterr()
     assert "applied and verified" in output.err
     assert "Applying" not in output.out
