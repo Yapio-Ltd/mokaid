@@ -64,4 +64,4 @@ Our [compare](/compare) page walks through how the current platforms stack up on
 
 ## The bottom line
 
-Individual AI employees are the workers; the AI workforce OS is the company around them. As AI headcount grows from one to many, the platform layer — registry, identity, routing, observability, cost — stops being optional and becomes the system of record for non-human labor. See what that looks like when the OS is a place you can walk through on [/product](/product).
+Individual AI employees are the workers; the AI workforce OS is the company around them. As AI headcount grows from one to many, the platform layer — registry, identity, routing, observability, cost — stops being optional and becomes the system of record for non-human labor. See what that looks like when the OS is a place you can walk through on [the product](/#product).

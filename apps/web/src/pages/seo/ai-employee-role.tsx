@@ -6,7 +6,6 @@ import {
   FaqSection,
   MarketingLayout,
 } from "@/components/seo/marketing-layout";
-import { Button } from "@/components/ui/button";
 import { getRole, roles } from "@/data/seo/roles";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo";
 import { useSeo } from "@/lib/use-seo";
@@ -16,6 +15,7 @@ function RoleNotFound() {
     title: "Role not found | mokaid",
     description: "This AI employee role does not exist.",
     path: "/ai-employees",
+    noindex: true,
   });
   return (
     <MarketingLayout>
@@ -24,11 +24,12 @@ function RoleNotFound() {
         <p className="mt-3 text-text-secondary">
           This role does not exist (yet). Browse the AI employees you can hire today.
         </p>
-        <a href="/ai-employees" className="mt-6 inline-block">
-          <Button className="min-h-11 px-6">
-            Browse AI employees <ArrowRight size={15} />
-          </Button>
-        </a>
+        <Link
+          to="/ai-employees"
+          className="mk-focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark mt-6"
+        >
+          Browse AI employees <ArrowRight size={15} />
+        </Link>
       </section>
     </MarketingLayout>
   );
@@ -65,18 +66,14 @@ function RoleContent({ slug }: { slug: string }) {
       <Breadcrumbs items={breadcrumbs} />
 
       <section className="mx-auto max-w-4xl px-4 pb-8 pt-12 sm:px-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-light">
-          {role.shortName}
-        </p>
-        <h1 className="mk-seo-display mt-3 text-3xl font-bold leading-tight sm:text-4xl">
-          {role.h1}
-        </h1>
+        <h1 className="mk-seo-display text-3xl font-bold leading-tight sm:text-4xl">{role.h1}</h1>
         <p className="mt-5 text-lg leading-relaxed text-text-secondary">{role.intro}</p>
         <div className="mt-7">
-          <Link to="/signup">
-            <Button className="min-h-11 px-6 shadow-glow">
-              Hire this AI employee <ArrowRight size={15} />
-            </Button>
+          <Link
+            to="/download"
+            className="mk-focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+          >
+            Download Mokaid <ArrowRight size={15} aria-hidden />
           </Link>
         </div>
       </section>

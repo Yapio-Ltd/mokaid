@@ -6,7 +6,6 @@ import {
   FaqSection,
   MarketingLayout,
 } from "@/components/seo/marketing-layout";
-import { Button } from "@/components/ui/button";
 import { roles } from "@/data/seo/roles";
 import { breadcrumbJsonLd, faqJsonLd, SOFTWARE_JSONLD, type FaqItem } from "@/lib/seo";
 import { useSeo } from "@/lib/use-seo";
@@ -58,22 +57,19 @@ export function AiEmployeesIndexPage() {
       <Breadcrumbs items={breadcrumbs} />
 
       <section className="mx-auto max-w-4xl px-4 pb-10 pt-12 text-center sm:px-6 sm:pt-16">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-light">
-          The AI Workforce OS
-        </p>
-        <h1 className="mk-seo-display mt-4 text-4xl font-bold leading-tight sm:text-5xl">
+        <h1 className="mk-seo-display text-4xl font-bold leading-tight sm:text-5xl">
           Hire AI employees you can actually see working
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary">
-          mokaid gives every AI worker a role, a task queue, and a desk in a real-time 3D
-          virtual office. No black-box automation — a workforce you watch, manage, and
-          trust.
+          mokaid gives every AI worker a role, a task queue, and a desk in a real-time 3D virtual
+          office. No black-box automation — a workforce you watch, manage, and trust.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link to="/signup">
-            <Button className="min-h-11 px-6 shadow-glow">
-              Hire your first AI employee <ArrowRight size={15} />
-            </Button>
+          <Link
+            to="/download"
+            className="mk-focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+          >
+            Download Mokaid <ArrowRight size={15} aria-hidden />
           </Link>
         </div>
       </section>
@@ -84,18 +80,23 @@ export function AiEmployeesIndexPage() {
             What is an AI employee?
           </h2>
           <p className="mt-3 leading-relaxed text-text-secondary">
-            An AI employee is an autonomous, role-based AI worker with a persistent
-            identity, defined responsibilities, access to real business tools, and
-            accountability for outcomes — managed like a team member rather than operated
-            like software.
+            An AI employee is an autonomous, role-based AI worker with a persistent identity,
+            defined responsibilities, access to real business tools, and accountability for outcomes
+            — managed like a team member rather than operated like software.
           </p>
           <p className="mt-3 text-sm text-text-muted">
             Related reading:{" "}
-            <a href="/blog/what-is-an-ai-employee" className="text-primary-light underline underline-offset-2 hover:text-text">
+            <a
+              href="/blog/what-is-an-ai-employee"
+              className="text-primary-light underline underline-offset-2 hover:text-text"
+            >
               What is an AI employee?
             </a>{" "}
             ·{" "}
-            <a href="/blog/ai-employee-vs-ai-agent" className="text-primary-light underline underline-offset-2 hover:text-text">
+            <a
+              href="/blog/ai-employee-vs-ai-agent"
+              className="text-primary-light underline underline-offset-2 hover:text-text"
+            >
               AI employee vs AI agent
             </a>
           </p>
@@ -107,8 +108,8 @@ export function AiEmployeesIndexPage() {
           Roles you can hire today
         </h2>
         <p className="mt-2 max-w-2xl text-text-secondary">
-          Each role ships with a job description, recommended integrations, and sensible
-          approval gates. Customize everything after hiring.
+          Each role ships with a job description, recommended integrations, and sensible approval
+          gates. Customize everything after hiring.
         </p>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {roles.map((role) => (

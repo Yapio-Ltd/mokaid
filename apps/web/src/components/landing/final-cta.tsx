@@ -1,45 +1,10 @@
-import { useLayoutEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
-gsap.registerPlugin(ScrollTrigger);
-
-/** Minimal final CTA — soft glass, one smooth entrance, no looping ornament. */
+/** Final download invitation, readable with or without motion. */
 export function FinalCta() {
-  const rootRef = useRef<HTMLElement>(null);
-
-  useLayoutEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const ctx = gsap.context(() => {
-      if (prefersReduced) {
-        gsap.set("[data-cta-panel]", { opacity: 1, y: 0 });
-        return;
-      }
-
-      gsap.from("[data-cta-panel]", {
-        y: 20,
-        opacity: 0,
-        duration: 0.7,
-        ease: "power2.out",
-        scrollTrigger: {
-          trigger: root,
-          start: "top 82%",
-          once: true,
-        },
-      });
-    }, root);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
-    <section ref={rootRef} className="mk-final-cta relative isolate">
+    <section className="mk-final-cta relative isolate">
       <div className="mk-final-cta-glow pointer-events-none absolute inset-0" aria-hidden />
 
       <div className="relative mx-auto max-w-5xl px-4 py-14 sm:px-6 sm:py-16 md:py-20">
@@ -77,13 +42,16 @@ export function FinalCta() {
               Your office lives in the desktop app.
             </p>
 
-            <Link to="/download" className="block w-full md:inline-block md:w-auto">
-              <Button size="lg" className="w-full px-8 shadow-glow md:w-auto">
-                Download Mokaid <ArrowRight size={16} />
-              </Button>
+            <Link
+              to="/download"
+              className="mk-focus-ring inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-primary-dark md:w-auto"
+            >
+              Download Mokaid <ArrowRight size={16} aria-hidden />
             </Link>
 
-            <p className="text-center text-[11px] text-text-secondary md:text-right">macOS · Windows</p>
+            <p className="text-center text-[11px] text-text-secondary md:text-right">
+              macOS · Windows
+            </p>
           </div>
         </div>
       </div>

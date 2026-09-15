@@ -1,11 +1,13 @@
 import {
   BadgeDollarSign,
+  BarChart3,
   Blocks,
   BookOpen,
   BookText,
   Bot,
   Building2,
   Cookie,
+  CreditCard,
   Download,
   GitCompare,
   Handshake,
@@ -16,14 +18,18 @@ import {
   Scale,
   Sparkles,
   Users,
+  UserRound,
   Webhook,
 } from "lucide-react";
 import { Footer } from "@/components/ui/footer";
 import { CONTACT_EMAIL, LEGAL_ENTITY_NAME } from "@/lib/legal-config";
+import { useAuthStore } from "@/stores/auth-store";
 
 export function SiteFooter() {
+  const token = useAuthStore((state) => state.token);
+
   return (
-    <div className="mk-site-footer relative isolate overflow-hidden">
+    <footer aria-label="Site footer" className="mk-site-footer relative isolate overflow-hidden">
       {/* Soft atmospheric top fade — no hard white line */}
       <div
         className="pointer-events-none absolute inset-x-0 -top-24 h-32 bg-gradient-to-b from-transparent via-primary/[0.04] to-transparent"
@@ -42,7 +48,8 @@ export function SiteFooter() {
         className="relative mk-glass-footer pt-12 sm:pt-16"
         brand={{
           name: "mokaid",
-          description: "The workspace for AI and human employees. Built with care.",
+          description:
+            "Your AI team in one desktop app. Your account, usage and billing on the web.",
         }}
         socialLinks={[
           {
@@ -116,15 +123,18 @@ export function SiteFooter() {
             title: "Account",
             links: [
               {
-                name: "Sign in",
-                Icon: LogIn,
-                href: "/login",
+                name: token ? "My account" : "Sign in",
+                Icon: token ? UserRound : LogIn,
+                href: token ? "/account" : "/login",
               },
               {
-                name: "Get started",
-                Icon: Rocket,
-                href: "/signup",
+                name: "Usage & spending",
+                Icon: BarChart3,
+                href: "/account/usage",
               },
+              { name: "Billing & invoices", Icon: CreditCard, href: "/account/billing" },
+              { name: "Manage plan", Icon: BadgeDollarSign, href: "/account/plans" },
+              ...(!token ? [{ name: "Create account", Icon: Rocket, href: "/signup" }] : []),
             ],
           },
           {
@@ -166,6 +176,6 @@ export function SiteFooter() {
           label: "Powered by Yapio — design and product engineering",
         }}
       />
-    </div>
+    </footer>
   );
 }

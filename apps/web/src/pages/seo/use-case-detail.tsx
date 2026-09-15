@@ -6,7 +6,6 @@ import {
   FaqSection,
   MarketingLayout,
 } from "@/components/seo/marketing-layout";
-import { Button } from "@/components/ui/button";
 import { getRole } from "@/data/seo/roles";
 import { getUseCase } from "@/data/seo/useCases";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo";
@@ -17,17 +16,19 @@ function UseCaseNotFound() {
     title: "Use case not found | mokaid",
     description: "This use case does not exist.",
     path: "/use-cases",
+    noindex: true,
   });
   return (
     <MarketingLayout>
       <section className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6">
         <h1 className="mk-seo-display text-3xl font-bold">Use case not found</h1>
         <p className="mt-3 text-text-secondary">Browse how teams put AI employees to work.</p>
-        <a href="/use-cases" className="mt-6 inline-block">
-          <Button className="min-h-11 px-6">
-            Browse use cases <ArrowRight size={15} />
-          </Button>
-        </a>
+        <Link
+          to="/use-cases"
+          className="mk-focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark mt-6"
+        >
+          Browse use cases <ArrowRight size={15} />
+        </Link>
       </section>
     </MarketingLayout>
   );
@@ -66,10 +67,7 @@ function UseCaseContent({ slug }: { slug: string }) {
       <Breadcrumbs items={breadcrumbs} />
 
       <section className="mx-auto max-w-4xl px-4 pb-8 pt-12 sm:px-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-light">
-          {useCase.shortName}
-        </p>
-        <h1 className="mk-seo-display mt-3 text-3xl font-bold leading-tight sm:text-4xl">
+        <h1 className="mk-seo-display text-3xl font-bold leading-tight sm:text-4xl">
           {useCase.h1}
         </h1>
         <p className="mt-5 text-lg leading-relaxed text-text-secondary">{useCase.intro}</p>
@@ -129,10 +127,11 @@ function UseCaseContent({ slug }: { slug: string }) {
       <FaqSection items={useCase.faq} />
 
       <section className="mx-auto max-w-4xl px-4 py-4 text-center sm:px-6">
-        <Link to="/signup">
-          <Button className="min-h-11 px-6 shadow-glow">
-            Start free <ArrowRight size={15} />
-          </Button>
+        <Link
+          to="/download"
+          className="mk-focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+        >
+          Download Mokaid <ArrowRight size={15} aria-hidden />
         </Link>
       </section>
 

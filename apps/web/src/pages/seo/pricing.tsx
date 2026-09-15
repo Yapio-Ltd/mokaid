@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Check, Coins, Crown, Star, Users, Zap } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -6,7 +7,6 @@ import {
   FaqSection,
   MarketingLayout,
 } from "@/components/seo/marketing-layout";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { breadcrumbJsonLd, canonicalUrl, faqJsonLd, SITE } from "@/lib/seo";
 import { useSeo } from "@/lib/use-seo";
@@ -124,6 +124,7 @@ const breadcrumbs = [
 ];
 
 export function PricingPage() {
+  const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
   useSeo({
     title: "Pricing — Hire AI Employees From Free | mokaid",
     description:
@@ -160,9 +161,32 @@ export function PricingPage() {
           Pricing that scales with your AI workforce
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary">
-          Start free with one AI employee. Every plan includes monthly AI
-          credits — top-ups never expire, and yearly billing saves 17%.
+          Start free with one AI employee. Every plan includes monthly AI credits — top-ups never
+          expire, and yearly billing saves 17%.
         </p>
+        <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-text-muted">
+          Work in Mokaid Desktop. Manage your plan, usage and payments here on the web.
+        </p>
+        <div
+          className="mt-8 inline-flex flex-wrap items-center justify-center gap-1 rounded-xl bg-surface p-1"
+          role="group"
+          aria-label="Billing cycle"
+        >
+          {(["monthly", "yearly"] as const).map((option) => (
+            <button
+              type="button"
+              key={option}
+              aria-pressed={cycle === option}
+              onClick={() => setCycle(option)}
+              className={cn(
+                "mk-focus-ring min-h-11 rounded-lg px-5 text-sm font-medium transition-colors",
+                cycle === option ? "bg-primary text-white" : "text-text-secondary hover:text-text",
+              )}
+            >
+              {option === "monthly" ? "Monthly" : "Yearly · save 17%"}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
@@ -208,21 +232,16 @@ export function PricingPage() {
                   {plan.monthly === 0 ? (
                     <>
                       <p className="text-3xl font-bold text-text">Free</p>
-                      <p className="mt-0.5 text-xs text-text-muted">
-                        No credit card required
-                      </p>
+                      <p className="mt-0.5 text-xs text-text-muted">No credit card required</p>
                     </>
                   ) : (
                     <>
                       <p className="text-3xl font-bold text-text">
-                        ${plan.monthly}
-                        <span className="text-sm font-normal text-text-muted">
-                          {" "}
-                          / month
-                        </span>
+                        ${cycle === "yearly" ? plan.yearlyPerMonth : plan.monthly}
+                        <span className="text-sm font-normal text-text-muted"> / month</span>
                       </p>
                       <p className="mt-0.5 text-xs text-text-muted">
-                        or ${plan.yearlyPerMonth}/mo billed yearly (${plan.yearly})
+                        {cycle === "yearly" ? `$${plan.yearly} billed yearly` : "Billed monthly"}
                       </p>
                     </>
                   )}
@@ -257,13 +276,16 @@ export function PricingPage() {
                   ))}
                 </ul>
 
-                <Link to="/signup" className="block">
-                  <Button
-                    variant={plan.featured ? "primary" : "secondary"}
-                    className={cn("w-full", plan.featured && "shadow-glow")}
-                  >
-                    {plan.cta}
-                  </Button>
+                <Link
+                  to={plan.key === "free" ? "/signup" : "/account/plans"}
+                  className={cn(
+                    "mk-focus-ring inline-flex min-h-11 w-full items-center justify-center rounded-md px-4 py-3 text-center text-sm font-semibold transition-colors",
+                    plan.featured
+                      ? "bg-primary text-white hover:bg-primary-dark"
+                      : "bg-primary/10 text-text hover:bg-primary/20",
+                  )}
+                >
+                  {plan.cta}
                 </Link>
               </div>
             );
@@ -271,6 +293,9 @@ export function PricingPage() {
         </div>
 
         <p className="mt-6 text-center text-sm text-text-muted">
+          Prices in USD. Review your plan and billing cycle in your account before checkout.
+        </p>
+        <p className="mt-3 text-center text-sm text-text-muted">
           Need more than 9 AI employees or custom terms?{" "}
           <a
             href="mailto:hello@mokaid.com"

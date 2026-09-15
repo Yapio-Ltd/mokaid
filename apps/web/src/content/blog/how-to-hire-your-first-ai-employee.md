@@ -70,4 +70,4 @@ By the end of the week you will know whether to expand duties, loosen gates, or 
 
 ## The bottom line
 
-One role, concrete duties, minimal tool access, aggressive approval gates, and a genuinely attentive first week — that is the whole playbook. The teams that succeed with AI employees are not the ones with the boldest ambitions; they are the ones that onboard deliberately and expand from evidence. When you are ready, [see how hiring works in mokaid](/product).
+One role, concrete duties, minimal tool access, aggressive approval gates, and a genuinely attentive first week — that is the whole playbook. The teams that succeed with AI employees are not the ones with the boldest ambitions; they are the ones that onboard deliberately and expand from evidence. When you are ready, [see how hiring works in mokaid](/#product).

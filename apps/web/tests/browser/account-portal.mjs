@@ -206,9 +206,16 @@ try {
           await portal.open("/");
           await page.getByRole("heading", { name: "mokaid", exact: true, level: 1 }).waitFor();
           assert.equal(new URL(page.url()).pathname, "/");
-          const header = page.locator("header").first();
+          const header = page.locator("[data-site-header]");
           await header.getByRole("link", { name: "Download", exact: true }).waitFor();
-          await header.getByRole("link", { name: signedIn ? "My account" : "Sign in", exact: true }).waitFor();
+          const accountLink = header.getByRole("link", { name: signedIn ? "My account" : "Sign in", exact: true });
+          if (!(await accountLink.isVisible())) {
+            await header.getByRole("button", { name: "Open menu", exact: true }).click();
+            await accountLink.waitFor();
+            await header.getByRole("button", { name: "Close menu", exact: true }).click();
+          } else {
+            await accountLink.waitFor();
+          }
           assert.equal(await page.locator('a[href="/dashboard"]').count(), 0);
           assert.equal(await page.locator('[data-hero-scene]').evaluate((el) => getComputedStyle(el).opacity), "1");
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

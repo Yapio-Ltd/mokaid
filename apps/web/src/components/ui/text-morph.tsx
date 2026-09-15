@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/cn";
 
 type TextMorphProps = {
@@ -18,17 +18,18 @@ export function TextMorph({
   charClassName,
 }: TextMorphProps) {
   const [index, setIndex] = useState(0);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (!words.length) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (reducedMotion) return;
 
     const timer = setInterval(() => {
       setIndex((prev) => (prev + 1) % words.length);
     }, interval);
 
     return () => clearInterval(timer);
-  }, [words, interval]);
+  }, [words, interval, reducedMotion]);
 
   const chars = useMemo(() => {
     return Array.from(words[index] ?? "");
@@ -36,8 +37,10 @@ export function TextMorph({
 
   if (!words.length) return null;
 
+  if (reducedMotion) return <span className={cn("inline-flex", className)}>{words[0]}</span>;
+
   return (
-    <AnimatePresence mode="popLayout">
+    <AnimatePresence mode="popLayout" initial={false}>
       <motion.span
         key={index}
         className={cn("inline-flex gap-[0.5px] overflow-hidden", className)}

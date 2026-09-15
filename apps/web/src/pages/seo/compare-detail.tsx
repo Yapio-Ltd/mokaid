@@ -6,7 +6,6 @@ import {
   FaqSection,
   MarketingLayout,
 } from "@/components/seo/marketing-layout";
-import { Button } from "@/components/ui/button";
 import { comparisons, getComparison } from "@/data/seo/comparisons";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo";
 import { useSeo } from "@/lib/use-seo";
@@ -16,17 +15,19 @@ function ComparisonNotFound() {
     title: "Comparison not found | mokaid",
     description: "This comparison does not exist.",
     path: "/compare",
+    noindex: true,
   });
   return (
     <MarketingLayout>
       <section className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6">
         <h1 className="mk-seo-display text-3xl font-bold">Comparison not found</h1>
         <p className="mt-3 text-text-secondary">Browse all available comparisons.</p>
-        <a href="/compare" className="mt-6 inline-block">
-          <Button className="min-h-11 px-6">
-            Browse comparisons <ArrowRight size={15} />
-          </Button>
-        </a>
+        <Link
+          to="/compare"
+          className="mk-focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark mt-6"
+        >
+          Browse comparisons <ArrowRight size={15} />
+        </Link>
       </section>
     </MarketingLayout>
   );
@@ -74,9 +75,7 @@ function CompareContent({ slug }: { slug: string }) {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">
             About {comparison.competitor}
           </h2>
-          <p className="mt-2 leading-relaxed text-text-secondary">
-            {comparison.competitorSummary}
-          </p>
+          <p className="mt-2 leading-relaxed text-text-secondary">{comparison.competitorSummary}</p>
         </div>
       </section>
 
@@ -162,10 +161,11 @@ function CompareContent({ slug }: { slug: string }) {
       )}
 
       <section className="mx-auto max-w-4xl px-4 py-4 text-center sm:px-6">
-        <Link to="/signup">
-          <Button className="min-h-11 px-6 shadow-glow">
-            Try mokaid free <ArrowRight size={15} />
-          </Button>
+        <Link
+          to="/download"
+          className="mk-focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+        >
+          Download Mokaid <ArrowRight size={15} aria-hidden />
         </Link>
       </section>
 

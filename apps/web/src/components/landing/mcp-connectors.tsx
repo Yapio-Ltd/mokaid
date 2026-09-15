@@ -183,13 +183,7 @@ function whiteLogoUrl(slug: string) {
   return `/logos/mcp/${slug}.svg`;
 }
 
-function ConnectorMark({
-  connector,
-  size,
-}: {
-  connector: Connector;
-  size: "lg" | "sm";
-}) {
+function ConnectorMark({ connector, size }: { connector: Connector; size: "lg" | "sm" }) {
   const [failed, setFailed] = useState(false);
   const brand = mcpBrandColor[connector.slug];
   const tint = categoryTint[connector.category] ?? "#a1a1aa";
@@ -225,7 +219,10 @@ function ConnectorMark({
         aria-hidden
         loading="lazy"
         decoding="async"
-        className={cn(dim, "object-contain opacity-90 transition-opacity duration-200 group-hover:opacity-100")}
+        className={cn(
+          dim,
+          "object-contain opacity-90 transition-opacity duration-200 group-hover:opacity-100",
+        )}
         onError={() => setFailed(true)}
       />
     );
@@ -274,15 +271,12 @@ export function McpConnectors() {
 
       <div className="mx-auto max-w-5xl">
         <div data-reveal className="mb-8 max-w-lg sm:mb-12">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-light">
-            Connectors
-          </span>
           <h2 className="mt-3 text-[1.65rem] font-bold tracking-tight sm:text-3xl md:text-[42px] md:leading-[1.12]">
             Every tool your agents can reach
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-text-secondary md:text-base">
-            {connectors.length} MCP connectors. The apps everyone knows, front and center — the
-            full catalog right below.
+            {connectors.length} MCP connectors. The apps everyone knows, front and center — the full
+            catalog right below.
           </p>
         </div>
 

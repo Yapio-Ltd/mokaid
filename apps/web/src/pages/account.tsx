@@ -11,7 +11,7 @@ export function AccountPage() {
     <div className="max-w-3xl space-y-6">
       <PageHeader
         title="Your account"
-        subtitle={`Welcome, ${user?.full_name ?? ""}. Manage your profile, security and billing online.`}
+        subtitle={`${user?.full_name ? `Welcome, ${user.full_name}. ` : ""}Manage your profile, security and billing online.`}
       />
       <Card>
         <CardHeader>
@@ -73,7 +73,7 @@ export function AccountSecurityPage() {
         <CardBody className="flex items-start gap-3 pt-5">
           <ShieldCheck size={20} className="text-primary-light" aria-hidden />
           <div>
-            <p className="text-sm font-semibold">{user?.email}</p>
+            <p className="break-all text-sm font-semibold">{user?.email}</p>
             <p className="mt-1 text-xs text-text-muted">
               {user?.auth_provider === "google"
                 ? "Google sign-in. Manage two-step verification in your Google account."

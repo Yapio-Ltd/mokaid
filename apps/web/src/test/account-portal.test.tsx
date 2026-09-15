@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -191,6 +191,157 @@ describe("account billing", () => {
         }),
       ),
     );
+  });
+
+  it("allows changing the current monthly plan to the same plan billed yearly", async () => {
+    mock.pathname = "/account/plans";
+    const original = mock.apiFetch.getMockImplementation();
+    mock.apiFetch.mockImplementation(async (path: string, options: unknown) => {
+      if (path === "/api/billing/plans") return { data: [overview.subscription.plan] };
+      return original?.(path, options);
+    });
+    renderWithQueries(<AccountBillingPage />);
+    expect(await screen.findByRole("button", { name: "Current plan" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /Yearly/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Choose" }));
+    await waitFor(() =>
+      expect(mock.apiFetch).toHaveBeenCalledWith(
+        "/api/billing/checkout",
+        expect.objectContaining({
+          body: { plan_key: "starter", billing_cycle: "yearly", return_path: "/account/billing" },
+        }),
+      ),
+    );
+  });
+
+  it("starts on the subscription cycle and keeps an explicit choice after a refresh", async () => {
+    mock.pathname = "/account/plans";
+    const original = mock.apiFetch.getMockImplementation();
+    mock.apiFetch.mockImplementation(async (path: string, options: unknown) => {
+      if (path === "/api/billing/overview")
+        return {
+          data: {
+            ...overview,
+            subscription: { ...overview.subscription, billing_cycle: "yearly" },
+          },
+        };
+      if (path === "/api/billing/plans") return { data: [overview.subscription.plan] };
+      return original?.(path, options);
+    });
+    renderWithQueries(<AccountBillingPage />);
+    expect(await screen.findByRole("button", { name: "Current plan" })).toBeDisabled();
+    expect(screen.getByText(/billed yearly/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Monthly" }));
+    expect(screen.getByRole("button", { name: "Choose" })).toBeEnabled();
+    await act(async () => {
+      await clients[clients.length - 1].invalidateQueries({ queryKey: ["billing"] });
+    });
+    expect(screen.getByRole("button", { name: "Choose" })).toBeEnabled();
+    expect(screen.queryByText(/billed yearly/)).not.toBeInTheDocument();
+  });
+
+  it("keeps invoices available when the separate billing overview fails", async () => {
+    mock.pathname = "/account/invoices";
+    const original = mock.apiFetch.getMockImplementation();
+    mock.apiFetch.mockImplementation(async (path: string, options: unknown) => {
+      if (path === "/api/billing/overview") throw new Error("Overview is unavailable");
+      return original?.(path, options);
+    });
+    renderWithQueries(<AccountBillingPage />);
+    expect(await screen.findByText("No invoices yet.")).toBeInTheDocument();
+    expect(screen.queryByText("Overview is unavailable")).not.toBeInTheDocument();
+  });
+
+  it("explains unavailable credit packs without hiding recorded spending", async () => {
+    mock.pathname = "/account/spending";
+    const original = mock.apiFetch.getMockImplementation();
+    mock.apiFetch.mockImplementation(async (path: string, options: unknown) => {
+      if (path === "/api/billing/credit-packs") return { data: [] };
+      return original?.(path, options);
+    });
+    renderWithQueries(<AccountBillingPage />);
+    expect(await screen.findByText("No credit packs are available right now.")).toBeInTheDocument();
+    expect(screen.getByText("AI request")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox")).toBeDisabled();
+  });
+
+  it("lets the user turn off auto-recharge when the pack catalog fails", async () => {
+    mock.pathname = "/account/spending";
+    const original = mock.apiFetch.getMockImplementation();
+    mock.apiFetch.mockImplementation(async (path: string, options: unknown) => {
+      if (path === "/api/billing/overview")
+        return {
+          data: {
+            ...overview,
+            credits: {
+              ...overview.credits,
+              auto_recharge_enabled: true,
+              auto_recharge_pack_key: "small",
+              auto_recharge_threshold: 100,
+            },
+          },
+        };
+      if (path === "/api/billing/credit-packs") throw new Error("Catalog unavailable");
+      if (path === "/api/billing/auto-recharge") return { data: {} };
+      return original?.(path, options);
+    });
+    renderWithQueries(<AccountBillingPage />);
+    await screen.findByText(/Credit packs could not be loaded/);
+    const recharge = screen.getByRole("checkbox");
+    expect(recharge).toBeChecked();
+    expect(recharge).toBeEnabled();
+    fireEvent.click(recharge);
+    await waitFor(() =>
+      expect(mock.apiFetch).toHaveBeenCalledWith("/api/billing/auto-recharge", {
+        method: "POST",
+        body: { enabled: false },
+      }),
+    );
+  });
+
+  it("disables all plan choices until the current checkout request finishes", async () => {
+    mock.pathname = "/account/plans";
+    const original = mock.apiFetch.getMockImplementation();
+    mock.apiFetch.mockImplementation(async (path: string, options: unknown) => {
+      if (path === "/api/billing/checkout") return new Promise(() => undefined);
+      if (path === "/api/billing/plans")
+        return {
+          data: [
+            { ...overview.subscription.plan, key: "team", name: "Team" },
+            { ...overview.subscription.plan, key: "professional", name: "Professional" },
+          ],
+        };
+      return original?.(path, options);
+    });
+    renderWithQueries(<AccountBillingPage />);
+    const choices = await screen.findAllByRole("button", { name: "Choose" });
+    fireEvent.click(choices[0]);
+    await waitFor(() => choices.forEach((choice) => expect(choice).toBeDisabled()));
+    expect(screen.getByRole("button", { name: "Monthly" })).toBeDisabled();
+  });
+
+  it("reports a checkout response that provides no redirect or activation", async () => {
+    mock.pathname = "/account/plans";
+    const original = mock.apiFetch.getMockImplementation();
+    mock.apiFetch.mockImplementation(async (path: string, options: unknown) => {
+      if (path === "/api/billing/checkout") return { data: {} };
+      return original?.(path, options);
+    });
+    renderWithQueries(<AccountBillingPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Choose" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Checkout could not be started");
+  });
+
+  it("reports a payment portal response with no destination", async () => {
+    mock.pathname = "/account/billing";
+    const original = mock.apiFetch.getMockImplementation();
+    mock.apiFetch.mockImplementation(async (path: string, options: unknown) => {
+      if (path === "/api/billing/portal") return { data: {} };
+      return original?.(path, options);
+    });
+    renderWithQueries(<AccountBillingPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Manage billing" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("The payment portal did not open");
   });
 
   it("escapes invoice descriptions and disables all active content in printable copies", () => {
