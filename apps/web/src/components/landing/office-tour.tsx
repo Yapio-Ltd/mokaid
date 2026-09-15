@@ -1,255 +1,116 @@
-import { useLayoutEffect, useRef, useState } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
+import * as Tabs from "@radix-ui/react-tabs";
 
-gsap.registerPlugin(ScrollTrigger);
-
-const IMG_W = 1568;
-const IMG_H = 1003;
-
-type Stop = {
-  id: string;
-  kicker: string;
-  title: string;
-  body: string;
-  fx: number;
-  fy: number;
-  zoom: number;
-};
-
-/** Four soft focal points — gentle pans, never a tight close-up. */
-const stops: Stop[] = [
+const views = [
   {
     id: "overview",
-    kicker: "Office",
-    title: "Your hybrid team, on one floor",
-    body: "AI and human agents share the same space — desks, meetings and culture in plain sight.",
-    fx: 0.5,
-    fy: 0.48,
-    zoom: 1.04,
-  },
-  {
-    id: "culture",
-    kicker: "Culture",
-    title: "Identity in the lounge",
-    body: "Brand wall and soft seats where shared context lives between deep-work blocks.",
-    fx: 0.22,
-    fy: 0.28,
-    zoom: 1.32,
+    label: "The whole team",
+    title: "One place to see the work.",
+    body: "Meet your AI employees in the desktop office. Give each one a role, assign a task, and follow the work alongside your team.",
+    x: 50,
+    y: 50,
+    zoom: 1,
   },
   {
     id: "floor",
-    kicker: "Floor",
-    title: "Agents at their desks",
-    body: "Design, ops and engineering visible as they work — every seat is a real assignment.",
-    fx: 0.5,
-    fy: 0.52,
-    zoom: 1.26,
+    label: "At their desks",
+    title: "A role. A brief. A clear next step.",
+    body: "Organize specialists around the work you need to get done, from research and design to engineering and operations.",
+    x: 45,
+    y: 60,
+    zoom: 1.35,
   },
   {
     id: "meeting",
-    kicker: "Meeting",
-    title: "Briefings in the glass room",
-    body: "Syncs, reviews and decisions — humans and AI at the same table.",
-    fx: 0.78,
-    fy: 0.26,
-    zoom: 1.34,
+    label: "Working together",
+    title: "Keep people in the conversation.",
+    body: "Bring context, feedback, and decisions into a shared workspace. Your team sets the direction and reviews the results.",
+    x: 90,
+    y: 20,
+    zoom: 1.6,
   },
-];
-
-function coverSize(vw: number, vh: number) {
-  const imgRatio = IMG_W / IMG_H;
-  const viewRatio = vw / vh;
-  if (imgRatio > viewRatio) {
-    const h = vh;
-    return { w: h * imgRatio, h };
-  }
-  const w = vw;
-  return { w, h: w / imgRatio };
-}
-
-/** Cover pose using scale + x/y (compositor-friendly; never animates width/height). */
-function poseFor(vw: number, vh: number, fx: number, fy: number, zoom: number) {
-  const { w, h } = coverSize(vw, vh);
-  return {
-    width: w,
-    height: h,
-    scale: zoom,
-    x: vw / 2 - fx * w * zoom,
-    y: vh / 2 - fy * h * zoom,
-  };
-}
+] as const;
 
 export function OfficeTour() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
-  const activeRef = useRef(0);
-  const [active, setActive] = useState(0);
-
-  useLayoutEffect(() => {
-    const section = sectionRef.current;
-    const viewport = viewportRef.current;
-    const image = imageRef.current;
-    if (!section || !viewport || !image) return;
-
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    gsap.set(image, {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      maxWidth: "none",
-      transformOrigin: "0 0",
-      force3D: true,
-    });
-
-    const readPose = (stop: Stop) =>
-      poseFor(viewport.clientWidth, viewport.clientHeight, stop.fx, stop.fy, stop.zoom);
-
-    const applyBaseSize = () => {
-      const { width, height } = readPose(stops[0]);
-      gsap.set(image, { width, height });
-    };
-    applyBaseSize();
-    gsap.set(image, {
-      scale: stops[0].zoom,
-      x: readPose(stops[0]).x,
-      y: readPose(stops[0]).y,
-    });
-
-    if (prefersReduced) {
-      return;
-    }
-
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        defaults: { ease: "power1.inOut" },
-        scrollTrigger: {
-          trigger: section,
-          start: "top top",
-          end: "bottom bottom",
-          scrub: 1.2,
-          pin: "[data-office-pin]",
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-          onRefresh: applyBaseSize,
-          onUpdate: (self) => {
-            const i = Math.min(
-              stops.length - 1,
-              Math.floor(self.progress * stops.length * 0.999),
-            );
-            if (activeRef.current === i) return;
-            activeRef.current = i;
-            setActive(i);
-          },
-        },
-      });
-
-      // Equal segments: short hold, then a soft pan — camera breathes between stops.
-      for (let i = 1; i < stops.length; i++) {
-        const from = stops[i - 1];
-        const to = stops[i];
-        const at = (i - 1) * 1.4;
-        tl.to({}, { duration: 0.4 }, at);
-        tl.fromTo(
-          image,
-          {
-            scale: () => readPose(from).scale,
-            x: () => readPose(from).x,
-            y: () => readPose(from).y,
-          },
-          {
-            scale: () => readPose(to).scale,
-            x: () => readPose(to).x,
-            y: () => readPose(to).y,
-            duration: 1,
-            immediateRender: false,
-          },
-          at + 0.4,
-        );
-      }
-      tl.to({}, { duration: 0.5 });
-    }, section);
-
-    // Recalculate pin spacers after lazy mount (avoids leftover black gaps).
-    requestAnimationFrame(() => ScrollTrigger.refresh());
-
-    let resizeTimer = 0;
-    const onResize = () => {
-      window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => ScrollTrigger.refresh(), 150);
-    };
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      window.clearTimeout(resizeTimer);
-      window.removeEventListener("resize", onResize);
-      ctx.revert();
-    };
-  }, []);
-
-  const activeStop = stops[active];
-  const progress = ((active + 1) / stops.length) * 100;
-
+  const [active, setActive] = useState<string>(views[0].id);
+  const view = views.find((item) => item.id === active) ?? views[0];
   return (
     <section
-      ref={sectionRef}
       id="product"
-      className="mk-office-tour relative z-10"
-      style={{ ["--office-stops" as string]: String(stops.length) }}
+      className="relative border-y border-white/[0.07] bg-bg-deep px-5 py-16 sm:px-6 sm:py-24 lg:px-10"
+      aria-labelledby="product-heading"
     >
-      <div data-office-pin className="mk-office-tour-pin relative h-svh w-full">
-        <div className="mk-office-tour-shell relative h-full w-full">
-          <div className="mk-office-tour-frame">
-            <div ref={viewportRef} className="mk-office-tour-viewport">
-              <picture className="contents">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-10 grid items-end gap-6 lg:grid-cols-[1.2fr_1fr] lg:gap-16">
+          <div>
+            <h2
+              id="product-heading"
+              className="max-w-xl text-3xl font-bold leading-tight tracking-tight sm:text-5xl"
+            >
+              Your team has a place.
+              <br />
+              <span className="text-text-secondary">Your work has a home.</span>
+            </h2>
+          </div>
+          <p className="max-w-md text-base leading-relaxed text-text-secondary lg:pb-1">
+            The desktop app brings your AI employees, tasks, and tools together. Your web account
+            keeps usage and billing within reach.
+          </p>
+        </div>
+        <Tabs.Root value={active} onValueChange={setActive}>
+          <Tabs.List aria-label="Explore the desktop office" className="mb-6 flex flex-wrap gap-2">
+            {views.map((item) => (
+              <Tabs.Trigger
+                key={item.id}
+                value={item.id}
+                className="mk-focus-ring min-h-11 rounded-lg border border-white/10 px-4 py-2 text-sm text-text-secondary transition-colors hover:bg-white/5 data-[state=active]:border-primary/50 data-[state=active]:bg-primary/15 data-[state=active]:text-text"
+              >
+                {item.label}
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
+          <div className="grid overflow-hidden rounded-2xl border border-white/10 bg-surface/40 lg:grid-cols-[1.55fr_1fr]">
+            <div className="relative aspect-[1.56] overflow-hidden bg-[#12111a] lg:aspect-auto lg:min-h-[380px]">
+              <picture>
                 <source srcSet="/desk-illustrations.webp" type="image/webp" />
                 <img
-                  ref={imageRef}
                   src="/desk-illustrations.png"
-                  width={IMG_W}
-                  height={IMG_H}
-                  alt="The mokaid virtual office with AI and human agents working at their desks"
-                  className="mk-office-tour-image"
-                  draggable={false}
+                  alt="Illustrated preview of the Mokaid desktop office, with team desks and meeting rooms"
+                  width={1568}
+                  height={1003}
+                  loading="lazy"
                   decoding="async"
-                  fetchPriority="low"
+                  className="h-full w-full object-cover transition-transform duration-500 motion-reduce:transition-none"
+                  style={{
+                    transform: `scale(${view.zoom})`,
+                    transformOrigin: `${view.x}% ${view.y}%`,
+                  }}
                 />
               </picture>
-              <div className="mk-office-tour-vignette" aria-hidden />
+              <span className="absolute bottom-4 left-4 rounded-md bg-black/75 px-3 py-1.5 text-xs text-white">
+                Desktop office · illustrated preview
+              </span>
             </div>
-
-            <div className="mk-office-tour-overlays">
-              {stops.map((stop, i) => {
-                const isActive = active === i;
-                return (
-                  <article
-                    key={stop.id}
-                    className={`mk-office-tour-card ${isActive ? "is-active" : ""}`}
-                    aria-hidden={!isActive}
-                  >
-                    <p className="mk-office-tour-kicker">
-                      <span className="mk-office-tour-step">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <span className="mk-office-tour-kicker-sep" aria-hidden />
-                      {stop.kicker}
-                    </p>
-                    <h2 className="mk-office-tour-title">{stop.title}</h2>
-                    <p className="mk-office-tour-body">{stop.body}</p>
-                  </article>
-                );
-              })}
+            <div className="flex flex-col justify-center p-6 sm:p-9">
+              {views.map((item) => (
+                <Tabs.Content key={item.id} value={item.id} className="mk-focus-ring rounded-lg">
+                  <h3 className="text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
+                    {item.title}
+                  </h3>
+                  <p className="mt-4 text-base leading-relaxed text-text-secondary">{item.body}</p>
+                </Tabs.Content>
+              ))}
+              <Link
+                to="/download"
+                className="mk-focus-ring mt-7 inline-flex min-h-11 w-fit items-center gap-2 rounded-md text-sm font-semibold text-primary-light"
+              >
+                Explore the download options <ArrowRight size={17} aria-hidden />
+              </Link>
             </div>
-
-            <div className="mk-office-tour-progress" aria-hidden>
-              <span className="mk-office-tour-progress-fill" style={{ width: `${progress}%` }} />
-            </div>
-
-            <p className="mk-office-tour-hint">{activeStop.kicker}</p>
           </div>
-        </div>
+        </Tabs.Root>
       </div>
     </section>
   );

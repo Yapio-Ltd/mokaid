@@ -48,7 +48,11 @@ export function AccountShell() {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-bg-deep text-text">
+    <div
+      data-account-scroll
+      data-scroll-restoration-id="account"
+      className="flex h-full flex-col overflow-y-auto bg-bg-deep text-text"
+    >
       <a href="#account-content" className="sr-only focus:not-sr-only focus:p-3">
         Skip to account content
       </a>

@@ -79,14 +79,21 @@ export function AccountBillingPage() {
   const portal = useBillingPortal();
   const autoRecharge = useUpdateAutoRecharge();
   const queryClient = useQueryClient();
-  const [cycle, setCycle] = useState<BillingCycle>("monthly");
+  const [cycleChoice, setCycleChoice] = useState<{
+    workspaceId: string | null;
+    cycle: BillingCycle;
+  } | null>(null);
+  const subscriptionCycle: BillingCycle =
+    overview.data?.data.subscription?.billing_cycle === "yearly" ? "yearly" : "monthly";
+  // Follow the loaded subscription until the user makes a choice for this workspace.
+  const cycle = cycleChoice?.workspaceId === workspaceId ? cycleChoice.cycle : subscriptionCycle;
   const [notice, setNotice] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
     setFailure(null);
     setNotice(null);
-  }, [workspaceId]);
+  }, [workspaceId, section]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -123,6 +130,8 @@ export function AccountBillingPage() {
       error instanceof Error ? error.message : "The billing request failed. Please try again.",
     );
 
+  const workspace = workspaces.find((item) => item.id === workspaceId)?.name ?? "your workspace";
+
   if (!workspaceId)
     return (
       <div className="space-y-3">
@@ -132,27 +141,43 @@ export function AccountBillingPage() {
         </p>
       </div>
     );
+  // Invoices have their own endpoint: an overview outage must not hide available invoices.
+  if (section === "invoices")
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Invoices" subtitle={`Payment records for ${workspace}.`} />
+        <InvoicesCard invoices={invoices} workspace={workspace} />
+      </div>
+    );
   if (overview.isPending)
     return (
-      <p role="status" className="text-sm text-text-muted">
-        Loading billing…
-      </p>
+      <div className="space-y-3">
+        <PageHeader title={titles[section] ?? "Billing"} />
+        <p role="status" className="text-sm text-text-muted">
+          Loading billing…
+        </p>
+      </div>
     );
   if (overview.error || !overview.data)
     return (
       <div role="alert" className="space-y-3">
+        <PageHeader title={titles[section] ?? "Billing"} />
         <p>
           {overview.error instanceof Error
             ? overview.error.message
             : "Billing could not be loaded."}
         </p>
-        <Button onClick={() => void overview.refetch()}>Try again</Button>
+        <Button loading={overview.isFetching} onClick={() => void overview.refetch()}>
+          Try again
+        </Button>
       </div>
     );
 
   const { subscription, credits, daily_usage, usage, credit_transactions } = overview.data.data;
   const plan = subscription?.plan;
-  const workspace = workspaces.find((item) => item.id === workspaceId)?.name ?? "";
+  const rechargePack = credits.auto_recharge_pack_key
+    ? packs.data?.data.find((pack) => pack.key === credits.auto_recharge_pack_key)
+    : packs.data?.data[0];
 
   return (
     <div className="space-y-6">
@@ -203,7 +228,13 @@ export function AccountBillingPage() {
                 loading={portal.isPending}
                 onClick={() => {
                   setFailure(null);
-                  portal.mutate(undefined, { onError });
+                  portal.mutate(undefined, {
+                    onError,
+                    onSuccess: (result) => {
+                      if (!result.data.url)
+                        onError(new Error("The payment portal did not open. Please try again."));
+                    },
+                  });
                 }}
               >
                 Manage billing
@@ -243,12 +274,20 @@ export function AccountBillingPage() {
             </p>
           ) : plans.isPending ? (
             <p role="status">Loading plans…</p>
+          ) : !plans.data?.data.length ? (
+            <p className="text-sm text-text-muted">
+              No plans are available right now. Please try again later.
+            </p>
           ) : (
-            <>
-              <BillingCycleToggle cycle={cycle} onChange={setCycle} />
+            <fieldset disabled={planCheckout.isPending} className="min-w-0 space-y-5">
+              <legend className="sr-only">Choose a plan and billing cycle</legend>
+              <BillingCycleToggle
+                cycle={cycle}
+                onChange={(nextCycle) => setCycleChoice({ workspaceId, cycle: nextCycle })}
+              />
               <PlanPicker
                 plans={plans.data?.data ?? []}
-                currentKey={plan?.key}
+                currentKey={cycle === subscriptionCycle ? plan?.key : undefined}
                 pendingKey={planCheckout.isPending ? planCheckout.variables?.plan_key : undefined}
                 cycle={cycle}
                 onChoose={(planKey) => {
@@ -260,12 +299,13 @@ export function AccountBillingPage() {
                       onSuccess: (result) => {
                         if (result.data.sale_url) redirectToCheckout(result.data.sale_url);
                         else if (result.data.activated) setNotice("Your plan has been updated.");
+                        else onError(new Error("Checkout could not be started. Please try again."));
                       },
                     },
                   );
                 }}
               />
-            </>
+            </fieldset>
           )}
         </div>
       )}
@@ -366,6 +406,12 @@ export function AccountBillingPage() {
                     Try again
                   </button>
                 </p>
+              ) : packs.isPending ? (
+                <p role="status" className="text-sm text-text-muted">
+                  Loading credit packs…
+                </p>
+              ) : !packs.data?.data.length ? (
+                <p className="text-sm text-text-muted">No credit packs are available right now.</p>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
                   {packs.data?.data.map((pack) => (
@@ -383,7 +429,15 @@ export function AccountBillingPage() {
                               if (result.data.sale_url) redirectToCheckout(result.data.sale_url);
                               else if (result.data.activated)
                                 setNotice(
-                                  `${formatNumber(result.data.credits ?? 0)} credits added.`,
+                                  result.data.credits == null
+                                    ? "Your credit balance has been updated."
+                                    : `${formatNumber(result.data.credits)} credits added.`,
+                                );
+                              else
+                                onError(
+                                  new Error(
+                                    "Credit checkout could not be started. Please try again.",
+                                  ),
                                 );
                             },
                           },
@@ -400,15 +454,19 @@ export function AccountBillingPage() {
                   <input
                     type="checkbox"
                     checked={credits.auto_recharge_enabled ?? false}
-                    disabled={autoRecharge.isPending || !packs.data?.data.length}
+                    disabled={
+                      autoRecharge.isPending || (!credits.auto_recharge_enabled && !rechargePack)
+                    }
                     onChange={(event) => {
                       setFailure(null);
                       autoRecharge.mutate(
-                        {
-                          enabled: event.target.checked,
-                          pack_key: credits.auto_recharge_pack_key ?? packs.data?.data[0]?.key,
-                          threshold: credits.auto_recharge_threshold || 100,
-                        },
+                        event.target.checked
+                          ? {
+                              enabled: true,
+                              pack_key: rechargePack?.key,
+                              threshold: credits.auto_recharge_threshold || 100,
+                            }
+                          : { enabled: false },
                         { onError },
                       );
                     }}
@@ -417,7 +475,13 @@ export function AccountBillingPage() {
                   {formatNumber(credits.auto_recharge_threshold || 100)}.
                 </label>
               )}
-              {credits.auto_recharge_enabled && (
+              {!credits.unlimited && rechargePack && (
+                <p className="text-sm text-text-secondary">
+                  Each automatic top-up adds {formatNumber(rechargePack.credits)} credits and
+                  charges {formatCents(rechargePack.price_cents)} to your saved payment method.
+                </p>
+              )}
+              {credits.auto_recharge_enabled && !rechargePack && (
                 <p className="text-xs text-text-muted">
                   Selected pack: {credits.auto_recharge_pack_key}. Your saved payment method will be
                   charged automatically.
@@ -462,66 +526,74 @@ export function AccountBillingPage() {
           </Card>
         </div>
       )}
-
-      {section === "invoices" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoices</CardTitle>
-          </CardHeader>
-          <CardBody>
-            {invoices.error ? (
-              <p role="alert">
-                Invoices could not be loaded.{" "}
-                <button
-                  className="text-primary-light underline"
-                  onClick={() => void invoices.refetch()}
-                >
-                  Try again
-                </button>
-              </p>
-            ) : invoices.isPending ? (
-              <p role="status">Loading invoices…</p>
-            ) : !invoices.data?.data.length ? (
-              <p className="text-sm text-text-muted">No invoices yet.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr>
-                      <th className="p-2">Invoice</th>
-                      <th className="p-2">Date</th>
-                      <th className="p-2">Status</th>
-                      <th className="p-2">Amount</th>
-                      <th className="p-2">Copy</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoices.data.data.map((invoice) => (
-                      <tr key={invoice.id} className="border-t border-border">
-                        <td className="p-2">{invoice.number}</td>
-                        <td className="p-2">{formatDate(invoice.issued_at)}</td>
-                        <td className="p-2">{invoice.status}</td>
-                        <td className="p-2">
-                          {formatCents(invoice.amount_cents, invoice.currency)}
-                        </td>
-                        <td className="p-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => downloadInvoice(invoice, workspace)}
-                          >
-                            Download printable copy
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardBody>
-        </Card>
-      )}
     </div>
+  );
+}
+
+function InvoicesCard({
+  invoices,
+  workspace,
+}: {
+  invoices: ReturnType<typeof useInvoices>;
+  workspace: string;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Invoices</CardTitle>
+      </CardHeader>
+      <CardBody>
+        {invoices.error ? (
+          <p role="alert">
+            Invoices could not be loaded.{" "}
+            <button
+              className="text-primary-light underline"
+              onClick={() => void invoices.refetch()}
+            >
+              Try again
+            </button>
+          </p>
+        ) : invoices.isPending ? (
+          <p role="status">Loading invoices…</p>
+        ) : !invoices.data?.data.length ? (
+          <p className="text-sm text-text-muted">No invoices yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr>
+                  <th className="p-2">Invoice</th>
+                  <th className="p-2">Date</th>
+                  <th className="p-2">Status</th>
+                  <th className="p-2">Amount</th>
+                  <th className="p-2">Copy</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.data.data.map((invoice) => (
+                  <tr key={invoice.id} className="border-t border-border">
+                    <td className="p-2">{invoice.number}</td>
+                    <td className="p-2">{formatDate(invoice.issued_at)}</td>
+                    <td className="p-2">{invoice.status}</td>
+                    <td className="p-2">{formatCents(invoice.amount_cents, invoice.currency)}</td>
+                    <td className="p-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        aria-label={`Download printable copy of invoice ${invoice.number}`}
+                        className="h-auto min-h-9 whitespace-normal text-left"
+                        onClick={() => downloadInvoice(invoice, workspace)}
+                      >
+                        Download printable copy
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardBody>
+    </Card>
   );
 }

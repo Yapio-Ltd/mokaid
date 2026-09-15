@@ -74,6 +74,7 @@ jobs:
             sleep 1
           done
           node tests/browser/account-portal.mjs http://127.0.0.1:5189 "$RUNNER_TEMP/account-browser-results"
+          node tests/browser/public-site.mjs http://127.0.0.1:5189 "$RUNNER_TEMP/public-browser-results"
 
   crm:
     name: CRM (typecheck, build)

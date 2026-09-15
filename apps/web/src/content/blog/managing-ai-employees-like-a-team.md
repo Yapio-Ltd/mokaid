@@ -55,4 +55,4 @@ Presence is also what keeps hybrid management honest. In mokaid, the whole workf
 
 ## The bottom line
 
-You already know how to do this. Onboard with context, give feedback with reasons, expand autonomy from evidence, measure outcomes, and treat AI employees as colleagues in the same rituals and spaces as your human team. The management playbook survived the transition to a new kind of worker — what changed is how fast it pays off. For the platform side of running a mixed workforce, see [what is an AI workforce OS](/blog/what-is-an-ai-workforce-os) or explore [/product](/product).
+You already know how to do this. Onboard with context, give feedback with reasons, expand autonomy from evidence, measure outcomes, and treat AI employees as colleagues in the same rituals and spaces as your human team. The management playbook survived the transition to a new kind of worker — what changed is how fast it pays off. For the platform side of running a mixed workforce, see [what is an AI workforce OS](/blog/what-is-an-ai-workforce-os) or explore [the product](/#product).

@@ -20,6 +20,7 @@ export default [
         HTMLCanvasElement: "readonly",
         WebGLRenderingContext: "readonly",
         HTMLButtonElement: "readonly",
+        HTMLAnchorElement: "readonly",
         HTMLInputElement: "readonly",
         HTMLDivElement: "readonly",
         HTMLHeadingElement: "readonly",

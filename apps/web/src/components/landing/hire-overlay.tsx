@@ -21,16 +21,12 @@ type Props = {
   visible?: boolean;
 };
 
-/** Fixed headline that stays visible across the full landing scroll (desktop). */
+/** Part of the hero flow: every rotating phrase has reserved space. */
 export function HireOverlay({ visible = true }: Props) {
   return (
-    <p
-      className={cn("mk-landing-hire", !visible && "mk-landing-hire--hidden")}
-      aria-live="polite"
-      aria-hidden={!visible}
-    >
-      <span className="mk-landing-hire-static">You can now hire AI&nbsp;</span>
-      <TextMorph words={hireSpecialists} interval={2600} className="mk-landing-hire-morph" />
+    <p data-hero-intro className={cn("mk-hero-hire", !visible && "hidden")} aria-hidden={!visible}>
+      <span className="mk-hero-hire-static">You can now hire AI&nbsp;</span>
+      <TextMorph words={hireSpecialists} interval={2600} className="mk-hero-hire-morph" />
     </p>
   );
 }

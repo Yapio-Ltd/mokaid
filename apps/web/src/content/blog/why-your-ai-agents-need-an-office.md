@@ -40,7 +40,7 @@ Now invert the design. Give every AI worker a body, a desk, and a place:
 3. **Collaboration** — when one AI employee hands off to another, they visibly interact, so multi-agent workflows stop being invisible plumbing.
 4. **Escalation** — a task waiting on human approval is visually distinct, so your attention is pulled exactly where it is needed.
 
-This is the design thesis behind mokaid: your AI employees inhabit a real-time 3D office. They have desks, they walk over to collaborate, and you literally watch who is working on what. Approval gates, audit trails, and a [knowledge base](/product) still provide the formal governance layer — but the office makes the ambient layer work, the one that builds trust minute by minute.
+This is the design thesis behind mokaid: your AI employees inhabit a real-time 3D office. They have desks, they walk over to collaborate, and you literally watch who is working on what. Approval gates, audit trails, and a [knowledge base](/#product) still provide the formal governance layer — but the office makes the ambient layer work, the one that builds trust minute by minute.
 
 The skeptical reaction is predictable: isn't this a gimmick? The honest answer is that it is a rendering of true state — the same information as a log stream, presented in the format human perception is optimized for. A progress bar is also "just" a visualization. Nobody calls it a gimmick, because it changed how people relate to waiting. Spatial representation does the same for delegation.
 
@@ -58,4 +58,4 @@ The management cost of invisible agents scales linearly or worse. The cost of gl
 
 ## The bottom line
 
-You would never manage a human team you could not see or speak to, yet that is exactly how most companies run their AI agents today. Agents do not need an office for their sake — they need one for yours. Trust follows visibility, and visibility should cost you a glance, not an audit. If that resonates, start with [why the distinction between agents and employees matters](/blog/ai-employee-vs-ai-agent), or see the office itself on [/product](/product).
+You would never manage a human team you could not see or speak to, yet that is exactly how most companies run their AI agents today. Agents do not need an office for their sake — they need one for yours. Trust follows visibility, and visibility should cost you a glance, not an audit. If that resonates, start with [why the distinction between agents and employees matters](/blog/ai-employee-vs-ai-agent), or see the office itself on [the product](/#product).

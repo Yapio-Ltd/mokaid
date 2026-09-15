@@ -1,11 +1,6 @@
-import { useParams } from "@tanstack/react-router";
+import { Link, useParams } from "@tanstack/react-router";
 import { ArrowRight, Lightbulb } from "lucide-react";
-import {
-  Breadcrumbs,
-  CtaBanner,
-  MarketingLayout,
-} from "@/components/seo/marketing-layout";
-import { Button } from "@/components/ui/button";
+import { Breadcrumbs, CtaBanner, MarketingLayout } from "@/components/seo/marketing-layout";
 import { blogPosts, formatPostDate, getBlogPost } from "@/data/seo/blog";
 import { breadcrumbJsonLd, canonicalUrl, SITE } from "@/lib/seo";
 import { useSeo } from "@/lib/use-seo";
@@ -15,17 +10,19 @@ function PostNotFound() {
     title: "Article not found | mokaid",
     description: "This article does not exist.",
     path: "/blog",
+    noindex: true,
   });
   return (
     <MarketingLayout>
       <section className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6">
         <h1 className="mk-seo-display text-3xl font-bold">Article not found</h1>
         <p className="mt-3 text-text-secondary">Browse the latest from the AI Workforce Blog.</p>
-        <a href="/blog" className="mt-6 inline-block">
-          <Button className="min-h-11 px-6">
-            Browse the blog <ArrowRight size={15} />
-          </Button>
-        </a>
+        <Link
+          to="/blog"
+          className="mk-focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-dark mt-6"
+        >
+          Browse the blog <ArrowRight size={15} />
+        </Link>
       </section>
     </MarketingLayout>
   );

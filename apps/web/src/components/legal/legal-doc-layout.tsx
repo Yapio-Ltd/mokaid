@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { SiteHeader } from "@/components/marketing/site-header";
+import { SiteFooter } from "@/components/landing/site-footer";
 import {
   CONTACT_EMAIL,
   EFFECTIVE_DATE,
@@ -40,29 +41,10 @@ export function LegalDocLayout({
   });
 
   return (
-    <div className="min-h-full bg-bg-deep text-text">
-      <header className="sticky top-0 z-10 bg-bg-deep/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
-          <Link
-            to="/"
-            className="mk-focus-ring flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-text-muted transition-colors hover:text-text"
-          >
-            <ArrowLeft size={13} /> Back to site
-          </Link>
-          <Link to="/" className="flex items-center gap-2">
-            <img
-              src="/branding/logo-without-bg.png"
-              alt={PRODUCT_DISPLAY}
-              className="h-7 w-7 object-contain"
-            />
-            <span className="text-sm font-bold tracking-tight text-text">
-              {PRODUCT_DISPLAY}
-            </span>
-          </Link>
-        </div>
-      </header>
+    <div className="mk-landing min-h-screen bg-bg-deep text-text">
+      <SiteHeader />
 
-      <main className="mk-fade-up mx-auto max-w-3xl px-5 py-16">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-3xl px-5 py-12 sm:py-16">
         <div className="mb-12">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary-light">
             <Icon size={12} />
@@ -96,6 +78,7 @@ export function LegalDocLayout({
           </div>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }
@@ -111,13 +94,7 @@ export function SectionTitle({ index, title }: { index: string; title: string })
   );
 }
 
-export function Prose({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+export function Prose({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <p className={`text-sm leading-relaxed text-text-secondary ${className ?? ""}`}>{children}</p>
   );
@@ -165,9 +142,7 @@ export function EntityContactCard({ attention }: { attention?: string }) {
       {LEGAL_ADDRESS_LINES.map((line) => (
         <p key={line}>{line}</p>
       ))}
-      {COMPANY_REGISTRATION_NUMBER ? (
-        <p>Registration no.: {COMPANY_REGISTRATION_NUMBER}</p>
-      ) : null}
+      {COMPANY_REGISTRATION_NUMBER ? <p>Registration no.: {COMPANY_REGISTRATION_NUMBER}</p> : null}
       <p className="mt-2">
         Email:{" "}
         <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary-light hover:underline">

@@ -1,5 +1,4 @@
-import { useLayoutEffect, useRef, type CSSProperties } from "react";
-import gsap from "gsap";
+import { HireOverlay } from "@/components/landing/hire-overlay";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowDown,
@@ -19,47 +18,8 @@ const features = [
 ] as const;
 
 export function HeroScene() {
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReduced) return;
-
-    const ctx = gsap.context(() => {
-      gsap.set(
-        [
-          "[data-hero-wordmark]",
-          "[data-hero-tagline]",
-          "[data-hero-sub]",
-          "[data-hero-features] .mk-hero-feature-item",
-          "[data-hero-scroll]",
-        ],
-        { opacity: 0, y: 20 },
-      );
-      gsap.set("[data-hero-bloom]", { opacity: 0, scale: 0.85 });
-
-      gsap
-        .timeline({ defaults: { ease: "power3.out" } })
-        .to("[data-hero-bloom]", { opacity: 1, scale: 1, duration: 1.4 }, 0)
-        .to("[data-hero-wordmark]", { opacity: 1, y: 0, duration: 0.85 }, 0.25)
-        .to("[data-hero-tagline]", { opacity: 1, y: 0, duration: 0.65 }, 0.55)
-        .to("[data-hero-sub]", { opacity: 1, y: 0, duration: 0.6 }, 0.7)
-        .to(
-          "[data-hero-features] .mk-hero-feature-item",
-          { opacity: 1, y: 0, duration: 0.5, stagger: 0.08 },
-          0.85,
-        )
-        .to("[data-hero-scroll]", { opacity: 1, y: 0, duration: 0.45 }, 1.1);
-    }, root);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
-    <div ref={rootRef} data-hero-scene className="mk-hero absolute inset-0">
+    <section data-hero-scene className="mk-hero" aria-label="Mokaid Desktop">
       <div className="mk-hero-bg" aria-hidden />
       <div data-hero-bloom className="mk-hero-bloom" aria-hidden />
 
@@ -76,12 +36,14 @@ export function HeroScene() {
           <span className="mk-hero-tagline-purple">Real Results.</span>
         </p>
 
+        <HireOverlay />
+
         <p data-hero-sub className="mk-hero-sub">
           Your AI team, together in one desktop app. Assign tasks, follow their work and make the
           decisions that matter.
         </p>
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <div data-hero-actions className="mk-hero-actions">
           <Link
             to="/download"
             className="mk-focus-ring inline-flex min-h-12 items-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
@@ -104,10 +66,7 @@ export function HeroScene() {
             {features.map(({ icon: Icon, label }, i) => (
               <li key={label} className="mk-hero-feature">
                 {i > 0 ? <span className="mk-hero-feature-sep" aria-hidden /> : null}
-                <span
-                  className="mk-hero-feature-item"
-                  style={{ "--neon-delay": `${i * 0.55}s` } as CSSProperties}
-                >
+                <span className="mk-hero-feature-item">
                   <span className="mk-hero-feature-box">
                     <span className="mk-hero-feature-neon" aria-hidden />
                     <Icon size={20} strokeWidth={1.4} aria-hidden />
@@ -119,14 +78,19 @@ export function HeroScene() {
           </ul>
         </div>
 
-        <div data-hero-scroll className="mk-hero-scroll">
-          <span className="mk-hero-scroll-text">Scroll</span>
+        <Link
+          to="/"
+          hash="product"
+          data-hero-scroll
+          className="mk-hero-scroll mk-focus-ring rounded-lg"
+        >
+          <span className="mk-hero-scroll-text">Explore the product</span>
           <ArrowDown size={11} strokeWidth={1.75} aria-hidden />
           <span className="mk-hero-scroll-pill" aria-hidden>
             <span className="mk-hero-scroll-dot" />
           </span>
-        </div>
+        </Link>
       </div>
-    </div>
+    </section>
   );
 }

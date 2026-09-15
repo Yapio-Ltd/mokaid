@@ -190,6 +190,10 @@ const PricingPage = lazyPage(() =>
   import("@/pages/seo/pricing").then((m) => ({ default: m.PricingPage })),
 );
 
+const NotFoundPage = lazyPage(() =>
+  import("@/pages/not-found").then((m) => ({ default: m.NotFoundPage })),
+);
+
 function PrivateRouteMetadata({ path }: { path: string }) {
   useSeo({
     title: "Mokaid account",
@@ -217,6 +221,7 @@ function RootLayout() {
 
 const rootRoute = createRootRoute({
   component: RootLayout,
+  notFoundComponent: NotFoundPage,
   errorComponent: () => (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-bg-deep p-6 text-text">
       <PrivateRouteMetadata path={window.location.pathname} />
@@ -464,22 +469,39 @@ const refundRoute = createRoute({
   component: RefundPage,
 });
 
-const seoPages = [
-  { path: "/ai-employees", component: AiEmployeesIndexPage },
-  { path: "/ai-employees/$slug", component: AiEmployeeRolePage },
-  { path: "/use-cases", component: UseCasesIndexPage },
-  { path: "/use-cases/$slug", component: UseCaseDetailPage },
-  { path: "/compare", component: CompareIndexPage },
-  { path: "/compare/$slug", component: CompareDetailPage },
-  { path: "/blog", component: BlogIndexPage },
-  { path: "/blog/$slug", component: BlogPostPage },
-  { path: "/glossary", component: GlossaryPage },
-  { path: "/pricing", component: PricingPage },
-] as const;
-
-const seoRoutes = seoPages.map(({ path, component }) =>
-  createRoute({ getParentRoute: () => rootRoute, path, component }),
-);
+// Declare each route independently so index links never inherit a detail slug.
+const seoRoutes = [
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/ai-employees",
+    component: AiEmployeesIndexPage,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/ai-employees/$slug",
+    component: AiEmployeeRolePage,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/use-cases",
+    component: UseCasesIndexPage,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/use-cases/$slug",
+    component: UseCaseDetailPage,
+  }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/compare", component: CompareIndexPage }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/compare/$slug",
+    component: CompareDetailPage,
+  }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/blog", component: BlogIndexPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/blog/$slug", component: BlogPostPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/glossary", component: GlossaryPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/pricing", component: PricingPage }),
+];
 
 const routeTree = rootRoute.addChildren([
   landingRoute,
@@ -505,7 +527,13 @@ const routeTree = rootRoute.addChildren([
   appRoute.addChildren([...pageRoutes, agentsNewRoute, agentTrainingRoute, agentDetailRoute]),
 ]);
 
-export const router = createRouter({ routeTree });
+export const router = createRouter({
+  routeTree,
+  scrollRestoration: true,
+  scrollRestorationBehavior: "instant",
+  defaultHashScrollIntoView: { block: "start", behavior: "instant" },
+  scrollToTopSelectors: ["[data-account-scroll]"],
+});
 
 declare module "@tanstack/react-router" {
   interface Register {
