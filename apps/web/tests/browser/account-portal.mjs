@@ -1,6 +1,6 @@
 /** Compiled account-only build probe. All API traffic is intercepted with local
  * fixtures and all non-local traffic is blocked. Never points at production.
- * Build with VITE_DESKTOP_ONLY_WEB=true, preview on 127.0.0.1:5189, then:
+ * Build normally, preview on 127.0.0.1:5189, then:
  * node tests/browser/account-portal.mjs [http://127.0.0.1:5189] [artifact-dir]
  */
 import assert from "node:assert/strict";
@@ -140,7 +140,7 @@ async function probe(name, signedIn, run, viewport = { width: 1440, height: 1000
       });
       let json;
       if (url.pathname === "/api/me")
-        json = { user, workspaces, client_policy: { desktop_only_business: true } };
+        json = { user, workspaces, client_policy: { desktop_only_business: false } };
       else if (url.pathname === "/api/auth/login") json = { token: "fixture-login-session", user };
       else if (url.pathname === "/api/billing/overview") json = { data: overview };
       else if (url.pathname === "/api/billing/plans")
@@ -200,6 +200,35 @@ async function probe(name, signedIn, run, viewport = { width: 1440, height: 1000
 
 try {
   await Promise.all([
+    ...[false, true].flatMap((signedIn) =>
+      [{ width: 1440, height: 1000 }, { width: 390, height: 844 }].map((viewport) =>
+        probe(`landing-${signedIn ? "signed-in" : "public"}-${viewport.width}`, signedIn, async ({ page, portal }) => {
+          await portal.open("/");
+          await page.getByRole("heading", { name: "mokaid", exact: true, level: 1 }).waitFor();
+          assert.equal(new URL(page.url()).pathname, "/");
+          const header = page.locator("header").first();
+          await header.getByRole("link", { name: "Download", exact: true }).waitFor();
+          await header.getByRole("link", { name: signedIn ? "My account" : "Sign in", exact: true }).waitFor();
+          assert.equal(await page.locator('a[href="/dashboard"]').count(), 0);
+          assert.equal(await page.locator('[data-hero-scene]').evaluate((el) => getComputedStyle(el).opacity), "1");
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+          const consent = page.getByRole("button", { name: "Essential only" });
+          if (await consent.isVisible()) await consent.click();
+          await page.screenshot({ path: resolve(artifacts, `landing-${signedIn ? "signed-in" : "public"}-${viewport.width}.png`) });
+          if (!signedIn) {
+            await page.locator(".mk-final-cta").scrollIntoViewIfNeeded();
+            await page.locator(".mk-final-cta").screenshot({ path: resolve(artifacts, `landing-final-${viewport.width}.png`), animations: "disabled" });
+            await page.evaluate(() => window.scrollTo(0, 0));
+          }
+          await header.getByRole("link", { name: "Download", exact: true }).click();
+          await page.waitForURL((url) => url.pathname === "/download");
+          for (const path of ["/dashboard", "/agents/new", "/projects", "/tasks", "/integrations"]) {
+            await portal.open(path);
+            await page.waitForURL((url) => url.pathname === "/download");
+          }
+        }, viewport),
+      ),
+    ),
     probe("portal", true, async ({ page, portal, calls }) => {
       await portal.open();
       await page.getByRole("heading", { name: "Your account", exact: true }).waitFor();

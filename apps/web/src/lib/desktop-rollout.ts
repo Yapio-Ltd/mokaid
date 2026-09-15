@@ -1,8 +1,8 @@
-/** Build-time switch. Keep OFF until both signed production installers are verified.
- * The server independently enforces MOKAID_DESKTOP_ONLY_BUSINESS; this is not an
- * authorization check. The literal comparison permits removing legacy imports.
+/** The website is always marketing, downloads and account management.
+ * Desktop distribution readiness only gates server policy, never the web UI.
+ * A literal also lets Rollup remove all legacy Office imports from the build.
  */
-export const DESKTOP_ONLY_WEB = import.meta.env.VITE_DESKTOP_ONLY_WEB === "true";
+export const DESKTOP_ONLY_WEB = true;
 
 export function accountEntryPath(desktopOnly = DESKTOP_ONLY_WEB): "/account" | "/dashboard" {
   return desktopOnly ? "/account" : "/dashboard";

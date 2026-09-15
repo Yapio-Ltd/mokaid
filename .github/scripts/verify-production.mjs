@@ -11,6 +11,12 @@ async function read(path, expected = 200) {
 for (const path of ["/", "/pricing", "/download"]) {
   const response = await read(path);
   const html = await response.text();
+  assert.match(html, /name="mokaid-web-surface" content="marketing-account"/, `Wrong web surface at ${path}`);
+  if (path === "/") {
+    assert.match(html, /href="\/download"/, "Landing must expose desktop downloads");
+    assert.match(html, /href="\/login"/, "Landing must expose account sign-in");
+    assert.doesNotMatch(html, /href="\/dashboard"/, "Landing must not launch the Office");
+  }
   assert.match(html, /<h1(?:\s|>)/i, `Missing prerendered content at ${path}`);
   assert.ok(html.includes(`href="https://mokaid.com${path}"`), `Missing canonical at ${path}`);
   assert.doesNotMatch(response.headers.get("x-robots-tag") ?? "", /noindex/i);

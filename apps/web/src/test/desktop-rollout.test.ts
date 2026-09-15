@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ACCOUNT_LINKS,
+  DESKTOP_ONLY_WEB,
   accountEntryPath,
   authReturnFromSearch,
   legacyAccountDestination,
@@ -13,7 +14,14 @@ import { useAuthStore } from "@/stores/auth-store";
 afterEach(() => vi.restoreAllMocks());
 
 describe("desktop-only navigation policy", () => {
-  it("keeps the current experience until rollout is explicitly enabled", () => {
+  it("always enters the account and redirects Office links by default", () => {
+    expect(DESKTOP_ONLY_WEB).toBe(true);
+    expect(accountEntryPath()).toBe("/account");
+    expect(safeAuthReturn("/dashboard")).toBe("/download");
+    expect(authReturnFromSearch("")).toBe("/account");
+  });
+
+  it("retains explicit compatibility mapping for older callers", () => {
     expect(accountEntryPath(false)).toBe("/dashboard");
     expect(accountEntryPath(true)).toBe("/account");
     expect(safeAuthReturn("/agents/agent-1/training", false)).toBe("/agents/agent-1/training");

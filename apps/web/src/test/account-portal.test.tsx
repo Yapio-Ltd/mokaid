@@ -264,7 +264,7 @@ describe("authenticated form continuations", () => {
     fireEvent.change(screen.getByLabelText("Your name"), { target: { value: "Ada Lovelace" } });
     fireEvent.change(screen.getByLabelText("Work email"), { target: { value: user.email } });
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "valid-password" } });
-    fireEvent.click(screen.getByRole("button", { name: "Create workspace" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
     await waitFor(() =>
       expect(mock.navigate).toHaveBeenCalledWith({
         to: "/desktop/authorize",
