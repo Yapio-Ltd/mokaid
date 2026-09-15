@@ -73,7 +73,7 @@ export function FinalCta() {
           </div>
 
           <div className="flex flex-col items-stretch gap-3 md:col-span-5 md:items-end lg:col-span-4">
-            <p className="text-[12px] text-text-muted md:text-right">
+            <p className="text-[12px] text-text-secondary md:text-right">
               Your office lives in the desktop app.
             </p>
 
@@ -83,7 +83,7 @@ export function FinalCta() {
               </Button>
             </Link>
 
-            <p className="text-center text-[11px] text-text-muted md:text-right">macOS · Windows</p>
+            <p className="text-center text-[11px] text-text-secondary md:text-right">macOS · Windows</p>
           </div>
         </div>
       </div>
