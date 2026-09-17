@@ -5,7 +5,7 @@ import re
 import sys
 
 source, output = map(Path, sys.argv[1:])
-match = re.search(r"export const OFFICE_LIGHTS[^=]*=\s*(\[[\s\S]*\]);", source.read_text())
+match = re.search(r"export const OFFICE_LIGHTS[^=]*=\s*(\[[\s\S]*\]);", source.read_text(encoding="utf-8"))
 if not match:
     raise SystemExit("Office light manifest changed: review native conversion")
 lights = [light for light in json.loads(match[1]) if light["name"] != "Point.005"]
@@ -41,4 +41,4 @@ lines += ["}};", "struct OfficeLighting {", "  std::array<OfficeLight, 16> light
           "    result.contacts[index++] = {p.x, 0, p.z, .38F};",
           "  }", "  return result;", "}", "} // namespace mokaid::renderer", ""]
 output.parent.mkdir(parents=True, exist_ok=True)
-output.write_text("\n".join(lines))
+output.write_text("\n".join(lines), encoding="utf-8", newline="\n")
