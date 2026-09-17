@@ -14,7 +14,6 @@ QString pageForResource(const QString& resource) {
     if (resource=="task") return "tasks";
     if (resource=="project") return "projects";
     if (resource=="agent") return "agents";
-    if (resource=="knowledge" || resource=="knowledge_item") return "knowledge";
     return {};
 }
 }
@@ -132,7 +131,7 @@ void ActivityController::runSearch() {
 }
 void ActivityController::acceptSearch(const QJsonObject& response) {
     searchResults_.clear(); const auto data=response.value("data").toObject();
-    for (const auto& page : {QString("tasks"),QString("projects"),QString("agents"),QString("knowledge")}) {
+    for (const auto& page : {QString("tasks"),QString("projects"),QString("agents")}) {
         int count=0;
         for (const auto& value : data.value(page).toArray()) {
             if (!value.isObject() || ++count>5) break;

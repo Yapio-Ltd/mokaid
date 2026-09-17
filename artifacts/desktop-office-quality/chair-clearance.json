@@ -1,0 +1,2541 @@
+{
+  "source": "assets/optimized/office.desktop.4fe5f78c1fb5.glb",
+  "bodySlab": [
+    0.12,
+    1.55
+  ],
+  "standingAdvance": 0.4025,
+  "radius": 0.35,
+  "note": "Exact projected triangle distance in the body slab, excluding only the actor-owned chair geometry. Chair-end bounds are reported separately; this is not a full swept 3D chair-mesh collision proof.",
+  "seats": [
+    {
+      "index": 0,
+      "socketNativeXZ": [
+        1.682,
+        4.243
+      ],
+      "yaw": 0.0013,
+      "ownChairTriangleCount": 2000,
+      "configured": {
+        "rollback": 0.45,
+        "standingNativeXZ": [
+          1.6821,
+          4.2905
+        ],
+        "clearance": 0.4094,
+        "clear35": true,
+        "closest": {
+          "distance": 0.40942970814108504,
+          "name": "instance_0.002",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          1.6826,
+          4.693
+        ],
+        "movedChairBounds": {
+          "x": [
+            1.336,
+            2.0293
+          ],
+          "z": [
+            4.3647,
+            5.0215
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      },
+      "values": [
+        {
+          "rollback": 0.5,
+          "standingNativeXZ": [
+            1.6821,
+            4.3405
+          ],
+          "clearance": 0.4594,
+          "clear35": true,
+          "closest": {
+            "distance": 0.459429665899824,
+            "name": "instance_0.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            1.6826,
+            4.743
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.336,
+              2.0294
+            ],
+            "z": [
+              4.4147,
+              5.0715
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.6,
+          "standingNativeXZ": [
+            1.6823,
+            4.4405
+          ],
+          "clearance": 0.5594,
+          "clear35": true,
+          "closest": {
+            "distance": 0.5594295814173019,
+            "name": "instance_0.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            1.6828,
+            4.843
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.3362,
+              2.0295
+            ],
+            "z": [
+              4.5147,
+              5.1715
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.7,
+          "standingNativeXZ": [
+            1.6824,
+            4.5405
+          ],
+          "clearance": 0.6594,
+          "clear35": true,
+          "closest": {
+            "distance": 0.6594294969347798,
+            "name": "instance_0.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            1.6829,
+            4.943
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.3363,
+              2.0297
+            ],
+            "z": [
+              4.6147,
+              5.2715
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.8,
+          "standingNativeXZ": [
+            1.6825,
+            4.6405
+          ],
+          "clearance": 0.7594,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7594294124522569,
+            "name": "instance_0.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            1.683,
+            5.043
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.3364,
+              2.0298
+            ],
+            "z": [
+              4.7147,
+              5.3715
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.9,
+          "standingNativeXZ": [
+            1.6826,
+            4.7405
+          ],
+          "clearance": 0.8594,
+          "clear35": true,
+          "closest": {
+            "distance": 0.8594293279697348,
+            "name": "instance_0.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            1.6832,
+            5.143
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.3365,
+              2.0299
+            ],
+            "z": [
+              4.8147,
+              5.4715
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.92,
+          "standingNativeXZ": [
+            1.6827,
+            4.7605
+          ],
+          "clearance": 0.8794,
+          "clear35": true,
+          "closest": {
+            "distance": 0.8794293110732305,
+            "name": "instance_0.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            1.6832,
+            5.163
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.3366,
+              2.0299
+            ],
+            "z": [
+              4.8347,
+              5.4915
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.93,
+          "standingNativeXZ": [
+            1.6827,
+            4.7705
+          ],
+          "clearance": 0.8753,
+          "clear35": true,
+          "closest": {
+            "distance": 0.875275013582624,
+            "name": "Cube.002",
+            "material": "Sofa",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            1.6832,
+            5.173
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.3366,
+              2.03
+            ],
+            "z": [
+              4.8447,
+              5.5015
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        }
+      ],
+      "minimumAtCentimeterResolution": {
+        "rollback": 0.4,
+        "standingNativeXZ": [
+          1.682,
+          4.2405
+        ],
+        "clearance": 0.3594,
+        "clear35": true,
+        "closest": {
+          "distance": 0.359429750382347,
+          "name": "instance_0.002",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          1.6825,
+          4.643
+        ],
+        "movedChairBounds": {
+          "x": [
+            1.3359,
+            2.0293
+          ],
+          "z": [
+            4.3147,
+            4.9715
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      }
+    },
+    {
+      "index": 1,
+      "socketNativeXZ": [
+        5.157,
+        2.781
+      ],
+      "yaw": -0.0151,
+      "ownChairTriangleCount": 2000,
+      "configured": {
+        "rollback": 0.5,
+        "standingNativeXZ": [
+          5.1555,
+          2.8785
+        ],
+        "clearance": 0.4176,
+        "clear35": true,
+        "closest": {
+          "distance": 0.417620171066744,
+          "name": "instance_1.002",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          5.1495,
+          3.2809
+        ],
+        "movedChairBounds": {
+          "x": [
+            4.8028,
+            5.4961
+          ],
+          "z": [
+            2.9524,
+            3.6093
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      },
+      "values": [
+        {
+          "rollback": 0.5,
+          "standingNativeXZ": [
+            5.1555,
+            2.8785
+          ],
+          "clearance": 0.4176,
+          "clear35": true,
+          "closest": {
+            "distance": 0.417620171066744,
+            "name": "instance_1.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.1495,
+            3.2809
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.8028,
+              5.4961
+            ],
+            "z": [
+              2.9524,
+              3.6093
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.6,
+          "standingNativeXZ": [
+            5.154,
+            2.9785
+          ],
+          "clearance": 0.5176,
+          "clear35": true,
+          "closest": {
+            "distance": 0.5176087705804858,
+            "name": "instance_1.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.1479,
+            3.3809
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.8013,
+              5.4946
+            ],
+            "z": [
+              3.0524,
+              3.7093
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.7,
+          "standingNativeXZ": [
+            5.1525,
+            3.0785
+          ],
+          "clearance": 0.6176,
+          "clear35": true,
+          "closest": {
+            "distance": 0.6175973700942282,
+            "name": "instance_1.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.1464,
+            3.4809
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.7997,
+              5.4931
+            ],
+            "z": [
+              3.1524,
+              3.8093
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.8,
+          "standingNativeXZ": [
+            5.151,
+            3.1785
+          ],
+          "clearance": 0.7176,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7175859696079706,
+            "name": "instance_1.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.1449,
+            3.5809
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.7982,
+              5.4916
+            ],
+            "z": [
+              3.2524,
+              3.9093
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.9,
+          "standingNativeXZ": [
+            5.1495,
+            3.2784
+          ],
+          "clearance": 0.8176,
+          "clear35": true,
+          "closest": {
+            "distance": 0.8175745691217129,
+            "name": "instance_1.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.1434,
+            3.6809
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.7967,
+              5.4901
+            ],
+            "z": [
+              3.3524,
+              4.0092
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.92,
+          "standingNativeXZ": [
+            5.1492,
+            3.2984
+          ],
+          "clearance": 0.8376,
+          "clear35": true,
+          "closest": {
+            "distance": 0.8375722890244612,
+            "name": "instance_1.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.1431,
+            3.7009
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.7964,
+              5.4898
+            ],
+            "z": [
+              3.3724,
+              4.0292
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.93,
+          "standingNativeXZ": [
+            5.149,
+            3.3084
+          ],
+          "clearance": 0.8476,
+          "clear35": true,
+          "closest": {
+            "distance": 0.8475711489758355,
+            "name": "instance_1.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.143,
+            3.7109
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.7963,
+              5.4896
+            ],
+            "z": [
+              3.3824,
+              4.0392
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        }
+      ],
+      "minimumAtCentimeterResolution": {
+        "rollback": 0.44,
+        "standingNativeXZ": [
+          5.1564,
+          2.8185
+        ],
+        "clearance": 0.3576,
+        "clear35": true,
+        "closest": {
+          "distance": 0.3576270113584985,
+          "name": "instance_1.002",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          5.1504,
+          3.2209
+        ],
+        "movedChairBounds": {
+          "x": [
+            4.8037,
+            5.497
+          ],
+          "z": [
+            2.8924,
+            3.5493
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      }
+    },
+    {
+      "index": 2,
+      "socketNativeXZ": [
+        -2.008,
+        2.157
+      ],
+      "yaw": 3.1053,
+      "ownChairTriangleCount": 2000,
+      "configured": {
+        "rollback": 0.6,
+        "standingNativeXZ": [
+          -2.0008,
+          1.9596
+        ],
+        "clearance": 0.3989,
+        "clear35": true,
+        "closest": {
+          "distance": 0.398936587079579,
+          "name": "instance_2.002",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          -1.9862,
+          1.5574
+        ],
+        "movedChairBounds": {
+          "x": [
+            -2.3326,
+            -1.6392
+          ],
+          "z": [
+            1.2291,
+            1.886
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      },
+      "values": [
+        {
+          "rollback": 0.5,
+          "standingNativeXZ": [
+            -2.0045,
+            2.0596
+          ],
+          "clearance": 0.299,
+          "clear35": false,
+          "closest": {
+            "distance": 0.29900243817388644,
+            "name": "instance_2.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -1.9899,
+            1.6573
+          ],
+          "movedChairBounds": {
+            "x": [
+              -2.3362,
+              -1.6428
+            ],
+            "z": [
+              1.329,
+              1.9859
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.6,
+          "standingNativeXZ": [
+            -2.0008,
+            1.9596
+          ],
+          "clearance": 0.3989,
+          "clear35": true,
+          "closest": {
+            "distance": 0.398936587079579,
+            "name": "instance_2.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -1.9862,
+            1.5574
+          ],
+          "movedChairBounds": {
+            "x": [
+              -2.3326,
+              -1.6392
+            ],
+            "z": [
+              1.2291,
+              1.886
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.7,
+          "standingNativeXZ": [
+            -1.9972,
+            1.8597
+          ],
+          "clearance": 0.4989,
+          "clear35": true,
+          "closest": {
+            "distance": 0.4988707359852719,
+            "name": "instance_2.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -1.9826,
+            1.4575
+          ],
+          "movedChairBounds": {
+            "x": [
+              -2.3289,
+              -1.6356
+            ],
+            "z": [
+              1.1292,
+              1.786
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.8,
+          "standingNativeXZ": [
+            -1.9936,
+            1.7598
+          ],
+          "clearance": 0.5988,
+          "clear35": true,
+          "closest": {
+            "distance": 0.5988048848909647,
+            "name": "instance_2.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -1.979,
+            1.3575
+          ],
+          "movedChairBounds": {
+            "x": [
+              -2.3253,
+              -1.6319
+            ],
+            "z": [
+              1.0292,
+              1.6861
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.9,
+          "standingNativeXZ": [
+            -1.9899,
+            1.6598
+          ],
+          "clearance": 0.6987,
+          "clear35": true,
+          "closest": {
+            "distance": 0.6987390337966575,
+            "name": "instance_2.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -1.9753,
+            1.2576
+          ],
+          "movedChairBounds": {
+            "x": [
+              -2.3217,
+              -1.6283
+            ],
+            "z": [
+              0.9293,
+              1.5862
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.92,
+          "standingNativeXZ": [
+            -1.9892,
+            1.6398
+          ],
+          "clearance": 0.7187,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7187258635777962,
+            "name": "instance_2.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -1.9746,
+            1.2376
+          ],
+          "movedChairBounds": {
+            "x": [
+              -2.3209,
+              -1.6276
+            ],
+            "z": [
+              0.9093,
+              1.5662
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.93,
+          "standingNativeXZ": [
+            -1.9889,
+            1.6298
+          ],
+          "clearance": 0.7287,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7287192784683653,
+            "name": "instance_2.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -1.9743,
+            1.2276
+          ],
+          "movedChairBounds": {
+            "x": [
+              -2.3206,
+              -1.6272
+            ],
+            "z": [
+              0.8993,
+              1.5562
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        }
+      ],
+      "minimumAtCentimeterResolution": {
+        "rollback": 0.56,
+        "standingNativeXZ": [
+          -2.0023,
+          1.9996
+        ],
+        "clearance": 0.359,
+        "clear35": true,
+        "closest": {
+          "distance": 0.3589629275173022,
+          "name": "instance_2.002",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          -1.9877,
+          1.5974
+        ],
+        "movedChairBounds": {
+          "x": [
+            -2.334,
+            -1.6406
+          ],
+          "z": [
+            1.2691,
+            1.9259
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      }
+    },
+    {
+      "index": 3,
+      "socketNativeXZ": [
+        3.252,
+        0.54
+      ],
+      "yaw": 1.7097,
+      "ownChairTriangleCount": 2000,
+      "configured": {
+        "rollback": 0.45,
+        "standingNativeXZ": [
+          3.299,
+          0.5334
+        ],
+        "clearance": 0.3987,
+        "clear35": true,
+        "closest": {
+          "distance": 0.3987149234159714,
+          "name": "Cube.003",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          3.6977,
+          0.4777
+        ],
+        "movedChairBounds": {
+          "x": [
+            3.3698,
+            4.0264
+          ],
+          "z": [
+            0.1308,
+            0.8243
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      },
+      "values": [
+        {
+          "rollback": 0.5,
+          "standingNativeXZ": [
+            3.3486,
+            0.5265
+          ],
+          "clearance": 0.4482,
+          "clear35": true,
+          "closest": {
+            "distance": 0.44823334364368567,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            3.7472,
+            0.4708
+          ],
+          "movedChairBounds": {
+            "x": [
+              3.4194,
+              4.0759
+            ],
+            "z": [
+              0.1239,
+              0.8174
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.6,
+          "standingNativeXZ": [
+            3.4476,
+            0.5127
+          ],
+          "clearance": 0.5473,
+          "clear35": true,
+          "closest": {
+            "distance": 0.5472701840991144,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            3.8462,
+            0.4569
+          ],
+          "movedChairBounds": {
+            "x": [
+              3.5184,
+              4.1749
+            ],
+            "z": [
+              0.11,
+              0.8035
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.7,
+          "standingNativeXZ": [
+            3.5466,
+            0.4988
+          ],
+          "clearance": 0.6463,
+          "clear35": true,
+          "closest": {
+            "distance": 0.6463070245545433,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            3.9453,
+            0.4431
+          ],
+          "movedChairBounds": {
+            "x": [
+              3.6174,
+              4.274
+            ],
+            "z": [
+              0.0962,
+              0.7897
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.8,
+          "standingNativeXZ": [
+            3.6457,
+            0.485
+          ],
+          "clearance": 0.7453,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7453438650099722,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            4.0443,
+            0.4292
+          ],
+          "movedChairBounds": {
+            "x": [
+              3.7165,
+              4.373
+            ],
+            "z": [
+              0.0823,
+              0.7758
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.9,
+          "standingNativeXZ": [
+            3.7447,
+            0.4711
+          ],
+          "clearance": 0.8444,
+          "clear35": true,
+          "closest": {
+            "distance": 0.8443807054654006,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            4.1433,
+            0.4154
+          ],
+          "movedChairBounds": {
+            "x": [
+              3.8155,
+              4.4721
+            ],
+            "z": [
+              0.0685,
+              0.762
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.92,
+          "standingNativeXZ": [
+            3.7645,
+            0.4683
+          ],
+          "clearance": 0.8642,
+          "clear35": true,
+          "closest": {
+            "distance": 0.8641880735564864,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            4.1631,
+            0.4126
+          ],
+          "movedChairBounds": {
+            "x": [
+              3.8353,
+              4.4919
+            ],
+            "z": [
+              0.0657,
+              0.7592
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.93,
+          "standingNativeXZ": [
+            3.7744,
+            0.467
+          ],
+          "clearance": 0.8741,
+          "clear35": true,
+          "closest": {
+            "distance": 0.8740917576020296,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            4.173,
+            0.4112
+          ],
+          "movedChairBounds": {
+            "x": [
+              3.8452,
+              4.5018
+            ],
+            "z": [
+              0.0643,
+              0.7578
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        }
+      ],
+      "minimumAtCentimeterResolution": {
+        "rollback": 0.41,
+        "standingNativeXZ": [
+          3.2594,
+          0.539
+        ],
+        "clearance": 0.3591,
+        "clear35": true,
+        "closest": {
+          "distance": 0.3591001872338,
+          "name": "Cube.003",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          3.6581,
+          0.4832
+        ],
+        "movedChairBounds": {
+          "x": [
+            3.3302,
+            3.9868
+          ],
+          "z": [
+            0.1363,
+            0.8298
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      }
+    },
+    {
+      "index": 4,
+      "socketNativeXZ": [
+        1.75,
+        0.52
+      ],
+      "yaw": -1.762,
+      "ownChairTriangleCount": 2000,
+      "configured": {
+        "rollback": 0.58,
+        "standingNativeXZ": [
+          1.5757,
+          0.4863
+        ],
+        "clearance": 0.4026,
+        "clear35": true,
+        "closest": {
+          "distance": 0.40260671048029334,
+          "name": "Cube.003",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          1.1806,
+          0.4098
+        ],
+        "movedChairBounds": {
+          "x": [
+            0.8524,
+            1.5092
+          ],
+          "z": [
+            0.0633,
+            0.7567
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      },
+      "values": [
+        {
+          "rollback": 0.5,
+          "standingNativeXZ": [
+            1.6543,
+            0.5015
+          ],
+          "clearance": 0.3241,
+          "clear35": false,
+          "closest": {
+            "distance": 0.3240646165707774,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            1.2591,
+            0.425
+          ],
+          "movedChairBounds": {
+            "x": [
+              0.9309,
+              1.5878
+            ],
+            "z": [
+              0.0785,
+              0.7719
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.6,
+          "standingNativeXZ": [
+            1.5561,
+            0.4825
+          ],
+          "clearance": 0.4222,
+          "clear35": true,
+          "closest": {
+            "distance": 0.4222422339576725,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            1.1609,
+            0.406
+          ],
+          "movedChairBounds": {
+            "x": [
+              0.8327,
+              1.4896
+            ],
+            "z": [
+              0.0595,
+              0.7529
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.7,
+          "standingNativeXZ": [
+            1.4579,
+            0.4635
+          ],
+          "clearance": 0.5204,
+          "clear35": true,
+          "closest": {
+            "distance": 0.5204198513445677,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            1.0628,
+            0.387
+          ],
+          "movedChairBounds": {
+            "x": [
+              0.7346,
+              1.3914
+            ],
+            "z": [
+              0.0405,
+              0.7339
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.8,
+          "standingNativeXZ": [
+            1.3597,
+            0.4445
+          ],
+          "clearance": 0.6186,
+          "clear35": true,
+          "closest": {
+            "distance": 0.618597468731463,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            0.9646,
+            0.368
+          ],
+          "movedChairBounds": {
+            "x": [
+              0.6364,
+              1.2932
+            ],
+            "z": [
+              0.0215,
+              0.7149
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.9,
+          "standingNativeXZ": [
+            1.2616,
+            0.4255
+          ],
+          "clearance": 0.7168,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7167750861183579,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            0.8664,
+            0.349
+          ],
+          "movedChairBounds": {
+            "x": [
+              0.5382,
+              1.1951
+            ],
+            "z": [
+              0.0025,
+              0.6959
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.92,
+          "standingNativeXZ": [
+            1.2419,
+            0.4217
+          ],
+          "clearance": 0.7364,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7364106095957371,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            0.8468,
+            0.3452
+          ],
+          "movedChairBounds": {
+            "x": [
+              0.5186,
+              1.1754
+            ],
+            "z": [
+              -0.0013,
+              0.6921
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.93,
+          "standingNativeXZ": [
+            1.2321,
+            0.4198
+          ],
+          "clearance": 0.7462,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7462283713344268,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            0.8369,
+            0.3433
+          ],
+          "movedChairBounds": {
+            "x": [
+              0.5087,
+              1.1656
+            ],
+            "z": [
+              -0.0032,
+              0.6902
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        }
+      ],
+      "minimumAtCentimeterResolution": {
+        "rollback": 0.53,
+        "standingNativeXZ": [
+          1.6248,
+          0.4958
+        ],
+        "clearance": 0.3535,
+        "clear35": true,
+        "closest": {
+          "distance": 0.3535179017868461,
+          "name": "Cube.003",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          1.2297,
+          0.4193
+        ],
+        "movedChairBounds": {
+          "x": [
+            0.9015,
+            1.5583
+          ],
+          "z": [
+            0.0728,
+            0.7662
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      }
+    },
+    {
+      "index": 5,
+      "socketNativeXZ": [
+        -6.019,
+        -0.665
+      ],
+      "yaw": -1.5707963267948966,
+      "ownChairTriangleCount": 1968,
+      "configured": {
+        "rollback": 0.925,
+        "standingNativeXZ": [
+          -6.5415,
+          -0.665
+        ],
+        "clearance": 0.3609,
+        "clear35": true,
+        "closest": {
+          "distance": 0.3608693672849599,
+          "name": "instance_4.002",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          -6.944,
+          -0.665
+        ],
+        "movedChairBounds": {
+          "x": [
+            -7.2722,
+            -6.6154
+          ],
+          "z": [
+            -1.012,
+            -0.3185
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      },
+      "values": [
+        {
+          "rollback": 0.5,
+          "standingNativeXZ": [
+            -6.1165,
+            -0.665
+          ],
+          "clearance": 0,
+          "clear35": false,
+          "closest": {
+            "distance": 0,
+            "name": "instance_4.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -6.519,
+            -0.665
+          ],
+          "movedChairBounds": {
+            "x": [
+              -6.8472,
+              -6.1904
+            ],
+            "z": [
+              -1.012,
+              -0.3185
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.6,
+          "standingNativeXZ": [
+            -6.2165,
+            -0.665
+          ],
+          "clearance": 0.0359,
+          "clear35": false,
+          "closest": {
+            "distance": 0.03586936728495971,
+            "name": "instance_4.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -6.619,
+            -0.665
+          ],
+          "movedChairBounds": {
+            "x": [
+              -6.9472,
+              -6.2904
+            ],
+            "z": [
+              -1.012,
+              -0.3185
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.7,
+          "standingNativeXZ": [
+            -6.3165,
+            -0.665
+          ],
+          "clearance": 0.1359,
+          "clear35": false,
+          "closest": {
+            "distance": 0.13586936728496024,
+            "name": "instance_4.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -6.719,
+            -0.665
+          ],
+          "movedChairBounds": {
+            "x": [
+              -7.0472,
+              -6.3904
+            ],
+            "z": [
+              -1.012,
+              -0.3185
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.8,
+          "standingNativeXZ": [
+            -6.4165,
+            -0.665
+          ],
+          "clearance": 0.2359,
+          "clear35": false,
+          "closest": {
+            "distance": 0.23586936728495989,
+            "name": "instance_4.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -6.819,
+            -0.665
+          ],
+          "movedChairBounds": {
+            "x": [
+              -7.1472,
+              -6.4904
+            ],
+            "z": [
+              -1.012,
+              -0.3185
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.9,
+          "standingNativeXZ": [
+            -6.5165,
+            -0.665
+          ],
+          "clearance": 0.3359,
+          "clear35": false,
+          "closest": {
+            "distance": 0.33586936728495953,
+            "name": "instance_4.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -6.919,
+            -0.665
+          ],
+          "movedChairBounds": {
+            "x": [
+              -7.2472,
+              -6.5904
+            ],
+            "z": [
+              -1.012,
+              -0.3185
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.92,
+          "standingNativeXZ": [
+            -6.5365,
+            -0.665
+          ],
+          "clearance": 0.3559,
+          "clear35": true,
+          "closest": {
+            "distance": 0.35586936728496,
+            "name": "instance_4.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -6.939,
+            -0.665
+          ],
+          "movedChairBounds": {
+            "x": [
+              -7.2672,
+              -6.6104
+            ],
+            "z": [
+              -1.012,
+              -0.3185
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.93,
+          "standingNativeXZ": [
+            -6.5465,
+            -0.665
+          ],
+          "clearance": 0.3659,
+          "clear35": true,
+          "closest": {
+            "distance": 0.3658693672849598,
+            "name": "instance_4.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -6.949,
+            -0.665
+          ],
+          "movedChairBounds": {
+            "x": [
+              -7.2772,
+              -6.6204
+            ],
+            "z": [
+              -1.012,
+              -0.3185
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        }
+      ],
+      "minimumAtCentimeterResolution": {
+        "rollback": 0.92,
+        "standingNativeXZ": [
+          -6.5365,
+          -0.665
+        ],
+        "clearance": 0.3559,
+        "clear35": true,
+        "closest": {
+          "distance": 0.35586936728496,
+          "name": "instance_4.002",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          -6.939,
+          -0.665
+        ],
+        "movedChairBounds": {
+          "x": [
+            -7.2672,
+            -6.6104
+          ],
+          "z": [
+            -1.012,
+            -0.3185
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      }
+    },
+    {
+      "index": 6,
+      "socketNativeXZ": [
+        -0.854,
+        -1.075
+      ],
+      "yaw": 3.0795,
+      "ownChairTriangleCount": 2000,
+      "configured": {
+        "rollback": 0.55,
+        "standingNativeXZ": [
+          -0.8448,
+          -1.2222
+        ],
+        "clearance": 0.4188,
+        "clear35": true,
+        "closest": {
+          "distance": 0.4187502598968318,
+          "name": "instance_3.002",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          -0.8199,
+          -1.6239
+        ],
+        "movedChairBounds": {
+          "x": [
+            -1.1662,
+            -0.4728
+          ],
+          "z": [
+            -1.9519,
+            -1.2951
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      },
+      "values": [
+        {
+          "rollback": 0.5,
+          "standingNativeXZ": [
+            -0.8479,
+            -1.1723
+          ],
+          "clearance": 0.3688,
+          "clear35": true,
+          "closest": {
+            "distance": 0.36884661678996195,
+            "name": "instance_3.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -0.823,
+            -1.574
+          ],
+          "movedChairBounds": {
+            "x": [
+              -1.1693,
+              -0.4759
+            ],
+            "z": [
+              -1.902,
+              -1.2452
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.6,
+          "standingNativeXZ": [
+            -0.8417,
+            -1.2721
+          ],
+          "clearance": 0.4687,
+          "clear35": true,
+          "closest": {
+            "distance": 0.46865390300370163,
+            "name": "instance_3.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -0.8168,
+            -1.6738
+          ],
+          "movedChairBounds": {
+            "x": [
+              -1.1631,
+              -0.4697
+            ],
+            "z": [
+              -2.0019,
+              -1.345
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.7,
+          "standingNativeXZ": [
+            -0.8355,
+            -1.3719
+          ],
+          "clearance": 0.5685,
+          "clear35": true,
+          "closest": {
+            "distance": 0.5684611892174413,
+            "name": "instance_3.002",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -0.8106,
+            -1.7737
+          ],
+          "movedChairBounds": {
+            "x": [
+              -1.1569,
+              -0.4635
+            ],
+            "z": [
+              -2.1017,
+              -1.4448
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.8,
+          "standingNativeXZ": [
+            -0.8293,
+            -1.4717
+          ],
+          "clearance": 0.5442,
+          "clear35": true,
+          "closest": {
+            "distance": 0.5442368834427695,
+            "name": "instance_6.002",
+            "material": "Material.002",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -0.8044,
+            -1.8735
+          ],
+          "movedChairBounds": {
+            "x": [
+              -1.1506,
+              -0.4573
+            ],
+            "z": [
+              -2.2015,
+              -1.5446
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.9,
+          "standingNativeXZ": [
+            -0.8231,
+            -1.5715
+          ],
+          "clearance": 0.4535,
+          "clear35": true,
+          "closest": {
+            "distance": 0.45346617944627127,
+            "name": "Cube.016",
+            "material": "plant pot N",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -0.7982,
+            -1.9733
+          ],
+          "movedChairBounds": {
+            "x": [
+              -1.1444,
+              -0.4511
+            ],
+            "z": [
+              -2.3013,
+              -1.6444
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.92,
+          "standingNativeXZ": [
+            -0.8219,
+            -1.5915
+          ],
+          "clearance": 0.435,
+          "clear35": true,
+          "closest": {
+            "distance": 0.43500813350883755,
+            "name": "Cube.016",
+            "material": "plant pot N",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -0.7969,
+            -1.9932
+          ],
+          "movedChairBounds": {
+            "x": [
+              -1.1432,
+              -0.4498
+            ],
+            "z": [
+              -2.3212,
+              -1.6644
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.93,
+          "standingNativeXZ": [
+            -0.8213,
+            -1.6015
+          ],
+          "clearance": 0.4258,
+          "clear35": true,
+          "closest": {
+            "distance": 0.4258313355983389,
+            "name": "Cube.016",
+            "material": "plant pot N",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            -0.7963,
+            -2.0032
+          ],
+          "movedChairBounds": {
+            "x": [
+              -1.1426,
+              -0.4492
+            ],
+            "z": [
+              -2.3312,
+              -1.6744
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        }
+      ],
+      "minimumAtCentimeterResolution": {
+        "rollback": 0.49,
+        "standingNativeXZ": [
+          -0.8486,
+          -1.1623
+        ],
+        "clearance": 0.3589,
+        "clear35": true,
+        "closest": {
+          "distance": 0.35886588816858833,
+          "name": "instance_3.002",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          -0.8236,
+          -1.5641
+        ],
+        "movedChairBounds": {
+          "x": [
+            -1.1699,
+            -0.4765
+          ],
+          "z": [
+            -1.8921,
+            -1.2352
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      }
+    },
+    {
+      "index": 7,
+      "socketNativeXZ": [
+        5.163,
+        -1.445
+      ],
+      "yaw": -3.1329,
+      "ownChairTriangleCount": 2000,
+      "configured": {
+        "rollback": 0.58,
+        "standingNativeXZ": [
+          5.1615,
+          -1.6225
+        ],
+        "clearance": 0.4014,
+        "clear35": true,
+        "closest": {
+          "distance": 0.40140367722707126,
+          "name": "Cube.003",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          5.158,
+          -2.025
+        ],
+        "movedChairBounds": {
+          "x": [
+            4.8111,
+            5.5045
+          ],
+          "z": [
+            -2.3539,
+            -1.697
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      },
+      "values": [
+        {
+          "rollback": 0.5,
+          "standingNativeXZ": [
+            5.1622,
+            -1.5425
+          ],
+          "clearance": 0.3214,
+          "clear35": false,
+          "closest": {
+            "distance": 0.32140669960366347,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.1587,
+            -1.945
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.8118,
+              5.5052
+            ],
+            "z": [
+              -2.2739,
+              -1.617
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.6,
+          "standingNativeXZ": [
+            5.1613,
+            -1.6425
+          ],
+          "clearance": 0.4214,
+          "clear35": true,
+          "closest": {
+            "distance": 0.42140292163292314,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.1578,
+            -2.045
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.8109,
+              5.5043
+            ],
+            "z": [
+              -2.3739,
+              -1.717
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.7,
+          "standingNativeXZ": [
+            5.1604,
+            -1.7425
+          ],
+          "clearance": 0.5214,
+          "clear35": true,
+          "closest": {
+            "distance": 0.521399143662183,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.1569,
+            -2.145
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.8101,
+              5.5035
+            ],
+            "z": [
+              -2.4739,
+              -1.817
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.8,
+          "standingNativeXZ": [
+            5.1595,
+            -1.8425
+          ],
+          "clearance": 0.6214,
+          "clear35": true,
+          "closest": {
+            "distance": 0.6213953656914426,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.156,
+            -2.245
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.8092,
+              5.5026
+            ],
+            "z": [
+              -2.5739,
+              -1.917
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.9,
+          "standingNativeXZ": [
+            5.1587,
+            -1.9425
+          ],
+          "clearance": 0.7214,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7213915877207021,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.1552,
+            -2.345
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.8083,
+              5.5017
+            ],
+            "z": [
+              -2.6738,
+              -2.017
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.92,
+          "standingNativeXZ": [
+            5.1585,
+            -1.9625
+          ],
+          "clearance": 0.7414,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7413908321265542,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.155,
+            -2.365
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.8082,
+              5.5015
+            ],
+            "z": [
+              -2.6938,
+              -2.037
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.93,
+          "standingNativeXZ": [
+            5.1584,
+            -1.9725
+          ],
+          "clearance": 0.7514,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7513904543294802,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            5.1549,
+            -2.375
+          ],
+          "movedChairBounds": {
+            "x": [
+              4.8081,
+              5.5015
+            ],
+            "z": [
+              -2.7038,
+              -2.047
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        }
+      ],
+      "minimumAtCentimeterResolution": {
+        "rollback": 0.53,
+        "standingNativeXZ": [
+          5.1619,
+          -1.5725
+        ],
+        "clearance": 0.3514,
+        "clear35": true,
+        "closest": {
+          "distance": 0.35140556621244173,
+          "name": "Cube.003",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          5.1584,
+          -1.975
+        ],
+        "movedChairBounds": {
+          "x": [
+            4.8116,
+            5.5049
+          ],
+          "z": [
+            -2.3039,
+            -1.647
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      }
+    },
+    {
+      "index": 8,
+      "socketNativeXZ": [
+        2.158,
+        -3.19
+      ],
+      "yaw": 3.1079,
+      "ownChairTriangleCount": 2000,
+      "configured": {
+        "rollback": 0.6,
+        "standingNativeXZ": [
+          2.1647,
+          -3.3874
+        ],
+        "clearance": 0.3901,
+        "clear35": true,
+        "closest": {
+          "distance": 0.39010040073684155,
+          "name": "Cube.003",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          2.1782,
+          -3.7897
+        ],
+        "movedChairBounds": {
+          "x": [
+            1.8315,
+            2.5248
+          ],
+          "z": [
+            -4.1179,
+            -3.4611
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      },
+      "values": [
+        {
+          "rollback": 0.5,
+          "standingNativeXZ": [
+            2.1613,
+            -3.2874
+          ],
+          "clearance": 0.2902,
+          "clear35": false,
+          "closest": {
+            "distance": 0.29015715556549904,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            2.1748,
+            -3.6897
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.8281,
+              2.5215
+            ],
+            "z": [
+              -4.018,
+              -3.3611
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.6,
+          "standingNativeXZ": [
+            2.1647,
+            -3.3874
+          ],
+          "clearance": 0.3901,
+          "clear35": true,
+          "closest": {
+            "distance": 0.39010040073684155,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            2.1782,
+            -3.7897
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.8315,
+              2.5248
+            ],
+            "z": [
+              -4.1179,
+              -3.4611
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.7,
+          "standingNativeXZ": [
+            2.168,
+            -3.4873
+          ],
+          "clearance": 0.49,
+          "clear35": true,
+          "closest": {
+            "distance": 0.490043645908184,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            2.1816,
+            -3.8896
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.8348,
+              2.5282
+            ],
+            "z": [
+              -4.2179,
+              -3.561
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.8,
+          "standingNativeXZ": [
+            2.1714,
+            -3.5873
+          ],
+          "clearance": 0.59,
+          "clear35": true,
+          "closest": {
+            "distance": 0.589986891079527,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            2.1849,
+            -3.9895
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.8382,
+              2.5316
+            ],
+            "z": [
+              -4.3178,
+              -3.6609
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.9,
+          "standingNativeXZ": [
+            2.1748,
+            -3.6872
+          ],
+          "clearance": 0.6899,
+          "clear35": true,
+          "closest": {
+            "distance": 0.6899301362508694,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            2.1883,
+            -4.0895
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.8416,
+              2.5349
+            ],
+            "z": [
+              -4.4177,
+              -3.7609
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.92,
+          "standingNativeXZ": [
+            2.1754,
+            -3.7072
+          ],
+          "clearance": 0.7099,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7099187852851379,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            2.189,
+            -4.1095
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.8422,
+              2.5356
+            ],
+            "z": [
+              -4.4377,
+              -3.7809
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        },
+        {
+          "rollback": 0.93,
+          "standingNativeXZ": [
+            2.1758,
+            -3.7172
+          ],
+          "clearance": 0.7199,
+          "clear35": true,
+          "closest": {
+            "distance": 0.7199131098022723,
+            "name": "Cube.003",
+            "material": "Table",
+            "otherChair": -1
+          },
+          "chairCenterNativeXZ": [
+            2.1893,
+            -4.1195
+          ],
+          "movedChairBounds": {
+            "x": [
+              1.8426,
+              2.5359
+            ],
+            "z": [
+              -4.4477,
+              -3.7909
+            ]
+          },
+          "chairCenterWithinNavRectangle": true
+        }
+      ],
+      "minimumAtCentimeterResolution": {
+        "rollback": 0.56,
+        "standingNativeXZ": [
+          2.1633,
+          -3.3474
+        ],
+        "clearance": 0.3501,
+        "clear35": true,
+        "closest": {
+          "distance": 0.35012310266830476,
+          "name": "Cube.003",
+          "material": "Table",
+          "otherChair": -1
+        },
+        "chairCenterNativeXZ": [
+          2.1769,
+          -3.7497
+        ],
+        "movedChairBounds": {
+          "x": [
+            1.8301,
+            2.5235
+          ],
+          "z": [
+            -4.0779,
+            -3.4211
+          ]
+        },
+        "chairCenterWithinNavRectangle": true
+      }
+    }
+  ]
+}

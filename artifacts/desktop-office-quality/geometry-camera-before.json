@@ -1,0 +1,272 @@
+{
+  "note": "Offline silhouette analysis, not a GPU screenshot or runtime acceptance test. Proposed camera uses 25° azimuth, elevation 25.3°→21.2° across aspect1.45→2.1, fit .96, QML margins64/98; compare with production constants before interpreting.",
+  "baseline": {
+    "path": "/Users/olimservice/mokaid/apps/web/public/assets3d/office.a830ba995121.glb",
+    "sha256": "a830ba995121e9a4d49e85698f1c3161a4962bbc677a0994127f8f102bf58613",
+    "coordinates": "Native right-handed Y-up: (-glTF.x, glTF.y, -glTF.z)",
+    "bounds": {
+      "min": [
+        -7.4299,
+        -0.1419,
+        -6.4726
+      ],
+      "max": [
+        7.0676,
+        2.409,
+        6.936
+      ]
+    },
+    "floorArea": 182.7199,
+    "floorBorderNativeXZ": [
+      [
+        [
+          -7.4296,
+          -0.1398
+        ],
+        [
+          -7.4296,
+          6.4726
+        ]
+      ],
+      [
+        [
+          -7.4296,
+          6.4726
+        ],
+        [
+          0.0004,
+          6.4726
+        ]
+      ],
+      [
+        [
+          -7.4296,
+          -6.4726
+        ],
+        [
+          0.0004,
+          -6.4726
+        ]
+      ],
+      [
+        [
+          -7.4296,
+          -0.1398
+        ],
+        [
+          -7.4296,
+          -6.4726
+        ]
+      ],
+      [
+        [
+          0.0004,
+          -6.4726
+        ],
+        [
+          5.5049,
+          -6.4726
+        ]
+      ],
+      [
+        [
+          5.5049,
+          -6.4726
+        ],
+        [
+          7.0676,
+          -0.1398
+        ]
+      ],
+      [
+        [
+          0.0004,
+          6.4726
+        ],
+        [
+          7.0676,
+          6.4726
+        ]
+      ],
+      [
+        [
+          7.0676,
+          -0.1398
+        ],
+        [
+          7.0676,
+          6.4726
+        ]
+      ]
+    ],
+    "diagonalExtremes": [
+      {
+        "name": "Plane.005",
+        "materials": [
+          "base"
+        ],
+        "maxNativeXMinusZ": 11.9775
+      },
+      {
+        "name": "instance_3",
+        "materials": [
+          "Material.002"
+        ],
+        "maxNativeXMinusZ": 8.3494
+      },
+      {
+        "name": "instance_3",
+        "materials": [
+          "Material.003"
+        ],
+        "maxNativeXMinusZ": 8.0457
+      },
+      {
+        "name": "Cube.003",
+        "materials": [
+          "Table"
+        ],
+        "maxNativeXMinusZ": 7.2419
+      },
+      {
+        "name": "instance_0",
+        "materials": [
+          "Chair"
+        ],
+        "maxNativeXMinusZ": 7.1579
+      },
+      {
+        "name": "instance_2",
+        "materials": [
+          "Material.002"
+        ],
+        "maxNativeXMinusZ": 6.9873
+      },
+      {
+        "name": "Cube.016",
+        "materials": [
+          "plant pot N"
+        ],
+        "maxNativeXMinusZ": 6.9056
+      },
+      {
+        "name": "instance_3",
+        "materials": [
+          "Material.002"
+        ],
+        "maxNativeXMinusZ": 6.8429
+      },
+      {
+        "name": "Cube.054",
+        "materials": [
+          "phone"
+        ],
+        "maxNativeXMinusZ": 6.8224
+      },
+      {
+        "name": "instance_2",
+        "materials": [
+          "Material.003"
+        ],
+        "maxNativeXMinusZ": 6.6836
+      },
+      {
+        "name": "instance_2",
+        "materials": [
+          "Material.002"
+        ],
+        "maxNativeXMinusZ": 6.5833
+      },
+      {
+        "name": "Cylinder.009",
+        "materials": [
+          "Mug"
+        ],
+        "maxNativeXMinusZ": 6.5595
+      }
+    ]
+  },
+  "candidate": null,
+  "cameraComparisons": [
+    {
+      "name": "Existing desktop",
+      "mode": "baseline",
+      "viewport": [
+        1063,
+        469
+      ],
+      "aspect": 2.2665,
+      "elevationDegrees": 25.2702,
+      "azimuthDegrees": 27.9003,
+      "silhouettePixels": [
+        842.8033,
+        440.86
+      ],
+      "sideMarginPixels": 110.0983,
+      "topMarginPixels": 14.07,
+      "widthFill": 0.7929,
+      "heightFill": 0.94,
+      "fitDistance": 29.2567
+    },
+    {
+      "name": "Proposed desktop",
+      "mode": "proposed",
+      "viewport": [
+        1063,
+        503
+      ],
+      "aspect": 2.1133,
+      "elevationDegrees": 21.2,
+      "azimuthDegrees": 25,
+      "silhouettePixels": [
+        1020.48,
+        482.2523
+      ],
+      "sideMarginPixels": 21.26,
+      "topMarginPixels": 10.3739,
+      "widthFill": 0.96,
+      "heightFill": 0.9588,
+      "fitDistance": 26.394
+    },
+    {
+      "name": "Existing desktop with chat",
+      "mode": "baseline",
+      "viewport": [
+        653,
+        469
+      ],
+      "aspect": 1.3923,
+      "elevationDegrees": 25.2702,
+      "azimuthDegrees": 27.9003,
+      "silhouettePixels": [
+        613.82,
+        319.3043
+      ],
+      "sideMarginPixels": 19.59,
+      "topMarginPixels": 74.8478,
+      "widthFill": 0.94,
+      "heightFill": 0.6808,
+      "fitDistance": 31.3919
+    },
+    {
+      "name": "Proposed desktop with chat",
+      "mode": "proposed",
+      "viewport": [
+        653,
+        503
+      ],
+      "aspect": 1.2982,
+      "elevationDegrees": 25.3,
+      "azimuthDegrees": 25,
+      "silhouettePixels": [
+        626.88,
+        324.9586
+      ],
+      "sideMarginPixels": 13.06,
+      "topMarginPixels": 89.0207,
+      "widthFill": 0.96,
+      "heightFill": 0.646,
+      "fitDistance": 32.8166
+    }
+  ]
+}

@@ -9,7 +9,7 @@ defmodule Mokaid.Accounts do
   def get_user(id), do: Repo.get(User, id)
 
   def get_user_by_email(email) when is_binary(email) do
-    Repo.get_by(User, email: String.downcase(email))
+    Repo.get_by(User, email: email |> String.trim() |> String.downcase())
   end
 
   def get_user_by_cognito_sub(sub) when is_binary(sub) do
@@ -26,22 +26,36 @@ defmodule Mokaid.Accounts do
   Authenticates a user with email/password (dev fallback only — production
   authentication goes through Cognito JWTs).
   """
-  def authenticate_by_password(email, password) do
+  def authenticate_by_password(email, password)
+      when is_binary(email) and byte_size(email) <= 254 and is_binary(password) and
+             byte_size(password) in 1..72 do
     user = get_user_by_email(email)
+    # Always pay the password verification cost, including unknown/OAuth users.
+    valid = User.valid_password?(user, password)
 
-    cond do
-      is_nil(user) ->
-        {:error, :invalid_credentials}
-
-      not User.active?(user) ->
-        {:error, :inactive}
-
-      User.valid_password?(user, password) ->
-        {:ok, touch_login(user)}
-
-      true ->
-        {:error, :invalid_credentials}
+    if valid and User.active?(user) do
+      {:ok, touch_login(user)}
+    else
+      {:error, :invalid_credentials}
     end
+  end
+
+  def authenticate_by_password(_, _) do
+    Bcrypt.no_user_verify()
+    {:error, :invalid_credentials}
+  end
+
+  @doc "Atomically register the local account and its initial workspace."
+  def register_with_workspace(attrs, workspace_name) do
+    Repo.transaction(fn ->
+      with {:ok, user} <- register_user(attrs),
+           {:ok, workspace} <-
+             Mokaid.Workspaces.create_workspace(%{"name" => workspace_name}, user) do
+        {user, workspace}
+      else
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
   end
 
   @doc "Record a successful login event (IP / UA optional)."
@@ -71,9 +85,17 @@ defmodule Mokaid.Accounts do
   """
   def change_password(%User{} = user, attrs) do
     if User.has_password?(user) do
-      user
-      |> User.password_changeset(attrs)
-      |> Repo.update()
+      Repo.transaction(fn ->
+        case user |> User.password_changeset(attrs) |> Repo.update() do
+          {:ok, updated} ->
+            Mokaid.Auth.Token.revoke_all(user.id)
+            Mokaid.Auth.Desktop.revoke_all(user.id)
+            updated
+
+          {:error, changeset} ->
+            Repo.rollback(changeset)
+        end
+      end)
     else
       {:error, :oauth_only}
     end
@@ -109,7 +131,7 @@ defmodule Mokaid.Accounts do
   New users always get a workspace. Existing users without any active
   workspace membership also get one (self-heal after partial failures).
   """
-  def login_or_register_with_google(%{sub: sub, email: email} = profile)
+  def login_or_register_with_google(%{sub: sub, email: email, email_verified: true} = profile)
       when is_binary(sub) and is_binary(email) do
     google_key = google_identity_key(sub)
     name = profile[:name] || profile["name"] || email
@@ -139,21 +161,30 @@ defmodule Mokaid.Accounts do
             end
           end)
 
-        user ->
-          user =
-            user
-            |> Ecto.Changeset.change(
-              cognito_sub: user.cognito_sub || google_key,
-              avatar_url: user.avatar_url || picture,
-              full_name: if(user.full_name in [nil, ""], do: name, else: user.full_name)
-            )
-            |> Repo.update!()
-            |> touch_login()
+        %User{} = user when user.cognito_sub not in [nil, google_key] ->
+          {:error, :invalid_credentials}
 
-          case ensure_workspace_for_user(user, name) do
-            {:ok, nil} -> {:ok, {user, :existing, nil}}
-            {:ok, workspace} -> {:ok, {user, :existing, workspace}}
-            {:error, reason} -> {:error, reason}
+        user ->
+          if not User.active?(user) do
+            {:error, :invalid_credentials}
+          else
+            Repo.transaction(fn ->
+              user =
+                user
+                |> Ecto.Changeset.change(
+                  cognito_sub: user.cognito_sub || google_key,
+                  avatar_url: user.avatar_url || picture,
+                  full_name: if(user.full_name in [nil, ""], do: name, else: user.full_name)
+                )
+                |> Repo.update!()
+                |> touch_login()
+
+              case ensure_workspace_for_user(user, name) do
+                {:ok, nil} -> {user, :existing, nil}
+                {:ok, workspace} -> {user, :existing, workspace}
+                {:error, reason} -> Repo.rollback(reason)
+              end
+            end)
           end
       end
 
@@ -163,7 +194,7 @@ defmodule Mokaid.Accounts do
     end
   end
 
-  def login_or_register_with_google(_), do: {:error, :profile_incomplete}
+  def login_or_register_with_google(_), do: {:error, :invalid_credentials}
 
   def google_identity_key(sub) when is_binary(sub), do: "google:#{sub}"
 

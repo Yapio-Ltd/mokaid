@@ -22,6 +22,7 @@ from app import persistence
 from app.agents import deep_runner
 from app.agents.acknowledge import post_acknowledgement
 from app.agents.planner import plan_steps
+from app.agents.quality import unresolved_errors
 from app.clients.phoenix import PhoenixClient
 from app.mcp.client import TOOL_PREFIX, McpToolbox
 from app.policies.approval import ApprovalPolicy, risk_for_tool
@@ -181,7 +182,7 @@ async def execute_run(
                 call.output = await fn(enriched_input, ctx)
 
             state.tool_calls.append(call)
-            state.steps.append({"tool": tool_name, "ok": True})
+            state.steps.append({"tool": tool_name, "ok": not (isinstance(call.output, dict) and bool(call.output.get("error")))})
             log.info("tool_executed", run_id=request.run_id, tool=tool_name)
 
         artifacts = await _save_artifacts(request, state, phoenix)
@@ -191,9 +192,10 @@ async def execute_run(
         # or attach a better file) and mark the run failed so the UI offers a
         # retry instead of pretending the work is done.
         executed = [c for c in state.tool_calls if c.approved is not False]
-        errors = [
-            c for c in executed if isinstance(c.output, dict) and c.output.get("error")
-        ]
+        errors = unresolved_errors(executed)
+        if any(c.output.get("needs_user_input") for c in errors):
+            await _pause_for_user_input(request, phoenix, state, kind="analysis")
+            return state
         if errors and not artifacts:
             summary = "; ".join(str(c.output.get("error"))[:200] for c in errors[:3])
             await _post_failure_comment(request, phoenix, ctx.usage, errors)
@@ -275,6 +277,7 @@ async def _execute_deep(
         # a clarification-only close as success.
         if (
             required
+            and (kind in {"website", "webapp"} or not (artifacts or producer_tool_succeeded(state.tool_calls)))
             and not any(c.tool == required and not (
                 isinstance(c.output, dict) and c.output.get("error")
             ) for c in state.tool_calls)
@@ -292,9 +295,7 @@ async def _execute_deep(
             output["required_tool"] = required
 
         executed = [c for c in state.tool_calls if c.approved is not False]
-        errors = [
-            c for c in executed if isinstance(c.output, dict) and c.output.get("error")
-        ]
+        errors = unresolved_errors(executed)
 
         has_deliverable = bool(artifacts) or producer_tool_succeeded(state.tool_calls)
         producer = kind in PRODUCER_KINDS
@@ -312,11 +313,20 @@ async def _execute_deep(
 
         # A tool explicitly asked for user input (e.g. transform_image with no
         # attached image) — pause with the question instead of failing.
-        if not has_deliverable and any(
+        if any(
             isinstance(c.output, dict) and c.output.get("needs_user_input")
-            for c in executed
+            for c in errors
         ):
             await _pause_for_user_input(request, phoenix, state, kind=kind)
+            return state
+
+        verification = output.get("verification") or {}
+        if verification.get("status") == "needs_changes":
+            summary = "; ".join(verification.get("findings") or ["Delivery review found unresolved issues."])
+            state.status = RunStatus.FAILED
+            state.error = f"delivery_review: {summary[:600]}"
+            state.output = output  # Keep partial artifacts available for human review.
+            await phoenix.fail_run(request.run_id, state.error)
             return state
 
         # Agent refused (ethics / content policy) without producing anything —
@@ -465,10 +475,23 @@ async def _pause_for_user_input(
                 "drop it here or on the task, then send me again."
             )
         )
+    unreadable = next((
+        c.output for c in reversed(state.tool_calls)
+        if isinstance(c.output, dict) and c.output.get("input_reason") == "unsupported_file_format"
+    ), None)
+    if unreadable:
+        filename = unreadable.get("source_filename") or "fichier"
+        question = (
+            f"Le fichier « {filename} » est bien conservé, mais son contenu ne peut pas être lu avec les outils disponibles. "
+            "Exporte une copie lisible (PDF, texte, CSV, image ou ZIP de code), ou connecte un outil compatible pour continuer."
+            if lang == "fr" else
+            f"The file “{filename}” is preserved, but the available tools cannot read its content. "
+            "Export a readable copy (PDF, text, CSV, image or source ZIP), or connect a compatible tool to continue."
+        )
     state.status = RunStatus.WAITING_FOR_USER_INPUT
     state.error = None
     await phoenix.update_run_status(
-        request.run_id, RunStatus.WAITING_FOR_USER_INPUT.value
+        request.run_id, RunStatus.WAITING_FOR_USER_INPUT.value, extra={"question": question}
     )
     await phoenix.post_task_comment(
         request.workspace_id,
@@ -750,7 +773,7 @@ async def _save_artifacts(request: RunRequest, state: RunState, phoenix: Phoenix
     artifacts: list[str] = []
     for call in state.tool_calls:
         output = call.output if isinstance(call.output, dict) else None
-        if output is None:
+        if output is None or output.get("error"):
             continue
 
         try:
@@ -792,6 +815,11 @@ async def _save_artifacts(request: RunRequest, state: RunState, phoenix: Phoenix
                     request, saver, title, output["analysis"]
                 )
                 if filename:
+                    artifacts.append(filename)
+            elif call.tool == "extract_document_text" and output.get("text"):
+                filename = _safe_filename(output.get("filename") or "document") + "-extracted.txt"
+                saved = await saver(request.workspace_id, request.task_id, filename, output["text"], mime_type="text/plain")
+                if saved:
                     artifacts.append(filename)
         except Exception as exc:  # noqa: BLE001 — artifacts are best-effort
             log.warning("artifact_save_failed", run_id=request.run_id, tool=call.tool, error=str(exc))

@@ -87,7 +87,12 @@ defmodule Mokaid.Accounts.User do
   def registration_changeset(user, attrs) do
     user
     |> cast(attrs, [:email, :full_name, :password, :avatar_url, :locale, :timezone, :cognito_sub])
+    |> update_change(:email, &(String.trim(&1) |> String.downcase()))
+    |> update_change(:full_name, &String.trim/1)
     |> validate_required([:email, :full_name])
+    |> validate_length(:email, max: 254)
+    |> validate_length(:full_name, min: 2, max: 120)
+    |> require_password_for_local_account()
     |> validate_format(:email, ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
     |> unique_constraint(:email)
     |> unique_constraint(:cognito_sub)
@@ -139,7 +144,8 @@ defmodule Mokaid.Accounts.User do
     user
     |> cast(attrs, [:password])
     |> validate_required([:password])
-    |> validate_length(:password, min: 10, max: 100)
+    |> validate_length(:password, min: 10)
+    |> validate_length(:password, max: 72, count: :bytes)
     |> validate_confirmation(:password, required: true, message: "does not match")
     |> validate_current_password(attrs)
     |> maybe_hash_password()
@@ -169,6 +175,12 @@ defmodule Mokaid.Accounts.User do
     end
   end
 
+  defp require_password_for_local_account(changeset) do
+    if get_field(changeset, :cognito_sub) in [nil, ""],
+      do: validate_required(changeset, [:password]),
+      else: changeset
+  end
+
   defp maybe_hash_password(%Ecto.Changeset{valid?: false} = changeset), do: changeset
 
   defp maybe_hash_password(changeset) do
@@ -177,15 +189,23 @@ defmodule Mokaid.Accounts.User do
         changeset
 
       password ->
-        changeset
-        |> validate_length(:password, min: 10, max: 100)
-        |> put_change(:hashed_password, Bcrypt.hash_pwd_salt(password))
-        |> delete_change(:password)
+        validated =
+          changeset
+          |> validate_length(:password, min: 10)
+          |> validate_length(:password, max: 72, count: :bytes)
+
+        if validated.valid? do
+          validated
+          |> put_change(:hashed_password, Bcrypt.hash_pwd_salt(password))
+          |> delete_change(:password)
+        else
+          validated
+        end
     end
   end
 
   def valid_password?(%__MODULE__{hashed_password: hashed}, password)
-      when is_binary(hashed) and byte_size(password) > 0 do
+      when is_binary(hashed) and is_binary(password) and byte_size(password) in 1..72 do
     Bcrypt.verify_pass(password, hashed)
   end
 

@@ -5,6 +5,7 @@ to the registered tools. Without a key (offline dev, tests) the deterministic
 plans keep the full run/approve/resume lifecycle exercisable.
 """
 
+import re
 from typing import Any
 
 import structlog
@@ -131,33 +132,37 @@ def _mcp_tools_block(mcp_tools: list[dict[str, Any]]) -> str:
 def deterministic_plan(request: RunRequest) -> list[dict[str, Any]]:
     """Fixed plans keyed on the requested action (offline fallback)."""
 
-    has_images = any(
-        (f.mime_type or "").startswith("image/") for f in request.attached_files
-    )
-    has_audio = any(
-        (f.mime_type or "").startswith("audio/") for f in request.attached_files
-    )
+    brief = request.input.get("instruction") or request.task_description or request.task_title or ""
+    if request.attached_files:
+        from app.tools.files import _AUDIO_EXTS, _IMAGE_EXTS
 
-    if has_images:
-        # Latest image wins: files are ordered oldest→newest, so iterating on
-        # a previous agent output naturally targets the most recent result.
-        images = [f for f in request.attached_files if (f.mime_type or "").startswith("image/")]
-        file = images[-1]
-        return [
-            {"tool": "transform_image", "input": {
-                "file_url": file.download_url,
-                "instruction": request.task_description or request.task_title or "",
-                "original_filename": file.name,
-            }},
-        ]
-    if has_audio:
-        file = next(f for f in request.attached_files if (f.mime_type or "").startswith("audio/"))
-        return [
-            {"tool": "transcribe_audio", "input": {
-                "file_url": file.download_url,
-                "original_filename": file.name,
-            }},
-        ]
+        edit_image = bool(re.search(
+            r"\b(modif\w*|edit\w*|recolou?r\w*|colori\w*|resize|rotate|crop|retouch\w*|redimension\w*|change\w*|ajout\w*)\b",
+            brief, re.IGNORECASE,
+        ))
+        images = [f for f in request.attached_files if (f.mime_type or "").startswith("image/") or f.name.lower().endswith(_IMAGE_EXTS)]
+        if edit_image and images:
+            file = images[-1]
+            return [{"tool": "transform_image", "input": {
+                "file_url": file.download_url, "instruction": brief, "original_filename": file.name,
+            }}]
+        # Process every input; a mixed document batch must not silently lose files.
+        files = [f for f in request.attached_files if f.source != "agent_output"] or request.attached_files
+        steps = []
+        for file in files:
+            mime = file.mime_type or ""
+            name = file.name.lower()
+            if mime.startswith(("audio/", "video/")) or name.endswith(_AUDIO_EXTS):
+                tool_name = "transcribe_audio"
+            elif mime.startswith("image/") or name.endswith(_IMAGE_EXTS):
+                tool_name = "analyze_file"
+            else:
+                tool_name = "extract_document_text"
+            steps.append({"tool": tool_name, "input": {
+                "file_url": file.download_url, "original_filename": file.name,
+                "mime_type": mime, "question": brief,
+            }})
+        return steps
 
     action = request.input.get("action", "summarize")
 

@@ -1,0 +1,108 @@
+{
+  "renderer": "scripts/blender-desktop-portraits.py",
+  "portraits": [
+    {
+      "avatar_cdn_path": "/assets3d/avatar_male.21ca01757e1a.glb",
+      "source": "assets/optimized/avatar_male.21ca01757e1a.glb",
+      "sourceSha256": "21ca01757e1a5b0242344f76391b8ca5e2ecc98f7d588d83143b0219efe0d7db",
+      "render": "/branding/agent-portraits/portrait-male.png",
+      "size": [
+        384,
+        384
+      ]
+    },
+    {
+      "avatar_cdn_path": "/assets3d/avatar_design.1c0dba698d81.glb",
+      "source": "assets/optimized/avatar_design.1c0dba698d81.glb",
+      "sourceSha256": "1c0dba698d817f42263efdc62c82d528eef0c5840f254d246ca618bd9658960c",
+      "render": "/branding/agent-portraits/portrait-design.png",
+      "size": [
+        384,
+        384
+      ]
+    },
+    {
+      "avatar_cdn_path": "/assets3d/avatar_finance.1db634ff8a82.glb",
+      "source": "assets/optimized/avatar_finance.1db634ff8a82.glb",
+      "sourceSha256": "1db634ff8a82cc9911aa224b25a38efde26034a389fc500a11cdae1875be6eba",
+      "render": "/branding/agent-portraits/portrait-finance.png",
+      "size": [
+        384,
+        384
+      ]
+    },
+    {
+      "avatar_cdn_path": "/assets3d/avatar_corporate.b2951a24cd02.glb",
+      "source": "assets/optimized/avatar_corporate.b2951a24cd02.glb",
+      "sourceSha256": "b2951a24cd0219ffd306353c2fd31c37aae1760ea802f4378010cb67ab1e0a0c",
+      "render": "/branding/agent-portraits/portrait-corporate.png",
+      "size": [
+        384,
+        384
+      ]
+    },
+    {
+      "avatar_cdn_path": "/assets3d/avatar_developer.867211fc6b99.glb",
+      "source": "assets/optimized/avatar_developer.867211fc6b99.glb",
+      "sourceSha256": "867211fc6b99e9d01df3626943f7155cfc7e6ad9fa5f7138bcc5263452770303",
+      "render": "/branding/agent-portraits/portrait-developer.png",
+      "size": [
+        384,
+        384
+      ]
+    },
+    {
+      "avatar_cdn_path": "/assets3d/avatar_research.7c86fc428e9f.glb",
+      "source": "assets/optimized/avatar_research.7c86fc428e9f.glb",
+      "sourceSha256": "7c86fc428e9f339c9ecb0b75425c178b1649812b09e5ae8d6f08f8e6c26f40ca",
+      "render": "/branding/agent-portraits/portrait-research.png",
+      "size": [
+        384,
+        384
+      ]
+    },
+    {
+      "avatar_cdn_path": "/assets3d/avatar_legal.859687268a64.glb",
+      "source": "assets/optimized/avatar_legal.859687268a64.glb",
+      "sourceSha256": "859687268a642c7644714cee5ebd5e9f72b6a4835c62140122f3f965f3364198",
+      "render": "/branding/agent-portraits/portrait-legal.png",
+      "size": [
+        384,
+        384
+      ]
+    },
+    {
+      "avatar_cdn_path": "/assets3d/avatar_byte.cb5a54d04591.glb",
+      "source": "assets/optimized/avatar_byte.cb5a54d04591.glb",
+      "sourceSha256": "cb5a54d04591017b25a47af730a82f890690ffdada73e342dc8a46a15044d34d",
+      "render": "/branding/agent-portraits/portrait-byte.png",
+      "size": [
+        384,
+        384
+      ],
+      "renderer": "scripts/blender-atypical-avatars.py"
+    },
+    {
+      "avatar_cdn_path": "/assets3d/avatar_nyx.90aeb6731720.glb",
+      "source": "assets/optimized/avatar_nyx.90aeb6731720.glb",
+      "sourceSha256": "90aeb67317202236acf64f3841f7cdfd56e31fe839ceed957a27ecefad6cab40",
+      "render": "/branding/agent-portraits/portrait-nyx.png",
+      "size": [
+        384,
+        384
+      ],
+      "renderer": "scripts/blender-atypical-avatars.py"
+    },
+    {
+      "avatar_cdn_path": "/assets3d/avatar_moss.c04355089db5.glb",
+      "source": "assets/optimized/avatar_moss.c04355089db5.glb",
+      "sourceSha256": "c04355089db53a7eae846c27264d7dcb62d4b52512f4dbc2d5f44643839095e7",
+      "render": "/branding/agent-portraits/portrait-moss.png",
+      "size": [
+        384,
+        384
+      ],
+      "renderer": "scripts/blender-atypical-avatars.py"
+    }
+  ]
+}

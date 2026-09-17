@@ -32,7 +32,10 @@ defmodule MokaidWeb.UserSocket do
             if Mokaid.Auth.Desktop.access_token?(token), do: :error, else: {:ok, token}
 
           _ ->
-            :error
+            case Map.get(connect_info, :session) do
+              %{"web_token" => token} when is_binary(token) -> {:ok, token}
+              _ -> :error
+            end
         end
 
       _ ->
@@ -88,6 +91,10 @@ defmodule MokaidWeb.UserSocket do
             Mokaid.Auth.Desktop.validate_session(id, socket.assigns.current_user.id)
           )
 
+      %{web_session_id: id} ->
+        Mokaid.Auth.Token.validate_session(id, socket.assigns.current_user.id) and
+          Mokaid.Accounts.User.active?(Mokaid.Accounts.get_user(socket.assigns.current_user.id))
+
       _ ->
         socket.assigns.current_user.id
         |> Mokaid.Accounts.get_user()
@@ -97,5 +104,6 @@ defmodule MokaidWeb.UserSocket do
 
   @impl true
   def id(%{assigns: %{auth_session: %{desktop_session_id: id}}}), do: "desktop_session:" <> id
+  def id(%{assigns: %{auth_session: %{web_session_id: id}}}), do: "web_session:" <> id
   def id(socket), do: "user_socket:#{socket.assigns.current_user.id}"
 end

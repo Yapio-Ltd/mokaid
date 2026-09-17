@@ -1,0 +1,190 @@
+{
+  "male": {
+    "source": "assets/optimized/avatar_male.21ca01757e1a.glb",
+    "sourceSha256": "21ca01757e1a5b0242344f76391b8ca5e2ecc98f7d588d83143b0219efe0d7db",
+    "render": "apps/desktop/presentation/assets/portrait-male.png",
+    "size": [
+      384,
+      384
+    ],
+    "headBounds": [
+      [
+        -0.1650168001651764,
+        -0.1577712893486023,
+        1.170329213142395
+      ],
+      [
+        0.1427624225616455,
+        0.16273686289787292,
+        1.5494582653045654
+      ]
+    ],
+    "orthoScale": 0.5421545505523682
+  },
+  "design": {
+    "source": "assets/optimized/avatar_design.1c0dba698d81.glb",
+    "sourceSha256": "1c0dba698d817f42263efdc62c82d528eef0c5840f254d246ca618bd9658960c",
+    "render": "apps/desktop/presentation/assets/portrait-design.png",
+    "size": [
+      384,
+      384
+    ],
+    "headBounds": [
+      [
+        -0.14121387898921967,
+        -0.25381550192832947,
+        1.2208129167556763
+      ],
+      [
+        0.14197389781475067,
+        0.22429972887039185,
+        1.6211340427398682
+      ]
+    ],
+    "orthoScale": 0.5724592208862305
+  },
+  "finance": {
+    "source": "assets/optimized/avatar_finance.1db634ff8a82.glb",
+    "sourceSha256": "1db634ff8a82cc9911aa224b25a38efde26034a389fc500a11cdae1875be6eba",
+    "render": "apps/desktop/presentation/assets/portrait-finance.png",
+    "size": [
+      384,
+      384
+    ],
+    "headBounds": [
+      [
+        -0.10107488185167313,
+        -0.14557071030139923,
+        1.3253099918365479
+      ],
+      [
+        0.10166256874799728,
+        0.14209869503974915,
+        1.6005233526229858
+      ]
+    ],
+    "orthoScale": 0.3935551047325134
+  },
+  "corporate": {
+    "source": "assets/optimized/avatar_corporate.b2951a24cd02.glb",
+    "sourceSha256": "b2951a24cd0219ffd306353c2fd31c37aae1760ea802f4378010cb67ab1e0a0c",
+    "render": "apps/desktop/presentation/assets/portrait-corporate.png",
+    "size": [
+      384,
+      384
+    ],
+    "headBounds": [
+      [
+        -0.10413123667240143,
+        -0.11189097911119461,
+        1.5002834796905518
+      ],
+      [
+        0.10485672950744629,
+        0.13586443662643433,
+        1.8000054359436035
+      ]
+    ],
+    "orthoScale": 0.428602397441864
+  },
+  "developer": {
+    "source": "assets/optimized/avatar_developer.867211fc6b99.glb",
+    "sourceSha256": "867211fc6b99e9d01df3626943f7155cfc7e6ad9fa5f7138bcc5263452770303",
+    "render": "apps/desktop/presentation/assets/portrait-developer.png",
+    "size": [
+      384,
+      384
+    ],
+    "headBounds": [
+      [
+        -0.09272395819425583,
+        -0.009600196965038776,
+        1.4037314653396606
+      ],
+      [
+        0.09238272160291672,
+        0.2326328158378601,
+        1.6997125148773193
+      ]
+    ],
+    "orthoScale": 0.4232529103755951
+  },
+  "research": {
+    "source": "assets/optimized/avatar_research.7c86fc428e9f.glb",
+    "sourceSha256": "7c86fc428e9f339c9ecb0b75425c178b1649812b09e5ae8d6f08f8e6c26f40ca",
+    "render": "apps/desktop/presentation/assets/portrait-research.png",
+    "size": [
+      384,
+      384
+    ],
+    "headBounds": [
+      [
+        -0.29262253642082214,
+        -0.13665743172168732,
+        0.9877563118934631
+      ],
+      [
+        0.28769373893737793,
+        0.3336663246154785,
+        1.4998705387115479
+      ]
+    ],
+    "orthoScale": 0.8240491151809692
+  },
+  "legal": {
+    "source": "assets/optimized/avatar_legal.859687268a64.glb",
+    "sourceSha256": "859687268a642c7644714cee5ebd5e9f72b6a4835c62140122f3f965f3364198",
+    "render": "apps/desktop/presentation/assets/portrait-legal.png",
+    "size": [
+      384,
+      384
+    ],
+    "headBounds": [
+      [
+        -0.14742203056812286,
+        -0.17416717112064362,
+        1.1955461502075195
+      ],
+      [
+        0.1473798006772995,
+        0.1699359118938446,
+        1.6503509283065796
+      ]
+    ],
+    "orthoScale": 0.6503708362579346
+  },
+  "orb": {
+    "source": "Procedural Blender sphere, authored violet rim and material",
+    "render": "apps/desktop/presentation/assets/brand-orb.png"
+  },
+  "byte": {
+    "source": "assets/optimized/avatar_byte.cb5a54d04591.glb",
+    "sourceSha256": "cb5a54d04591017b25a47af730a82f890690ffdada73e342dc8a46a15044d34d",
+    "render": "apps/desktop/presentation/assets/portrait-byte.png",
+    "size": [
+      384,
+      384
+    ],
+    "renderer": "scripts/blender-atypical-avatars.py"
+  },
+  "nyx": {
+    "source": "assets/optimized/avatar_nyx.90aeb6731720.glb",
+    "sourceSha256": "90aeb67317202236acf64f3841f7cdfd56e31fe839ceed957a27ecefad6cab40",
+    "render": "apps/desktop/presentation/assets/portrait-nyx.png",
+    "size": [
+      384,
+      384
+    ],
+    "renderer": "scripts/blender-atypical-avatars.py"
+  },
+  "moss": {
+    "source": "assets/optimized/avatar_moss.c04355089db5.glb",
+    "sourceSha256": "c04355089db53a7eae846c27264d7dcb62d4b52512f4dbc2d5f44643839095e7",
+    "render": "apps/desktop/presentation/assets/portrait-moss.png",
+    "size": [
+      384,
+      384
+    ],
+    "renderer": "scripts/blender-atypical-avatars.py"
+  }
+}

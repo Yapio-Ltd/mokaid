@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
+import { WorkforceSidebar, WorkforceTopbar } from "./workforce-shell";
 import { useWorkspaceChannel } from "@/realtime/use-workspace-channel";
 import { useOnboardingSettings } from "@/api/hooks";
 import { apiFetch } from "@/api/client";
@@ -81,6 +82,7 @@ export function AppShell() {
   // (switching tabs inside a page must not replay the transition).
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const routeKey = pathname.split("/")[1] ?? "";
+  const isWorkforcePage = pathname === "/agents";
 
   // Side panels are shell-global: dismiss them on route change, unless a
   // toast/notification queued a task to open after landing on /tasks.
@@ -92,13 +94,15 @@ export function AppShell() {
   }, [pathname, selectTask, selectAgent]);
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <Sidebar />
+    <div className={`flex h-full overflow-hidden${isWorkforcePage ? " wf-shell" : ""}`}>
+      {isWorkforcePage ? <WorkforceSidebar /> : <Sidebar />}
       <div className="relative flex min-w-0 flex-1 flex-col">
-        <div className="mk-main-aura" aria-hidden />
-        <Topbar />
+        {!isWorkforcePage && <div className="mk-main-aura" aria-hidden />}
+        {isWorkforcePage ? <WorkforceTopbar /> : <Topbar />}
         <ReviewBanner />
-        <main className="relative min-h-0 flex-1 overflow-y-auto p-5">
+        <main
+          className={`relative min-h-0 flex-1 overflow-y-auto p-5${isWorkforcePage ? " wf-shell-main" : ""}`}
+        >
           <OfficePark />
           <div key={routeKey} className="mk-page h-full">
             <Outlet />
@@ -107,7 +111,7 @@ export function AppShell() {
       </div>
       <TaskDetailPanel taskId={selectedTaskId} onClose={() => selectTask(null)} overlay />
       <DeliverableViewer />
-      <FloatingChatDock />
+      <FloatingChatDock hideEmptyLauncher={isWorkforcePage} />
       <OnboardingGate />
       <CoachmarkTour />
       <ReviewGateModal />

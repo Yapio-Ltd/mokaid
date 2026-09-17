@@ -15,6 +15,11 @@ class FeatureController final : public QObject {
     Q_PROPERTY(QString currentPage READ currentPage NOTIFY changed)
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(QAbstractListModel* records READ records CONSTANT)
+    Q_PROPERTY(QVariantList visibleRecords READ visibleRecords NOTIFY changed)
+    Q_PROPERTY(QVariantList allRecords READ allRecords NOTIFY changed)
+    Q_PROPERTY(QVariantMap overview READ overview NOTIFY changed)
+    Q_PROPERTY(QVariantMap selectedRecord READ selectedRecord NOTIFY changed)
+    Q_PROPERTY(bool showingRecordDetails READ showingRecordDetails NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(bool offline READ offline NOTIFY changed)
@@ -36,6 +41,11 @@ public:
     QString currentPage() const { return currentPage_; }
     QString title() const;
     QAbstractListModel* records() { return &records_; }
+    QVariantList visibleRecords() const;
+    QVariantList allRecords() const;
+    QVariantMap overview() const;
+    QVariantMap selectedRecord() const;
+    bool showingRecordDetails() const { return detailHeading_ == "Record details"; }
     bool busy() const { return busy_; }
     QString error() const { return error_; }
     bool offline() const { return offline_; }

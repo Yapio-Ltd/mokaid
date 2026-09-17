@@ -1,14 +1,16 @@
 #pragma once
 #include "math.hpp"
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace mokaid::engine {
-constexpr std::uint32_t assetVersion = 3;
+constexpr std::uint32_t assetVersion = 4;
 constexpr std::size_t maxSkinJoints = 128;
 struct Vertex {
   Vec3 position, normal;
@@ -33,6 +35,8 @@ struct Material {
   std::int32_t metallicRoughnessTexture{-1};
   std::uint32_t alphaMode{};
   float alphaCutoff{.5F};
+  // Cooked semantics: 0 = PBR, 1 = ambient display, 2 = phone, 3 = phone dock.
+  std::uint32_t surfaceKind{};
 };
 struct Node {
   std::int32_t parent{-1};
@@ -63,6 +67,11 @@ struct Animation {
   float duration{};
   std::vector<Channel> channels;
 };
+struct HeadTrack {
+  std::string clip;
+  float duration{};
+  std::array<Vec3,17> positions{};
+};
 struct Scene {
   std::vector<Texture> textures;
   std::vector<Material> materials;
@@ -75,6 +84,8 @@ struct Scene {
   // store centimetre-scaled mesh nodes with metre-scaled joint palettes.
   float referenceMinY{}, referenceHeight{};
   float sittingPelvisHeight{.58F};
+  float sofaPelvisHeight{.70F};
+  std::vector<HeadTrack> headTracks;
   std::uint64_t residentBytes{};
 };
 struct Pose {
@@ -114,12 +125,25 @@ struct Instance {
   float animationTime{};
   std::string agentId;
   std::vector<AnimationSample> animationSamples{};
+  struct NodeTranslation { std::uint32_t node; Vec3 delta; };
+  std::vector<NodeTranslation> nodeTranslations{};
+  std::uint32_t surfaceMask{~0U};
 };
 Pose evaluateInstancePose(const Instance &);
+Vec3 headPosition(const Scene &, std::span<const AnimationSample>);
+bool oneShotAnimation(std::string_view);
+struct ActorIndicator {
+  std::string id, name, activity;
+  int level{};
+  Vec3 headWorld{};
+  float activityLevel{};
+};
 struct Frame {
   std::vector<Instance> instances;
   Mat4 viewProjection;
   Vec3 camera;
   std::uint64_t sequence{};
+  float sceneSeconds{};
+  std::vector<ActorIndicator> actorIndicators;
 };
 } // namespace mokaid::engine

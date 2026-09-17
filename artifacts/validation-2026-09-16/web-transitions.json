@@ -1,0 +1,134 @@
+{
+  "seated": [
+    {
+      "slot": "desk_0",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_1",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_2",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_3",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_4",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_5",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    }
+  ],
+  "activities": [
+    {
+      "slot": "coffee_active",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "sofa_a",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "sofa_c",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "foosball_b",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_4",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_5",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    }
+  ],
+  "returned": [
+    {
+      "slot": "desk_0",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_1",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_2",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_3",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_4",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    },
+    {
+      "slot": "desk_5",
+      "crowd": false,
+      "recover": 0,
+      "blend": false,
+      "exit": false
+    }
+  ]
+}

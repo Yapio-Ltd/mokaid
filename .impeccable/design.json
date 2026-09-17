@@ -1,0 +1,458 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-16T20:30:44.587515+00:00",
+  "title": "Design System: mokaid Agents workspace",
+  "extensions": {
+    "colorMeta": {
+      "workforce-bg": {
+        "role": "neutral",
+        "displayName": "Workforce background",
+        "tonalRamp": [
+          "oklch(15% 0.016 275)",
+          "oklch(27% 0.016 275)",
+          "oklch(38% 0.016 275)",
+          "oklch(50% 0.016 275)",
+          "oklch(61% 0.016 275)",
+          "oklch(73% 0.016 275)",
+          "oklch(84% 0.016 275)",
+          "oklch(95% 0.016 275)"
+        ]
+      },
+      "shell-bg": {
+        "role": "neutral",
+        "displayName": "Shell background",
+        "tonalRamp": [
+          "oklch(15% 0.016 280)",
+          "oklch(27% 0.016 280)",
+          "oklch(38% 0.016 280)",
+          "oklch(50% 0.016 280)",
+          "oklch(61% 0.016 280)",
+          "oklch(73% 0.016 280)",
+          "oklch(84% 0.016 280)",
+          "oklch(95% 0.016 280)"
+        ]
+      },
+      "workforce-surface": {
+        "role": "neutral",
+        "displayName": "Workforce surface",
+        "tonalRamp": [
+          "oklch(15% 0.022 275)",
+          "oklch(27% 0.022 275)",
+          "oklch(38% 0.022 275)",
+          "oklch(50% 0.022 275)",
+          "oklch(61% 0.022 275)",
+          "oklch(73% 0.022 275)",
+          "oklch(84% 0.022 275)",
+          "oklch(95% 0.022 275)"
+        ]
+      },
+      "workforce-border": {
+        "role": "neutral",
+        "displayName": "Workforce border",
+        "tonalRamp": [
+          "oklch(15% 0.035 275)",
+          "oklch(27% 0.035 275)",
+          "oklch(38% 0.035 275)",
+          "oklch(50% 0.035 275)",
+          "oklch(61% 0.035 275)",
+          "oklch(73% 0.035 275)",
+          "oklch(84% 0.035 275)",
+          "oklch(95% 0.035 275)"
+        ]
+      },
+      "workforce-text": {
+        "role": "neutral",
+        "displayName": "Workforce text",
+        "tonalRamp": [
+          "oklch(15% 0.014 285)",
+          "oklch(27% 0.014 285)",
+          "oklch(38% 0.014 285)",
+          "oklch(50% 0.014 285)",
+          "oklch(61% 0.014 285)",
+          "oklch(73% 0.014 285)",
+          "oklch(84% 0.014 285)",
+          "oklch(95% 0.014 285)"
+        ]
+      },
+      "workforce-secondary": {
+        "role": "neutral",
+        "displayName": "Workforce secondary",
+        "tonalRamp": [
+          "oklch(15% 0.05 270)",
+          "oklch(27% 0.05 270)",
+          "oklch(38% 0.05 270)",
+          "oklch(50% 0.05 270)",
+          "oklch(61% 0.05 270)",
+          "oklch(73% 0.05 270)",
+          "oklch(84% 0.05 270)",
+          "oklch(95% 0.05 270)"
+        ]
+      },
+      "workforce-muted": {
+        "role": "neutral",
+        "displayName": "Workforce muted",
+        "tonalRamp": [
+          "oklch(15% 0.06 270)",
+          "oklch(27% 0.06 270)",
+          "oklch(38% 0.06 270)",
+          "oklch(50% 0.06 270)",
+          "oklch(61% 0.06 270)",
+          "oklch(73% 0.06 270)",
+          "oklch(84% 0.06 270)",
+          "oklch(95% 0.06 270)"
+        ]
+      },
+      "workforce-purple": {
+        "role": "primary",
+        "displayName": "Workforce purple",
+        "tonalRamp": [
+          "oklch(15% 0.14 295)",
+          "oklch(27% 0.14 295)",
+          "oklch(38% 0.14 295)",
+          "oklch(50% 0.14 295)",
+          "oklch(61% 0.14 295)",
+          "oklch(73% 0.14 295)",
+          "oklch(84% 0.14 295)",
+          "oklch(95% 0.14 295)"
+        ]
+      },
+      "active-text": {
+        "role": "secondary",
+        "displayName": "Active text",
+        "tonalRamp": [
+          "oklch(15% 0.13 163)",
+          "oklch(27% 0.13 163)",
+          "oklch(38% 0.13 163)",
+          "oklch(50% 0.13 163)",
+          "oklch(61% 0.13 163)",
+          "oklch(73% 0.13 163)",
+          "oklch(84% 0.13 163)",
+          "oklch(95% 0.13 163)"
+        ]
+      },
+      "idle-text": {
+        "role": "secondary",
+        "displayName": "Idle text",
+        "tonalRamp": [
+          "oklch(15% 0.12 240)",
+          "oklch(27% 0.12 240)",
+          "oklch(38% 0.12 240)",
+          "oklch(50% 0.12 240)",
+          "oklch(61% 0.12 240)",
+          "oklch(73% 0.12 240)",
+          "oklch(84% 0.12 240)",
+          "oklch(95% 0.12 240)"
+        ]
+      },
+      "attention-text": {
+        "role": "secondary",
+        "displayName": "Attention text",
+        "tonalRamp": [
+          "oklch(15% 0.12 75)",
+          "oklch(27% 0.12 75)",
+          "oklch(38% 0.12 75)",
+          "oklch(50% 0.12 75)",
+          "oklch(61% 0.12 75)",
+          "oklch(73% 0.12 75)",
+          "oklch(84% 0.12 75)",
+          "oklch(95% 0.12 75)"
+        ]
+      },
+      "blocked-text": {
+        "role": "secondary",
+        "displayName": "Blocked text",
+        "tonalRamp": [
+          "oklch(15% 0.12 5)",
+          "oklch(27% 0.12 5)",
+          "oklch(38% 0.12 5)",
+          "oklch(50% 0.12 5)",
+          "oklch(61% 0.12 5)",
+          "oklch(73% 0.12 5)",
+          "oklch(84% 0.12 5)",
+          "oklch(95% 0.12 5)"
+        ]
+      },
+      "action-text": {
+        "role": "neutral",
+        "displayName": "Action text",
+        "tonalRamp": [
+          "oklch(15% 0.025 300)",
+          "oklch(27% 0.025 300)",
+          "oklch(38% 0.025 300)",
+          "oklch(50% 0.025 300)",
+          "oklch(61% 0.025 300)",
+          "oklch(73% 0.025 300)",
+          "oklch(84% 0.025 300)",
+          "oklch(95% 0.025 300)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Workforce heading",
+        "purpose": "Agents page title in route-scoped, locally hosted Workforce Manrope."
+      },
+      "title": {
+        "displayName": "Agent name",
+        "purpose": "Selected real agent identity in the inspector."
+      },
+      "body": {
+        "displayName": "Roster body",
+        "purpose": "Compact operational content with tabular numbers."
+      },
+      "label": {
+        "displayName": "Control label",
+        "purpose": "Inspector tabs and compact controls."
+      },
+      "eyebrow": {
+        "displayName": "Page eyebrow",
+        "purpose": "Small tracked uppercase Agents label."
+      }
+    },
+    "shadows": [
+      {
+        "name": "create-action",
+        "value": "inset 0 0 16px #8053ff38, inset 0 1px 0 #ffffff12, 0 3px 22px #7040e926",
+        "purpose": "Subtle local light on the creation action."
+      },
+      {
+        "name": "active-navigation",
+        "value": "inset 0 0 11px #7f3ee447, 0 0 18px #7b3eff66, 0 3px 35px #6948e326",
+        "purpose": "Active Agents link in the sidebar."
+      },
+      {
+        "name": "active-inspector-tab",
+        "value": "0 2px 9px #8553ff66",
+        "purpose": "Light below the selected tab underline."
+      },
+      {
+        "name": "roster-menu",
+        "value": "0 10px 28px #0006",
+        "purpose": "Floating agent action menu."
+      }
+    ],
+    "motion": [
+      {
+        "name": "inspector-state",
+        "value": "150ms ease-out",
+        "purpose": "Inspector color and background state changes."
+      },
+      {
+        "name": "filter-state",
+        "value": "160ms",
+        "purpose": "Filter and navigation state changes."
+      },
+      {
+        "name": "create-state",
+        "value": "180ms",
+        "purpose": "Creation action border and background changes."
+      },
+      {
+        "name": "loading-placeholder",
+        "value": "1.7s ease-in-out infinite alternate",
+        "purpose": "Loading placeholder opacity; removed for reduced motion."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Disable route/inspector motion, effectively remove shell motion, and use immediate inspector scrolling."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide-roster",
+        "value": "1600px"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "1450px"
+      },
+      {
+        "name": "stack-inspector",
+        "value": "1200px"
+      },
+      {
+        "name": "narrow-sidebar",
+        "value": "1100px"
+      },
+      {
+        "name": "mobile-navigation",
+        "value": "760px"
+      },
+      {
+        "name": "mobile-roster",
+        "value": "700px"
+      },
+      {
+        "name": "single-column-inspector-metadata",
+        "value": "520px"
+      },
+      {
+        "name": "small-inspector",
+        "value": "480px"
+      },
+      {
+        "name": "compact-sidebar-height",
+        "value": "(max-height: 900px) and (min-width: 761px)"
+      }
+    ],
+    "fontFamily": {
+      "scope": ".wf-shell on the web /agents route",
+      "family": "\"Workforce Manrope\", Inter, sans-serif",
+      "source": "apps/web/public/fonts/Manrope.ttf",
+      "license": "apps/web/public/fonts/OFL-Manrope.txt",
+      "weightRange": [200, 800],
+      "display": "swap"
+    },
+    "routeImplementation": {
+      "scope": "Web /agents and its conditional shell only; preserve other project interfaces and behavior.",
+      "layoutAnchors": "Inset sidebar, top bar, searchable roster, right inspector, and bottom aggregate metrics retain their established composition.",
+      "portraits": {
+        "component": "apps/web/src/components/agents/workforce-agent-portrait.tsx",
+        "provenance": "apps/web/public/branding/agent-portraits/provenance.json",
+        "source": "Seven existing static renders of the exact recorded GLB assets.",
+        "defaultSizePx": {
+          "row": 60,
+          "detail": 74
+        },
+        "responsiveSizePx": {
+          "rowAt1450AndBelow": 50,
+          "detailAt520AndBelow": 60
+        },
+        "appearance": "Circular indigo backdrop with a thin violet border.",
+        "matching": "Exact avatar_cdn_path match through resolveAgentGlbUrl against known hashed asset URLs. Unassigned defaults use the existing CDN resolver.",
+        "fallback": "AgentAvatar for human, unknown, custom, or unresolved assigned assets and failed image loads.",
+        "identityRule": "Never infer a portrait from agent name, role, or an approximate filename."
+      },
+      "decorativeOrb": {
+        "asset": "apps/web/public/branding/workforce-energy-orb.png",
+        "provenance": "apps/web/public/branding/workforce-energy-orb.json",
+        "origin": "Generated with image_gen.imagegen; original transparent PNG bytes retained.",
+        "usage": ["Sidebar promotion", "Account-menu control"],
+        "meaning": "Decorative only; conveys no metric, agent identity, or availability state."
+      },
+      "availability": {
+        "source": "apps/web/src/components/agents/workforce-agent-panel.tsx",
+        "display": "Header dropdown displays persisted agent.status.",
+        "action": "AI assistance enabled persists agent.ai_enabled through useUpdateAgent.",
+        "states": "Disabled for human-linked agents or while saving; failed saves show an error toast.",
+        "navigation": "Manage agent settings links to the existing agent route."
+      },
+      "sharedActions": {
+        "source": "apps/web/src/components/agents/workforce-agent-actions.tsx",
+        "usage": "Shared by list, grid, and inspector; retains existing overview, chat, edit, and training actions.",
+        "humanAgents": "Test agent is disabled for human-linked agents."
+      },
+      "smallCharts": {
+        "source": "apps/web/src/components/agents/workforce-metrics.tsx",
+        "taskCompletions": "Loaded Task records with status completed and a valid completed_at, bucketed into the latest 14 UTC calendar days including today. Future or missing dates are excluded; updated_at is never substituted.",
+        "taskProgress": "Up to eight loaded active tasks, excluding completed and canceled records; each bar reflects persisted progress_percent.",
+        "performance": "Static segmented meter of the current combined progression score. Never a success rate or invented performance history.",
+        "separation": "The sparkline beside a roster performance value and bars below Missions completed show dated Task activity, not performance history or lifetime mission totals.",
+        "missingData": "Accessible labels identify the metric, window, and loaded-record scope; unavailable data differs from a loaded empty set."
+      },
+      "mobileMetadata": "At 520px and below, inspector metadata uses one column of label/value rows; last activity returns to ordinary row flow."
+    }
+  },
+  "components": [
+    {
+      "name": "Create agent button",
+      "kind": "button",
+      "refersTo": "button-create",
+      "description": "Dark gradient action with a violet-to-blue border at the page heading; specimen label only.",
+      "html": "<button class=\"ds-create\">Create agent <span aria-hidden=\"true\">+</span></button>",
+      "css": ".ds-create{display:inline-flex;align-items:center;justify-content:center;gap:19px;min-height:46px;padding:0 23px;border-radius:14px;border:1px solid transparent;background:linear-gradient(115deg,#241335,#191e39) padding-box,linear-gradient(110deg,#ac5aff,#648cfb) border-box;box-shadow:inset 0 0 16px #8053ff38,inset 0 1px 0 #ffffff12,0 3px 22px #7040e926;color:#eee6ff;font-family:inherit;font-size:14px;font-weight:650;transition:border-color .18s,background .18s}.ds-create:hover{border-color:#bd96ff;background:#30234d}.ds-create:focus-visible{outline:2px solid #af91ff;outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-create{transition:none}}"
+    },
+    {
+      "name": "Inspector primary button",
+      "kind": "button",
+      "refersTo": "button-detail-primary",
+      "description": "Bright gradient used for edit actions in the selected agent inspector.",
+      "html": "<button class=\"ds-detail-primary\">Edit agent</button>",
+      "css": ".ds-detail-primary{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:10px 14px;border:1px solid #8f6cfa;border-radius:10px;background:linear-gradient(115deg,#704fe5,#7435f4);box-shadow:inset 0 1px 0 #bfb0ff3d;color:#f2efff;font-family:inherit;font-size:13px;font-weight:600;transition:background 150ms ease-out,border-color 150ms ease-out}.ds-detail-primary:hover{background:linear-gradient(115deg,#7152e5,#7435f4);border-color:#b8a3ff}.ds-detail-primary:focus-visible{outline:2px solid #af91ff;outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-detail-primary{transition:none}}"
+    },
+    {
+      "name": "Inspector secondary button",
+      "kind": "button",
+      "refersTo": "button-detail-secondary",
+      "description": "Quiet chat action; Test agent is disabled for human-linked agents in the inspector and roster action menu.",
+      "html": "<button class=\"ds-detail-secondary\">Test agent</button>",
+      "css": ".ds-detail-secondary{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:10px 14px;border:1px solid #2c2c48;border-radius:10px;background:#141623;color:#f2efff;font-family:inherit;font-size:13px;font-weight:600;transition:background 150ms ease-out,border-color 150ms ease-out}.ds-detail-secondary:hover{background:#1d2034;border-color:#555071}.ds-detail-secondary:disabled{opacity:.45;cursor:not-allowed}.ds-detail-secondary:focus-visible{outline:2px solid #af91ff;outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-detail-secondary{transition:none}}"
+    },
+    {
+      "name": "Agent search field",
+      "kind": "input",
+      "refersTo": "input-agent-search",
+      "description": "Local roster search; distinct from application-wide search.",
+      "html": "<label class=\"ds-search\"><svg aria-hidden=\"true\" width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input type=\"search\" aria-label=\"Search agents\" placeholder=\"Search agents...\"></label>",
+      "css": ".ds-search{display:flex;align-items:center;gap:6px;height:41px;width:204px;padding:0 10px;border:1px solid #25273d;border-radius:10px;background:#0e101a;color:#8492b7}.ds-search input{min-width:0;width:100%;border:0;background:transparent;color:#e1e4f7;outline:none;font-family:inherit;font-size:12px;caret-color:#b48aff}.ds-search input::placeholder{color:#a0acd0}.ds-search:focus-within{border-color:#9b73e8}.ds-search input:focus-visible{outline:2px solid #af91ff;outline-offset:3px}"
+    },
+    {
+      "name": "Active Agents navigation",
+      "kind": "nav",
+      "description": "Current page link with purple outline and trailing light; the full mobile sidebar transfers, cycles and restores keyboard focus.",
+      "html": "<a href=\"/agents\" class=\"ds-nav\" aria-current=\"page\"><span>Agents</span><i aria-hidden=\"true\"></i></a>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:21px;width:210px;height:44px;padding:0 15px;border:1px solid #9b55f4;border-radius:11px;color:#e8dbff;background:linear-gradient(115deg,#6333a57a,#282c714d 65%,#4b2a875a);box-shadow:inset 0 0 11px #7f3ee447,0 0 18px #7b3eff66,0 3px 35px #6948e326;font-family:inherit;font-size:14px;font-weight:400;text-decoration:none;transition:background-color 160ms,color 160ms}.ds-nav i{margin-left:auto;width:10px;height:10px;border-radius:4px;background:#b193fa;box-shadow:0 0 10px #8d52ff}.ds-nav:hover{color:#f0eaff;background-color:#251a3e85}.ds-nav:focus-visible{outline:2px solid #af91ff;outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-nav{transition:none}}"
+    },
+    {
+      "name": "Agent status chip",
+      "kind": "chip",
+      "description": "Noninteractive roster state specimen. The inspector header separately exposes an availability dropdown that persists ai_enabled while retaining the actual status label.",
+      "html": "<span class=\"ds-status\"><i aria-hidden=\"true\"></i>Active</span>",
+      "css": ".ds-status{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #16533f66;color:#34edb0;background:#10392e;border-radius:8px;padding:7px 9px;font-family:inherit;font-size:10px;white-space:nowrap}.ds-status i{width:7px;height:7px;flex-shrink:0;border-radius:50%;background:#00df97}"
+    },
+    {
+      "name": "Selected status filter",
+      "kind": "button",
+      "description": "Pressed filter styling; the preview intentionally omits a fabricated count.",
+      "html": "<button class=\"ds-filter\" aria-pressed=\"true\">All agents</button>",
+      "css": ".ds-filter{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 13px;border-radius:10px;border:1px solid #925deb;background:linear-gradient(115deg,#28163e,#22203f);color:#f4edff;box-shadow:inset 0 0 12px #743fff18,0 3px 12px #7141de10;font-family:inherit;font-size:12px;transition:background .16s,border-color .16s}.ds-filter:hover{background:#1b1a2a;border-color:#464060}.ds-filter:focus-visible{outline:2px solid #af91ff;outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-filter{transition:none}}"
+    },
+    {
+      "name": "Agent card surface",
+      "kind": "card",
+      "refersTo": "card-agent",
+      "description": "Grid card shell. Preview copy describes the component and is not an agent record.",
+      "html": "<article class=\"ds-card\"><strong>Agent card</strong><p>Identity, state and metrics come from the selected workspace.</p></article>",
+      "css": ".ds-card{width:260px;padding:16px;border:1px solid #282b43;border-radius:12px;background:#121521;color:#f2f2fc;font-family:inherit;font-size:13px}.ds-card strong{font-weight:650}.ds-card p{margin:12px 0 0;color:#b3bfdf;font-size:11px;line-height:1.5}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The referenced AI workforce workspace",
+    "overview": "This document records the implemented web `/agents` surface. Its visual authority is the user-supplied `ChatGPT Image Sep 16, 2026, 10_36_57 PM.png`: dark navy surfaces, purple outlines and restrained glows, an inset sidebar, a searchable roster, a right-side agent inspector, and bottom aggregate metrics. The reference establishes presentation; the user's persisted agents establish content.\n\nScope is intentionally limited to this route and its conditional shell. Other web routes, authentication, account behavior, backend contracts, and native interfaces retain their existing implementations. The Agents shell uses locally hosted Manrope, with Inter and sans-serif fallbacks.",
+    "keyCharacteristics": [
+      "Dense, legible operational data on layered dark surfaces.",
+      "Purple borders and light identify selection and primary actions.",
+      "The roster and inspector show the user's real agents and accessible records.",
+      "Responsive stacking preserves the same actions and information."
+    ],
+    "rules": [
+      {
+        "name": "The State Meaning Rule",
+        "body": "A colored dot must accompany a state label. Browser “Online” describes the browser network connection; it does not certify backend or integration health.",
+        "section": "colors"
+      },
+      {
+        "name": "The Data Meaning Rule",
+        "body": "`performance_score` is a current combined progression score, labeled Performance and represented by a static segmented meter. Never label it success rate or imply a performance history. The task-completion sparkline beside a roster score and the bars beneath Missions completed describe dated Task activity; they do not graph performance or lifetime mission totals. `missions_completed` remains Missions completed. Only actual dated task records form history; progress bars represent current scalar values.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** apply this visual system only to the web `/agents` route and its conditional shell.",
+      "**Do** use the supplied reference for composition while populating it from the user's actual records.",
+      "**Do** preserve real identities, existing routes, account actions, backend contracts, and native interfaces.",
+      "**Do** retain loading, error, missing-data, keyboard-focus, and reduced-motion states.",
+      "**Do** preserve focus transfer and restoration for mobile navigation and the stacked inspector, including the sidebar's Tab cycle and Escape ownership.",
+      "**Do** distinguish performance scores, assigned tasks, and completed missions in every label and aggregate.",
+      "**Do** preserve exact avatar source matching, asset provenance, and the existing fallback renderer."
+    ],
+    "donts": [
+      "**Don't** expand this route-specific design into unrelated interfaces without a separate request.",
+      "**Don't** insert reference-image names, mock agents, fabricated connections, or decorative statistics into live data.",
+      "**Don't** draw trend lines or sparklines without historical data.",
+      "**Don't** present browser connectivity as server or integration health.",
+      "**Don't** silently turn unavailable task data into zero activity."
+    ]
+  }
+}

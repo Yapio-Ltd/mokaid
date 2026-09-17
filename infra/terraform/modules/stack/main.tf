@@ -546,28 +546,30 @@ module "api_service" {
   alb_security_group_id = module.alb.alb_security_group_id
 
   environment = {
-    MIX_ENV                = "prod"
-    PHX_HOST               = var.app_domain != "" ? var.app_domain : module.alb.alb_dns_name
-    PORT                   = "4000"
-    AWS_REGION             = var.aws_region
-    AUTH_MODE              = var.auth_mode
-    COGNITO_USER_POOL_ID   = module.cognito.user_pool_id
-    COGNITO_CLIENT_ID      = module.cognito.web_client_id
-    S3_BUCKET_UPLOADS      = module.s3_uploads.bucket_id
-    S3_BUCKET_PRIVATE      = module.s3_files.bucket_id
-    S3_BUCKET_OUTPUTS      = module.s3_exports.bucket_id
-    S3_BUCKET_EXPORTS      = module.s3_exports.bucket_id
-    AI_DISPATCH_QUEUE_URL  = module.sqs_ai_runs.queue_url
-    CORS_ORIGINS           = local.app_origin
-    FIGMA_REDIRECT_URI     = var.app_domain != "" ? "https://${var.app_domain}/oauth/figma/callback" : "https://mokaid.com/oauth/figma/callback"
-    GOOGLE_REDIRECT_URI    = var.app_domain != "" ? "https://${var.app_domain}/oauth/google/callback" : "https://mokaid.com/oauth/google/callback"
-    GITHUB_REDIRECT_URI    = var.app_domain != "" ? "https://${var.app_domain}/oauth/github/callback" : "https://mokaid.com/oauth/github/callback"
-    LINEAR_REDIRECT_URI    = var.app_domain != "" ? "https://${var.app_domain}/oauth/linear/callback" : "https://mokaid.com/oauth/linear/callback"
-    SLACK_REDIRECT_URI     = var.app_domain != "" ? "https://${var.app_domain}/oauth/slack/callback" : "https://mokaid.com/oauth/slack/callback"
-    NOTION_REDIRECT_URI    = var.app_domain != "" ? "https://${var.app_domain}/auth/notion/callback" : "https://mokaid.com/auth/notion/callback"
-    MICROSOFT_REDIRECT_URI = var.app_domain != "" ? "https://${var.app_domain}/oauth/microsoft/callback" : "https://mokaid.com/oauth/microsoft/callback"
-    MICROSOFT_TENANT       = "common"
-    RESEND_FROM            = "mokaid <notifications@mokaid.com>"
+    MIX_ENV    = "prod"
+    PHX_HOST   = var.app_domain != "" ? var.app_domain : module.alb.alb_dns_name
+    PORT       = "4000"
+    AWS_REGION = var.aws_region
+    AUTH_MODE  = var.auth_mode
+    # This API service accepts ingress only from alb_security_group_id above.
+    MOKAID_TRUSTED_ALB_CIDRS = join(",", module.vpc.public_subnet_cidrs)
+    COGNITO_USER_POOL_ID     = module.cognito.user_pool_id
+    COGNITO_CLIENT_ID        = module.cognito.web_client_id
+    S3_BUCKET_UPLOADS        = module.s3_uploads.bucket_id
+    S3_BUCKET_PRIVATE        = module.s3_files.bucket_id
+    S3_BUCKET_OUTPUTS        = module.s3_exports.bucket_id
+    S3_BUCKET_EXPORTS        = module.s3_exports.bucket_id
+    AI_DISPATCH_QUEUE_URL    = module.sqs_ai_runs.queue_url
+    CORS_ORIGINS             = local.app_origin
+    FIGMA_REDIRECT_URI       = var.app_domain != "" ? "https://${var.app_domain}/oauth/figma/callback" : "https://mokaid.com/oauth/figma/callback"
+    GOOGLE_REDIRECT_URI      = var.app_domain != "" ? "https://${var.app_domain}/oauth/google/callback" : "https://mokaid.com/oauth/google/callback"
+    GITHUB_REDIRECT_URI      = var.app_domain != "" ? "https://${var.app_domain}/oauth/github/callback" : "https://mokaid.com/oauth/github/callback"
+    LINEAR_REDIRECT_URI      = var.app_domain != "" ? "https://${var.app_domain}/oauth/linear/callback" : "https://mokaid.com/oauth/linear/callback"
+    SLACK_REDIRECT_URI       = var.app_domain != "" ? "https://${var.app_domain}/oauth/slack/callback" : "https://mokaid.com/oauth/slack/callback"
+    NOTION_REDIRECT_URI      = var.app_domain != "" ? "https://${var.app_domain}/auth/notion/callback" : "https://mokaid.com/auth/notion/callback"
+    MICROSOFT_REDIRECT_URI   = var.app_domain != "" ? "https://${var.app_domain}/oauth/microsoft/callback" : "https://mokaid.com/oauth/microsoft/callback"
+    MICROSOFT_TENANT         = "common"
+    RESEND_FROM              = "mokaid <notifications@mokaid.com>"
     # Gmail users.watch pushes to this GCP Pub/Sub topic, which forwards to /api/webhooks/gmail.
     GMAIL_PUBSUB_TOPIC    = var.gmail_pubsub_topic
     GMAIL_PUBSUB_AUDIENCE = var.app_domain != "" ? "https://${var.app_domain}/api/webhooks/gmail" : "https://mokaid.com/api/webhooks/gmail"

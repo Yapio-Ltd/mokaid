@@ -100,7 +100,7 @@ function ChatHead({
   );
 }
 
-export function FloatingChatDock() {
+export function FloatingChatDock({ hideEmptyLauncher = false }: { hideEmptyLauncher?: boolean }) {
   const { data: chatsData } = useAgentChats();
   const { data: agentsData } = useAgents();
 
@@ -174,15 +174,17 @@ export function FloatingChatDock() {
             );
           })}
 
-          <button
-            type="button"
-            onClick={() => setPickerOpen((open) => !open)}
-            title="Chat with an AI employee"
-            aria-label="Chat with an AI employee"
-            className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white shadow-glow transition-transform duration-150 ease-spring hover:scale-110 [corner-shape:round]"
-          >
-            <MessageSquarePlus size={17} />
-          </button>
+          {(!hideEmptyLauncher || headIds.length > 0) && (
+            <button
+              type="button"
+              onClick={() => setPickerOpen((open) => !open)}
+              title="Chat with an AI employee"
+              aria-label="Chat with an AI employee"
+              className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white shadow-glow transition-transform duration-150 ease-spring hover:scale-110 [corner-shape:round]"
+            >
+              <MessageSquarePlus size={17} />
+            </button>
+          )}
         </div>
       </div>
 

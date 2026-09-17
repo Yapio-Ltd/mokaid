@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { Animation, AnimationGroup, NullEngine, Scene, TransformNode } from "@babylonjs/core";
-import { advanceAgentAnimation, completeAgentAnimationTracks, disposeAgentAnims, normalizeAnimName, playAgentAnimation, setAgentWalkSpeed, type AgentAnimPlayer } from "./agent-model";
+import { advanceAgentAnimation, completeAgentAnimationTracks, disposeAgentAnims, normalizeAnimName, OFFICE_LIFE_CLIPS, playAgentAnimation, setAgentWalkSpeed, type AgentAnimPlayer, type AgentClipState } from "./agent-model";
 
 const engines: NullEngine[] = [];
 function player() {
@@ -76,13 +76,74 @@ describe("avatar animation transitions", () => {
   it("slows the stride when navigation brakes", () => {
     const { avatar, walking } = player();
     playAgentAnimation(avatar, "walking"); setAgentWalkSpeed(avatar, 0.75);
-    expect(walking.speedRatio).toBeCloseTo(0.5);
+    expect(walking.speedRatio).toBeCloseTo(0.75);
     playAgentAnimation(avatar, "walking");
-    expect(walking.speedRatio).toBeCloseTo(0.5);
+    expect(walking.speedRatio).toBeCloseTo(0.75);
+    setAgentWalkSpeed(avatar, 0);
+    expect(walking.speedRatio).toBe(0);
+    setAgentWalkSpeed(avatar, Number.NaN);
+    expect(walking.speedRatio).toBe(0);
   });
   it("recognizes compound clip aliases after Babylon instance prefixes", () => {
-    expect(normalizeAnimName("agent-id-sitting_sofa")).toBe("sitting");
+    for (const clip of OFFICE_LIFE_CLIPS) expect(normalizeAnimName(`agent-uuid-${clip}`)).toBe(clip);
+    expect(normalizeAnimName("agent-id-chair_pullback")).toBe("chair_pullback");
+    expect(normalizeAnimName("agent-id-chair_pushin")).toBe("chair_pushin");
+    expect(normalizeAnimName("agent-id-sit_down")).toBe("sit_down");
+    expect(normalizeAnimName("agent-id-stand_up")).toBe("stand_up");
+    expect(normalizeAnimName("agent-id-sit_down_sofa")).toBe("sit_down_sofa");
+    expect(normalizeAnimName("agent-id-stand_up_sofa")).toBe("stand_up_sofa");
+    expect(normalizeAnimName("agent-id-walking_coffee")).toBe("walking_coffee");
+    expect(normalizeAnimName("agent-id-carrying_coffee")).toBe("carrying_coffee");
+    expect(normalizeAnimName("agent-id-drinking_coffee")).toBe("drinking_coffee");
+    expect(normalizeAnimName("agent-id-talking_coffee")).toBe("talking_coffee");
+    expect(normalizeAnimName("agent-id-sitting_sofa")).toBe("sitting_sofa");
     expect(normalizeAnimName("agent-id-preparing_coffee")).toBe("preparing_coffee");
     expect(normalizeAnimName("agent-id-requesting_approval")).toBe("requesting_approval");
+  });
+  it("preserves phone and seated coffee one-shots and each gait's authored speed", () => {
+    const { avatar, scene, node } = player();
+    const oneShots = new Set<AgentClipState>(["phone_pickup", "phone_putdown", "greeting", "laughing", "laughing_coffee", "laughing_sofa_coffee", "sit_down_sofa_coffee", "stand_up_sofa_coffee", "coffee_putdown"]);
+    for (const name of OFFICE_LIFE_CLIPS) {
+      const group = new AnimationGroup(name, scene);
+      const animation = new Animation(name, "position.y", 30, Animation.ANIMATIONTYPE_FLOAT);
+      animation.setKeys([{frame: 0, value: 1}, {frame: 30, value: 1.1}]);
+      group.addTargetedAnimation(animation, node);
+      avatar.anims[name] = group;
+      playAgentAnimation(avatar, name);
+      expect(group.loopAnimation).toBe(!oneShots.has(name));
+    }
+    setAgentWalkSpeed(avatar, .63);
+    expect(avatar.anims.walking_brisk?.speedRatio).toBeCloseTo(.63 / 1.35);
+    expect(avatar.anims.walking_relaxed?.speedRatio).toBeCloseTo(.63 / .7);
+    setAgentWalkSpeed(avatar, 0);
+    expect(avatar.anims.walking_brisk?.speedRatio).toBe(0);
+    expect(avatar.anims.walking_relaxed?.speedRatio).toBe(0);
+  });
+  it("keeps transition clips one-shot and cup conversations looping", () => {
+    const { avatar, scene, node } = player();
+    for (const name of ["sit_down", "stand_up", "sit_down_sofa", "stand_up_sofa", "preparing_coffee", "talking_coffee"] as const) {
+      const group = new AnimationGroup(name, scene);
+      const animation = new Animation(name, "position.y", 30, Animation.ANIMATIONTYPE_FLOAT);
+      animation.setKeys([{ frame: 0, value: 1 }, { frame: 30, value: .5 }]);
+      group.addTargetedAnimation(animation, node); avatar.anims[name] = group;
+      playAgentAnimation(avatar, name);
+      expect(group.loopAnimation).toBe(name === "talking_coffee");
+    }
+  });
+  it("uses the authored sofa pose separately and falls back to a chair for legacy assets", () => {
+    const { avatar, sitting, scene, node } = player();
+    playAgentAnimation(avatar, "sitting_sofa");
+    expect(sitting.isPlaying).toBe(true);
+    const sofa = new AnimationGroup("sitting_sofa", scene);
+    const animation = new Animation("sofa-hips", "position.y", 30, Animation.ANIMATIONTYPE_FLOAT);
+    animation.setKeys([{frame: 0, value: .7}, {frame: 30, value: .7}]);
+    sofa.addTargetedAnimation(animation, node);
+    avatar.anims.sitting_sofa = sofa;
+    playAgentAnimation(avatar, "sitting");
+    playAgentAnimation(avatar, "sitting_sofa");
+    for (let frame = 0; frame < 9; frame++) advanceAgentAnimation(avatar, 1 / 30);
+    expect(sofa.isPlaying).toBe(true);
+    expect(sofa.weight).toBe(1);
+    expect(sitting.isPlaying).toBe(false);
   });
 });

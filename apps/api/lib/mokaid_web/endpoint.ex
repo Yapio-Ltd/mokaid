@@ -5,11 +5,15 @@ defmodule MokaidWeb.Endpoint do
     store: :cookie,
     key: "_mokaid_key",
     signing_salt: "mokaid_sess",
+    encryption_salt: "mokaid_sess_encrypt_v1",
+    http_only: true,
+    secure: Application.compile_env(:mokaid, :secure_browser_cookies, false),
+    max_age: 60 * 60 * 24 * 7,
     same_site: "Lax"
   ]
 
   socket "/socket", MokaidWeb.UserSocket,
-    websocket: [connect_info: [:peer_data, :x_headers]],
+    websocket: [connect_info: [:peer_data, :x_headers, session: @session_options]],
     longpoll: false
 
   # Recompiles changed modules on each request in dev (no-op elsewhere), so
@@ -19,6 +23,7 @@ defmodule MokaidWeb.Endpoint do
   end
 
   plug Plug.RequestId
+  plug MokaidWeb.Plugs.TrustedProxy
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Parsers,
@@ -34,7 +39,7 @@ defmodule MokaidWeb.Endpoint do
 
   plug Corsica,
     origins: {MokaidWeb.Cors, :allowed_origin?, []},
-    allow_headers: ["authorization", "content-type", "x-workspace-id"],
+    allow_headers: ["authorization", "content-type", "x-workspace-id", "x-csrf-token"],
     allow_credentials: true,
     max_age: 600
 

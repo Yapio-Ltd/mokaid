@@ -11,7 +11,10 @@ from __future__ import annotations
 import base64
 import io
 import json
+import posixpath
+import re
 import zipfile
+from pathlib import PurePosixPath
 from typing import Any
 
 import structlog
@@ -428,8 +431,8 @@ async def _llm_files(
     for path, content in files.items():
         if not isinstance(path, str) or not isinstance(content, str):
             continue
-        p = path.lstrip("./").replace("\\", "/")
-        if ".." in p or p.startswith("/"):
+        p = path.replace("\\", "/")
+        if not _safe_project_path(p):
             continue
         cleaned[p] = content
     return cleaned or None
@@ -450,8 +453,61 @@ def _zip_bytes(files: dict[str, str], root: str) -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for path, content in sorted(files.items()):
+            if not _safe_project_path(path):
+                raise ValueError(f"Unsafe project path: {path}")
             zf.writestr(f"{root}/{path}", content)
     return buf.getvalue()
+
+
+def _safe_project_path(path: str) -> bool:
+    """Reject archive paths that could escape the selected project directory."""
+    parsed = PurePosixPath(path)
+    return bool(path) and not parsed.is_absolute() and ".." not in parsed.parts and not any(
+        ch in path for ch in ("\\", ":", "\x00")
+    )
+
+
+def _validate_codebase(files: dict[str, str]) -> dict[str, Any]:
+    """Check source consistency without executing untrusted generated code."""
+    issues: list[str] = []
+    for required in ("package.json", "tsconfig.json", "app/page.tsx", "app/layout.tsx", "app/globals.css"):
+        if not files.get(required, "").strip():
+            issues.append(f"Missing or empty {required}")
+    for path in files:
+        if not _safe_project_path(path):
+            issues.append(f"Unsafe project path: {path}")
+    try:
+        package = json.loads(files.get("package.json", ""))
+        if not isinstance(package, dict):
+            raise ValueError("package.json must contain an object")
+        scripts = package.get("scripts") or {}
+        dependencies = package.get("dependencies") or {}
+        if not isinstance(scripts, dict) or not all(scripts.get(key) for key in ("dev", "build")):
+            issues.append("package.json must define dev and build scripts")
+        if not isinstance(dependencies, dict) or not all(dependencies.get(key) for key in ("next", "react", "react-dom")):
+            issues.append("package.json must declare Next.js and React dependencies")
+    except (ValueError, TypeError):
+        issues.append("Invalid package.json")
+    for path, content in files.items():
+        if not path.endswith((".ts", ".tsx", ".js", ".jsx")):
+            continue
+        for imported in re.findall(r'''(?:from\s*|import\s*)["']([.@][^"']+)["']''', content):
+            if imported.startswith("@/"):
+                target = imported[2:]
+            elif imported.startswith("."):
+                target = posixpath.normpath(posixpath.join(posixpath.dirname(path), imported))
+            else:
+                continue  # Scoped npm dependencies are not local files.
+            candidates = {target, *(target + ext for ext in (".ts", ".tsx", ".js", ".jsx", ".json")), *(target + "/index" + ext for ext in (".ts", ".tsx", ".js", ".jsx"))}
+            if not candidates.intersection(files):
+                issues.append(f"Unresolved local import in {path}: {imported}")
+    return {
+        "status": "passed" if not issues else "failed",
+        "scope": "static_source_consistency",
+        "checks": ["required_files", "package_manifest", "local_imports", "safe_archive_paths"],
+        "issues": issues[:20],
+        "build": "not_run", "tests": "not_run",
+    }
 
 
 @tool("generate_webapp")
@@ -496,6 +552,22 @@ async def generate_webapp(params: dict[str, Any], ctx: RunContext) -> Any:
     fallback = _fallback_files(brand, brief, design)
     llm_part = await _llm_files(brief, brand, design, ctx)
     files = _merge_scaffold(llm_part, fallback)
+    verification = _validate_codebase(files)
+    if verification["status"] == "failed":
+        return {
+            "error": "The generated project failed source consistency checks: " + "; ".join(verification["issues"]),
+            "verification": verification,
+        }
+    runtime = {"status": "not_started", "url": None, "port": 3000}
+    files["VALIDATION.md"] = (
+        "# Delivery checks\n\n"
+        "Static checks passed: required files, package manifest, local imports and archive paths.\n\n"
+        "Dependencies were not installed. The build, type checks and tests were not run. "
+        "No development server has been started. The HTML file is a separate design preview.\n\n"
+        "Run `npm install`, then `npm run build` in a trusted local environment. "
+        "Run `npm run dev -- --port 3000` and open http://localhost:3000 only after the server reports ready.\n"
+        + ("\nThis is a starter scaffold; model generation was unavailable, so task-specific functionality still needs implementation.\n" if llm_part is None else "")
+    )
 
     artifacts: list[dict[str, Any]] = []
     if isinstance(site, dict) and site.get("filename"):
@@ -511,6 +583,7 @@ async def generate_webapp(params: dict[str, Any], ctx: RunContext) -> Any:
     highlight_paths = [
         "CODEBASE.md",
         "README.md",
+        "VALIDATION.md",
         "package.json",
         "app/page.tsx",
         "app/layout.tsx",
@@ -572,8 +645,8 @@ async def generate_webapp(params: dict[str, Any], ctx: RunContext) -> Any:
                 }
             )
 
-    if not artifacts:
-        return {"error": "Could not save the webapp codebase."}
+    if not any(artifact.get("kind") == "codebase_zip" for artifact in artifacts):
+        return {"error": "Could not save the webapp source ZIP; the HTML preview alone is not a complete codebase delivery.", "verification": verification}
 
     file_tree = sorted(files.keys())
     log.info("webapp_generated", brand=brand, files=len(file_tree), artifacts=len(artifacts))
@@ -586,6 +659,10 @@ async def generate_webapp(params: dict[str, Any], ctx: RunContext) -> Any:
         "stack": "React + Next.js App Router + TypeScript",
         "commands": ["npm install", "npm run dev", "npm run build"],
         "zip_filename": f"{slug}-codebase.zip",
+        "delivery_status": "source_generated" if llm_part else "starter_scaffold",
+        "verification": verification,
+        "runtime": runtime,
+        "preview": {"kind": "static_html", "filename": site.get("filename"), "is_running_app": False},
         "deploy": {
             "github": "https://github.com/new",
             "vercel": "https://vercel.com/new",
@@ -593,8 +670,9 @@ async def generate_webapp(params: dict[str, Any], ctx: RunContext) -> Any:
             "supabase": "https://supabase.com/dashboard/new",
         },
         "note": (
-            "Full React/Next/TypeScript codebase generated (ZIP + source files) "
-            "plus an HTML live preview. Open the HTML in MOKAID, download the ZIP "
-            "for GitHub, then npm install && npm run dev locally."
+            ("Project source generated" if llm_part else "Starter scaffold generated; task-specific functionality still needs implementation")
+            + " (ZIP + source files) with a separate static HTML design preview. "
+            "Static source checks passed. Build and tests have not run; no local server is running. "
+            "See VALIDATION.md for the verified scope and local startup commands."
         ),
     }

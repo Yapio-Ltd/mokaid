@@ -182,6 +182,23 @@ defmodule Mokaid.Auth.Desktop do
     end
   end
 
+  @doc "Revoke every native session when the account password changes."
+  def revoke_all(user_id) do
+    now = DateTime.utc_now()
+
+    {_, ids} =
+      Repo.update_all(
+        from(s in DesktopSession,
+          where: s.user_id == ^user_id and is_nil(s.revoked_at),
+          select: s.id
+        ),
+        set: [revoked_at: now]
+      )
+
+    Enum.each(ids, &disconnect/1)
+    :ok
+  end
+
   # RFC 7009-style idempotent response, including unknown tokens.
   def revoke(token) do
     with {:ok, row} <- find_refresh(token),

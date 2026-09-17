@@ -2,12 +2,20 @@ defmodule MokaidWeb.AuthController do
   use MokaidWeb, :controller
 
   alias Mokaid.Accounts
+  alias MokaidWeb.Plugs.BrowserSession
   alias Mokaid.Auth.Token
   alias Mokaid.Workspaces
   alias MokaidWeb.JSON, as: Serializer
+  require Logger
 
-  def login(conn, %{"email" => email, "password" => password}) do
-    with {:ok, user} <- Accounts.authenticate_by_password(email, password) do
+  plug :protect_auth_response
+
+  plug :limit_auth_attempts
+       when action in [:login, :register, :google_start, :google_callback, :change_password]
+
+  def login(conn, %{"email" => email, "password" => password} = params) do
+    with :ok <- local_auth_enabled(),
+         {:ok, user} <- Accounts.authenticate_by_password(email, password) do
       _ =
         Accounts.record_login_event(user,
           ip_address: format_ip(conn.remote_ip),
@@ -15,10 +23,16 @@ defmodule MokaidWeb.AuthController do
           auth_method: "password"
         )
 
+      {conn, token} = BrowserSession.issue(conn, Token.sign(user.id), params)
+
       json(conn, %{
-        token: Token.sign(user.id),
+        token: token,
         user: Serializer.user(user)
       })
+    else
+      {:error, reason} ->
+        Logger.warning("Password sign-in refused", auth_failure: reason)
+        {:error, reason}
     end
   end
 
@@ -28,50 +42,42 @@ defmodule MokaidWeb.AuthController do
     |> json(%{error: %{code: "bad_request", message: "email and password are required"}})
   end
 
-  defp format_ip({a, b, c, d}), do: "#{a}.#{b}.#{c}.#{d}"
-  defp format_ip(other), do: other && to_string(other)
+  defp format_ip(ip), do: ip |> :inet.ntoa() |> to_string()
 
   def logout(conn, _params) do
-    json(conn, %{ok: true})
+    case get_req_header(conn, "authorization") do
+      ["Bearer " <> token] -> Token.revoke(token)
+      _ -> Token.revoke(BrowserSession.token(conn))
+    end
+
+    conn |> BrowserSession.clear() |> json(%{ok: true})
   end
 
   @doc """
-  Self-serve registration (dev fallback auth mode only — production signups
-  go through Cognito). Creates the user, their first workspace and returns
-  a session token so the onboarding can start immediately.
+  Self-serve registration when local (`dev_fallback`) authentication is configured.
+  Creates the user and first workspace atomically, then issues the session.
   """
   def register(
         conn,
         %{"email" => email, "password" => password, "full_name" => full_name} = params
-      ) do
-    if Application.get_env(:mokaid, :auth)[:mode] == :dev_fallback do
-      workspace_name =
-        case String.trim(params["workspace_name"] || "") do
-          "" -> "#{full_name |> String.split() |> List.first()}'s Workspace"
-          name -> name
-        end
+      )
+      when is_binary(email) and is_binary(password) and is_binary(full_name) do
+    with :ok <- local_auth_enabled(),
+         {:ok, workspace_name} <- registration_workspace_name(params),
+         {:ok, {user, workspace}} <-
+           Accounts.register_with_workspace(
+             %{"email" => email, "password" => password, "full_name" => full_name},
+             workspace_name
+           ) do
+      {conn, token} = BrowserSession.issue(conn, Token.sign(user.id), params)
 
-      with {:ok, user} <-
-             Accounts.register_user(%{
-               "email" => email,
-               "password" => password,
-               "full_name" => full_name
-             }),
-           {:ok, workspace} <-
-             Workspaces.create_workspace(
-               %{"name" => workspace_name, "slug" => generate_slug(workspace_name)},
-               user
-             ) do
-        conn
-        |> put_status(:created)
-        |> json(%{
-          token: Token.sign(user.id),
-          user: Serializer.user(user),
-          workspace: Serializer.workspace(workspace)
-        })
-      end
-    else
-      {:error, :registration_disabled}
+      conn
+      |> put_status(:created)
+      |> json(%{
+        token: token,
+        user: Serializer.user(user),
+        workspace: Serializer.workspace(workspace)
+      })
     end
   end
 
@@ -83,15 +89,20 @@ defmodule MokaidWeb.AuthController do
     })
   end
 
-  defp generate_slug(name) do
-    base =
-      name
-      |> String.downcase()
-      |> String.replace(~r/[^a-z0-9]+/, "-")
-      |> String.trim("-")
+  defp registration_workspace_name(%{"workspace_name" => value})
+       when not is_binary(value) and not is_nil(value), do: {:error, :invalid_workspace_name}
 
-    suffix = :crypto.strong_rand_bytes(3) |> Base.encode16(case: :lower)
-    "#{base}-#{suffix}"
+  defp registration_workspace_name(params) do
+    case String.trim(params["workspace_name"] || "") do
+      "" -> {:ok, "#{params["full_name"] |> String.split() |> List.first() || "My"}'s Workspace"}
+      name -> {:ok, name}
+    end
+  end
+
+  defp local_auth_enabled do
+    if Application.get_env(:mokaid, :auth)[:mode] == :dev_fallback,
+      do: :ok,
+      else: {:error, :registration_disabled}
   end
 
   def me(conn, _params) do
@@ -185,8 +196,11 @@ defmodule MokaidWeb.AuthController do
   def change_password(conn, params) do
     user = current_user(conn)
 
-    with {:ok, _user} <- Accounts.change_password(user, params) do
-      json(conn, %{ok: true})
+    with {:ok, updated} <- Accounts.change_password(user, params) do
+      # Password changes invalidate every previous session; issue one replacement
+      # for the browser that completed reauthentication.
+      {conn, token} = BrowserSession.issue(conn, Token.sign(updated.id), params)
+      json(conn, %{ok: true, token: token})
     end
   end
 
@@ -200,7 +214,9 @@ defmodule MokaidWeb.AuthController do
 
   @doc "Returns whether Google identity OAuth is configured."
   def google_status(conn, _params) do
-    json(conn, %{data: %{configured: Mokaid.Auth.Google.configured?()}})
+    json(conn, %{
+      data: %{configured: local_auth_enabled() == :ok and Mokaid.Auth.Google.configured?()}
+    })
   end
 
   @doc "Starts Google sign-in / sign-up. Body: redirect_uri, optional intent (login|signup)."
@@ -208,7 +224,12 @@ defmodule MokaidWeb.AuthController do
     redirect_uri = params["redirect_uri"]
     intent = params["intent"] || "login"
 
-    with {:ok, url} <- Mokaid.Auth.Google.authorize_url(redirect_uri, intent: intent) do
+    with :ok <- local_auth_enabled(),
+         {:ok, url} <-
+           Mokaid.Auth.Google.authorize_url(redirect_uri,
+             intent: intent,
+             code_challenge: params["code_challenge"]
+           ) do
       json(conn, %{data: %{authorize_url: url}})
     end
   end
@@ -217,13 +238,24 @@ defmodule MokaidWeb.AuthController do
   Completes Google sign-in / sign-up.
   Body: code, state, redirect_uri.
   """
-  def google_callback(conn, %{"code" => code, "state" => state, "redirect_uri" => redirect_uri}) do
-    with {:ok, profile} <- Mokaid.Auth.Google.exchange_code(code, state, redirect_uri),
+  def google_callback(
+        conn,
+        %{
+          "code" => code,
+          "state" => state,
+          "redirect_uri" => redirect_uri,
+          "code_verifier" => verifier
+        } = params
+      ) do
+    with :ok <- local_auth_enabled(),
+         {:ok, profile} <- Mokaid.Auth.Google.exchange_code(code, state, redirect_uri, verifier),
          {:ok, user, status, workspace} <- Accounts.login_or_register_with_google(profile) do
       workspaces = Workspaces.list_workspaces_with_role(user.id)
 
+      {conn, token} = BrowserSession.issue(conn, Token.sign(user.id), params)
+
       payload = %{
-        token: Token.sign(user.id),
+        token: token,
         user: Serializer.user(user),
         status: status,
         workspaces:
@@ -251,7 +283,49 @@ defmodule MokaidWeb.AuthController do
     conn
     |> put_status(:bad_request)
     |> json(%{
-      error: %{code: "bad_request", message: "code, state and redirect_uri are required"}
+      error: %{
+        code: "bad_request",
+        message: "code, state, redirect_uri and code_verifier are required"
+      }
     })
+  end
+
+  defp protect_auth_response(conn, _) do
+    conn
+    |> put_resp_header("cache-control", "no-store")
+    |> put_resp_header("pragma", "no-cache")
+    |> put_resp_header("referrer-policy", "no-referrer")
+    |> put_resp_header("x-content-type-options", "nosniff")
+  end
+
+  defp limit_auth_attempts(conn, _) do
+    action = action_name(conn)
+    limit = if action == :register, do: 5, else: 15
+    ip = format_ip(conn.remote_ip)
+
+    case Hammer.check_rate("account-auth:#{action}:#{ip}", 60_000, limit) do
+      {:allow, _} ->
+        conn
+
+      {:deny, _} ->
+        conn
+        |> put_resp_header("retry-after", "60")
+        |> put_status(:too_many_requests)
+        |> json(%{
+          error: %{code: "rate_limited", message: "Too many attempts. Try again in a minute."}
+        })
+        |> halt()
+
+      _ ->
+        conn
+        |> put_status(:service_unavailable)
+        |> json(%{
+          error: %{
+            code: "temporarily_unavailable",
+            message: "Sign-in is temporarily unavailable."
+          }
+        })
+        |> halt()
+    end
   end
 end

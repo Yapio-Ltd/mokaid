@@ -27,10 +27,9 @@ defmodule Mokaid.Auth.Session do
              do: {:ok, user, %{}}
 
       :dev_fallback ->
-        with {:ok, id} <- Mokaid.Auth.Token.verify(token),
-             {:ok, id} <- Ecto.UUID.cast(id),
-             %User{} = user <- Accounts.get_user(id) do
-          {:ok, user, %{}}
+        with {:ok, session} <- Mokaid.Auth.Token.lookup(token),
+             %User{} = user <- Accounts.get_user(session.user_id) do
+          {:ok, user, %{web_session_id: session.id}}
         else
           _ -> {:error, :unauthorized}
         end

@@ -100,3 +100,9 @@ apps/web/src/three/graphify-out/
 # Terraform plan files (may embed sensitive values)
 *.tfplan
 infra/terraform/environments/*/tfplan
+
+# Regenerable native validation builds and downloaded shader SDKs.
+/artifacts/desktop-office-quality/screen-probe-build/
+/artifacts/desktop-office-quality/screens-assets/
+/artifacts/desktop-office-quality/screens-dxc-sdk/
+/artifacts/desktop-office-quality/screens-dxil/

@@ -1,0 +1,15 @@
+2026-09-16 01:35:03.145 mokaid_metal_smoke[14250:6608655] Metal API Validation Enabled
+Pose CPU mean for 9 avatars, 1 layer(s): 0.4951 ms; checksum 28.2038
+Pose CPU mean for 9 avatars, 2 layer(s): 0.857527 ms; checksum 36.3115
+asset  posed Y=-0.141873..2.40901; seated pelvis=0.58
+asset 0 posed Y=0.012759..1.26108; seated pelvis=0.524545
+asset 1 posed Y=9.93323e-05..1.17634; seated pelvis=0.509526
+asset 2 posed Y=-0.00103922..1.30003; seated pelvis=0.509985
+asset 3 posed Y=3.29231e-05..1.27988; seated pelvis=0.51015
+asset 4 posed Y=9.93323e-05..1.17634; seated pelvis=0.509526
+asset 5 posed Y=1.0616e-06..1.15271; seated pelvis=0.509779
+asset 6 posed Y=-0.000690778..1.29841; seated pelvis=0.51006
+asset 7 posed Y=-0.000538407..1.39005; seated pelvis=0.509846
+asset 8 posed Y=9.93323e-05..1.17634; seated pelvis=0.509526
+Metal GPU: Apple M4 Pro; 101 draws; 645757 triangles; last encode 3.14217 ms
+12 unretained command buffers, in-flight resize and renderer destruction passed

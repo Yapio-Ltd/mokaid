@@ -1,0 +1,51 @@
+{
+  "manifestSha256": "46f8efc2ccd8de836da3055a957838ba7048811bd8e9c83f752feba3f0b0437b",
+  "note": "Debug offscreen Metal API Validation on this machine; not full-app FPS.",
+  "cases": [
+    {
+      "name": "final-desk",
+      "viewport": [
+        1807,
+        835
+      ],
+      "simulationSeconds": 11,
+      "status": "working",
+      "gpu": "Apple M4 Pro",
+      "drawCalls": 161,
+      "triangles": 652526,
+      "cpuEncodeMeanMs": 4.37272,
+      "gpuMeanMs": 2.06353,
+      "passed": true
+    },
+    {
+      "name": "final-chat",
+      "viewport": [
+        1110,
+        835
+      ],
+      "simulationSeconds": 71,
+      "status": "idle",
+      "gpu": "Apple M4 Pro",
+      "drawCalls": 161,
+      "triangles": 652526,
+      "cpuEncodeMeanMs": 4.17859,
+      "gpuMeanMs": 1.52374,
+      "passed": true
+    },
+    {
+      "name": "final-social",
+      "viewport": [
+        1807,
+        835
+      ],
+      "simulationSeconds": 100,
+      "status": "idle",
+      "gpu": "Apple M4 Pro",
+      "drawCalls": 161,
+      "triangles": 652526,
+      "cpuEncodeMeanMs": 4.25953,
+      "gpuMeanMs": 2.76697,
+      "passed": true
+    }
+  ]
+}

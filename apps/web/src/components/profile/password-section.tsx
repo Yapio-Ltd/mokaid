@@ -79,6 +79,10 @@ export function PasswordSection() {
       setFormError("New password must be at least 10 characters.");
       return;
     }
+    if (new TextEncoder().encode(password).length > 72) {
+      setFormError("New password must fit within 72 bytes (fewer characters with emoji).");
+      return;
+    }
     if (password !== confirmation) {
       setFormError("New password and confirmation do not match.");
       return;

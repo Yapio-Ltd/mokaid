@@ -17,5 +17,21 @@ qt_add_qml_module(mokaid_desktop URI Mokaid.Desktop VERSION 1.0 RESOURCE_PREFIX 
     IMPORT_PATH "${CMAKE_BINARY_DIR}/qml" QML_FILES ${MOKAID_QML_FILES})
 qt_add_resources(mokaid_desktop branding PREFIX "/branding" BASE "${CMAKE_SOURCE_DIR}/../web/public/branding"
     FILES "${CMAKE_SOURCE_DIR}/../web/public/branding/logo-without-bg.png" "${CMAKE_SOURCE_DIR}/../web/public/branding/logo-with-bg.png")
+qt_add_resources(mokaid_desktop desktop_ui PREFIX "/ui" BASE "${CMAKE_SOURCE_DIR}/presentation/assets"
+    FILES
+    "${CMAKE_SOURCE_DIR}/presentation/assets/fonts/Manrope.ttf"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/fonts/OFL-Manrope.txt"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-male.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-design.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-finance.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-corporate.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-developer.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-research.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-legal.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-byte.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-nyx.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-moss.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/brand-orb.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/workforce-energy-orb.png")
 include("${CMAKE_SOURCE_DIR}/distribution/DesktopBundle.cmake")
 mokaid_configure_bundle(mokaid_desktop)

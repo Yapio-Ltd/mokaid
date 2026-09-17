@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Download, LogOut } from "lucide-react";
+import { signOut as revokeSession } from "@/api/client";
+import { toast } from "@/stores/toast-store";
 import { useMe } from "@/api/hooks";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
@@ -42,9 +44,17 @@ export function AccountShell() {
   };
 
   const signOut = async () => {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    useAuthStore.getState().logout();
+    try {
+      await revokeSession();
+      await queryClient.cancelQueries();
+      queryClient.clear();
+    } catch {
+      toast({
+        tone: "error",
+        title: "Could not sign out",
+        description: "Check your connection and try again.",
+      });
+    }
   };
 
   return (

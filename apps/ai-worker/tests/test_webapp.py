@@ -83,6 +83,11 @@ async def test_generate_webapp_with_mocks_saves_zip_and_tree(phoenix, monkeypatc
     assert "package.json" in (result.get("file_tree") or [])
     assert result.get("zip_filename", "").endswith(".zip")
     assert result.get("commands") == ["npm install", "npm run dev", "npm run build"]
+    assert result["verification"]["status"] == "passed"
+    assert result["verification"]["build"] == "not_run"
+    assert result["runtime"] == {"status": "not_started", "url": None, "port": 3000}
+    assert result["preview"]["is_running_app"] is False
+    assert "VALIDATION.md" in result["file_tree"]
     kinds = {a.get("kind") for a in result.get("artifacts") or []}
     assert "codebase_zip" in kinds
     assert "preview_html" in kinds

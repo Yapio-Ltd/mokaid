@@ -175,10 +175,18 @@ NativeViewport::NativeViewport(QQuickItem *parent)
   timer_.setTimerType(Qt::PreciseTimer);
   connect(&timer_, &QTimer::timeout, this, [this] {
     if (!paused_ && error_.isEmpty() && isVisible() && window() &&
-        window()->isVisible())
+        window()->isVisible()) {
+      if(++indicatorTick_%2==0) updateIndicators();
       update();
+    }
   });
+  connect(this,&QQuickItem::widthChanged,this,&NativeViewport::updateIndicators);
+  connect(this,&QQuickItem::heightChanged,this,&NativeViewport::updateIndicators);
   timer_.start();
+}
+void NativeViewport::updateIndicators() {
+  if(loading_||!error_.isEmpty()||width()<1||height()<1){indicators_.clear();return;}
+  indicators_.sync(*office_->snapshot(static_cast<float>(width()/height())),QSizeF(width(),height()));
 }
 NativeViewport::~NativeViewport() {
   loader_.request_stop();
@@ -191,6 +199,7 @@ void NativeViewport::setAssetRoot(const QString &path) {
   assetRoot_ = path;
   emit assetRootChanged();
   loading_ = true;
+  indicators_.clear();
   error_.clear();
   emit loadingChanged();
   emit errorChanged();
@@ -230,16 +239,24 @@ void NativeViewport::setAgents(const QVariantList &list) {
   agents.reserve(static_cast<std::size_t>(list.size()));
   for (const auto &v : list) {
     auto m = v.toMap();
+    const auto status = m.value("status").toString().toStdString();
+    if (status == "archived") continue;
+    const auto presence = m.value("kind").toString() == "human_linked"
+        ? m.value("presence_status").toString().toStdString() : std::string("online");
+    const auto animation = engine::agentVisualState(status, presence,
+        !m.value("current_task_id").toString().isEmpty());
     auto type = m.value("asset_type").toString();
     if (type.startsWith("avatar_"))
       type = type.mid(7);
     agents.push_back({m.value("id").toString().toStdString(),
                       m.value("name").toString().toStdString(),
-                      m.value("status").toString().toStdString(),
-                      type.toStdString(), m.value("seat_index", -1).toInt()});
+                      std::string(animation),
+                      type.toStdString(), m.value("seat_index", -1).toInt(),
+                      std::max(0,m.value("level",0).toInt())});
   }
   office_->setAgents(std::move(agents));
   emit agentsChanged();
+  updateIndicators();
   update();
 }
 void NativeViewport::setPaused(bool v) {
@@ -259,6 +276,7 @@ void NativeViewport::setQuality(const QString &v) {
 }
 void NativeViewport::reportError(QString e) {
   error_ = std::move(e);
+  indicators_.clear();
   emit errorChanged();
 }
 void NativeViewport::reportDiagnostics(QVariantMap d) {

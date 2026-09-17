@@ -4,11 +4,14 @@ defmodule Mokaid.AI do
   (SQS in production, direct HTTP in dev) and processes worker callbacks.
   """
 
+  import Ecto.Query, only: [from: 2]
+
   alias Mokaid.Agents
   alias Mokaid.Agents.SkillLearning
   alias Mokaid.Billing
   alias Mokaid.Notifications
   alias Mokaid.Realtime
+  alias Mokaid.Repo
   alias Mokaid.Tasks
   alias Mokaid.Tasks.Task, as: WorkTask
 
@@ -304,6 +307,45 @@ defmodule Mokaid.AI do
   end
 
   @doc "Handles a progress callback from the AI worker."
+  def handle_progress(run_id, %{"status" => "waiting_for_user_input"} = attrs) do
+    result =
+      Repo.transaction(fn ->
+        # Worker retries can arrive concurrently. Lock the run before checking
+        # its previous state so a single pause produces one notification.
+        case Repo.one(
+               from r in Mokaid.Tasks.TaskExecutionRun, where: r.id == ^run_id, lock: "FOR UPDATE"
+             ) do
+          nil ->
+            Repo.rollback(:run_not_found)
+
+          %{status: status} = run when status in ["completed", "failed", "canceled"] ->
+            run
+
+          run ->
+            case Tasks.update_run_progress(run, attrs) do
+              {:ok, updated} ->
+                sync_input_required(run, attrs)
+                updated
+
+              {:error, reason} ->
+                Repo.rollback(reason)
+            end
+        end
+      end)
+
+    # This worker turn has ended. Other missions may proceed while the user
+    # supplies a file or an answer; relaunching will retain the conversation.
+    case result do
+      {:ok, %{status: "waiting_for_user_input"} = run} ->
+        dispatch_next(run.workspace_id, run.agent_id)
+
+      _ ->
+        :ok
+    end
+
+    result
+  end
+
   def handle_progress(run_id, attrs) do
     with %{} = run <- Tasks.get_run(run_id),
          {:ok, updated_run} <- Tasks.update_run_progress(run, attrs) do
@@ -346,6 +388,64 @@ defmodule Mokaid.AI do
       {:ok, updated_run}
     else
       nil -> {:error, :run_not_found}
+    end
+  end
+
+  defp sync_input_required(run, attrs) do
+    task = Tasks.get_task(run.workspace_id, run.task_id)
+
+    if task && task.status not in ["completed", "canceled"] do
+      if task.status in ["to_do", "in_progress"],
+        do: Tasks.update_task(task, %{"status" => "waiting"})
+
+      if run.agent_id do
+        case Agents.get_agent(run.workspace_id, run.agent_id) do
+          %{current_task_id: task_id, status: status} = agent
+          when task_id in [nil, run.task_id] and status != "waiting" ->
+            Agents.change_status(agent, "waiting",
+              current_task_id: run.task_id,
+              reason: "user_input_required"
+            )
+
+          _ ->
+            :ok
+        end
+      end
+
+      if run.status != "waiting_for_user_input" do
+        french? = get_in(task.metadata || %{}, ["language"]) == "fr"
+
+        title =
+          if french?,
+            do: "Votre réponse est attendue : #{task.title}",
+            else: "Input needed: #{task.title}"
+
+        fallback =
+          if french?,
+            do:
+              "Ouvrez la mission, ajoutez les informations ou le fichier demandé, puis relancez l’agent.",
+            else:
+              "Open this task, add the requested information or file, then run the agent again."
+
+        question =
+          case attrs["question"] do
+            value when is_binary(value) ->
+              if String.trim(value) == "", do: fallback, else: String.trim(value)
+
+            _ ->
+              fallback
+          end
+
+        Notifications.notify_member(
+          run.workspace_id,
+          task.created_by_member_id,
+          "ai_run_needs_input",
+          title,
+          body: question |> String.replace(<<0>>, "") |> String.slice(0, 2000),
+          resource_type: "task",
+          resource_id: task.id
+        )
+      end
     end
   end
 

@@ -407,10 +407,56 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must declare"):
             release.cmake_updates_enabled(self.folder)
 
+    def test_windows_stage_requires_all_six_compiled_shaders(self):
+        shaders = (
+            "office.vs.dxil", "office.ps.dxil", "office.post.vs.dxil",
+            "bloomDownsample.ps.dxil", "bloomBlur.ps.dxil", "officeComposite.ps.dxil",
+        )
+        for missing in (None, *shaders):
+            with self.subTest(missing=missing):
+                case = self.folder / (missing or "complete")
+                assets = case / "cooked"
+                assets.mkdir(parents=True)
+                (assets / "fixture.bin").write_bytes(b"cooked fixture")
+                build = case / "build"
+                build.mkdir()
+                (build / "CMakeCache.txt").write_text(
+                    "MOKAID_ENABLE_UPDATES:BOOL=OFF\nMOKAID_DEVELOPMENT:BOOL=OFF\n")
+                args = argparse.Namespace(stage=case / "stage", assets=assets, build=build,
+                                          platform="windows-x64", sdk=None,
+                                          qt_bin=case / "qt/bin", qml=case / "qml")
+
+                def installed_runtime(*command, **kwargs):
+                    if command[0] != "cmake":
+                        return
+                    (args.stage / "shaders").mkdir(parents=True)
+                    (args.stage / "Mokaid.exe").write_bytes(b"application fixture")
+                    (args.stage / "QtWebEngineProcess.exe").write_bytes(b"helper fixture")
+                    for name in shaders:
+                        if name != missing:
+                            (args.stage / "shaders" / name).write_bytes(b"DXIL fixture")
+
+                with patch.object(release, "validate_assets"), \
+                     patch.object(release, "run", side_effect=installed_runtime), \
+                     patch.object(release, "copy_windows_crt") as crt, \
+                     patch.dict(os.environ, {"VCToolsRedistDir": str(case / "crt")}):
+                    if missing is not None:
+                        with self.assertRaisesRegex(ValueError, "Compiled DirectX shaders are missing"):
+                            release.stage_runtime(args)
+                        crt.assert_not_called()
+                        self.assertFalse((args.stage / "distribution-stage.json").exists())
+                    else:
+                        release.stage_runtime(args)
+                        crt.assert_called_once_with(args.stage.resolve(), case / "crt")
+                        self.assertEqual((args.stage / "assets/fixture.bin").read_bytes(), b"cooked fixture")
+                        config = json.loads((args.stage / "distribution-stage.json").read_text())
+                        self.assertEqual(config["platform"], "windows-x64")
+
     def test_cooked_asset_validation_requires_all_avatars_and_navigation(self):
         keys = ["office", "avatar_male", "avatar_female", "avatar_corporate", "avatar_developer",
-                "avatar_design", "avatar_finance", "avatar_research", "avatar_legal"]
-        manifest = {"format": 3, "assets": [], "navigation": {"file": "office.mokaidnav"}}
+                "avatar_design", "avatar_finance", "avatar_research", "avatar_legal",
+                "avatar_byte", "avatar_nyx", "avatar_moss"]
+        manifest = {"format": 4, "assets": [], "navigation": {"file": "office.mokaidnav"}}
         for name in keys:
             path = self.folder / f"{name}.mokaidasset"
             path.write_bytes(b"fixture")
@@ -420,6 +466,12 @@ class ReleaseTests(unittest.TestCase):
         manifest["navigation"]["sha256"] = release.sha256(navigation)
         (self.folder / "manifest.json").write_text(json.dumps(manifest))
         release.validate_assets(self.folder)
+        manifest["format"] = 3
+        (self.folder / "manifest.json").write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError, "current v4 cooker"):
+            release.validate_assets(self.folder)
+        manifest["format"] = 4
+        (self.folder / "manifest.json").write_text(json.dumps(manifest))
         navigation.write_bytes(b"tampered navigation")
         with self.assertRaisesRegex(ValueError, "navigation checksum"):
             release.validate_assets(self.folder)

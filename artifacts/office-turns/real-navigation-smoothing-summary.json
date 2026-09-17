@@ -1,0 +1,68 @@
+{
+  "recorded_at_utc": "2026-09-16T19:08:37.001891+00:00",
+  "scope": "Geometry and dynamic-clearance probe; this does not measure rendered animation or locomotion timing.",
+  "probe_cpp": "real-navigation-smoothing-probe.cpp",
+  "raw_output": "real-navigation-smoothing-output.txt",
+  "compile_command": [
+    "clang++",
+    "-std=c++20",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Wpedantic",
+    "-Iapps/desktop/engine/include",
+    "artifacts/office-turns/real-navigation-smoothing-probe.cpp",
+    "apps/desktop/engine/src/navigation.cpp",
+    "-o",
+    "/private/tmp/mokaid-rounded-routes-evidence-probe"
+  ],
+  "run_command": [
+    "/private/tmp/mokaid-rounded-routes-evidence-probe"
+  ],
+  "working_directory": "/Users/olimservice/mokaid",
+  "sampling": "Unique first three waypoints from each of nine lanes, plus all standing activity sockets (kind > 1); each unordered point pair is tested. Pairs without an ordinary route are excluded.",
+  "parameters": {
+    "body_radius_m": 0.35,
+    "sharp_corner_threshold_rad": 0.32,
+    "target_corner_radius_m": 0.65,
+    "minimum_corner_radius_m": 0.2,
+    "maximum_arc_chord_m": 0.06,
+    "maximum_arc_heading_step_rad": 0.1,
+    "moved_chair_disc_radius_m": 0.425
+  },
+  "checks": {
+    "every_smoothed_route_nonempty": true,
+    "endpoint_xz_preserved_exactly": true,
+    "every_output_chord_passes_segmentWalkable_with_same_body_and_dynamic_discs": true
+  },
+  "cases": [
+    {
+      "occupancy": "none",
+      "connected_routes": 153,
+      "routes_with_rounded_corners": 136,
+      "sharp_corners_before": 455,
+      "sharp_corners_after": 2,
+      "maximum_output_points": 84,
+      "smoothing_total_ms": 3.16975,
+      "smoothing_mean_ms_per_route": 0.02071732026143791
+    },
+    {
+      "occupancy": "desk_0_and_desk_1_chairs_pulled_back",
+      "connected_routes": 120,
+      "routes_with_rounded_corners": 105,
+      "sharp_corners_before": 358,
+      "sharp_corners_after": 0,
+      "maximum_output_points": 84,
+      "smoothing_total_ms": 2.45858,
+      "smoothing_mean_ms_per_route": 0.020488166666666665
+    }
+  ],
+  "probe_total_elapsed_seconds": 0.153155,
+  "timing_note": "One local optimized run; smoothing totals include only smoothRoute calls. Total elapsed additionally includes load, ordinary routing and output validation.",
+  "sha256": {
+    "apps/desktop/build/assets/office.mokaidnav": "7a6cb3742b7031c144f3b24def9441c4b564fab75dd06b7b93b40869dc6b03f4",
+    "apps/desktop/engine/include/mokaid/engine/navigation.hpp": "7b45d2f57e17b9d489edf2eb9cca92770481dbdee39c08bfd3629dc3c4a91b90",
+    "apps/desktop/engine/src/navigation.cpp": "a0b7b23901c3cc5ce8bf701cb58616688d8843ca6214204d2061c8b70cb329f2",
+    "artifacts/office-turns/real-navigation-smoothing-probe.cpp": "a6c7cd892bcfefc64a591094e7db37cc8d884540f3a979ad2f4f969df4e71721"
+  }
+}

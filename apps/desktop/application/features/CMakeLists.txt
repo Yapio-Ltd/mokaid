@@ -19,5 +19,17 @@ if(BUILD_TESTING)
     target_link_libraries(mokaid_feature_qml_tests PRIVATE mokaid_features Qt6::Quick Qt6::QuickControls2 Qt6::Test mokaid_options)
     target_compile_definitions(mokaid_feature_qml_tests PRIVATE MOKAID_FEATURE_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../../presentation/qml")
     add_test(NAME desktop-feature-qml COMMAND mokaid_feature_qml_tests)
+    qt_add_executable(mokaid_native_pages_qml_tests tests/native_pages_qml_tests.cpp)
+    target_link_libraries(mokaid_native_pages_qml_tests PRIVATE mokaid_features Qt6::Quick Qt6::QuickControls2 Qt6::Test mokaid_options)
+    target_compile_definitions(mokaid_native_pages_qml_tests PRIVATE MOKAID_NATIVE_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../../presentation/qml")
+    set(native_page_portraits "${CMAKE_CURRENT_SOURCE_DIR}/../../presentation/assets")
+    qt_add_resources(mokaid_native_pages_qml_tests native_page_portraits
+      PREFIX "/ui" BASE "${native_page_portraits}"
+      FILES "${native_page_portraits}/portrait-male.png" "${native_page_portraits}/portrait-design.png"
+        "${native_page_portraits}/portrait-finance.png" "${native_page_portraits}/portrait-corporate.png"
+        "${native_page_portraits}/portrait-developer.png" "${native_page_portraits}/portrait-research.png"
+        "${native_page_portraits}/portrait-legal.png" "${native_page_portraits}/portrait-byte.png"
+        "${native_page_portraits}/portrait-nyx.png" "${native_page_portraits}/portrait-moss.png")
+    add_test(NAME desktop-native-pages-qml COMMAND mokaid_native_pages_qml_tests)
   endif()
 endif()

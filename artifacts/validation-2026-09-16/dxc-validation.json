@@ -1,0 +1,29 @@
+{
+  "checked_at": "2026-09-16",
+  "compiler": "Microsoft DXC 1.9.2607 / libdxcompiler 1.9.0.1 (0d3ee6b5)",
+  "release_url": "https://github.com/microsoft/DirectXShaderCompiler/releases/tag/v1.9.2607",
+  "compiler_archive_sha256": "55665c87824051ed4774ff3280a79ccbbb7d39243b9736ca5e98222134112d54",
+  "shader_source_sha256": "20d89267946644011bc713cbb71ff22c90eba76fd93c1e7beafc0b047999e216",
+  "container": "ubuntu:24.04, linux/amd64, network disabled, read-only sources and compiler",
+  "container_digest": "sha256:224a1869083a311ef3f13648a154ba79832fbef6364d31493642ca03082da254",
+  "flags": ["-Ges", "-WX"],
+  "compiled_entry_points": [
+    {"entry": "vsMain", "profile": "vs_6_0"},
+    {"entry": "psMain", "profile": "ps_6_0"},
+    {"entry": "postVertex", "profile": "vs_6_0"},
+    {"entry": "bloomDownsample", "profile": "ps_6_0"},
+    {"entry": "bloomBlur", "profile": "ps_6_0"},
+    {"entry": "officeComposite", "profile": "ps_6_0"}
+  ],
+  "reflection_verified": {
+    "draw_buffer_bytes": 192,
+    "lighting_buffer_bytes": 912,
+    "lighting_register": "b2",
+    "post_buffer_bytes": 16,
+    "post_register": "b3",
+    "post_sampler_register": "s1",
+    "geometry_render_targets": 2
+  },
+  "windows_cpp_compiled": false,
+  "windows_gpu_tested": false
+}

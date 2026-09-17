@@ -1,0 +1,33 @@
+{
+  "blender": "5.2.0 LTS",
+  "avatars": {
+    "avatar_male": {
+      "path": "/assets3d/avatar_male.342ae6ded162.glb",
+      "sha256": "342ae6ded162a626d97197dcd6d6dba038101de9ca235630c9bce2b08c478032"
+    },
+    "avatar_design": {
+      "path": "/assets3d/avatar_design.d9ea67320439.glb",
+      "sha256": "d9ea673204395bf2a8aedc741f4e12b75522d01bc74c74279607a89e1010a067"
+    },
+    "avatar_finance": {
+      "path": "/assets3d/avatar_finance.826a68935f66.glb",
+      "sha256": "826a68935f663a53bcf9a3c831c91030b1e3ba4caac85486c2f6cec85d312760"
+    },
+    "avatar_corporate": {
+      "path": "/assets3d/avatar_corporate.dd078ffb0766.glb",
+      "sha256": "dd078ffb07669c56ac27a4081ea7f7edb33d75a72c420b5aac840a4169fb0e54"
+    },
+    "avatar_legal": {
+      "path": "/assets3d/avatar_legal.12554af1b7e1.glb",
+      "sha256": "12554af1b7e13465d9efc1d491c37d30ba5214e7f183f33ac68032611f69150e"
+    },
+    "avatar_research": {
+      "path": "/assets3d/avatar_research.aee3f8496ec7.glb",
+      "sha256": "aee3f8496ec7b06302ee3bc0af1dac77cf6e4ceb85c551ecb9f7615420b0eb40"
+    },
+    "avatar_developer": {
+      "path": "/assets3d/avatar_developer.d9c81b448040.glb",
+      "sha256": "d9c81b448040f13d37dc15aa29dea9ebb4a70caee7a17c340226c6484496b5d9"
+    }
+  }
+}

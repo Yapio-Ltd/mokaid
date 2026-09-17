@@ -19,7 +19,8 @@ class SessionController final : public QObject {
     Q_PROPERTY(QVariantList workspaces READ workspaces NOTIFY changed)
     Q_PROPERTY(QString workspaceId READ workspaceId WRITE selectWorkspace NOTIFY changed)
 public:
-    SessionController(ApiClient& api, PhoenixClient& realtime, QObject* parent = nullptr, QUrl trustedWebOrigin = {});
+    SessionController(ApiClient& api, PhoenixClient& realtime, QObject* parent = nullptr, QUrl trustedWebOrigin = {},
+                      CredentialStorage* credentials = nullptr);
     void restore();
     bool authenticated() const { return authenticated_; }
     bool busy() const { return busy_ || refreshing_ || identityLoading_; }
@@ -42,7 +43,8 @@ signals:
     void workspaceChanged();
 private:
     void renew();
-    void acceptTokens(const ApiResponse& response);
+    void acceptTokens(const ApiResponse& response, bool renewal = false);
+    void revoke(const QByteArray& refresh);
     void receiveCallback();
     void fail(const QString& message);
     void persistIdentity();
@@ -51,6 +53,7 @@ private:
     PhoenixClient& realtime_;
     const QUrl browserOrigin_;
     CredentialStore vault_;
+    CredentialStorage& credentials_;
     QSettings settings_;
     QTcpServer callback_;
     QTimer expiration_, loginTimeout_, connectivity_;
@@ -59,6 +62,7 @@ private:
     QJsonObject user_;
     QJsonArray workspaces_;
     quint64 loginGeneration_{};
-    bool authenticated_{}, busy_{}, refreshing_{}, identityLoading_{};
+    quint64 sessionGeneration_{};
+    bool authenticated_{}, busy_{}, refreshing_{}, identityLoading_{}, signingIn_{};
 };
 }

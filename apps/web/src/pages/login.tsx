@@ -104,7 +104,7 @@ export function LoginPage() {
     try {
       const response = await apiFetch<LoginResponse>("/api/auth/login", {
         method: "POST",
-        body: values,
+        body: { ...values, session_transport: "cookie" },
         skipWorkspace: true,
       });
       await queryClient.cancelQueries();

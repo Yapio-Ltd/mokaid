@@ -1,0 +1,2458 @@
+{
+  "avatar_male": {
+    "path": "/assets3d/avatar_male.342ae6ded162.glb",
+    "mismatches": [],
+    "bones": {
+      "root.x": [
+        -0.0,
+        -0.0252,
+        0.7473
+      ],
+      "spine_01.x": [
+        -0.0,
+        -0.003,
+        0.841
+      ],
+      "spine_02.x": [
+        0.0,
+        0.0098,
+        0.937
+      ],
+      "spine_03.x": [
+        0.0,
+        0.0113,
+        1.0329
+      ],
+      "neck.x": [
+        0.0,
+        0.0141,
+        1.1289
+      ],
+      "head.x": [
+        0.0,
+        -0.0135,
+        1.2059
+      ],
+      "shoulder.r": [
+        -0.033,
+        -0.0182,
+        1.0871
+      ],
+      "arm_stretch.r": [
+        -0.1414,
+        -0.0182,
+        1.0871
+      ],
+      "arm_twist.r": [
+        -0.1414,
+        -0.0182,
+        1.0871
+      ],
+      "forearm_stretch.r": [
+        -0.3194,
+        -0.0094,
+        1.0749
+      ],
+      "forearm_twist.r": [
+        -0.4063,
+        -0.0213,
+        1.0688
+      ],
+      "hand.r": [
+        -0.4932,
+        -0.0332,
+        1.0627
+      ],
+      "thumb1.r": [
+        -0.5185,
+        -0.0585,
+        1.0603
+      ],
+      "thumb2.r": [
+        -0.5439,
+        -0.0839,
+        1.058
+      ],
+      "thumb3.r": [
+        -0.5654,
+        -0.0953,
+        1.0563
+      ],
+      "index1_base.r": [
+        -0.5204,
+        -0.0463,
+        1.0615
+      ],
+      "index1.r": [
+        -0.5717,
+        -0.0522,
+        1.0591
+      ],
+      "index2.r": [
+        -0.5952,
+        -0.0555,
+        1.0576
+      ],
+      "index3.r": [
+        -0.6175,
+        -0.0558,
+        1.0553
+      ],
+      "middle1_base.r": [
+        -0.52,
+        -0.0349,
+        1.0621
+      ],
+      "middle1.r": [
+        -0.5739,
+        -0.0374,
+        1.0609
+      ],
+      "middle2.r": [
+        -0.5967,
+        -0.0378,
+        1.0597
+      ],
+      "middle3.r": [
+        -0.6239,
+        -0.0384,
+        1.0569
+      ],
+      "ring1_base.r": [
+        -0.5202,
+        -0.0238,
+        1.0616
+      ],
+      "ring1.r": [
+        -0.5732,
+        -0.022,
+        1.0594
+      ],
+      "ring2.r": [
+        -0.5948,
+        -0.0211,
+        1.0576
+      ],
+      "ring3.r": [
+        -0.6144,
+        -0.0213,
+        1.0552
+      ],
+      "pinky1_base.r": [
+        -0.5183,
+        -0.0132,
+        1.0607
+      ],
+      "pinky1.r": [
+        -0.5691,
+        -0.006,
+        1.0564
+      ],
+      "pinky2.r": [
+        -0.5832,
+        -0.005,
+        1.0555
+      ],
+      "pinky3.r": [
+        -0.5954,
+        -0.0055,
+        1.0546
+      ],
+      "shoulder.l": [
+        0.033,
+        -0.0182,
+        1.0871
+      ],
+      "arm_stretch.l": [
+        0.1414,
+        -0.0182,
+        1.0871
+      ],
+      "arm_twist.l": [
+        0.1414,
+        -0.0182,
+        1.0871
+      ],
+      "forearm_stretch.l": [
+        0.3194,
+        -0.0094,
+        1.0749
+      ],
+      "forearm_twist.l": [
+        0.4063,
+        -0.0213,
+        1.0688
+      ],
+      "hand.l": [
+        0.4932,
+        -0.0332,
+        1.0627
+      ],
+      "thumb1.l": [
+        0.5185,
+        -0.0585,
+        1.0603
+      ],
+      "thumb2.l": [
+        0.5439,
+        -0.0839,
+        1.058
+      ],
+      "thumb3.l": [
+        0.5654,
+        -0.0953,
+        1.0563
+      ],
+      "index1_base.l": [
+        0.5204,
+        -0.0463,
+        1.0615
+      ],
+      "index1.l": [
+        0.5717,
+        -0.0522,
+        1.0591
+      ],
+      "index2.l": [
+        0.5952,
+        -0.0555,
+        1.0576
+      ],
+      "index3.l": [
+        0.6175,
+        -0.0558,
+        1.0553
+      ],
+      "middle1_base.l": [
+        0.52,
+        -0.0349,
+        1.0621
+      ],
+      "middle1.l": [
+        0.5739,
+        -0.0374,
+        1.0609
+      ],
+      "middle2.l": [
+        0.5967,
+        -0.0378,
+        1.0597
+      ],
+      "middle3.l": [
+        0.6239,
+        -0.0384,
+        1.0569
+      ],
+      "ring1_base.l": [
+        0.5202,
+        -0.0238,
+        1.0616
+      ],
+      "ring1.l": [
+        0.5732,
+        -0.022,
+        1.0594
+      ],
+      "ring2.l": [
+        0.5948,
+        -0.0211,
+        1.0576
+      ],
+      "ring3.l": [
+        0.6144,
+        -0.0213,
+        1.0552
+      ],
+      "pinky1_base.l": [
+        0.5183,
+        -0.0132,
+        1.0607
+      ],
+      "pinky1.l": [
+        0.5691,
+        -0.006,
+        1.0564
+      ],
+      "pinky2.l": [
+        0.5832,
+        -0.005,
+        1.0555
+      ],
+      "pinky3.l": [
+        0.5954,
+        -0.0055,
+        1.0546
+      ],
+      "thigh_stretch.l": [
+        0.0703,
+        -0.0252,
+        0.7473
+      ],
+      "thigh_twist.l": [
+        0.0703,
+        -0.0252,
+        0.7473
+      ],
+      "leg_stretch.l": [
+        0.0912,
+        -0.0426,
+        0.4264
+      ],
+      "foot.l": [
+        0.1087,
+        -0.0226,
+        0.0821
+      ],
+      "toes_01.l": [
+        0.1246,
+        -0.1681,
+        0.0387
+      ],
+      "leg_twist.l": [
+        0.1,
+        -0.0326,
+        0.2542
+      ],
+      "thigh_stretch.r": [
+        -0.0703,
+        -0.0252,
+        0.7473
+      ],
+      "thigh_twist.r": [
+        -0.0703,
+        -0.0252,
+        0.7473
+      ],
+      "leg_stretch.r": [
+        -0.0912,
+        -0.0426,
+        0.4264
+      ],
+      "foot.r": [
+        -0.1087,
+        -0.0226,
+        0.0821
+      ],
+      "toes_01.r": [
+        -0.1246,
+        -0.1681,
+        0.0387
+      ],
+      "leg_twist.r": [
+        -0.1,
+        -0.0326,
+        0.2542
+      ],
+      "neutral_bone": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "actions": [
+      {
+        "name": "away",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 48,
+        "max_endpoint_gap": 0.009510401636362076
+      },
+      {
+        "name": "blocked",
+        "range": [
+          0.0,
+          24.0
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 6.61103391980469e-17
+      },
+      {
+        "name": "celebrating",
+        "range": [
+          0.0,
+          28.80000114440918
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "idle",
+        "range": [
+          0.0,
+          57.60000228881836
+        ],
+        "curves": 44,
+        "max_endpoint_gap": 0.016179634258151054
+      },
+      {
+        "name": "learning",
+        "range": [
+          0.0,
+          52.80000305175781
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.03799895942211151
+      },
+      {
+        "name": "offline",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 40,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "playing_foosball",
+        "range": [
+          0.0,
+          33.599998474121094
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 6.0983725224349455e-18
+      },
+      {
+        "name": "preparing_coffee",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 3.056134578362918e-18
+      },
+      {
+        "name": "requesting_approval",
+        "range": [
+          0.0,
+          43.19999694824219
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 6.121401230688422e-18
+      },
+      {
+        "name": "reviewing",
+        "range": [
+          0.0,
+          57.60000228881836
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.08670870959758759
+      },
+      {
+        "name": "sitting",
+        "range": [
+          0.0,
+          60.0
+        ],
+        "curves": 47,
+        "max_endpoint_gap": 0.01901792734861374
+      },
+      {
+        "name": "talking",
+        "range": [
+          0.0,
+          38.400001525878906
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.038033097982406616
+      },
+      {
+        "name": "thinking",
+        "range": [
+          0.0,
+          60.0
+        ],
+        "curves": 47,
+        "max_endpoint_gap": 0.014552474021911621
+      },
+      {
+        "name": "typing",
+        "range": [
+          0.0,
+          28.80000114440918
+        ],
+        "curves": 139,
+        "max_endpoint_gap": 0.01417914591729641
+      },
+      {
+        "name": "waiting",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.12466847896575928
+      },
+      {
+        "name": "walking",
+        "range": [
+          0.8000000715255737,
+          25.60000228881836
+        ],
+        "curves": 133,
+        "max_endpoint_gap": 2.175569534301758e-06
+      },
+      {
+        "name": "working",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 6.1232541152605405e-18
+      }
+    ],
+    "weights": [
+      {
+        "mesh": "Body",
+        "vertices": 10612,
+        "unnormalized": 0,
+        "unweighted": 0,
+        "max_influences": 4
+      },
+      {
+        "mesh": "Eye",
+        "vertices": 754,
+        "unnormalized": 0,
+        "unweighted": 0,
+        "max_influences": 1
+      },
+      {
+        "mesh": "Eyebrow",
+        "vertices": 120,
+        "unnormalized": 0,
+        "unweighted": 0,
+        "max_influences": 1
+      },
+      {
+        "mesh": "Glasses",
+        "vertices": 2942,
+        "unnormalized": 0,
+        "unweighted": 0,
+        "max_influences": 2
+      },
+      {
+        "mesh": "Hair",
+        "vertices": 2304,
+        "unnormalized": 0,
+        "unweighted": 0,
+        "max_influences": 3
+      },
+      {
+        "mesh": "Icosphere",
+        "vertices": 42,
+        "unnormalized": 42,
+        "unweighted": 42,
+        "max_influences": 0
+      },
+      {
+        "mesh": "Pants",
+        "vertices": 1394,
+        "unnormalized": 0,
+        "unweighted": 0,
+        "max_influences": 4
+      },
+      {
+        "mesh": "Shirt",
+        "vertices": 1617,
+        "unnormalized": 0,
+        "unweighted": 0,
+        "max_influences": 4
+      },
+      {
+        "mesh": "Shoes",
+        "vertices": 24814,
+        "unnormalized": 0,
+        "unweighted": 0,
+        "max_influences": 4
+      },
+      {
+        "mesh": "T-Shirt",
+        "vertices": 840,
+        "unnormalized": 0,
+        "unweighted": 0,
+        "max_influences": 4
+      },
+      {
+        "mesh": "Teeth",
+        "vertices": 866,
+        "unnormalized": 0,
+        "unweighted": 0,
+        "max_influences": 2
+      }
+    ],
+    "arm_matrix": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "avatar_design": {
+    "path": "/assets3d/avatar_design.d9ea67320439.glb",
+    "mismatches": [],
+    "bones": {
+      "Hips": [
+        0.007,
+        -0.1201,
+        0.9379
+      ],
+      "LeftUpLeg": [
+        0.0817,
+        -0.1198,
+        0.8545
+      ],
+      "LeftLeg": [
+        0.1115,
+        -0.1186,
+        0.5209
+      ],
+      "LeftFoot": [
+        0.1363,
+        -0.086,
+        0.1638
+      ],
+      "LeftToeBase": [
+        0.1545,
+        -0.1902,
+        0.0382
+      ],
+      "RightUpLeg": [
+        -0.0778,
+        -0.1197,
+        0.8545
+      ],
+      "RightLeg": [
+        -0.1115,
+        -0.1184,
+        0.5209
+      ],
+      "RightFoot": [
+        -0.1363,
+        -0.0852,
+        0.1638
+      ],
+      "RightToeBase": [
+        -0.1514,
+        -0.1908,
+        0.0382
+      ],
+      "Spine02": [
+        0.0061,
+        -0.1119,
+        1.0099
+      ],
+      "Spine01": [
+        0.0053,
+        -0.1036,
+        1.0818
+      ],
+      "Spine": [
+        0.0044,
+        -0.0954,
+        1.1538
+      ],
+      "LeftShoulder": [
+        0.028,
+        -0.0866,
+        1.17
+      ],
+      "LeftArm": [
+        0.1223,
+        -0.0778,
+        1.17
+      ],
+      "LeftForeArm": [
+        0.2411,
+        -0.0614,
+        1.0931
+      ],
+      "LeftHand": [
+        0.3889,
+        -0.0568,
+        1.0616
+      ],
+      "neck": [
+        0.0033,
+        -0.0908,
+        1.2028
+      ],
+      "Head": [
+        0.0018,
+        -0.0848,
+        1.2676
+      ],
+      "head_end": [
+        -0.0037,
+        0.1066,
+        1.6258
+      ],
+      "headfront": [
+        0.0018,
+        -0.2044,
+        1.2676
+      ],
+      "RightShoulder": [
+        -0.0217,
+        -0.0864,
+        1.163
+      ],
+      "RightArm": [
+        -0.1258,
+        -0.0774,
+        1.163
+      ],
+      "RightForeArm": [
+        -0.2412,
+        -0.0602,
+        1.0896
+      ],
+      "RightHand": [
+        -0.3889,
+        -0.0579,
+        1.0616
+      ]
+    },
+    "actions": [
+      {
+        "name": "away",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "blocked",
+        "range": [
+          0.0,
+          24.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "celebrating",
+        "range": [
+          0.0,
+          28.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.01606154441833496
+      },
+      {
+        "name": "idle",
+        "range": [
+          0.0,
+          57.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.016375740437069908
+      },
+      {
+        "name": "learning",
+        "range": [
+          0.0,
+          52.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.03830403975734953
+      },
+      {
+        "name": "offline",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "playing_foosball",
+        "range": [
+          0.0,
+          33.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.021227583289146423
+      },
+      {
+        "name": "preparing_coffee",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "requesting_approval",
+        "range": [
+          0.0,
+          43.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0042923614382743835
+      },
+      {
+        "name": "reviewing",
+        "range": [
+          0.0,
+          57.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.08978446839319076
+      },
+      {
+        "name": "sitting",
+        "range": [
+          0.0,
+          60.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.019017933911527507
+      },
+      {
+        "name": "talking",
+        "range": [
+          0.0,
+          38.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.03549604862473643
+      },
+      {
+        "name": "thinking",
+        "range": [
+          0.0,
+          60.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.014552496373653412
+      },
+      {
+        "name": "typing",
+        "range": [
+          0.0,
+          28.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.07301852043019608
+      },
+      {
+        "name": "waiting",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.12466852601210121
+      },
+      {
+        "name": "walking",
+        "range": [
+          0.0,
+          25.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 1.0648456811904907
+      },
+      {
+        "name": "working",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      }
+    ],
+    "weights": [
+      {
+        "mesh": "char1",
+        "vertices": 15171,
+        "unnormalized": 164,
+        "unweighted": 0,
+        "max_influences": 4
+      },
+      {
+        "mesh": "Icosphere",
+        "vertices": 42,
+        "unnormalized": 42,
+        "unweighted": 42,
+        "max_influences": 0
+      }
+    ],
+    "arm_matrix": [
+      [
+        0.009999999776482582,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.009999999776482582,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.009999999776482582,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "avatar_finance": {
+    "import_error": "Error: Python: Traceback (most recent call last):\n  File \"/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/__init__.py\", line 2073, in execute\n    return self.import_gltf2(context)\n           ~~~~~~~~~~~~~~~~~^^^^^^^^^\n  File \"/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/__init__.py\", line 2105, in import_gltf2\n    return self.unit_import(self.filepath, import_settings)\n           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/__init__.py\", line 2120, in unit_import\n    BlenderGlTF.create(gltf_importer)\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^\n  File \"/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/blender/imp/blender_gltf.py\", line 41, in create\n    BlenderGlTF._create(gltf)\n    ~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/blender/imp/blender_gltf.py\", line 48, in _create\n    BlenderScene.create(gltf)\n    ~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/blender/imp/scene.py\", line 47, in create\n    BlenderScene.create_animations(gltf)\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/blender/imp/scene.py\", line 84, in create_animations\n    BlenderAnimation.anim(gltf, anim_idx)\n    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/blender/imp/animation.py\", line 34, in anim\n    BlenderNodeAnim.anim(gltf, anim_idx, vnode_id)\n    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/blender/imp/animation_node.py\", line 49, in anim\n    BlenderNodeAnim.do_channel(gltf, anim_idx, node_idx, channel)\n    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/blender/imp/animation_node.py\", line 158, in do_channel\n    coords[1::2] = (vals[i] for vals in values)\n    ~~~~~~^^^^^^\nValueError: attempt to assign sequence of size 82 to extended slice of size 63\nLocation: /tmp/mokaid-rig-audit/inspect.py:17\n",
+    "mismatches": [
+      [
+        "typing",
+        "LeftUpLeg",
+        "rotation",
+        113,
+        174
+      ],
+      [
+        "typing",
+        "LeftLeg",
+        "rotation",
+        60,
+        174
+      ],
+      [
+        "typing",
+        "RightUpLeg",
+        "rotation",
+        98,
+        174
+      ],
+      [
+        "typing",
+        "RightLeg",
+        "rotation",
+        53,
+        174
+      ],
+      [
+        "working",
+        "LeftUpLeg",
+        "rotation",
+        71,
+        73
+      ],
+      [
+        "working",
+        "LeftLeg",
+        "rotation",
+        66,
+        73
+      ],
+      [
+        "working",
+        "RightUpLeg",
+        "rotation",
+        70,
+        73
+      ],
+      [
+        "working",
+        "RightLeg",
+        "rotation",
+        65,
+        73
+      ],
+      [
+        "thinking",
+        "LeftUpLeg",
+        "rotation",
+        121,
+        144
+      ],
+      [
+        "thinking",
+        "LeftLeg",
+        "rotation",
+        102,
+        144
+      ],
+      [
+        "thinking",
+        "RightUpLeg",
+        "rotation",
+        130,
+        144
+      ],
+      [
+        "thinking",
+        "RightLeg",
+        "rotation",
+        91,
+        144
+      ],
+      [
+        "talking",
+        "LeftUpLeg",
+        "rotation",
+        113,
+        174
+      ],
+      [
+        "talking",
+        "LeftLeg",
+        "rotation",
+        60,
+        174
+      ],
+      [
+        "talking",
+        "RightUpLeg",
+        "rotation",
+        98,
+        174
+      ],
+      [
+        "talking",
+        "RightLeg",
+        "rotation",
+        53,
+        174
+      ],
+      [
+        "waiting",
+        "LeftUpLeg",
+        "rotation",
+        174,
+        98
+      ],
+      [
+        "waiting",
+        "LeftLeg",
+        "rotation",
+        82,
+        98
+      ],
+      [
+        "waiting",
+        "RightUpLeg",
+        "rotation",
+        181,
+        98
+      ],
+      [
+        "waiting",
+        "RightLeg",
+        "rotation",
+        104,
+        98
+      ],
+      [
+        "blocked",
+        "LeftUpLeg",
+        "rotation",
+        99,
+        120
+      ],
+      [
+        "blocked",
+        "LeftLeg",
+        "rotation",
+        34,
+        120
+      ],
+      [
+        "blocked",
+        "RightUpLeg",
+        "rotation",
+        102,
+        120
+      ],
+      [
+        "blocked",
+        "RightLeg",
+        "rotation",
+        41,
+        120
+      ],
+      [
+        "reviewing",
+        "LeftUpLeg",
+        "rotation",
+        186,
+        158
+      ],
+      [
+        "reviewing",
+        "LeftLeg",
+        "rotation",
+        47,
+        158
+      ],
+      [
+        "reviewing",
+        "RightUpLeg",
+        "rotation",
+        174,
+        158
+      ],
+      [
+        "reviewing",
+        "RightLeg",
+        "rotation",
+        79,
+        158
+      ],
+      [
+        "learning",
+        "LeftUpLeg",
+        "rotation",
+        113,
+        174
+      ],
+      [
+        "learning",
+        "LeftLeg",
+        "rotation",
+        60,
+        174
+      ],
+      [
+        "learning",
+        "RightUpLeg",
+        "rotation",
+        98,
+        174
+      ],
+      [
+        "learning",
+        "RightLeg",
+        "rotation",
+        53,
+        174
+      ],
+      [
+        "requesting_approval",
+        "LeftUpLeg",
+        "rotation",
+        81,
+        82
+      ],
+      [
+        "requesting_approval",
+        "LeftLeg",
+        "rotation",
+        63,
+        82
+      ],
+      [
+        "requesting_approval",
+        "RightUpLeg",
+        "rotation",
+        80,
+        82
+      ],
+      [
+        "requesting_approval",
+        "RightLeg",
+        "rotation",
+        64,
+        82
+      ]
+    ]
+  },
+  "avatar_corporate": {
+    "path": "/assets3d/avatar_corporate.dd078ffb0766.glb",
+    "mismatches": [],
+    "bones": {
+      "Hips": [
+        0.0039,
+        -0.0072,
+        1.0227
+      ],
+      "LeftUpLeg": [
+        0.0678,
+        -0.0012,
+        0.9267
+      ],
+      "LeftLeg": [
+        0.0941,
+        0.0227,
+        0.5425
+      ],
+      "LeftFoot": [
+        0.1087,
+        0.097,
+        0.1195
+      ],
+      "LeftToeBase": [
+        0.1172,
+        -0.0335,
+        0.0392
+      ],
+      "RightUpLeg": [
+        -0.0656,
+        -0.0012,
+        0.9267
+      ],
+      "RightLeg": [
+        -0.0941,
+        0.0227,
+        0.5425
+      ],
+      "RightFoot": [
+        -0.101,
+        0.0972,
+        0.1195
+      ],
+      "RightToeBase": [
+        -0.112,
+        -0.0335,
+        0.0402
+      ],
+      "Spine02": [
+        0.0032,
+        0.0061,
+        1.1396
+      ],
+      "Spine01": [
+        0.0026,
+        0.0193,
+        1.2565
+      ],
+      "Spine": [
+        0.0019,
+        0.0326,
+        1.3734
+      ],
+      "LeftShoulder": [
+        0.0365,
+        0.0476,
+        1.4087
+      ],
+      "LeftArm": [
+        0.1747,
+        0.0626,
+        1.4087
+      ],
+      "LeftForeArm": [
+        0.3961,
+        0.0926,
+        1.3116
+      ],
+      "LeftHand": [
+        0.6252,
+        0.0961,
+        1.2573
+      ],
+      "RightShoulder": [
+        -0.0342,
+        0.0471,
+        1.4048
+      ],
+      "RightArm": [
+        -0.1786,
+        0.0616,
+        1.4048
+      ],
+      "RightForeArm": [
+        -0.3806,
+        0.0895,
+        1.3116
+      ],
+      "RightHand": [
+        -0.6252,
+        0.0828,
+        1.2612
+      ],
+      "neck": [
+        0.0009,
+        0.0415,
+        1.4516
+      ],
+      "Head": [
+        0.0,
+        0.0497,
+        1.5236
+      ],
+      "head_end": [
+        -0.0035,
+        -0.0119,
+        1.8046
+      ],
+      "headfront": [
+        0.0,
+        -0.092,
+        1.5236
+      ]
+    },
+    "actions": [
+      {
+        "name": "away",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 47,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "blocked",
+        "range": [
+          0.0,
+          24.0
+        ],
+        "curves": 47,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "celebrating",
+        "range": [
+          0.0,
+          28.80000114440918
+        ],
+        "curves": 39,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "idle",
+        "range": [
+          0.0,
+          57.60000228881836
+        ],
+        "curves": 47,
+        "max_endpoint_gap": 0.016179632279090583
+      },
+      {
+        "name": "learning",
+        "range": [
+          0.0,
+          52.80000305175781
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.03797052055597305
+      },
+      {
+        "name": "offline",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "playing_foosball",
+        "range": [
+          0.0,
+          33.599998474121094
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "preparing_coffee",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "requesting_approval",
+        "range": [
+          0.0,
+          43.19999694824219
+        ],
+        "curves": 47,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "reviewing",
+        "range": [
+          0.0,
+          57.60000228881836
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.08670871693175286
+      },
+      {
+        "name": "sitting",
+        "range": [
+          0.0,
+          60.0
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.019017925369553268
+      },
+      {
+        "name": "talking",
+        "range": [
+          0.0,
+          38.400001525878906
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.03803312033318207
+      },
+      {
+        "name": "thinking",
+        "range": [
+          0.0,
+          60.0
+        ],
+        "curves": 47,
+        "max_endpoint_gap": 0.014552466571331024
+      },
+      {
+        "name": "typing",
+        "range": [
+          0.0,
+          28.80000114440918
+        ],
+        "curves": 51,
+        "max_endpoint_gap": 0.014154059579595923
+      },
+      {
+        "name": "waiting",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.12466848606709391
+      },
+      {
+        "name": "walking",
+        "range": [
+          0.8000000715255737,
+          25.60000228881836
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 2.2493737560580485e-05
+      },
+      {
+        "name": "working",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.0
+      }
+    ],
+    "weights": [
+      {
+        "mesh": "char1",
+        "vertices": 61618,
+        "unnormalized": 5398,
+        "unweighted": 0,
+        "max_influences": 4
+      },
+      {
+        "mesh": "Icosphere",
+        "vertices": 42,
+        "unnormalized": 42,
+        "unweighted": 42,
+        "max_influences": 0
+      }
+    ],
+    "arm_matrix": [
+      [
+        0.009999999776482582,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.009999999776482582,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.009999999776482582,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "avatar_legal": {
+    "path": "/assets3d/avatar_legal.12554af1b7e1.glb",
+    "mismatches": [],
+    "bones": {
+      "Hips": [
+        0.0,
+        -0.0178,
+        0.7453
+      ],
+      "LeftUpLeg": [
+        0.0567,
+        -0.03,
+        0.6737
+      ],
+      "LeftLeg": [
+        0.089,
+        -0.0789,
+        0.3872
+      ],
+      "LeftFoot": [
+        0.0641,
+        0.061,
+        0.1166
+      ],
+      "LeftToeBase": [
+        0.0661,
+        -0.0257,
+        0.0315
+      ],
+      "RightUpLeg": [
+        -0.05,
+        -0.0309,
+        0.6744
+      ],
+      "RightLeg": [
+        -0.0783,
+        -0.0832,
+        0.3907
+      ],
+      "RightFoot": [
+        -0.057,
+        0.0611,
+        0.1095
+      ],
+      "RightToeBase": [
+        -0.0625,
+        -0.0256,
+        0.0315
+      ],
+      "Spine02": [
+        0.0,
+        -0.0118,
+        0.847
+      ],
+      "Spine01": [
+        0.0,
+        -0.0057,
+        0.9488
+      ],
+      "Spine": [
+        0.0,
+        0.0003,
+        1.0506
+      ],
+      "LeftShoulder": [
+        0.0249,
+        0.0066,
+        1.0671
+      ],
+      "LeftArm": [
+        0.1246,
+        0.0129,
+        1.0671
+      ],
+      "LeftForeArm": [
+        0.178,
+        0.0239,
+        0.8392
+      ],
+      "LeftHand": [
+        0.2029,
+        0.0166,
+        0.6364
+      ],
+      "neck": [
+        0.0,
+        0.005,
+        1.1527
+      ],
+      "Head": [
+        0.0,
+        0.0081,
+        1.2187
+      ],
+      "head_end": [
+        0.0,
+        0.0735,
+        1.657
+      ],
+      "headfront": [
+        0.0,
+        -0.14,
+        1.2187
+      ],
+      "RightShoulder": [
+        -0.0242,
+        0.0066,
+        1.0671
+      ],
+      "RightArm": [
+        -0.121,
+        0.0129,
+        1.0671
+      ],
+      "RightForeArm": [
+        -0.1709,
+        0.024,
+        0.8428
+      ],
+      "RightHand": [
+        -0.1887,
+        0.017,
+        0.6435
+      ]
+    },
+    "actions": [
+      {
+        "name": "away",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "blocked",
+        "range": [
+          0.0,
+          24.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "celebrating",
+        "range": [
+          0.0,
+          28.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.016061484813690186
+      },
+      {
+        "name": "idle",
+        "range": [
+          0.0,
+          57.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.01637573726475039
+      },
+      {
+        "name": "learning",
+        "range": [
+          0.0,
+          52.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.03830403090435219
+      },
+      {
+        "name": "offline",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "playing_foosball",
+        "range": [
+          0.0,
+          33.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.021227538585662842
+      },
+      {
+        "name": "preparing_coffee",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "requesting_approval",
+        "range": [
+          0.0,
+          43.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.00429231533780694
+      },
+      {
+        "name": "reviewing",
+        "range": [
+          0.0,
+          57.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.08978448064427957
+      },
+      {
+        "name": "sitting",
+        "range": [
+          0.0,
+          60.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.019017936661835266
+      },
+      {
+        "name": "talking",
+        "range": [
+          0.0,
+          38.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0354960560798645
+      },
+      {
+        "name": "thinking",
+        "range": [
+          0.0,
+          60.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.014552481472492218
+      },
+      {
+        "name": "typing",
+        "range": [
+          0.0,
+          28.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.07301852107048035
+      },
+      {
+        "name": "waiting",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.1246685311252751
+      },
+      {
+        "name": "walking",
+        "range": [
+          0.0,
+          25.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.8141524344682693
+      },
+      {
+        "name": "working",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      }
+    ],
+    "weights": [
+      {
+        "mesh": "char1",
+        "vertices": 13761,
+        "unnormalized": 558,
+        "unweighted": 0,
+        "max_influences": 4
+      },
+      {
+        "mesh": "Icosphere",
+        "vertices": 42,
+        "unnormalized": 42,
+        "unweighted": 42,
+        "max_influences": 0
+      }
+    ],
+    "arm_matrix": [
+      [
+        0.009999999776482582,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.009999999776482582,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.009999999776482582,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "avatar_research": {
+    "path": "/assets3d/avatar_research.aee3f8496ec7.glb",
+    "mismatches": [],
+    "bones": {
+      "Hips": [
+        0.0,
+        0.0911,
+        0.6322
+      ],
+      "LeftUpLeg": [
+        0.0853,
+        0.0923,
+        0.5742
+      ],
+      "LeftLeg": [
+        0.123,
+        0.0969,
+        0.3423
+      ],
+      "LeftFoot": [
+        0.1456,
+        0.1578,
+        0.1093
+      ],
+      "LeftToeBase": [
+        0.1485,
+        0.0323,
+        0.0354
+      ],
+      "RightUpLeg": [
+        -0.0783,
+        0.0911,
+        0.5775
+      ],
+      "RightLeg": [
+        -0.1133,
+        0.0913,
+        0.3584
+      ],
+      "RightFoot": [
+        -0.1392,
+        0.1579,
+        0.1125
+      ],
+      "RightToeBase": [
+        -0.1429,
+        0.0325,
+        0.0357
+      ],
+      "Spine02": [
+        -0.0,
+        0.0985,
+        0.7221
+      ],
+      "Spine01": [
+        -0.0,
+        0.1059,
+        0.8119
+      ],
+      "Spine": [
+        -0.0,
+        0.1133,
+        0.9018
+      ],
+      "LeftShoulder": [
+        0.0278,
+        0.1102,
+        0.928
+      ],
+      "LeftArm": [
+        0.1391,
+        0.1072,
+        0.928
+      ],
+      "LeftForeArm": [
+        0.2589,
+        0.0708,
+        0.7727
+      ],
+      "LeftHand": [
+        0.3592,
+        -0.1792,
+        0.9571
+      ],
+      "neck": [
+        -0.0,
+        0.1178,
+        0.9573
+      ],
+      "Head": [
+        -0.0,
+        0.1227,
+        1.0173
+      ],
+      "head_end": [
+        -0.0,
+        0.0363,
+        1.4486
+      ],
+      "headfront": [
+        -0.0,
+        0.0646,
+        1.0173
+      ],
+      "RightShoulder": [
+        -0.0252,
+        0.1113,
+        0.928
+      ],
+      "RightArm": [
+        -0.1262,
+        0.1093,
+        0.928
+      ],
+      "RightForeArm": [
+        -0.2492,
+        0.078,
+        0.7727
+      ],
+      "RightHand": [
+        -0.3527,
+        -0.1884,
+        0.9701
+      ]
+    },
+    "actions": [
+      {
+        "name": "away",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "blocked",
+        "range": [
+          0.0,
+          24.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "celebrating",
+        "range": [
+          0.0,
+          16.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 3.6552104575093836e-05
+      },
+      {
+        "name": "idle",
+        "range": [
+          0.0,
+          57.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.016388565301873825
+      },
+      {
+        "name": "learning",
+        "range": [
+          0.0,
+          124.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.027034759521484375
+      },
+      {
+        "name": "offline",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "playing_foosball",
+        "range": [
+          0.0,
+          33.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.02122756838798523
+      },
+      {
+        "name": "preparing_coffee",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "requesting_approval",
+        "range": [
+          0.0,
+          43.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.004292339086532593
+      },
+      {
+        "name": "reviewing",
+        "range": [
+          0.0,
+          57.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.08978448063135236
+      },
+      {
+        "name": "sitting",
+        "range": [
+          0.0,
+          60.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.01901793666184215
+      },
+      {
+        "name": "talking",
+        "range": [
+          0.0,
+          124.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.027034759521484375
+      },
+      {
+        "name": "thinking",
+        "range": [
+          0.0,
+          60.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.014552518725395203
+      },
+      {
+        "name": "typing",
+        "range": [
+          0.0,
+          28.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.07301852200180292
+      },
+      {
+        "name": "waiting",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.12466853117804377
+      },
+      {
+        "name": "walking",
+        "range": [
+          0.0,
+          29.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.2956721782684326
+      },
+      {
+        "name": "working",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 0.0
+      }
+    ],
+    "weights": [
+      {
+        "mesh": "char1",
+        "vertices": 35798,
+        "unnormalized": 431,
+        "unweighted": 0,
+        "max_influences": 4
+      },
+      {
+        "mesh": "Icosphere",
+        "vertices": 42,
+        "unnormalized": 42,
+        "unweighted": 42,
+        "max_influences": 0
+      }
+    ],
+    "arm_matrix": [
+      [
+        0.009999999776482582,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.009999999776482582,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.009999999776482582,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "avatar_developer": {
+    "path": "/assets3d/avatar_developer.d9c81b448040.glb",
+    "mismatches": [],
+    "bones": {
+      "Hips": [
+        0.0037,
+        0.0979,
+        0.9109
+      ],
+      "LeftUpLeg": [
+        0.0694,
+        0.1028,
+        0.8217
+      ],
+      "LeftLeg": [
+        0.0954,
+        0.1226,
+        0.4649
+      ],
+      "LeftFoot": [
+        0.11,
+        0.1489,
+        0.1385
+      ],
+      "LeftToeBase": [
+        0.138,
+        0.0427,
+        0.0364
+      ],
+      "RightUpLeg": [
+        -0.0648,
+        0.1028,
+        0.8217
+      ],
+      "RightLeg": [
+        -0.0917,
+        0.1225,
+        0.4649
+      ],
+      "RightFoot": [
+        -0.099,
+        0.1479,
+        0.1348
+      ],
+      "RightToeBase": [
+        -0.1333,
+        0.0423,
+        0.0365
+      ],
+      "Spine02": [
+        0.003,
+        0.1098,
+        1.0307
+      ],
+      "Spine01": [
+        0.0024,
+        0.1217,
+        1.1505
+      ],
+      "Spine": [
+        0.0018,
+        0.1336,
+        1.2703
+      ],
+      "LeftShoulder": [
+        0.033,
+        0.1357,
+        1.3048
+      ],
+      "LeftArm": [
+        0.1577,
+        0.1378,
+        1.3048
+      ],
+      "LeftForeArm": [
+        0.2787,
+        0.112,
+        1.1214
+      ],
+      "LeftHand": [
+        0.3851,
+        -0.1235,
+        1.1947
+      ],
+      "RightShoulder": [
+        -0.0308,
+        0.1364,
+        1.2974
+      ],
+      "RightArm": [
+        -0.1614,
+        0.1391,
+        1.2974
+      ],
+      "RightForeArm": [
+        -0.2751,
+        0.1163,
+        1.1177
+      ],
+      "RightHand": [
+        -0.3814,
+        -0.1241,
+        1.1984
+      ],
+      "neck": [
+        0.0008,
+        0.1422,
+        1.3563
+      ],
+      "Head": [
+        -0.0,
+        0.1489,
+        1.4243
+      ],
+      "head_end": [
+        -0.0032,
+        0.1035,
+        1.7068
+      ],
+      "headfront": [
+        0.0,
+        0.0551,
+        1.4243
+      ]
+    },
+    "actions": [
+      {
+        "name": "away",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 63,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "blocked",
+        "range": [
+          0.0,
+          24.0
+        ],
+        "curves": 63,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "celebrating",
+        "range": [
+          0.8000000715255737,
+          16.0
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 2.8988763006054796e-05
+      },
+      {
+        "name": "idle",
+        "range": [
+          0.0,
+          57.60000228881836
+        ],
+        "curves": 63,
+        "max_endpoint_gap": 0.016179636179003865
+      },
+      {
+        "name": "learning",
+        "range": [
+          0.0,
+          52.80000305175781
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.03797052463050932
+      },
+      {
+        "name": "offline",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 59,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "requesting_approval",
+        "range": [
+          0.0,
+          43.19999694824219
+        ],
+        "curves": 47,
+        "max_endpoint_gap": 0.0
+      },
+      {
+        "name": "reviewing",
+        "range": [
+          0.0,
+          57.60000228881836
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.08670871733920649
+      },
+      {
+        "name": "talking",
+        "range": [
+          0.0,
+          38.400001525878906
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.03803306817894736
+      },
+      {
+        "name": "thinking",
+        "range": [
+          0.0,
+          60.0
+        ],
+        "curves": 47,
+        "max_endpoint_gap": 0.014552474021911621
+      },
+      {
+        "name": "typing",
+        "range": [
+          0.0,
+          28.80000114440918
+        ],
+        "curves": 51,
+        "max_endpoint_gap": 0.014154061442241073
+      },
+      {
+        "name": "waiting",
+        "range": [
+          0.0,
+          72.0
+        ],
+        "curves": 59,
+        "max_endpoint_gap": 0.12466850905911997
+      },
+      {
+        "name": "walking",
+        "range": [
+          0.8000000715255737,
+          25.60000228881836
+        ],
+        "curves": 240,
+        "max_endpoint_gap": 2.8322906928224256e-05
+      },
+      {
+        "name": "working",
+        "range": [
+          0.0,
+          48.0
+        ],
+        "curves": 43,
+        "max_endpoint_gap": 0.0
+      }
+    ],
+    "weights": [
+      {
+        "mesh": "char1",
+        "vertices": 86851,
+        "unnormalized": 9531,
+        "unweighted": 0,
+        "max_influences": 4
+      },
+      {
+        "mesh": "Icosphere",
+        "vertices": 42,
+        "unnormalized": 42,
+        "unweighted": 42,
+        "max_influences": 0
+      }
+    ],
+    "arm_matrix": [
+      [
+        0.009999999776482582,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.009999999776482582,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.009999999776482582,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  }
+}

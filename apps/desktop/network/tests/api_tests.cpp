@@ -103,6 +103,18 @@ private slots:
             [&](ApiResponse response) { QVERIFY(!response.ok()); QCOMPARE(response.error, "Session expired"); finished = true; });
         QTRY_VERIFY(finished); QCOMPARE(expired.size(), 1);
     }
+    void oldTokenFailuresCannotRenewTheReplacementSession() {
+        HttpFixture remote; QVERIFY(remote.server.isListening());
+        ApiClient api(remote.origin()); api.setSession("old-token", "alice", false);
+        QSignalSpy expired(&api, &ApiClient::sessionExpired);
+        QObject owner; bool finished = false;
+        api.request("GET", "/api/me", {}, mokaid::core::Scope::identity, &owner,
+            [&](ApiResponse response) { QVERIFY(!response.ok()); QCOMPARE(response.status, 401); finished = true; });
+        QTRY_COMPARE(remote.count, 1);
+        api.setSession("fresh-token", "alice", false);
+        HttpFixture::reply(remote.peer, "{\"error\":\"Old access token expired\"}", 401);
+        QTRY_VERIFY(finished); QCOMPARE(expired.size(), 0);
+    }
     void opaqueDownloadsRejectOversizedPayloads() {
         HttpFixture remote; QVERIFY(remote.server.isListening());
         remote.handler = [](QTcpSocket* socket) { HttpFixture::reply(socket, QByteArray(32 * 1024 * 1024 + 1, 'x')); };
@@ -164,7 +176,15 @@ private slots:
         if (opaque) api.getBytes("/api/example/raw", mokaid::core::Scope::public_api, &owner, complete);
         else api.request("GET", "/api/example/raw", {}, mokaid::core::Scope::public_api, &owner, complete);
         QTRY_VERIFY(finished);
-        QVERIFY(!result.ok()); QVERIFY(result.networkError); QVERIFY(result.bytes.isEmpty());
+        QVERIFY(!result.ok()); QVERIFY(result.networkError); QVERIFY(result.bytes.isEmpty()); QVERIFY(!result.requestNotSent);
+    }
+    void connectionRefusalCanBeDistinguishedFromAmbiguousTransferLoss() {
+        HttpFixture remote; QVERIFY(remote.server.isListening());
+        ApiClient api(remote.origin()); remote.server.close();
+        QObject owner; bool finished = false; ApiResponse result;
+        api.request("POST", "/api/desktop/auth/token", {{"refresh_token", "fixture-secret"}}, mokaid::core::Scope::public_api, &owner,
+            [&](ApiResponse response) { result = std::move(response); finished = true; });
+        QTRY_VERIFY(finished); QVERIFY(!result.ok()); QVERIFY(result.networkError); QVERIFY(result.requestNotSent);
     }
     void invalidJsonNeverBecomesSuccessfulEmptyData_data() {
         QTest::addColumn<QByteArray>("body");

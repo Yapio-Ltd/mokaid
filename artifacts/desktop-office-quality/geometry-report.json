@@ -1,0 +1,188 @@
+{
+  "path": "assets/optimized/office.desktop.4fe5f78c1fb5.glb",
+  "sha256": "4fe5f78c1fb54a3bb6815cab39c9457ed10a895b633c1dac032c5b4e8eb348a0",
+  "sourcePath": "apps/web/public/assets3d/office.a830ba995121.glb",
+  "sourceSha256": "a830ba995121e9a4d49e85698f1c3161a4962bbc677a0994127f8f102bf58613",
+  "authoringFile": "artifacts/desktop-office-quality/office-desktop.blend",
+  "floorOutlineNativeXZ": [
+    [
+      -7.429588,
+      6.472565
+    ],
+    [
+      7.067595,
+      6.472565
+    ],
+    [
+      7.367595,
+      -0.1398
+    ],
+    [
+      6.157882066966522,
+      -5.042117933033477
+    ],
+    [
+      4.727435,
+      -6.472565
+    ],
+    [
+      -7.429588,
+      -6.472565
+    ]
+  ],
+  "frontChamferXMinusZ": 11.2,
+  "floorSideWidening": 0.3,
+  "unchangedFurnitureMeshes": 73,
+  "adjustedDeskChair": {
+    "seat": 5,
+    "vertices": 2059,
+    "translationNativeXZ": [
+      0,
+      0
+    ],
+    "cushionHeight": 0.574917,
+    "pedestalAdjustment": 0.012687
+  },
+  "foosball": {
+    "sourceCenterNativeXZ": [
+      -1.845,
+      -4.67
+    ],
+    "centerNativeXZ": [
+      -3.1,
+      -4.67
+    ],
+    "scale": 1.6,
+    "vertices": 3440,
+    "handleHeight": 0.956,
+    "min": [
+      -3.780818984985352,
+      -0.023689651489257814,
+      -5.539575622558594
+    ],
+    "max": [
+      -2.427250717163086,
+      1.0246763229370117,
+      -3.813997314453125
+    ],
+    "playerWest": [
+      -4.1408,
+      -4.67
+    ],
+    "playerEast": [
+      -2.0672,
+      -4.67
+    ]
+  },
+  "navigation": {
+    "sockets": {
+      "desk_0": {
+        "chairNode": "chair_0",
+        "pullback": 0.45
+      },
+      "desk_1": {
+        "chairNode": "chair_1",
+        "pullback": 0.5
+      },
+      "desk_2": {
+        "chairNode": "chair_2",
+        "pullback": 0.6
+      },
+      "desk_3": {
+        "chairNode": "chair_3",
+        "pullback": 0.45
+      },
+      "desk_4": {
+        "chairNode": "chair_4",
+        "pullback": 0.58
+      },
+      "desk_5": {
+        "x": -6.019,
+        "z": -0.665,
+        "yaw": -1.5707963267948966,
+        "approachX": -5.6165,
+        "approachZ": -0.665,
+        "chairNode": "chair_5",
+        "pullback": 0.925,
+        "seatHeight": 0.574917,
+        "floorHeight": 0.064917
+      },
+      "desk_6": {
+        "chairNode": "chair_6",
+        "pullback": 0.55
+      },
+      "desk_7": {
+        "chairNode": "chair_7",
+        "pullback": 0.58
+      },
+      "desk_8": {
+        "chairNode": "chair_8",
+        "pullback": 0.6
+      },
+      "foosball_a": {
+        "x": -4.1408,
+        "z": -4.67,
+        "yaw": -1.5707963267948966,
+        "approachX": -4.3,
+        "approachZ": -4.67
+      },
+      "foosball_b": {
+        "x": -2.0672,
+        "z": -4.67,
+        "yaw": 1.5707963267948966,
+        "approachX": -1.88,
+        "approachZ": -4.67
+      },
+      "coffee_chat_0": {
+        "x": -2.74,
+        "z": 5.1,
+        "approachX": -2.74,
+        "approachZ": 5.1,
+        "yaw": -1.4653685756720058
+      },
+      "coffee_chat_1": {
+        "x": -0.85,
+        "z": 4.9,
+        "approachX": -0.85,
+        "approachZ": 4.9,
+        "yaw": 1.6762240779177875
+      }
+    },
+    "obstacles": [
+      {
+        "old": [
+          -2.27,
+          -1.42,
+          -5.21,
+          -4.13
+        ],
+        "new": [
+          -3.780818984985352,
+          -2.427250717163086,
+          -5.539575622558594,
+          -3.813997314453125
+        ]
+      }
+    ],
+    "anchors": {
+      "foosball_w": {
+        "x": -4.3,
+        "z": -4.67
+      },
+      "foosball_s": {
+        "x": -3.1,
+        "z": -3.3
+      }
+    },
+    "floorSurfaces": [
+      {
+        "minX": -7.381761,
+        "maxX": -4.393354,
+        "minZ": -2.386491,
+        "maxZ": 1.822855,
+        "height": 0.064917
+      }
+    ]
+  },
+  "notes": "Blender-authored cutaway plinth and full-size foosball table with two accessible opposing sides. Other atlas geometry and furniture preserved."
+}

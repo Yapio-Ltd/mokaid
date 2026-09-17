@@ -1,0 +1,7 @@
+"""Apply the final Legal source-mesh bridge guard to already baked actions."""
+import bpy,runpy,json,hashlib,sys
+from pathlib import Path
+h=runpy.run_path(str(Path(__file__).with_name('blender-avatar-life.py')));root=Path(sys.argv[sys.argv.index('--')+1]);path=root/'avatar_legal.blend';bpy.ops.wm.open_mainfile(filepath=str(path));arm=next(o for o in bpy.data.objects if o.type=='ARMATURE');meshes=[o for o in bpy.data.objects if o.type=='MESH' and o.vertex_groups];r=h['Rig'](arm,meshes);report=json.loads((root/'report.json').read_text());entry=report['avatar_legal'];r.height=entry['height_m'];surface=entry.get('source_topology_repair',{}).get('flank_surface_repair')
+if surface:bpy.data.objects['char1']['legal_flank_repair']=json.dumps(surface)
+actions={a.name:a for a in bpy.data.actions};entry['source_topology_repair']=h['remove_degenerate_skin_bridges'](r,actions);entry['source_topology_repair']['flank_surface_repair']=h['rebuild_legal_flanks'](r);entry['original_vertex_positions_preserved']=False
+arm.animation_data.action=actions['idle'];bpy.context.scene.frame_set(0);bpy.context.view_layer.update();output=root/'avatar_legal.glb';h['BASE']['export_avatar'](arm,meshes,output);bpy.ops.wm.save_as_mainfile(filepath=str(path));entry.update(sha256=hashlib.sha256(output.read_bytes()).hexdigest(),bytes=output.stat().st_size);(root/'report.json').write_text(json.dumps(report,indent=2));h['preview'](r,actions,root/'avatar_legal-contact-sheet.png')

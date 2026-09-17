@@ -64,7 +64,7 @@ private slots:
         remote.handler=[&](QTcpSocket* socket,const Request& request) {
             if (request.path=="/api/notifications") notification=socket;
             else if (QUrlQuery(QUrl(request.path)).queryItemValue("q")=="old") oldSearch=socket;
-            else ActivityApi::reply(socket,R"({"data":{"tasks":[{"id":"new-task","title":"Newest task"}],"projects":[],"agents":[],"knowledge":[]}})");
+            else ActivityApi::reply(socket,R"({"data":{"tasks":[{"id":"new-task","title":"Newest task"}],"projects":[],"agents":[],"knowledge":[{"id":"retired-page","title":"Hidden knowledge result"}]}})");
         };
         QTemporaryDir directory; CacheStore cache(directory.path()); ApiClient api(remote.origin());
         api.setSession("test-alice","alice",false); api.setWorkspace("workspace-a");

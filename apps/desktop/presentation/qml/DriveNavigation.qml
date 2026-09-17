@@ -7,18 +7,18 @@ import QtQuick.Dialogs
 ColumnLayout {
     id: root
     required property var controller
-    spacing: 8
+    spacing: 10
     RowLayout {
-        Layout.fillWidth: true
+        Layout.fillWidth: true; spacing: 8
         MokaidButton {
             objectName: "driveBack"
-            text: "← Back"; enabled: root.controller.driveCanGoBack
+            text: "Back"; iconName: "chevron-left"; enabled: root.controller.driveCanGoBack
             Accessible.name: "Back to the previous folder"
             onClicked: root.controller.driveBack()
         }
         ListView {
             id: breadcrumbs
-            Layout.fillWidth: true; Layout.preferredHeight: 38
+            Layout.fillWidth: true; Layout.preferredHeight: 44
             model: root.controller.driveBreadcrumbs
             orientation: ListView.Horizontal; clip: true; reuseItems: true; spacing: 4
             onCountChanged: positionViewAtEnd()
@@ -26,7 +26,7 @@ ColumnLayout {
                 required property var modelData
                 required property int index
                 objectName: "driveBreadcrumb" + index
-                text: modelData.name; width: Math.min(200, implicitWidth)
+                text: modelData.name; width: Math.min(200, implicitWidth); quiet: !highlighted
                 Accessible.name: "Open folder " + modelData.name
                 highlighted: !root.controller.driveTrash && index === breadcrumbs.count - 1
                 onClicked: root.controller.navigateDriveBreadcrumb(index)
@@ -41,7 +41,7 @@ ColumnLayout {
         }
         MokaidButton {
             objectName: "driveDownload"
-            text: "Save file…"
+            text: "Save file…"; iconName: "file"
             enabled: root.controller.driveCanDownload && !root.controller.driveDownload.busy
             Accessible.description: "Save the selected file locally. Maximum size: 32 MiB."
             onClicked: root.controller.requestDriveDownload()
@@ -50,7 +50,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         MokaidLabel {
-            Layout.fillWidth: true; wrapMode: Text.Wrap
+            Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 12
             text: root.controller.driveDownload.error || root.controller.driveDownload.status
                   || (root.controller.driveTrash ? "Trash · select an item to restore it." : "Open a folder to browse it. Native downloads: up to 32 MiB.")
             color: root.controller.driveDownload.error ? Theme.warning : Theme.secondary

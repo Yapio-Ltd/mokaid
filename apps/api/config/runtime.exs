@@ -1,5 +1,11 @@
 import Config
 
+# Disabled outside explicitly configured ALB-only deployments. Do not trust an
+# arbitrary forwarded header, nor all RFC1918/private addresses.
+config :mokaid,
+       :trusted_alb_cidrs,
+       System.get_env("MOKAID_TRUSTED_ALB_CIDRS", "") |> String.split(",", trim: true)
+
 # OFF until signed installers and their update channel are publicly available.
 # Invalid rollout values fail explicitly rather than accidentally restricting users.
 desktop_only_business =
@@ -46,7 +52,8 @@ config :mokaid, :google_auth,
     Enum.uniq([
       System.get_env("GOOGLE_AUTH_REDIRECT_URI") || "https://mokaid.com/auth/google/callback",
       "https://mokaid.com/auth/google/callback",
-      "http://localhost:5173/auth/google/callback"
+      "http://localhost:5173/auth/google/callback",
+      "http://127.0.0.1:5173/auth/google/callback"
     ])
 
 config :mokaid, :github_oauth,
@@ -140,7 +147,16 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base
 
-  config :mokaid, :cors_origins, String.split(System.get_env("CORS_ORIGINS", ""), ",", trim: true)
+  browser_origins = String.split(System.get_env("CORS_ORIGINS", ""), ",", trim: true)
+  config :mokaid, :cors_origins, browser_origins
+
+  config :mokaid, MokaidWeb.Endpoint,
+    check_origin:
+      Enum.uniq([
+        "https://#{host}",
+        System.get_env("DESKTOP_AUTH_WEB_BASE_URL") || "https://mokaid.com"
+        | browser_origins
+      ])
 
   config :mokaid, :assets_cdn_url, System.get_env("ASSETS_CDN_URL") || ""
 

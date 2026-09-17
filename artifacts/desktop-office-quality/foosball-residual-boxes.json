@@ -1,0 +1,307 @@
+{
+  "method": "Actual triangles clipped to native body band Y .12..1.55, then clipped against exact XZ rectangle. No collider removed or modified.",
+  "source": {
+    "source": "apps/web/public/assets3d/office.a830ba995121.glb",
+    "boxes": [
+      {
+        "id": 176,
+        "x": [
+          -2.35,
+          -2.25
+        ],
+        "z": [
+          -5.35,
+          -4.15
+        ],
+        "intersectingTriangleCount": 228,
+        "intersectionsWithinOriginalTableBounds": 228,
+        "intersectingMeshes": {
+          "wall 1 / Solo items": 228
+        },
+        "closest": {
+          "distance": 0,
+          "node": "wall 1",
+          "material": "Solo items",
+          "triangle": [
+            [
+              -2.2705118508508186,
+              0.6040211045291894,
+              -5.114272166523756
+            ],
+            [
+              -2.2705118508508186,
+              0.6068761315981053,
+              -5.120696129899059
+            ],
+            [
+              -2.2705118508508186,
+              0.6040211045291894,
+              -5.127833479756717
+            ]
+          ]
+        }
+      },
+      {
+        "id": 178,
+        "x": [
+          -2.35,
+          -1.25
+        ],
+        "z": [
+          -4.15,
+          -4.05
+        ],
+        "intersectingTriangleCount": 13,
+        "intersectionsWithinOriginalTableBounds": 13,
+        "intersectingMeshes": {
+          "wall 1 / Solo items": 13
+        },
+        "closest": {
+          "distance": 0,
+          "node": "wall 1",
+          "material": "Solo items",
+          "triangle": [
+            [
+              -1.4923384972618878,
+              0.3877528258402787,
+              -4.134998143263186
+            ],
+            [
+              -2.2105562824035863,
+              0.3877528258402787,
+              -4.134998143263186
+            ],
+            [
+              -2.2105562824035863,
+              0.3877528258402787,
+              -5.213484466075897
+            ]
+          ]
+        }
+      },
+      {
+        "id": 179,
+        "x": [
+          -2.25,
+          -1.35
+        ],
+        "z": [
+          -5.35,
+          -5.25
+        ],
+        "intersectingTriangleCount": 0,
+        "intersectionsWithinOriginalTableBounds": 0,
+        "intersectingMeshes": {},
+        "closest": {
+          "distance": 0.03651553392410278,
+          "node": "wall 1",
+          "material": "Solo items",
+          "triangle": [
+            [
+              -1.4923384972618878,
+              0.3877528258402787,
+              -4.134998143263186
+            ],
+            [
+              -2.2105562824035863,
+              0.3877528258402787,
+              -4.134998143263186
+            ],
+            [
+              -2.2105562824035863,
+              0.3877528258402787,
+              -5.213484466075897
+            ]
+          ]
+        }
+      },
+      {
+        "id": 186,
+        "x": [
+          -1.45,
+          -1.25
+        ],
+        "z": [
+          -5.05,
+          -4.15
+        ],
+        "intersectingTriangleCount": 350,
+        "intersectionsWithinOriginalTableBounds": 350,
+        "intersectingMeshes": {
+          "wall 1 / Solo items": 350
+        },
+        "closest": {
+          "distance": 0,
+          "node": "wall 1",
+          "material": "Solo items",
+          "triangle": [
+            [
+              -1.4245315825936737,
+              0.597597315405592,
+              -4.960100879054007
+            ],
+            [
+              -1.4245315825936737,
+              0.6040211045291894,
+              -4.957245939110944
+            ],
+            [
+              -1.4245315825936737,
+              0.6068761315981053,
+              -4.950108240749875
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  "final": {
+    "source": "assets/optimized/office.desktop.4fe5f78c1fb5.glb",
+    "boxes": [
+      {
+        "id": 176,
+        "x": [
+          -2.35,
+          -2.25
+        ],
+        "z": [
+          -5.35,
+          -4.15
+        ],
+        "intersectingTriangleCount": 0,
+        "intersectionsWithinOriginalTableBounds": 0,
+        "intersectingMeshes": {},
+        "closest": {
+          "distance": 0.07725057448862449,
+          "node": "wall 1",
+          "material": "Solo items",
+          "triangle": [
+            [
+              -2.4272505744886246,
+              0.9561555724860114,
+              -5.134161781486341
+            ],
+            [
+              -2.4272505744886246,
+              0.9664337224715638,
+              -5.129593598658289
+            ],
+            [
+              -2.4272505744886246,
+              0.971001731047906,
+              -5.1181734900915785
+            ]
+          ]
+        }
+      },
+      {
+        "id": 178,
+        "x": [
+          -2.35,
+          -1.25
+        ],
+        "z": [
+          -4.15,
+          -4.05
+        ],
+        "intersectingTriangleCount": 0,
+        "intersectionsWithinOriginalTableBounds": 0,
+        "intersectingMeshes": {},
+        "closest": {
+          "distance": 0.04958793135494943,
+          "node": "wall 1",
+          "material": "Solo items",
+          "triangle": [
+            [
+              -1.2004120686450506,
+              0.5319316383450214,
+              -4.940115774292735
+            ],
+            [
+              -1.2004120686450506,
+              -0.021943670703365115,
+              -4.940115774292735
+            ],
+            [
+              -1.2004120686450506,
+              -0.021943670703365115,
+              -2.962831088492919
+            ]
+          ]
+        }
+      },
+      {
+        "id": 179,
+        "x": [
+          -2.25,
+          -1.35
+        ],
+        "z": [
+          -5.35,
+          -5.25
+        ],
+        "intersectingTriangleCount": 0,
+        "intersectionsWithinOriginalTableBounds": 0,
+        "intersectingMeshes": {},
+        "closest": {
+          "distance": 0.17918639373339304,
+          "node": "wall 1",
+          "material": "Solo items",
+          "triangle": [
+            [
+              -2.4272505744886246,
+              0.9561555724860114,
+              -5.40710199287696
+            ],
+            [
+              -2.4272505744886246,
+              0.971001731047906,
+              -5.391114049985617
+            ],
+            [
+              -2.4272505744886246,
+              0.9561555724860114,
+              -5.376267804297868
+            ]
+          ]
+        }
+      },
+      {
+        "id": 186,
+        "x": [
+          -1.45,
+          -1.25
+        ],
+        "z": [
+          -5.05,
+          -4.15
+        ],
+        "intersectingTriangleCount": 0,
+        "intersectionsWithinOriginalTableBounds": 0,
+        "intersectingMeshes": {},
+        "closest": {
+          "distance": 0.04958793135494943,
+          "node": "wall 1",
+          "material": "Solo items",
+          "triangle": [
+            [
+              -1.2004120686450506,
+              0.5319316383450214,
+              -4.940115774292735
+            ],
+            [
+              -1.2004120686450506,
+              -0.021943670703365115,
+              -4.940115774292735
+            ],
+            [
+              -1.2004120686450506,
+              -0.021943670703365115,
+              -2.962831088492919
+            ]
+          ]
+        }
+      }
+    ]
+  }
+}

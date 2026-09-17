@@ -12,9 +12,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { authReturnFromSearch, DESKTOP_ONLY_WEB, localNavigation } from "@/lib/desktop-rollout";
 
 const signupSchema = z.object({
-  full_name: z.string().min(2, "Tell us your name"),
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(10, "At least 10 characters"),
+  full_name: z.string().trim().min(2, "Tell us your name").max(120),
+  email: z.string().trim().email("Enter a valid email").max(254),
+  password: z
+    .string()
+    .min(10, "At least 10 characters")
+    .refine(
+      (value) => new TextEncoder().encode(value).length <= 72,
+      "Use at most 72 bytes (fewer characters with emoji).",
+    ),
   workspace_name: z.string().optional(),
 });
 
@@ -44,7 +50,7 @@ export function SignupPage() {
     try {
       const response = await apiFetch<RegisterResponse>("/api/auth/register", {
         method: "POST",
-        body: values,
+        body: { ...values, session_transport: "cookie" },
         skipWorkspace: true,
       });
       await queryClient.cancelQueries();

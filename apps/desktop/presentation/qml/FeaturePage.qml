@@ -2,167 +2,159 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQml.Models
+import "FeatureLogic.js" as Logic
 
 Item {
     id: root
     signal actionRequested(var action)
-    ColumnLayout {
-        anchors.fill: parent; anchors.margins: 28; spacing: 20
-        RowLayout {
-            ColumnLayout {
-                Layout.fillWidth: true
-                MokaidLabel { text: features.title; font.pixelSize: 28; font.bold: true; color: Theme.text }
-                MokaidLabel { text: features.offline ? "Saved data · offline · changes require a connection" : "Your workspace, in sync"; color: Theme.secondary }
-            }
-            MokaidButton { text: "Refresh"; enabled: !features.busy; onClicked: features.refresh() }
-            MokaidButton { text: "Overview"; enabled: !features.busy; onClicked: features.showOverview() }
-            MokaidTextField { placeholderText: "Filter this view…"; Layout.preferredWidth: 180; onTextEdited: features.search(text); Accessible.name: "Filter this view" }
-            Repeater {
-                model: features.actions
-                MokaidButton {
-                    required property var modelData
-                    visible: !modelData.selection && (modelData.id === "create" || modelData.id === "invite" || modelData.id === "upload" || modelData.id === "edit")
-                    text: modelData.title; highlighted: true; enabled: modelData.enabled
-                    onClicked: root.actionRequested(modelData)
-                }
-            }
-            ToolButton { text: "⋯"; Accessible.name: "View actions"; onClicked: viewActions.popup() }
-        }
-        DriveNavigation { Layout.fillWidth: true; visible: features.currentPage === "drive"; controller: features }
-        MokaidLabel { Layout.fillWidth: true; visible: features.error.length > 0; text: features.error; wrapMode: Text.Wrap; color: Theme.warning }
-        SplitView {
-            Layout.fillWidth: true; Layout.fillHeight: true; orientation: Qt.Horizontal
-            Rectangle {
-                SplitView.fillWidth: true; SplitView.minimumWidth: 300
-                color: Theme.surface; radius: 12; border.color: Theme.border
-                ColumnLayout {
-                    anchors.fill: parent; anchors.margins: 1; spacing: 0
-                    RowLayout {
-                        Layout.fillWidth: true; Layout.preferredHeight: 42; Layout.leftMargin: 18; Layout.rightMargin: 18
-                        MokaidLabel { text: "NAME"; color: Theme.muted; font.pixelSize: 10; font.bold: true; Layout.fillWidth: true }
-                        MokaidLabel { text: "STATUS"; color: Theme.muted; font.pixelSize: 10; font.bold: true; Layout.preferredWidth: 100 }
-                    }
-                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.border }
-                    ListView {
-                        id: records; Layout.fillWidth: true; Layout.fillHeight: true; model: features.records; clip: true
-                        reuseItems: true
-                        delegate: ItemDelegate {
-                            required property string rowId
-                            required property string title
-                            required property string subtitle
-                            required property string status
-                            required property var record
-                            width: records.width; height: 68
-                            highlighted: features.selectedId === rowId
-                            background: Rectangle { color: parent.highlighted ? "#252037" : parent.hovered ? Theme.hover : "transparent" }
-                            contentItem: RowLayout {
-                                spacing: 16
-                                Rectangle { Layout.preferredWidth: 34; Layout.preferredHeight: 34; radius: 9; color: "#29243b"; MokaidLabel { anchors.centerIn: parent; text: title.slice(0, 1).toUpperCase(); color: "#b3a0ff"; font.bold: true } }
-                                ColumnLayout {
-                                    Layout.fillWidth: true; spacing: 4
-                                    MokaidLabel { text: title; color: Theme.text; font.weight: Font.DemiBold; elide: Text.ElideRight; Layout.fillWidth: true }
-                                    MokaidLabel { text: subtitle; color: Theme.secondary; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
-                                }
-                                MokaidLabel { text: status; color: status === "active" || status === "completed" ? Theme.success : Theme.secondary; Layout.preferredWidth: 100; elide: Text.ElideRight; font.pixelSize: 11 }
-                            }
-                            onClicked: features.select(rowId)
-                            onDoubleClicked: {
-                                features.select(rowId)
-                                if (features.currentPage === "agents") { office.selectAgent(rowId); features.navigate("office") }
-                                else if (features.currentPage === "drive" && !features.driveTrash) {
-                                    if (record.kind === "folder") features.openDriveFolder(rowId)
-                                    else preview.openFile(record)
-                                }
-                            }
-                            Keys.onReturnPressed: {
-                                features.select(rowId)
-                                if (features.currentPage === "drive" && record.kind === "folder") features.openDriveFolder(rowId)
-                            }
-                        }
-                        MokaidLabel { anchors.centerIn: parent; visible: records.count === 0 && !features.busy; text: features.offline ? "No saved data for this view." : "Nothing here yet."; color: Theme.secondary }
-                        footer: MokaidButton { visible: features.hasMore; text: features.busy ? "Loading…" : "Load more"; enabled: !features.busy; width: records.width; onClicked: features.loadMore() }
-                        ScrollBar.vertical: ScrollBar {}
-                    }
-                }
-            }
-            Rectangle {
-                visible: features.detailView.available
-                SplitView.preferredWidth: 460; SplitView.minimumWidth: 320
-                color: Theme.surface; radius: 12; border.color: Theme.border
-                ColumnLayout {
-                    anchors.fill: parent; anchors.margins: 18; spacing: 12
-                    RowLayout {
-                        ToolButton { text: "←"; visible: features.detailView.canGoBack; Accessible.name: "Back in details"; onClicked: features.detailView.goBack() }
-                        MokaidLabel { text: features.detailView.heading; font.bold: true; color: Theme.text; elide: Text.ElideRight; Layout.fillWidth: true }
-                        MokaidButton { text: "Record"; visible: features.selectedId.length > 0; onClicked: features.showRecordDetails() }
-                        ToolButton { text: "×"; Accessible.name: "Close details"; onClicked: features.clearSelection() }
-                    }
-                    Flow {
-                        Layout.fillWidth: true; spacing: 4
-                        Repeater {
-                            model: features.detailView.breadcrumbs
-                            ToolButton {
-                                id: breadcrumbButton
-                                required property var modelData
-                                text: modelData.label
-                                contentItem: MokaidLabel { text: breadcrumbButton.text; color: Theme.secondary; elide: Text.ElideRight }
-                                implicitWidth: Math.min(160, contentItem.implicitWidth + 16)
-                                Accessible.name: "Open detail section " + modelData.label
-                                onClicked: features.detailView.goTo(modelData.depth)
-                            }
-                        }
-                    }
-                    ListView {
-                        id: detailRows
-                        Layout.fillWidth: true; Layout.fillHeight: true
-                        model: features.detailView.rows; clip: true; reuseItems: true; spacing: 8
-                        delegate: Rectangle {
-                            required property string rowId
-                            required property string title
-                            required property var record
-                            width: detailRows.width; height: detailContent.implicitHeight + 24
-                            color: record.container ? Theme.hover : "transparent"; radius: 8
-                            ColumnLayout {
-                                id: detailContent
-                                anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
-                                anchors.margins: 12; spacing: 8
-                                MokaidLabel { Layout.fillWidth: true; text: title; wrapMode: Text.Wrap; color: Theme.muted; font.pixelSize: 11; font.bold: true }
-                                TextEdit {
-                                    Layout.fillWidth: true
-                                    text: record.text || ""; readOnly: true; selectByMouse: true
-                                    wrapMode: TextEdit.Wrap; textFormat: TextEdit.PlainText; color: Theme.text
-                                    Accessible.name: title
-                                }
-                                Flow {
-                                    Layout.fillWidth: true
-                                    spacing: 6
-                                    visible: record.expandable || record.fileAvailable || (record.referencePage || "").length > 0
-                                    MokaidButton { text: record.container ? "Explore" : "Read full text"; visible: record.expandable; onClicked: features.detailView.enter(rowId) }
-                                    MokaidButton { text: "Open record"; visible: (record.referencePage || "").length > 0; onClicked: features.detailView.openReference(rowId) }
-                                    MokaidButton { text: "Open deliverable"; visible: record.fileAvailable; onClicked: features.detailView.openFile(rowId) }
-                                }
-                            }
-                        }
-                        MokaidLabel { anchors.centerIn: parent; width: parent.width - 24; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap; visible: detailRows.count === 0; text: "No visible fields or items in this section."; color: Theme.secondary }
-                        ScrollBar.vertical: ScrollBar {}
-                    }
-                    Flow {
-                        Layout.fillWidth: true; spacing: 6
-                        Repeater {
-                            model: features.actions
-                            MokaidButton { required property var modelData; visible: modelData.selection; text: modelData.title; enabled: modelData.enabled; onClicked: root.actionRequested(modelData) }
-                        }
-                    }
-                }
-            }
-        }
-        BusyIndicator { running: features.busy; visible: running; Layout.preferredHeight: 24; Layout.preferredWidth: 24; Layout.alignment: Qt.AlignHCenter }
+    readonly property string page: features.currentPage
+    readonly property var pageMeta: Logic.meta(page)
+    readonly property var records: features.visibleRecords
+    readonly property var statistics: Logic.stats(page,features.allRecords)
+    readonly property var primaryAction: features.actions.find(function(a){return a.id===root.pageMeta.primary;}) || ({enabled:false})
+    readonly property bool hasSelection: features.selectedId.length>0
+    readonly property bool showInspector: hasSelection || inspectOverview || (features.detailView.available && features.detailView.heading!=="Overview" && features.detailView.heading!=="Record details")
+    readonly property bool compact: width<900 && page!=="drive"
+    property bool inspectOverview: false
+    property string viewMode: pageMeta.view
+    property string query: ""
+    property string selectedRecord: ""
+    // Compatibility for native delivery-gallery consumers: metadata stays collapsed.
+    readonly property bool metadataExpanded: inspector.browserMode
+    function request(action) {
+        if(Logic.reportAction(page,action.id)) { inspectOverview=true; inspector.browserMode=true; }
+        root.actionRequested(action);
     }
-    Menu {
-        id: viewActions
-        Repeater {
-            model: features.actions
-            MenuItem { required property var modelData; visible: !modelData.selection; text: modelData.title; enabled: modelData.enabled; onTriggered: root.actionRequested(modelData) }
+    function selectRecord(id) { inspectOverview=false; inspector.browserMode=false; features.select(id); }
+    function activate(record) {
+        selectRecord(Logic.id(record));
+        if(page==="drive" && !features.driveTrash) {
+            if(record.kind==="folder") features.openDriveFolder(Logic.id(record));
+            else openDriveFile(record);
         }
+    }
+    function openDriveFile(file) {
+        const files=features.records.previewFiles();
+        const index=files.findIndex(function(candidate){return candidate.id===file.id;});
+        if(index>=0) preview.openCollection(files,index); else preview.openFile(file);
+    }
+    // Derive the default from the new route itself: pageMeta can still describe
+    // the previous route while this signal is delivered.
+    onPageChanged: { inspectOverview=false; query=""; viewMode=Logic.meta(page).view; if(inspector) inspector.browserMode=false; }
+    Connections {
+        target: features
+        function onChanged() {
+            if(root.selectedRecord!==features.selectedId) { root.selectedRecord=features.selectedId; inspector.browserMode=false; root.inspectOverview=false; }
+        }
+    }
+    ColumnLayout {
+        visible: root.page!=="agent-new"
+        anchors.fill: parent; anchors.topMargin: 4; anchors.bottomMargin: 8; spacing: 14
+        RowLayout {
+            Layout.fillWidth: true; spacing: 16
+            ColumnLayout {
+                Layout.fillWidth: true; spacing: 4
+                MokaidLabel { Layout.fillWidth: true; text: root.page==="agent-new" ? "Choose a specialization" : features.title; font.pixelSize: 26; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                MokaidLabel { Layout.fillWidth: true; text: features.offline ? "Saved workspace data · Offline" : root.pageMeta.subtitle; font.pixelSize: 13; color: Theme.secondary; wrapMode: Text.Wrap }
+            }
+            MokaidButton { iconName: "refresh"; quiet: true; enabled: !features.busy; Accessible.name: "Refresh "+features.title; onClicked: features.refresh() }
+            MokaidButton { text: root.pageMeta.action || ""; visible: !!root.pageMeta.primary; iconName: ["create","invite","upload"].indexOf(root.pageMeta.primary)>=0 ? "plus" : ""; highlighted: true; enabled: root.primaryAction.enabled && (root.page!=="agent-new" || root.hasSelection); onClicked: root.request(root.primaryAction) }
+        }
+        Rectangle {
+            visible: root.statistics.length>0 && !root.showInspector
+            objectName: "pageStatistics"
+            Layout.fillWidth: true; Layout.preferredHeight: 58; color: Theme.surface; radius: 12; border.color: Theme.border
+            RowLayout {
+                anchors.fill: parent; anchors.leftMargin: 16; anchors.rightMargin: 16; anchors.topMargin: 8; anchors.bottomMargin: 8; spacing: 20
+                Repeater {
+                    model: root.statistics
+                    ColumnLayout {
+                        id: statistic
+                        required property var modelData
+                        Layout.fillWidth: true; spacing: 2
+                        MokaidLabel { text: statistic.modelData.value; font.pixelSize: 18; font.weight: Font.DemiBold }
+                        MokaidLabel { text: statistic.modelData.label; Layout.fillWidth: true; elide: Text.ElideRight; font.pixelSize: 11; color: Theme.secondary }
+                    }
+                }
+            }
+        }
+        RowLayout {
+            visible: root.pageMeta.view!=="summary" && !(root.compact && root.showInspector)
+            Layout.fillWidth: true; spacing: 10
+            MokaidTextField { objectName: "featureSearch"; Layout.preferredWidth: Math.min(280,Math.max(160,(root.width-64)*0.4)); Layout.minimumWidth: 0; placeholderText: "Search "+features.title.toLowerCase()+"…"; text: root.query; onTextEdited: { root.query=text; features.search(text); } Accessible.name: "Search "+features.title.toLowerCase() }
+            Item { Layout.fillWidth: true }
+            MokaidButton { objectName: "taskBoardMode"; visible: root.page==="tasks"; text: "Board"; quiet: true; highlighted: root.viewMode==="board"; onClicked: root.viewMode="board" }
+            MokaidButton { visible: ["projects","drive","integrations","admin-workspaces","admin-plans","agent-new"].indexOf(root.page)>=0; text: "Grid"; quiet: true; highlighted: root.viewMode==="grid"; onClicked: root.viewMode="grid" }
+            MokaidButton { objectName: "featureListMode"; visible: ["tasks","projects","drive","integrations","admin-workspaces","admin-plans","agent-new"].indexOf(root.page)>=0; text: "List"; quiet: true; highlighted: root.viewMode==="list"; onClicked: root.viewMode="list" }
+            MokaidButton { objectName: "pageActionsButton"; text: "More"; iconName: "more"; quiet: true; onClicked: viewActions.openFor(this); Accessible.name: "More "+features.title.toLowerCase()+" actions" }
+        }
+        DriveNavigation { Layout.fillWidth: true; visible: root.page==="drive" && !(root.compact && root.showInspector); controller: features }
+        Rectangle {
+            visible: features.error.length>0; Layout.fillWidth: true; Layout.preferredHeight: errorRow.implicitHeight+20; radius: 10; color: Logic.alpha(Theme.warning,0.08)
+            RowLayout {
+                id: errorRow
+                anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 10
+                MokaidLabel { Layout.fillWidth: true; text: features.error; font.pixelSize: 12; wrapMode: Text.Wrap; color: Theme.warning }
+                MokaidButton { text: "Retry"; quiet: true; enabled: !features.busy; onClicked: features.refresh() }
+            }
+        }
+        RowLayout {
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 14
+            Item {
+                Layout.fillWidth: true; Layout.fillHeight: true
+                visible: !root.compact || !root.showInspector
+                FeatureCollection {
+                    objectName: "featureCollection"
+                    anchors.fill: parent; visible: root.pageMeta.view!=="summary" && root.page!=="calendar"
+                    page: root.page; viewMode: root.viewMode; rows: root.records; selectedId: features.selectedId; busy: features.busy; offline: features.offline; filtered: root.query.length>0; hasMore: features.hasMore; driveTrash: features.driveTrash
+                    onSelected: function(recordId){root.selectRecord(recordId);}
+                    onActivated: function(record){root.activate(record);}
+                    onLoadMore: features.loadMore()
+                }
+                FeatureCalendar { anchors.fill: parent; visible: root.page==="calendar"; searching: root.query.length>0; rows: root.page==="calendar" ? root.records : []; onSelected: function(recordId){root.selectRecord(recordId);} }
+                FeatureSummary {
+                    anchors.fill: parent; visible: root.pageMeta.view==="summary"; page: root.page; overview: features.overview; actions: features.actions
+                    onActionRequested: function(action){root.request(action);}
+                    onInspectRequested: {features.showOverview(); root.inspectOverview=true; inspector.browserMode=true;}
+                }
+            }
+            FeatureInspector {
+                id: inspector
+                objectName: "featureInspector"
+                visible: root.showInspector
+                Layout.fillHeight: true; Layout.fillWidth: root.compact; Layout.preferredWidth: root.compact ? -1 : Math.max(300,Math.min(420,root.width*0.39))
+                page: root.page
+                onActionRequested: function(action){root.request(action);}
+                onCloseRequested: {root.inspectOverview=false; browserMode=false; features.clearSelection();}
+                onReturnToRecord: {root.inspectOverview=false; browserMode=false; features.showRecordDetails();}
+            }
+        }
+        RowLayout {
+            visible: features.busy; Layout.alignment: Qt.AlignHCenter; spacing: 8; Layout.preferredHeight: 22
+            BusyIndicator { running: features.busy; Layout.preferredHeight: 22; Layout.preferredWidth: 22 }
+            MokaidLabel { text: "Synchronizing…"; font.pixelSize: 11; color: Theme.muted }
+        }
+    }
+    AgentCreationPage {
+        anchors.fill: parent
+        visible: root.page==="agent-new"
+        onActionRequested: function(action) { root.actionRequested(action); }
+    }
+    MokaidMenu {
+        id: viewActions
+        objectName: "pageActionsMenu"
+        Instantiator {
+            model: features.actions.filter(function(action) { return !action.selection; })
+            delegate: MokaidMenu.Entry {
+                required property var modelData
+                objectName: "pageAction_" + modelData.id
+                text: modelData.title; enabled: modelData.enabled; destructive: Boolean(modelData.destructive)
+                onTriggered: root.request(modelData)
+            }
+            onObjectAdded: function(index, object) { viewActions.insertItem(index, object); }
+            onObjectRemoved: function(index, object) { viewActions.removeItem(object); }
+        }
+        MokaidMenu.Entry { objectName: "pageOverviewAction"; text: "Explore page details"; onTriggered: {features.showOverview(); root.inspectOverview=true; inspector.browserMode=true;} }
     }
 }

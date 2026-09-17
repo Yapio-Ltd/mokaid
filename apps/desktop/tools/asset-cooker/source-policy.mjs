@@ -1,6 +1,7 @@
 export const avatarKeys = Object.freeze([
   'avatar_male', 'avatar_design', 'avatar_finance', 'avatar_corporate',
   'avatar_legal', 'avatar_research', 'avatar_developer',
+  'avatar_byte', 'avatar_nyx', 'avatar_moss',
 ]);
 
 export function parseAvatarCatalog(text) {

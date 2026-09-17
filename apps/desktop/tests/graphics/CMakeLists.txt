@@ -16,10 +16,11 @@ set(production_qml "${CMAKE_CURRENT_SOURCE_DIR}/../../presentation/qml")
 set_source_files_properties("${production_qml}/Theme.qml" PROPERTIES QT_QML_SINGLETON_TYPE TRUE QT_RESOURCE_ALIAS Theme.qml)
 set_source_files_properties("${production_qml}/DeliveryView.qml" PROPERTIES QT_RESOURCE_ALIAS DeliveryView.qml)
 set_source_files_properties("${production_qml}/MokaidButton.qml" PROPERTIES QT_RESOURCE_ALIAS MokaidButton.qml)
+set_source_files_properties("${production_qml}/MokaidIcon.qml" PROPERTIES QT_RESOURCE_ALIAS MokaidIcon.qml)
 set_source_files_properties("${production_qml}/MokaidLabel.qml" PROPERTIES QT_RESOURCE_ALIAS MokaidLabel.qml)
 qt_add_qml_module(mokaid_graphics_probe URI Mokaid.GraphicsProbe VERSION 1.0
     RESOURCE_PREFIX "/qt/qml" QML_FILES Harness.qml "${production_qml}/Theme.qml" "${production_qml}/DeliveryView.qml"
-        "${production_qml}/MokaidButton.qml" "${production_qml}/MokaidLabel.qml")
+        "${production_qml}/MokaidButton.qml" "${production_qml}/MokaidLabel.qml" "${production_qml}/MokaidIcon.qml")
 qt_add_resources(mokaid_graphics_probe probe_fixture PREFIX "/probe" FILES fixture.html)
 
 # Hosted build success is not GPU acceptance. Opt in only on a real desktop

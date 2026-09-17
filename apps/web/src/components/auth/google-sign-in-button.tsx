@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { apiFetch } from "@/api/client";
 import { GoogleLogo } from "@/components/brand/google-logo";
+import {
+  clearGoogleIdentity,
+  createGooglePkce,
+  rememberGoogleIdentity,
+} from "@/lib/google-identity";
 import { authReturnFromSearch } from "@/lib/desktop-rollout";
 
 interface GoogleSignInButtonProps {
@@ -30,15 +35,27 @@ export function GoogleSignInButton({
     setLoading(true);
     try {
       const redirectUri = googleAuthRedirectUri();
-      sessionStorage.setItem("google_auth_intent", intent);
+      clearGoogleIdentity();
       sessionStorage.setItem("google_auth_return", authReturnFromSearch(window.location.search));
+      const { verifier, challenge } = await createGooglePkce();
 
       const res = await apiFetch<{ data: { authorize_url: string } }>("/api/auth/google/start", {
         method: "POST",
-        body: { redirect_uri: redirectUri, intent },
+        body: {
+          redirect_uri: redirectUri,
+          intent,
+          code_challenge: challenge,
+          session_transport: "cookie",
+        },
         skipWorkspace: true,
       });
-      window.location.assign(res.data.authorize_url);
+      window.location.assign(
+        rememberGoogleIdentity(
+          res.data.authorize_url,
+          verifier,
+          authReturnFromSearch(window.location.search),
+        ),
+      );
     } catch (err) {
       setLoading(false);
       onError?.(err instanceof Error ? err.message : "Google sign-in is unavailable");

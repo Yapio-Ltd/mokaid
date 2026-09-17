@@ -6,6 +6,7 @@ namespace mokaid::desktop {
 // Immutable policy shared with Chromium's request interception thread. No application credentials.
 struct PreviewResourcePolicy {
     QString host;
+    bool pdfDocument{};
     QStringList scriptHosts{"cdn.jsdelivr.net", "cdnjs.cloudflare.com", "unpkg.com"};
     QStringList styleHosts{"fonts.googleapis.com", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"};
     QStringList imageHosts{"images.unsplash.com", "images.pexels.com"};
@@ -19,7 +20,22 @@ struct PreviewResourcePolicy {
         return url.scheme() == "https" && url.userInfo().isEmpty()
             && (url.port() == -1 || url.port() == 443) && hosts.contains(url.host());
     }
+    bool pdfViewer(const QUrl& url) const {
+        // This is Chromium's packaged PDF viewer, not an installed/user extension.
+        // Only a profile created for an actual PDF gets this additional origin.
+        return pdfDocument && url.scheme() == "chrome-extension"
+            && url.host() == "mhjfbmdgcfjbbpaeojofohoefgiehjai" && url.userInfo().isEmpty()
+            && url.port() == -1 && !url.path().contains("..") && !url.path().contains('\\');
+    }
+    bool pdfResource(const QUrl& url) const {
+        return pdfViewer(url) || (pdfDocument && url.scheme() == "chrome" && url.host() == "resources"
+            && url.userInfo().isEmpty() && url.port() == -1
+            && !url.path().contains("..") && !url.path().contains('\\'));
+    }
     QByteArray csp() const {
+        if (pdfDocument) return "default-src 'none'; object-src 'self' blob: chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai;"
+            " frame-src chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai; base-uri 'none'; form-action 'none';"
+            " frame-ancestors 'self' chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai;";
         const auto origins = [](const QStringList& hosts) {
             QByteArray result;
             for (const auto& domain : hosts) result += " https://" + domain.toUtf8();

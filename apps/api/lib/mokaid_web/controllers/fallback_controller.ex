@@ -87,6 +87,22 @@ defmodule MokaidWeb.FallbackController do
 
   defp humanize(:invalid_archetype), do: "Unknown agent archetype"
   defp humanize(:invalid_boost), do: "Unknown agent boost"
+  defp humanize(:empty_request), do: "Add an instruction or at least one file to this mission"
+
+  defp humanize(:no_agent_assigned),
+    do: "Choose an employee or create one before starting this mission"
+
+  defp humanize(:agent_unavailable), do: "This employee is unavailable; choose another employee"
+
+  defp humanize(:invalid_attachments),
+    do: "Some attachments are unavailable; remove them or upload them again"
+
+  defp humanize(:request_id_conflict),
+    do:
+      "This confirmation was already used for a different mission; analyze the updated request again"
+
+  defp humanize(:invalid_integrations),
+    do: "Some integrations are disconnected or unavailable in this workspace"
 
   defp humanize(:oauth_only),
     do: "Password changes are managed by your identity provider (e.g. Google)"

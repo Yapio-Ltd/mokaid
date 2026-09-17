@@ -24,6 +24,14 @@ ApplicationWindow {
         pending = true
         browser.runJavaScript(source, 0, function(value) { pending = false; callback(value) })
     }
+    function findBrowser(item) {
+        if (typeof item.runJavaScript === "function") return item
+        for (const child of item.children || []) {
+            const browser = findBrowser(child)
+            if (browser) return browser
+        }
+        return null
+    }
     header: Rectangle {
         height: 62; color: Theme.surface
         Label { anchors.centerIn: parent; text: "GRAPHICS PROBE  •  real cooked scene + protected HTML fixture  •  not product acceptance"; color: Theme.text }
@@ -61,8 +69,7 @@ ApplicationWindow {
             if (!window.browser) {
                 // Use the real WebEngineView's public automation API without
                 // modifying DeliveryView or exposing a production native bridge.
-                for (let child of delivery.children)
-                    if (typeof child.runJavaScript === "function") { window.browser = child; break }
+                window.browser = window.findBrowser(delivery)
                 if (!window.browser) return
             }
             if (window.browser.loading || office.loading) return

@@ -130,6 +130,7 @@ void ApiClient::track(QNetworkReply* reply, core::Scope scope, QObject* owner, C
     owners_.insert(reply, owner);
     if (owner) connect(owner, &QObject::destroyed, reply, [reply] { reply->abort(); });
     const auto generation = context_.generation;
+    const auto authorization = scope == core::Scope::public_api ? QByteArray{} : token_;
     QPointer<QObject> guard(owner);
     struct Transfer { QByteArray bytes; bool oversized{}; };
     auto transfer = std::make_shared<Transfer>();
@@ -144,7 +145,7 @@ void ApiClient::track(QNetworkReply* reply, core::Scope scope, QObject* owner, C
         }
         transfer->bytes.append(chunk);
     });
-    connect(reply, &QNetworkReply::finished, this, [this, reply, transfer, generation, guard, scope, mode, cancellation, ownerKey = owner, done = std::move(done)]() mutable {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, transfer, generation, authorization, guard, scope, mode, cancellation, ownerKey = owner, done = std::move(done)]() mutable {
         replies_.remove(reply);
         owners_.remove(reply);
         const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
@@ -155,6 +156,11 @@ void ApiClient::track(QNetworkReply* reply, core::Scope scope, QObject* owner, C
         // ordinary HTTP 4xx/5xx to errors; those are not connectivity failures.
         const bool networkError = (status == 0 || successStatus)
             && reply->error() != QNetworkReply::NoError && !cancelled;
+        const bool requestNotSent = status == 0 && (reply->error() == QNetworkReply::ConnectionRefusedError
+            || reply->error() == QNetworkReply::HostNotFoundError
+            || reply->error() == QNetworkReply::ProxyConnectionRefusedError
+            || reply->error() == QNetworkReply::ProxyNotFoundError
+            || reply->error() == QNetworkReply::SslHandshakeFailedError);
         const bool jsonResponse = !networkError && (mode == ResponseMode::json || !successStatus)
             && reply->header(QNetworkRequest::ContentTypeHeader).toString().contains("json", Qt::CaseInsensitive) && status != 204;
         reply->deleteLater();
@@ -164,7 +170,7 @@ void ApiClient::track(QNetworkReply* reply, core::Scope scope, QObject* owner, C
         if (transfer->oversized) { operations_.remove(ownerKey, cancellation); done({status, {}, {}, "The response exceeds the safe size limit. No file was saved.", false}); return; }
         if (networkError) transfer->bytes.clear();
         if (networkError) setOnline(false); else if (status != 0) setOnline(true);
-        auto finish = [this, transfer, guard, generation, status, networkError, scope, cancellation, ownerKey, done = std::move(done)](DecodedBody decoded) mutable {
+        auto finish = [this, transfer, guard, generation, authorization, status, networkError, requestNotSent, scope, cancellation, ownerKey, done = std::move(done)](DecodedBody decoded) mutable {
             operations_.remove(ownerKey, cancellation);
             if (!guard || generation != context_.generation || cancellation->cancelled) return;
             auto json = std::move(decoded.value);
@@ -176,9 +182,9 @@ void ApiClient::track(QNetworkReply* reply, core::Scope scope, QObject* owner, C
                 error = problem.isString() ? problem.toString() : problem.toObject().value("message").toString();
                 if (error.isEmpty()) error = QString("Request failed (%1).").arg(status);
             } else if (!decoded.valid) error = "Mokaid returned an invalid JSON response. Please retry.";
-            if (status == 401 && scope != core::Scope::public_api) emit sessionExpired();
+            if (status == 401 && scope != core::Scope::public_api && authorization == token_) emit sessionExpired();
             if (status == 403 && scope == core::Scope::administration) { context_.platform_admin = false; emit administratorDenied(); }
-            done({status, std::move(json), std::move(transfer->bytes), std::move(error), networkError});
+            done({status, std::move(json), std::move(transfer->bytes), std::move(error), networkError, requestNotSent});
         };
         if (jsonResponse && transfer->bytes.size() > 256 * 1024) {
             auto watcher = std::make_unique<QFutureWatcher<DecodedBody>>(this);

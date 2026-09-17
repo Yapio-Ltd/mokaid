@@ -6,6 +6,7 @@ defmodule MokaidWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug MokaidWeb.Plugs.BrowserSession
     plug MokaidWeb.Plugs.RateLimiter
   end
 

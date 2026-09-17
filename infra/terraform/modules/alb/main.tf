@@ -68,6 +68,9 @@ resource "aws_lb" "this" {
 
   drop_invalid_header_fields = true
   idle_timeout               = 120
+  # API IP normalization relies on the single observed client appended by ALB.
+  xff_header_processing_mode = "append"
+  enable_xff_client_port     = false
 
   tags = var.tags
 }

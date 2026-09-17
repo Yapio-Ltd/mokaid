@@ -1,0 +1,3 @@
+occupancy=0 routes=153 rounded=136 sharpBefore=455 sharpAfter=2 maxPoints=84 smoothingMs=3.16975
+occupancy=1 routes=120 rounded=105 sharpBefore=358 sharpAfter=0 maxPoints=84 smoothingMs=2.45858
+elapsed=0.153155

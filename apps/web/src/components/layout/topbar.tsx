@@ -19,7 +19,8 @@ import {
   notificationNeedsAction,
   notificationTone,
 } from "@/lib/notifications";
-import { disconnect } from "@/realtime/phoenix-client";
+import { signOut } from "@/api/client";
+import { toast } from "@/stores/toast-store";
 import { Avatar } from "@/components/ui/avatar";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { NewTaskModal } from "@/components/modals/new-task-modal";
@@ -47,7 +48,6 @@ export function Topbar() {
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
   const user = useAuthStore((s) => s.user);
   const workspaceId = useAuthStore((s) => s.workspaceId);
-  const logout = useAuthStore((s) => s.logout);
   const activeProjectId = useActiveProjectId(workspaceId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -86,10 +86,19 @@ export function Topbar() {
     }
   };
 
-  const handleLogout = () => {
-    disconnect();
-    logout();
-    navigate({ to: "/login" });
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      await navigate({ to: "/login" });
+    } catch {
+      toast({
+        tone: "error",
+        title: "Could not sign out",
+        description: "Check your connection and try again.",
+      });
+    }
   };
 
   const markAllReadOnOpen = (open: boolean) => {
@@ -149,9 +158,7 @@ export function Topbar() {
           checked={soundEnabled}
           onCheckedChange={setSoundEnabled}
           aria-label={
-            soundEnabled
-              ? "Mute sounds"
-              : "Unmute sounds — currently muted, no task/chat cues"
+            soundEnabled ? "Mute sounds" : "Unmute sounds — currently muted, no task/chat cues"
           }
           className="relative h-5 w-9 shrink-0 rounded-full bg-surface-overlay transition-colors data-[state=checked]:bg-primary mk-focus-ring"
         >
@@ -195,17 +202,21 @@ export function Topbar() {
 
             <div className="max-h-[420px] overflow-y-auto p-1.5">
               {notifications?.data.length ? (
-                notifications.data.slice(0, 12).map((n) => (
-                  <NotificationRow
-                    key={n.id}
-                    notification={n}
-                    onOpen={() => openNotification(n)}
-                  />
-                ))
+                notifications.data
+                  .slice(0, 12)
+                  .map((n) => (
+                    <NotificationRow
+                      key={n.id}
+                      notification={n}
+                      onOpen={() => openNotification(n)}
+                    />
+                  ))
               ) : (
                 <div className="px-3 py-10 text-center">
                   <Bell size={22} className="mx-auto mb-2 text-text-muted opacity-50" />
-                  <p className="text-xs font-medium text-text-secondary">You&apos;re all caught up</p>
+                  <p className="text-xs font-medium text-text-secondary">
+                    You&apos;re all caught up
+                  </p>
                   <p className="mt-0.5 text-[11px] text-text-muted">
                     Task updates from your agents will show up here.
                   </p>
@@ -301,7 +312,12 @@ function NotificationRow({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <p className={cn("text-[10px] font-semibold uppercase tracking-wide", TONE_EYEBROW[tone])}>
+            <p
+              className={cn(
+                "text-[10px] font-semibold uppercase tracking-wide",
+                TONE_EYEBROW[tone],
+              )}
+            >
               {eyebrow}
             </p>
             {unread && <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-danger" />}

@@ -11,19 +11,24 @@ defmodule Mokaid.Assets3d do
   alias Mokaid.Repo
 
   @all_clips ~w(
-    idle walking typing working thinking talking waiting blocked
-    celebrating away offline reviewing learning requesting_approval
-    sitting preparing_coffee playing_foosball
+    idle walking typing working thinking talking
+    waiting blocked celebrating away offline reviewing
+    learning requesting_approval sitting sitting_sofa preparing_coffee playing_foosball
+    sit_down stand_up sit_down_sofa stand_up_sofa walking_coffee carrying_coffee
+    drinking_coffee talking_coffee chair_pullback chair_pushin walking_brisk walking_relaxed
+    typing_focused typing_relaxed greeting laughing laughing_coffee talking_standing
+    sitting_sofa_coffee talking_sofa_coffee drinking_sofa_coffee laughing_sofa_coffee sit_down_sofa_coffee stand_up_sofa_coffee
+    talking_sofa_coffee_left talking_sofa_coffee_right coffee_putdown phone_pickup phone_call phone_putdown
   )
 
   @catalog [
     %{
       "slug" => "avatar_male",
       "kind" => "character",
-      "storage_key" => "assets3d/avatar_male.342ae6ded162.glb",
-      "cdn_path" => "/assets3d/avatar_male.342ae6ded162.glb",
-      "sha256" => "342ae6ded162a626d97197dcd6d6dba038101de9ca235630c9bce2b08c478032",
-      "byte_size" => 4_333_312,
+      "storage_key" => "assets3d/avatar_male.21ca01757e1a.glb",
+      "cdn_path" => "/assets3d/avatar_male.21ca01757e1a.glb",
+      "sha256" => "21ca01757e1a5b0242344f76391b8ca5e2ecc98f7d588d83143b0219efe0d7db",
+      "byte_size" => 20_364_080,
       "animation_clips" => @all_clips,
       "metadata" => %{
         "display_name" => "Male character",
@@ -34,10 +39,10 @@ defmodule Mokaid.Assets3d do
     %{
       "slug" => "avatar_design",
       "kind" => "character",
-      "storage_key" => "assets3d/avatar_design.d9ea67320439.glb",
-      "cdn_path" => "/assets3d/avatar_design.d9ea67320439.glb",
-      "sha256" => "d9ea673204395bf2a8aedc741f4e12b75522d01bc74c74279607a89e1010a067",
-      "byte_size" => 479_308,
+      "storage_key" => "assets3d/avatar_design.1c0dba698d81.glb",
+      "cdn_path" => "/assets3d/avatar_design.1c0dba698d81.glb",
+      "sha256" => "1c0dba698d817f42263efdc62c82d528eef0c5840f254d246ca618bd9658960c",
+      "byte_size" => 8_661_044,
       "animation_clips" => @all_clips,
       "metadata" => %{
         "display_name" => "Design",
@@ -51,10 +56,10 @@ defmodule Mokaid.Assets3d do
     %{
       "slug" => "avatar_finance",
       "kind" => "character",
-      "storage_key" => "assets3d/avatar_finance.826a68935f66.glb",
-      "cdn_path" => "/assets3d/avatar_finance.826a68935f66.glb",
-      "sha256" => "826a68935f663a53bcf9a3c831c91030b1e3ba4caac85486c2f6cec85d312760",
-      "byte_size" => 1_184_088,
+      "storage_key" => "assets3d/avatar_finance.1db634ff8a82.glb",
+      "cdn_path" => "/assets3d/avatar_finance.1db634ff8a82.glb",
+      "sha256" => "1db634ff8a82cc9911aa224b25a38efde26034a389fc500a11cdae1875be6eba",
+      "byte_size" => 8_594_420,
       "animation_clips" => @all_clips,
       "metadata" => %{
         "display_name" => "Female finance",
@@ -66,10 +71,10 @@ defmodule Mokaid.Assets3d do
     %{
       "slug" => "avatar_corporate",
       "kind" => "character",
-      "storage_key" => "assets3d/avatar_corporate.dd078ffb0766.glb",
-      "cdn_path" => "/assets3d/avatar_corporate.dd078ffb0766.glb",
-      "sha256" => "dd078ffb07669c56ac27a4081ea7f7edb33d75a72c420b5aac840a4169fb0e54",
-      "byte_size" => 769_388,
+      "storage_key" => "assets3d/avatar_corporate.b2951a24cd02.glb",
+      "cdn_path" => "/assets3d/avatar_corporate.b2951a24cd02.glb",
+      "sha256" => "b2951a24cd0219ffd306353c2fd31c37aae1760ea802f4378010cb67ab1e0a0c",
+      "byte_size" => 9_062_200,
       "animation_clips" => @all_clips,
       "metadata" => %{
         "display_name" => "Corporate",
@@ -81,10 +86,10 @@ defmodule Mokaid.Assets3d do
     %{
       "slug" => "avatar_legal",
       "kind" => "character",
-      "storage_key" => "assets3d/avatar_legal.12554af1b7e1.glb",
-      "cdn_path" => "/assets3d/avatar_legal.12554af1b7e1.glb",
-      "sha256" => "12554af1b7e13465d9efc1d491c37d30ba5214e7f183f33ac68032611f69150e",
-      "byte_size" => 398_952,
+      "storage_key" => "assets3d/avatar_legal.859687268a64.glb",
+      "cdn_path" => "/assets3d/avatar_legal.859687268a64.glb",
+      "sha256" => "859687268a642c7644714cee5ebd5e9f72b6a4835c62140122f3f965f3364198",
+      "byte_size" => 8_633_272,
       "animation_clips" => @all_clips,
       "metadata" => %{
         "display_name" => "Legal / Lawyer",
@@ -97,10 +102,10 @@ defmodule Mokaid.Assets3d do
     %{
       "slug" => "avatar_research",
       "kind" => "character",
-      "storage_key" => "assets3d/avatar_research.aee3f8496ec7.glb",
-      "cdn_path" => "/assets3d/avatar_research.aee3f8496ec7.glb",
-      "sha256" => "aee3f8496ec7b06302ee3bc0af1dac77cf6e4ceb85c551ecb9f7615420b0eb40",
-      "byte_size" => 643_720,
+      "storage_key" => "assets3d/avatar_research.7c86fc428e9f.glb",
+      "cdn_path" => "/assets3d/avatar_research.7c86fc428e9f.glb",
+      "sha256" => "7c86fc428e9f339c9ecb0b75425c178b1649812b09e5ae8d6f08f8e6c26f40ca",
+      "byte_size" => 8_728_120,
       "animation_clips" => @all_clips,
       "metadata" => %{
         "display_name" => "Research / Chercheur",
@@ -113,10 +118,10 @@ defmodule Mokaid.Assets3d do
     %{
       "slug" => "avatar_developer",
       "kind" => "character",
-      "storage_key" => "assets3d/avatar_developer.d9c81b448040.glb",
-      "cdn_path" => "/assets3d/avatar_developer.d9c81b448040.glb",
-      "sha256" => "d9c81b448040f13d37dc15aa29dea9ebb4a70caee7a17c340226c6484496b5d9",
-      "byte_size" => 968_944,
+      "storage_key" => "assets3d/avatar_developer.867211fc6b99.glb",
+      "cdn_path" => "/assets3d/avatar_developer.867211fc6b99.glb",
+      "sha256" => "867211fc6b99e9d01df3626943f7155cfc7e6ad9fa5f7138bcc5263452770303",
+      "byte_size" => 9_320_248,
       "animation_clips" => @all_clips,
       "metadata" => %{
         "display_name" => "Engineering / Developer",
@@ -124,6 +129,57 @@ defmodule Mokaid.Assets3d do
         "source" => "meshy developer walk/run + procedural bake + POI clips + rest pose",
         "skeleton" => "mixamo_biped",
         "archetypes" => ["developer", "engineering"]
+      }
+    },
+    %{
+      "slug" => "avatar_byte",
+      "kind" => "character",
+      "storage_key" => "assets3d/avatar_byte.cb5a54d04591.glb",
+      "cdn_path" => "/assets3d/avatar_byte.cb5a54d04591.glb",
+      "sha256" => "cb5a54d04591017b25a47af730a82f890690ffdada73e342dc8a46a15044d34d",
+      "byte_size" => 8_525_224,
+      "animation_clips" => @all_clips,
+      "metadata" => %{
+        "display_name" => "Byte",
+        "target_height_m" => 1.75,
+        "source" => "Original Blender character with calibrated office rig and 48 animations",
+        "skeleton" => "mixamo_biped",
+        "style" => "Retro ceramic robot / ivory, coral and petrol",
+        "authoring_file" => "artifacts/avatar-atypical/avatar_byte.blend"
+      }
+    },
+    %{
+      "slug" => "avatar_nyx",
+      "kind" => "character",
+      "storage_key" => "assets3d/avatar_nyx.90aeb6731720.glb",
+      "cdn_path" => "/assets3d/avatar_nyx.90aeb6731720.glb",
+      "sha256" => "90aeb67317202236acf64f3841f7cdfd56e31fe839ceed957a27ecefad6cab40",
+      "byte_size" => 8_544_664,
+      "animation_clips" => @all_clips,
+      "metadata" => %{
+        "display_name" => "Nyx",
+        "target_height_m" => 1.75,
+        "source" => "Original Blender character with calibrated office rig and 48 animations",
+        "skeleton" => "mixamo_biped",
+        "style" => "Cyberpunk hacker / violet undercut, cyan accents, biker jacket",
+        "authoring_file" => "artifacts/avatar-atypical/avatar_nyx.blend"
+      }
+    },
+    %{
+      "slug" => "avatar_moss",
+      "kind" => "character",
+      "storage_key" => "assets3d/avatar_moss.c04355089db5.glb",
+      "cdn_path" => "/assets3d/avatar_moss.c04355089db5.glb",
+      "sha256" => "c04355089db53a7eae846c27264d7dcb62d4b52512f4dbc2d5f44643839095e7",
+      "byte_size" => 8_562_368,
+      "animation_clips" => @all_clips,
+      "metadata" => %{
+        "display_name" => "Moss",
+        "target_height_m" => 1.75,
+        "source" => "Original Blender character with calibrated office rig and 48 animations",
+        "skeleton" => "mixamo_biped",
+        "style" => "Botanical sprite / leaf crown, amber workwear and moss green",
+        "authoring_file" => "artifacts/avatar-atypical/avatar_moss.blend"
       }
     }
   ]

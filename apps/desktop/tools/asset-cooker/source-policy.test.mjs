@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { avatarKeys, parseAvatarCatalog, catalogEntry, validateAnimationValues } from './source-policy.mjs';
 
 const catalogSource = await readFile(new URL('../../../api/lib/mokaid/assets_3d.ex', import.meta.url), 'utf8');
-test('desktop uses all seven content-addressed, actually shipped avatar revisions', async () => {
+test('desktop uses every content-addressed catalog avatar revision', async () => {
   const catalog = parseAvatarCatalog(catalogSource);
   for (const key of avatarKeys) {
     const entry = catalogEntry(catalog, key);

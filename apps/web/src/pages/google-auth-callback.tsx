@@ -4,6 +4,7 @@ import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { apiFetch } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
+import { googleIdentityVerifier, clearGoogleIdentity } from "@/lib/google-identity";
 import { googleAuthRedirectUri } from "@/components/auth/google-sign-in-button";
 import { runOauthOnce, waitForAuthHydration } from "@/lib/oauth-callback";
 import { useAuthStore } from "@/stores/auth-store";
@@ -73,12 +74,15 @@ export function GoogleAuthCallbackPage() {
       }
 
       try {
+        const verifier = googleIdentityVerifier(state);
         const result = await runOauthOnce(dedupeKey, () =>
           apiFetch<GoogleAuthResponse>("/api/auth/google/callback", {
             method: "POST",
             body: {
               code,
               state,
+              code_verifier: verifier,
+              session_transport: "cookie",
               redirect_uri: googleAuthRedirectUri(),
             },
             skipWorkspace: true,
@@ -90,6 +94,9 @@ export function GoogleAuthCallbackPage() {
         await queryClient.cancelQueries();
         if (cancelled) return;
         queryClient.clear();
+        clearGoogleIdentity();
+        // Remove the one-time code from history after the exchange succeeds.
+        window.history.replaceState(null, "", window.location.pathname);
         sessionStorage.setItem(dedupeKey, "done");
         establishSession(result.token, result.user, result.workspaces ?? []);
 

@@ -131,6 +131,7 @@ defmodule Mokaid.AccountsTest do
 
     assert {:ok, user, :created, workspace} =
              Accounts.login_or_register_with_google(%{
+               email_verified: true,
                sub: "google-sub-#{System.unique_integer([:positive])}",
                email: email,
                name: "Google User",
@@ -149,6 +150,7 @@ defmodule Mokaid.AccountsTest do
 
     assert {:ok, same, :existing, workspace} =
              Accounts.login_or_register_with_google(%{
+               email_verified: true,
                sub: "google-sub-#{System.unique_integer([:positive])}",
                email: user.email,
                name: "Linked",
@@ -163,7 +165,8 @@ defmodule Mokaid.AccountsTest do
 
     assert {:ok, again, :existing, nil} =
              Accounts.login_or_register_with_google(%{
-               sub: "google-sub-#{System.unique_integer([:positive])}",
+               email_verified: true,
+               sub: String.replace_prefix(same.cognito_sub, "google:", ""),
                email: user.email,
                name: "Linked",
                picture: nil
@@ -179,6 +182,7 @@ defmodule Mokaid.AccountsTest do
 
     assert {:ok, same, :existing, workspace} =
              Accounts.login_or_register_with_google(%{
+               email_verified: true,
                sub: "google-sub-#{System.unique_integer([:positive])}",
                email: user.email,
                name: "Orphan User",
@@ -189,5 +193,86 @@ defmodule Mokaid.AccountsTest do
     assert workspace
     assert workspace.name =~ "Orphan"
     assert [_] = Mokaid.Workspaces.list_workspaces_for_user(user.id)
+  end
+
+  test "local registration validates before hashing, normalizes email, and rejects empty/oversized passwords" do
+    for password <- [nil, "", "short", String.duplicate("a", 73), String.duplicate("é", 37)] do
+      assert {:error, changeset} =
+               Accounts.register_user(%{
+                 email: "invalid@example.com",
+                 full_name: "Test User",
+                 password: password
+               })
+
+      assert errors_on(changeset).password
+      refute Map.has_key?(changeset.changes, :hashed_password)
+    end
+
+    {:ok, user} =
+      Accounts.register_user(%{
+        email: "  Mixed.Case@Example.com ",
+        full_name: " Test User ",
+        password: "valid-password-1234"
+      })
+
+    assert user.email == "mixed.case@example.com"
+
+    assert {:ok, _} =
+             Accounts.authenticate_by_password(" MIXED.CASE@example.com ", "valid-password-1234")
+
+    assert {:error, :invalid_credentials} = Accounts.authenticate_by_password(%{}, %{})
+  end
+
+  test "registration rolls back the account when initial workspace creation fails" do
+    email = "rollback#{System.unique_integer([:positive])}@example.com"
+
+    assert {:error, _} =
+             Accounts.register_with_workspace(
+               %{email: email, full_name: "Test User", password: "valid-password-1234"},
+               ""
+             )
+
+    refute Accounts.get_user_by_email(email)
+  end
+
+  test "unverified Google email cannot create or link an account" do
+    user = user_fixture()
+
+    for verified <- [false, nil] do
+      assert {:error, :invalid_credentials} =
+               Accounts.login_or_register_with_google(%{
+                 sub: "attacker",
+                 email: user.email,
+                 email_verified: verified,
+                 name: "Attacker"
+               })
+
+      assert is_nil(Repo.reload!(user).cognito_sub)
+    end
+  end
+
+  test "a different Google subject or inactive account cannot be linked by email" do
+    user = user_fixture(%{cognito_sub: "google:original"})
+
+    assert {:error, :invalid_credentials} =
+             Accounts.login_or_register_with_google(%{
+               sub: "different",
+               email: user.email,
+               email_verified: true,
+               name: "Attacker"
+             })
+
+    user |> change(status: "disabled") |> Repo.update!()
+
+    assert {:error, :invalid_credentials} =
+             Accounts.login_or_register_with_google(%{
+               sub: "original",
+               email: user.email,
+               email_verified: true,
+               name: "Disabled"
+             })
+
+    assert {:error, :invalid_credentials} =
+             Accounts.authenticate_by_password(user.email, "test-password-1234")
   end
 end

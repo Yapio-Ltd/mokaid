@@ -1577,11 +1577,15 @@ export function useChangePassword() {
       password: string;
       password_confirmation: string;
     }) =>
-      apiFetch<{ ok: boolean }>("/api/me/password", {
+      apiFetch<{ ok: boolean; token: string }>("/api/me/password", {
         method: "POST",
         body,
         skipWorkspace: true,
       }),
+    onSuccess: ({ token }) => {
+      const { user, setSession } = useAuthStore.getState();
+      if (user && token) setSession(token, user);
+    },
   });
 }
 

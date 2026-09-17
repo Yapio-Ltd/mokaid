@@ -13,7 +13,7 @@ import { CookieConsent } from "@/components/legal/cookie-consent";
 import { LandingPage } from "@/pages/landing";
 import { LoginPage } from "@/pages/login";
 import { SignupPage } from "@/pages/signup";
-import { apiFetch } from "@/api/client";
+import { ApiError, apiFetch } from "@/api/client";
 import { waitForAuthHydration } from "@/lib/oauth-callback";
 import {
   ACCOUNT_LINKS,
@@ -301,10 +301,15 @@ const appRoute = createRoute({
     }
     // The server can tighten policy before a cached older web build is replaced.
     // Check before mounting AppShell, which owns Channels and the 3D renderer.
-    const policy = await apiFetch<{ client_policy?: { desktop_only_business?: boolean } }>(
-      "/api/me",
-      { skipWorkspace: true },
-    );
+    let policy: { client_policy?: { desktop_only_business?: boolean } };
+    try {
+      policy = await apiFetch("/api/me", { skipWorkspace: true });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        throw redirect({ to: "/login", search: { returnTo: safeAuthReturn(location.href) } });
+      }
+      throw error;
+    }
     if (policy.client_policy?.desktop_only_business) {
       throw redirect({
         ...localNavigation(legacyAccountDestination(location.pathname, location.searchStr)),
