@@ -1,9 +1,39 @@
 defmodule MokaidWeb.OrchestratorControllerTest do
-  use MokaidWeb.ConnCase, async: true
+  # Transport regressions replace application configuration temporarily.
+  use MokaidWeb.ConnCase, async: false
   alias Mokaid.{Agents, Tasks}
   alias Mokaid.AI.{Coordinator, Orchestrator}
 
+  defmodule WorkerFixture do
+    @behaviour Plug
+    def init(owner), do: owner
+
+    def call(conn, owner) do
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      send(owner, {:worker_request, conn.method, conn.request_path, conn.req_headers, body})
+
+      if Plug.Conn.get_req_header(conn, "authorization") == ["Bearer coordinator-fixture-token"] do
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(
+          200,
+          Jason.encode!(%{
+            reply: "Bonjour, préparons votre mission.",
+            language: "fr",
+            mission_instruction: "",
+            task_id: "",
+            cost_cents: 0
+          })
+        )
+      else
+        Plug.Conn.send_resp(conn, 401, "Unauthorized")
+      end
+    end
+  end
+
   setup %{conn: conn} do
+    worker_config = Application.fetch_env!(:mokaid, :ai_worker)
+    on_exit(fn -> Application.put_env(:mokaid, :ai_worker, worker_config) end)
     {workspace, owner} = workspace_fixture()
     member = owner_member(workspace, owner)
 
@@ -13,6 +43,52 @@ defmodule MokaidWeb.OrchestratorControllerTest do
       |> put_req_header("x-workspace-id", workspace.id)
 
     {:ok, conn: conn, workspace: workspace, member: member}
+  end
+
+  test "production SQS mission dispatch retains authenticated synchronous HTTP chat", %{
+    conn: conn,
+    workspace: workspace
+  } do
+    url = worker_fixture()
+
+    Application.put_env(:mokaid, :ai_worker,
+      dispatch: :sqs,
+      sqs_queue_url: "https://sqs.invalid.example/never-used-by-chat",
+      url: url,
+      token: "coordinator-fixture-token"
+    )
+
+    response = post(conn, "/api/orchestrator/chat", %{message: "Bonjour", language: "fr"})
+    assert json_response(response, 200)["data"]["reply"] == "Bonjour, préparons votre mission."
+    assert_receive {:worker_request, "POST", "/orchestrator/chat", headers, body}
+    assert {"authorization", "Bearer coordinator-fixture-token"} in headers
+    assert Jason.decode!(body)["language"] == "fr"
+    assert Application.fetch_env!(:mokaid, :ai_worker)[:dispatch] == :sqs
+    assert Tasks.list_tasks(workspace.id) == []
+  end
+
+  test "configured worker URL never sends an unauthenticated chat request", %{conn: conn} do
+    url = worker_fixture()
+
+    for token <- [nil, "", "   "] do
+      Application.put_env(:mokaid, :ai_worker, dispatch: :sqs, url: url, token: token)
+      response = post(conn, "/api/orchestrator/chat", %{message: "Bonjour"})
+      assert json_response(response, 503)["error"]["code"] == "orchestrator_unavailable"
+    end
+
+    refute_receive {:worker_request, _, _, _, _}
+  end
+
+  test "SQS configuration without an HTTP worker URL fails explicitly", %{conn: conn} do
+    Application.put_env(:mokaid, :ai_worker,
+      dispatch: :sqs,
+      sqs_queue_url: "https://sqs.invalid.example/never-used-by-chat",
+      url: nil,
+      token: "coordinator-fixture-token"
+    )
+
+    response = post(conn, "/api/orchestrator/chat", %{message: "Bonjour"})
+    assert json_response(response, 503)["error"]["code"] == "orchestrator_unavailable"
   end
 
   test "conversation validates shape, never accepts client system messages" do
@@ -156,5 +232,15 @@ defmodule MokaidWeb.OrchestratorControllerTest do
     assert Tasks.get_task(w.id, parent.id).metadata["composite"]["current_wave"] == 1
     assert Tasks.get_task(w.id, next.id).execution_runs == []
     assert post(conn, "/api/orchestrator/missions/#{parent.id}/stop") |> json_response(200)
+  end
+
+  defp worker_fixture do
+    server =
+      start_supervised!(
+        {Bandit, plug: {WorkerFixture, self()}, ip: {127, 0, 0, 1}, port: 0, startup_log: false}
+      )
+
+    {:ok, {{127, 0, 0, 1}, port}} = ThousandIsland.listener_info(server)
+    "http://127.0.0.1:#{port}"
   end
 end

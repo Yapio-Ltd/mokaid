@@ -228,6 +228,7 @@ jobs:
           MOKAID_DESKTOP_ONLY_BUSINESS: ${{ env.DESKTOP_ONLY }}
           DESKTOP_AUTH_WEB_BASE_URL: https://mokaid.com
           MOKAID_TRUSTED_ALB_CIDRS: ${{ vars.MOKAID_TRUSTED_ALB_CIDRS }}
+          AI_WORKER_URL: http://ai-worker.mokaid-prod.internal:8100
         run: bash .github/scripts/prepare-ecs-task.sh
 
       - name: Run database migrations

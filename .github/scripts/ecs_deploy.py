@@ -241,13 +241,15 @@ def prepare(env: Mapping[str, str], aws: AwsClient) -> None:
     if not NAME.fullmatch(container) or not IMAGE_DIGEST.fullmatch(image):
         raise Failure("An exact container name and immutable repository@sha256 image digest are required")
     overrides = {}
-    for key in ("MOKAID_DESKTOP_ONLY_BUSINESS", "DESKTOP_AUTH_WEB_BASE_URL", "MOKAID_TRUSTED_ALB_CIDRS"):
+    for key in ("MOKAID_DESKTOP_ONLY_BUSINESS", "DESKTOP_AUTH_WEB_BASE_URL", "MOKAID_TRUSTED_ALB_CIDRS", "AI_WORKER_URL"):
         if key in env:
             if container != "mokaid-prod-api":
                 raise Failure("API environment overrides are restricted to mokaid-prod-api")
             value = env[key]
             if key == "MOKAID_TRUSTED_ALB_CIDRS":
                 value = trusted_alb_cidrs(value)
+            if key == "AI_WORKER_URL" and value != "http://ai-worker.mokaid-prod.internal:8100":
+                raise Failure("Worker HTTP override must use the private production discovery endpoint")
             if (key == "MOKAID_DESKTOP_ONLY_BUSINESS" and value not in ("true", "false")) or (
                     key == "DESKTOP_AUTH_WEB_BASE_URL" and value != "https://mokaid.com"):
                 raise Failure("Invalid explicitly allowed desktop rollout setting")

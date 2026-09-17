@@ -186,7 +186,11 @@ defmodule Mokaid.AI.Coordinator do
   defp ask_worker(payload) do
     config = Application.fetch_env!(:mokaid, :ai_worker)
 
-    if config[:dispatch] == :http and Mokaid.AI.WorkerClient.absolute_url?(config[:url]) do
+    # Mission execution uses SQS in production, but conversational replies need
+    # the worker's synchronous HTTP endpoint. Do not route chat through the
+    # mission queue or require changing that queue's dispatch configuration.
+    if Mokaid.AI.WorkerClient.absolute_url?(config[:url]) and
+         is_binary(config[:token]) and String.trim(config[:token]) != "" do
       case Req.post(
              url: String.trim_trailing(config[:url], "/") <> "/orchestrator/chat",
              json: payload,

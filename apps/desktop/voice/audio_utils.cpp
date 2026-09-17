@@ -96,7 +96,9 @@ QString validateRuntime(const QString& directory) {
     const auto entries = root.value(QStringLiteral("files")).toObject();
     if (root.value(QStringLiteral("schema")).toInt() != 1 || entries.isEmpty()) return QStringLiteral("Le manifeste vocal est invalide.");
     if (!entries.contains(QStringLiteral("models/ggml-base-q5_1.bin")) || !entries.contains(QStringLiteral("models/kokoro/model.int8.onnx"))) return QStringLiteral("Les modèles vocaux sont incomplets.");
-    const QString base = QFileInfo(directory).canonicalFilePath() + QDir::separator();
+    // Qt canonical paths use '/' on every platform, including Windows. Keep
+    // the boundary in that same representation so valid files remain inside it.
+    const QString base = QFileInfo(directory).canonicalFilePath() + QLatin1Char('/');
     for (auto it = entries.begin(); it != entries.end(); ++it) {
         const auto filename = QDir(directory).filePath(it.key());
         const auto canonical = QFileInfo(filename).canonicalFilePath();

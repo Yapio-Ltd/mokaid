@@ -3,6 +3,7 @@
 #include <QCryptographicHash>
 #include <QDataStream>
 #include <QFile>
+#include <QFileInfo>
 #include <QDir>
 #include <QJsonDocument>
 #include <QSignalSpy>
@@ -66,6 +67,36 @@ private slots:
         QCOMPARE(voice::kokoroVoice(QStringLiteral("en_US")).speaker, 3);
         QCOMPARE(voice::kokoroVoice(QStringLiteral("he")).speaker, -1);
     }
+    void acceptsVerifiedRuntimeUsingNativePathSeparators() {
+        QTemporaryDir dir; QVERIFY(dir.isValid());
+#ifdef Q_OS_WIN
+        const QString suffix = QStringLiteral(".exe");
+#else
+        const QString suffix;
+#endif
+        const QStringList files = {
+            QStringLiteral("models/ggml-base-q5_1.bin"),
+            QStringLiteral("models/kokoro/model.int8.onnx"),
+            QStringLiteral("bin/whisper-cli") + suffix,
+            QStringLiteral("sherpa/bin/sherpa-onnx-offline-tts") + suffix,
+        };
+        QJsonObject entries;
+        for (const auto& name : files) {
+            const auto path = dir.filePath(name);
+            QVERIFY(QDir().mkpath(QFileInfo(path).path()));
+            QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly));
+            QCOMPARE(file.write("verified-runtime-fixture"), qint64(24));
+            file.close();
+            QVERIFY(file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
+            entries.insert(name, QString::fromLatin1(QCryptographicHash::hash("verified-runtime-fixture", QCryptographicHash::Sha256).toHex()));
+        }
+        QFile manifest(dir.filePath(QStringLiteral("manifest.json")));
+        QVERIFY(manifest.open(QIODevice::WriteOnly));
+        manifest.write(QJsonDocument(QJsonObject{{"schema", 1}, {"files", entries}}).toJson());
+        manifest.close();
+        const auto error = voice::validateRuntime(QDir::toNativeSeparators(dir.path()));
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+    }
     void rejectsMissingTamperedAndEscapingModels() {
         QTemporaryDir dir; QVERIFY(dir.isValid());
         QVERIFY(!voice::validateRuntime(dir.path()).isEmpty());
@@ -78,6 +109,17 @@ private slots:
         auto writeManifest = [&] { QFile file(dir.filePath(QStringLiteral("manifest.json"))); QVERIFY(file.open(QIODevice::WriteOnly)); file.write(QJsonDocument(QJsonObject{{"schema", 1}, {"files", entries}}).toJson()); };
         writeManifest();
         QVERIFY(voice::validateRuntime(dir.path()).contains(QStringLiteral("moteur")));
+        // An existing sibling sharing the runtime's name must still be outside
+        // the canonical directory boundary, even when its checksum is valid.
+        QTemporaryDir sibling(dir.path() + QStringLiteral("-sibling-XXXXXX"));
+        QVERIFY(sibling.isValid());
+        QFile escaped(sibling.filePath(QStringLiteral("model.bin")));
+        QVERIFY(escaped.open(QIODevice::WriteOnly)); escaped.write("test-model"); escaped.close();
+        const auto escapePath = QStringLiteral("../") + QFileInfo(sibling.path()).fileName() + QStringLiteral("/model.bin");
+        entries.insert(escapePath, QString::fromLatin1(QCryptographicHash::hash("test-model", QCryptographicHash::Sha256).toHex()));
+        writeManifest();
+        QVERIFY(voice::validateRuntime(dir.path()).contains(QStringLiteral("chemin")));
+        entries.remove(escapePath); writeManifest();
         QFile broken(dir.filePath(QStringLiteral("models/ggml-base-q5_1.bin"))); QVERIFY(broken.open(QIODevice::WriteOnly)); broken.write("changed"); broken.close();
         QVERIFY(voice::validateRuntime(dir.path()).contains(QStringLiteral("endommagé")));
         entries.insert(QStringLiteral("../escape"), QString(64, '0')); writeManifest();

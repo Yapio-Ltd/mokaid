@@ -466,6 +466,49 @@ resource "aws_vpc_security_group_ingress_rule" "db_from_worker" {
   tags                         = local.tags
 }
 
+# Synchronous voice/text coordination uses the same worker and auth token as
+# queued missions. Keep HTTP private; ECS updates the A records as tasks rotate.
+resource "aws_service_discovery_private_dns_namespace" "workers" {
+  name        = "${local.name}.internal"
+  description = "Private API-to-worker coordination"
+  vpc         = module.vpc.vpc_id
+  tags        = local.tags
+}
+
+resource "aws_service_discovery_service" "worker" {
+  name = "ai-worker"
+
+  dns_config {
+    namespace_id   = aws_service_discovery_private_dns_namespace.workers.id
+    routing_policy = "MULTIVALUE"
+
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+  }
+
+  health_check_custom_config {
+    failure_threshold = 1
+  }
+
+  tags = local.tags
+}
+
+resource "aws_vpc_security_group_ingress_rule" "worker_from_api" {
+  description                  = "Private voice/text coordinator HTTP from API tasks"
+  security_group_id            = module.worker_service.security_group_id
+  referenced_security_group_id = module.api_service.security_group_id
+  from_port                    = 8100
+  to_port                      = 8100
+  ip_protocol                  = "tcp"
+  tags                         = local.tags
+}
+
+locals {
+  ai_worker_url = "http://${aws_service_discovery_service.worker.name}.${aws_service_discovery_private_dns_namespace.workers.name}:8100"
+}
+
 data "aws_iam_policy_document" "api_task" {
   statement {
     sid = "S3Files"
@@ -560,6 +603,7 @@ module "api_service" {
     S3_BUCKET_OUTPUTS        = module.s3_exports.bucket_id
     S3_BUCKET_EXPORTS        = module.s3_exports.bucket_id
     AI_DISPATCH_QUEUE_URL    = module.sqs_ai_runs.queue_url
+    AI_WORKER_URL            = local.ai_worker_url
     CORS_ORIGINS             = local.app_origin
     FIGMA_REDIRECT_URI       = var.app_domain != "" ? "https://${var.app_domain}/oauth/figma/callback" : "https://mokaid.com/oauth/figma/callback"
     GOOGLE_REDIRECT_URI      = var.app_domain != "" ? "https://${var.app_domain}/oauth/google/callback" : "https://mokaid.com/oauth/google/callback"
@@ -695,6 +739,10 @@ module "worker_service" {
   desired_count   = 1
   max_count       = 3
 
+  service_registry = {
+    registry_arn = aws_service_discovery_service.worker.arn
+  }
+
   environment = {
     PHOENIX_API_URL   = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
     AWS_REGION        = var.aws_region
@@ -765,6 +813,11 @@ output "ecr_repository_urls" {
 
 output "ai_runs_queue_url" {
   value = module.sqs_ai_runs.queue_url
+}
+
+output "ai_worker_url" {
+  description = "Private HTTP endpoint for API voice/text coordination; missions retain SQS."
+  value       = local.ai_worker_url
 }
 
 output "db_endpoint" {

@@ -276,6 +276,36 @@ class EcsTests(unittest.TestCase):
             ecs.prepare(dict(self.env, MOKAID_DESKTOP_ONLY_BUSINESS="true"), aws)
         self.assertIsNone(aws.registered)
 
+    def test_private_worker_url_preserves_queue_and_token_references(self):
+        aws = MockAws()
+        target = aws.definitions[OLD]["containerDefinitions"][1]
+        target["environment"].append({"name": "AI_DISPATCH_QUEUE_URL", "value": "existing-queue"})
+        original_secrets = copy.deepcopy(target["secrets"])
+        url = "http://ai-worker.mokaid-prod.internal:8100"
+        ecs.prepare(dict(self.env, AI_WORKER_URL=url), aws)
+        actual = aws.registered["containerDefinitions"][1]
+        settings = {item["name"]: item["value"] for item in actual["environment"]}
+        self.assertEqual(settings["AI_WORKER_URL"], url)
+        self.assertEqual(settings["AI_DISPATCH_QUEUE_URL"], "existing-queue")
+        self.assertEqual(actual["secrets"], original_secrets)
+        self.assertEqual(self.updates(aws), [])
+
+    def test_private_worker_url_rejects_other_targets_and_secret_collisions(self):
+        url = "http://ai-worker.mokaid-prod.internal:8100"
+        for override in ({"AI_WORKER_URL": ""}, {"AI_WORKER_URL": "https://evil.invalid"},
+                         {"AI_WORKER_URL": url + "/"},
+                         {"AI_WORKER_URL": url, "CONTAINER": "mokaid-prod-ai-worker"}):
+            aws = MockAws()
+            with self.subTest(override=override), self.assertRaises(ecs.Failure):
+                ecs.prepare(dict(self.env, **override), aws)
+            self.assertEqual(aws.calls, [])
+        aws = MockAws()
+        aws.definitions[OLD]["containerDefinitions"][1]["secrets"].append(
+            {"name": "AI_WORKER_URL", "valueFrom": "secret-ref"})
+        with self.assertRaises(ecs.Failure):
+            ecs.prepare(dict(self.env, AI_WORKER_URL=url), aws)
+        self.assertIsNone(aws.registered)
+
     def test_trusted_alb_override_preserves_unrelated_environment_secrets_and_containers(self):
         aws = MockAws()
         original = aws.definitions[OLD]

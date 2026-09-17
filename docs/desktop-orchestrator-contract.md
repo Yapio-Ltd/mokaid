@@ -9,8 +9,10 @@ at most 24. The desktop never claims that a failed or unconfigured model replied
 ## Deployment
 
 Deploy the Phoenix API and Python worker together. No database migration is
-required. The API's existing `:ai_worker` configuration must use HTTP dispatch and
-a reachable URL/token. The Python worker requires its existing Anthropic or OpenAI
+required. The API's existing `:ai_worker` configuration must include a reachable
+HTTP URL and token, independently of the mission dispatch transport (SQS in
+production). The private endpoint is `http://ai-worker.mokaid-prod.internal:8100`;
+see `infra/terraform/WORKER_HTTP.md` for its DNS and API-only ingress. The Python worker requires its existing Anthropic or OpenAI
 conversation-model configuration. Missing credentials, timeouts or provider errors
 produce `503 orchestrator_unavailable`, preserving the desktop draft.
 

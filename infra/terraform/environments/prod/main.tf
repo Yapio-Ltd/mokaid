@@ -155,3 +155,8 @@ output "ecr_repository_urls" {
 output "db_endpoint" {
   value = module.stack.db_endpoint
 }
+
+output "ai_worker_url" {
+  description = "Private API-to-worker HTTP endpoint."
+  value       = module.stack.ai_worker_url
+}

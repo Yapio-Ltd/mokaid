@@ -54,3 +54,5 @@ CI/CD (`deploy.yml`) builds all three images and rolls out ECS services on pushe
 - All resources are tagged `Project=mokaid`, `Owner=Yapio`, `ManagedBy=Terraform`, `Environment=prod`.
 - State: S3 `mokaid-terraform-state` with DynamoDB locking (`mokaid-terraform-locks`).
 - Databases and services live in private subnets only; ingress via ALB/CloudFront.
+- Synchronous voice/text coordination uses [private worker HTTP](WORKER_HTTP.md);
+  asynchronous missions retain SQS.

@@ -138,7 +138,14 @@ Rectangle {
         if (!item) return;
         item->setParentItem(window.contentItem());
         resize(size);
-        window.show(); window.requestActivate();
+        window.show();
+        if (!QTest::qWaitForWindowExposed(&window)) {
+            failure = "Offscreen test window was not exposed"; root.reset(); return;
+        }
+        window.requestActivate();
+        if (!QTest::qWaitForWindowActive(&window)) {
+            failure = "Offscreen test window was not activated"; root.reset();
+        }
     }
     ~OrchestratorView() {
         if (auto* item = qobject_cast<QQuickItem*>(root.get())) item->setParentItem(nullptr);
@@ -205,14 +212,27 @@ Rectangle {
 class OrchestratorQmlTests final : public QObject {
     Q_OBJECT
 private slots:
+    void collapsedOpenAndKeyboardClose_data() {
+        QTest::addColumn<int>("launcherFocusPolicy");
+        QTest::addColumn<QString>("restoredFocusName");
+        QTest::newRow("pointer-preserves-workspace-focus")
+            << int(Qt::NoFocus) << QStringLiteral("workspaceFocus");
+        QTest::newRow("pointer-focuses-launcher")
+            << int(Qt::StrongFocus) << QStringLiteral("mokedLauncher");
+    }
     void collapsedOpenAndKeyboardClose() {
+        QFETCH(int, launcherFocusPolicy);
+        QFETCH(QString, restoredFocusName);
         OrchestratorView view;
         QVERIFY2(view.root, qPrintable(view.failure));
-        QTest::qWait(60);
+        // A mouse click focuses buttons on Windows, but platform defaults may
+        // preserve the previous control on macOS. Exercise both policies.
+        QVERIFY(view.item("mokedLauncher")->setProperty("focusPolicy", launcherFocusPolicy));
         QVERIFY(!view.expanded());
         QVERIFY(!view.item("mokedPanel")->isVisible());
         QVERIFY(view.capture("moked-collapsed-1440"));
         view.item("workspaceFocus")->forceActiveFocus();
+        QTRY_VERIFY(view.item("workspaceFocus")->hasActiveFocus());
         QVERIFY(view.click("mokedLauncher"));
         QTRY_VERIFY(view.expanded());
         QTRY_VERIFY(view.item("mokedComposer")->hasActiveFocus());
@@ -221,7 +241,7 @@ private slots:
         QVERIFY(view.capture("moked-empty-1440"));
         QTest::keyClick(&view.window, Qt::Key_Escape);
         QTRY_VERIFY(!view.expanded());
-        QTRY_VERIFY(view.item("workspaceFocus")->hasActiveFocus());
+        QTRY_VERIFY(view.item(restoredFocusName.toUtf8().constData())->hasActiveFocus());
         QVERIFY2(view.warnings.isEmpty(), qPrintable(view.warnings.join('\n')));
     }
 
