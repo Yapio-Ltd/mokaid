@@ -120,7 +120,8 @@ defmodule Mokaid.AI.Dispatcher do
          {:ok, files} <- validate_attachments(workspace_id, drive_ids),
          :ok <- validate_request(instruction, task_params, files),
          :ok <- validate_project(workspace_id, task_params["project_id"]),
-         {:ok, grant_ids} <- validate_ids(params["grant_installation_ids"], :invalid_integrations),
+         {:ok, grant_ids} <-
+           validate_ids(params["grant_installation_ids"], :invalid_integrations),
          :ok <- validate_grants(workspace_id, grant_ids),
          {:ok, agent} <- resolve_agent(workspace_id, member, params),
          :ok <- validate_start(agent, params),

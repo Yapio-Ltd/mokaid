@@ -270,8 +270,11 @@ float Navigation::floorHeightAt(Vec3 point) const {
   return height;
 }
 Vec3 Navigation::gridPoint(int index) const {
-  return {bounds_.minX + static_cast<float>(index % columns_) * cell, 0,
-          bounds_.minZ + static_cast<float>(index / columns_) * cell};
+  // Round each lattice coordinate once on every platform. Implicit contraction
+  // differs between ARM and x86: a second rounding can move a tangent sample
+  // inside furniture and disconnect a whole aisle from the navigation graph.
+  return {std::fma(static_cast<float>(index % columns_), cell, bounds_.minX), 0,
+          std::fma(static_cast<float>(index / columns_), cell, bounds_.minZ)};
 }
 void Navigation::buildGrid() {
   columns_ = static_cast<int>(std::floor((bounds_.maxX - bounds_.minX) / cell)) + 1;

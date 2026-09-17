@@ -90,7 +90,8 @@ defmodule MokaidWeb.AuthController do
   end
 
   defp registration_workspace_name(%{"workspace_name" => value})
-       when not is_binary(value) and not is_nil(value), do: {:error, :invalid_workspace_name}
+       when not is_binary(value) and not is_nil(value),
+       do: {:error, :invalid_workspace_name}
 
   defp registration_workspace_name(params) do
     case String.trim(params["workspace_name"] || "") do

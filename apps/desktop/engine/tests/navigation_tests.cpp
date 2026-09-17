@@ -73,6 +73,18 @@ void routing() {
              "Detour body radius must remain outside another agent's body");
     }
 }
+void narrowAisle() {
+  // The office's right-hand aisle has one usable lattice column beside a
+  // furniture edge. Rounding the lattice multiply and add separately used to
+  // put that entire column inside the wall on x86, isolating two real desks.
+  const auto nav = Navigation::fromGeometry(
+      {{-7.3F, 6.15F, -.9F, .9F}}, {}, {},
+      {-7.3F, 6.95F, -6.35F, 6.35F});
+  const Vec3 start{5, 0, -2}, goal{5, 0, 2};
+  expect(!nav.segmentWalkable(start, goal, .35F),
+         "The narrow-aisle route must go around the furniture");
+  validatePath(nav, nav.route(start, goal, {}, .35F), start, goal, {}, .35F);
+}
 void roundedWalkingRoutes() {
   const auto open = Navigation::fromGeometry({}, {}, {}, bounds);
   const std::vector<Vec3> corner{{-2, .1F, 0}, {0, .2F, 0}, {0, .3F, 2}};
@@ -355,7 +367,7 @@ void realAssets(const std::filesystem::path &root) {
 }
 int main(int argc, char **argv) {
   try {
-    sweptGeometry(); routing(); roundedWalkingRoutes(); socketCorridors(); packValidation();
+    sweptGeometry(); routing(); narrowAisle(); roundedWalkingRoutes(); socketCorridors(); packValidation();
     if (argc == 2) realAssets(argv[1]);
   }
   catch (const std::exception &e) { std::cerr << e.what() << '\n'; return 1; }
