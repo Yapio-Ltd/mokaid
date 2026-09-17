@@ -211,6 +211,8 @@ def deploy_macos_runtime(app: Path, qt_bin: Path, qml: Path) -> None:
         "imageformats/libqico.dylib", "imageformats/libqsvg.dylib",
         "iconengines/libqsvgicon.dylib", "tls/libqsecuretransportbackend.dylib",
         "networkinformation/libqapplenetworkinformation.dylib",
+        "multimedia/libdarwinmediaplugin.dylib",
+        "texttospeech/libqtexttospeech_speechdarwin.dylib",
     )
     executables = []
     for relative in plugins:

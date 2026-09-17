@@ -29,3 +29,13 @@ The separate Knowledge destination is removed from native navigation, feature re
 - `FeaturePage.qml`, `FeatureCollection.qml`, `FeatureCalendar.qml`, `FeatureSummary.qml`, `FeatureInspector.qml`, `FeatureLogic.js`: other workspace and administrative views.
 - `OfficePage.qml`, `OfficeStat.qml`, `AgentCard.qml`: native Office chrome.
 - `application/features/FeatureController`: real data and endpoint-backed operations.
+
+## Moked companion
+
+Moked extends the native workspace with an always-available bottom-right launcher and a compact floating Conversation/Missions panel. It retains the existing midnight surfaces, bundled Manrope, violet selection and focus, rounded controls, and live-controller data model. The panel leaves the surrounding workspace usable and contracts at the minimum desktop size. Shared highlighted `MokaidButton` actions keep readable light text across resting, hover, and pressed violet fills.
+
+The companion is a smooth asymmetric seed with a nacre shell, folded violet leaf, expressive ink eyes, and small floating hands. Its laptop signals active mission work; listening and speaking replace the smile with audio bars, while thinking changes its gaze. Keep these state cues legible when motion is reduced. Ambient animation pauses when the window is minimized; reduced motion removes transitions and looping movement.
+
+Conversation, mission proposals, progress, and delivery links use the existing mission review and detail flows. Local dictation inserts an editable draft for review before Send, and spoken replies receive the reply's language. Preserve Ctrl/Cmd+J, Escape and focus restoration, explicit microphone controls, offline drafts, protected work during close/update, and workspace/sign-out reset behavior.
+
+`presentation/qml/MokedDock.qml` owns the surface, `MokedMascot.qml` its character, and `Main.qml` the shell integration. Behavioral and service contracts live in [the coordinator contract](../../docs/desktop-orchestrator-contract.md) and [local voice documentation](voice/README.md). The 13 captures in `artifacts/desktop-orchestrator/` and `tests/orchestrator_qml_tests.cpp` are isolated synthetic UI evidence, not live-backend or physical-device voice evidence; keep fixture content confined to tests.

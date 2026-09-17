@@ -18,9 +18,9 @@ const PORTRAITS = [
   ["avatar_developer.867211fc6b99.glb", "developer"],
   ["avatar_research.7c86fc428e9f.glb", "research"],
   ["avatar_legal.859687268a64.glb", "legal"],
-  ["avatar_byte.cb5a54d04591.glb", "byte"],
-  ["avatar_nyx.90aeb6731720.glb", "nyx"],
-  ["avatar_moss.c04355089db5.glb", "moss"],
+  ["avatar_byte.05d5e3743ef8.glb", "byte"],
+  ["avatar_nyx.5c7daa1a4ead.glb", "nyx"],
+  ["avatar_moss.96ccd7c01040.glb", "moss"],
 ] as const;
 
 export function resolveWorkforceAgentPortrait(

@@ -134,51 +134,59 @@ defmodule Mokaid.Assets3d do
     %{
       "slug" => "avatar_byte",
       "kind" => "character",
-      "storage_key" => "assets3d/avatar_byte.cb5a54d04591.glb",
-      "cdn_path" => "/assets3d/avatar_byte.cb5a54d04591.glb",
-      "sha256" => "cb5a54d04591017b25a47af730a82f890690ffdada73e342dc8a46a15044d34d",
-      "byte_size" => 8_525_224,
+      "storage_key" => "assets3d/avatar_byte.05d5e3743ef8.glb",
+      "cdn_path" => "/assets3d/avatar_byte.05d5e3743ef8.glb",
+      "sha256" => "05d5e3743ef8ca7fa156addc4a6be6089ef70dbe4fbeccff8722d76e5434eb80",
+      "byte_size" => 9_583_064,
       "animation_clips" => @all_clips,
       "metadata" => %{
-        "display_name" => "Byte",
+        "display_name" => "Hugo",
         "target_height_m" => 1.75,
-        "source" => "Original Blender character with calibrated office rig and 48 animations",
+        "source" =>
+          "Derived from existing Mokaid character; anatomy, rig and 48 animations preserved",
         "skeleton" => "mixamo_biped",
-        "style" => "Retro ceramic robot / ivory, coral and petrol",
+        "donor_slug" => "avatar_corporate",
+        "style" =>
+          "Human / petrol-blue rolled-sleeve shirt, charcoal tailored trousers, wristwatch",
         "authoring_file" => "artifacts/avatar-atypical/avatar_byte.blend"
       }
     },
     %{
       "slug" => "avatar_nyx",
       "kind" => "character",
-      "storage_key" => "assets3d/avatar_nyx.90aeb6731720.glb",
-      "cdn_path" => "/assets3d/avatar_nyx.90aeb6731720.glb",
-      "sha256" => "90aeb67317202236acf64f3841f7cdfd56e31fe839ceed957a27ecefad6cab40",
-      "byte_size" => 8_544_664,
+      "storage_key" => "assets3d/avatar_nyx.5c7daa1a4ead.glb",
+      "cdn_path" => "/assets3d/avatar_nyx.5c7daa1a4ead.glb",
+      "sha256" => "5c7daa1a4eadb7cbe07c110da2ec76f2d92d9998cb49197c96cd7f0e08c151c3",
+      "byte_size" => 9_668_656,
       "animation_clips" => @all_clips,
       "metadata" => %{
-        "display_name" => "Nyx",
+        "display_name" => "Inès",
         "target_height_m" => 1.75,
-        "source" => "Original Blender character with calibrated office rig and 48 animations",
+        "source" =>
+          "Derived from existing Mokaid character; anatomy, rig and 48 animations preserved",
         "skeleton" => "mixamo_biped",
-        "style" => "Cyberpunk hacker / violet undercut, cyan accents, biker jacket",
+        "donor_slug" => "avatar_finance",
+        "style" =>
+          "Human / terracotta blazer, ivory blouse, charcoal trousers, glasses and natural bun",
         "authoring_file" => "artifacts/avatar-atypical/avatar_nyx.blend"
       }
     },
     %{
       "slug" => "avatar_moss",
       "kind" => "character",
-      "storage_key" => "assets3d/avatar_moss.c04355089db5.glb",
-      "cdn_path" => "/assets3d/avatar_moss.c04355089db5.glb",
-      "sha256" => "c04355089db53a7eae846c27264d7dcb62d4b52512f4dbc2d5f44643839095e7",
-      "byte_size" => 8_562_368,
+      "storage_key" => "assets3d/avatar_moss.96ccd7c01040.glb",
+      "cdn_path" => "/assets3d/avatar_moss.96ccd7c01040.glb",
+      "sha256" => "96ccd7c01040b0eb4dff82c37d651b0275e335e0fc61202212c61c68519a58f4",
+      "byte_size" => 10_672_516,
       "animation_clips" => @all_clips,
       "metadata" => %{
-        "display_name" => "Moss",
+        "display_name" => "Malik",
         "target_height_m" => 1.75,
-        "source" => "Original Blender character with calibrated office rig and 48 animations",
+        "source" =>
+          "Derived from existing Mokaid character; anatomy, rig and 48 animations preserved",
         "skeleton" => "mixamo_biped",
-        "style" => "Botanical sprite / leaf crown, amber workwear and moss green",
+        "donor_slug" => "avatar_developer",
+        "style" => "Human / forest-green hoodie, dark indigo denim, sneakers, beard and glasses",
         "authoring_file" => "artifacts/avatar-atypical/avatar_moss.blend"
       }
     }

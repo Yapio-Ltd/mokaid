@@ -1,0 +1,1259 @@
+{
+  "avatar_byte": {
+    "name": "Hugo",
+    "style": "Human architect / navy blazer, ecru henley, tailored chinos, salt-and-pepper beard",
+    "colors": [
+      "#25354a",
+      "#e5dcc9",
+      "#66503c"
+    ],
+    "source_asset": "apps/web/public/assets3d/avatar_design.1c0dba698d81.glb",
+    "source_sha256": "1c0dba698d817f42263efdc62c82d528eef0c5840f254d246ca618bd9658960c",
+    "output": "artifacts/avatar-atypical/avatar_byte.glb",
+    "sha256": "5412221ebf844c08a2f03b2f2d762d6659e9a182da4651a8afd55ddfbabe3213",
+    "bytes": 9108400,
+    "bones": 33,
+    "vertices": 129749,
+    "height_m": 1.621131015235278,
+    "animation_donor": "avatar_design",
+    "clips": {
+      "idle": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "walking": {
+        "duration_seconds": 0.8333333333333334,
+        "frames": 51,
+        "foot_target_error_m": 2.5178107813916946e-07,
+        "max_ik_target_error_m": 2.7028258364226004e-07,
+        "loop": true,
+        "reference_speed_mps": 1.0,
+        "gait": {
+          "bob": 0.003,
+          "sway": 0.008,
+          "arm_swing": 0.49,
+          "lift": 0.05,
+          "yaw": 0.032,
+          "stance": 0.6,
+          "lean": 0
+        }
+      },
+      "typing": {
+        "duration_seconds": 2.0,
+        "frames": 121,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 4.2696442550106056e-07,
+        "loop": true
+      },
+      "working": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.674277068954096e-07,
+        "loop": true
+      },
+      "thinking": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "talking": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 4.65765583756202e-07,
+        "loop": true
+      },
+      "waiting": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "blocked": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.3881714942759493e-07,
+        "loop": true
+      },
+      "celebrating": {
+        "duration_seconds": 2.4,
+        "frames": 145,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 2.9839552036674004e-07,
+        "loop": true
+      },
+      "away": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "offline": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "reviewing": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "learning": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "requesting_approval": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.7371922147227685e-07,
+        "loop": true
+      },
+      "sitting": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 2.9988008435812754e-07,
+        "loop": true
+      },
+      "sitting_sofa": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.2782554626464844e-07,
+        "loop": true
+      },
+      "preparing_coffee": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 4.179188239384936e-07,
+        "max_ik_target_error_m": 3.8714352419276774e-07,
+        "loop": false
+      },
+      "playing_foosball": {
+        "duration_seconds": 2.0,
+        "frames": 121,
+        "foot_target_error_m": 3.704080233491896e-07,
+        "max_ik_target_error_m": 3.6286698764222625e-07,
+        "loop": true
+      },
+      "sit_down": {
+        "duration_seconds": 1.1,
+        "frames": 67,
+        "foot_target_error_m": 3.5607221545333344e-07,
+        "max_ik_target_error_m": 3.2985126407710693e-07,
+        "loop": false
+      },
+      "stand_up": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 5.142395731591785e-07,
+        "max_ik_target_error_m": 4.763712693198258e-07,
+        "loop": false
+      },
+      "sit_down_sofa": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "stand_up_sofa": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "walking_coffee": {
+        "duration_seconds": 0.7333333333333333,
+        "frames": 45,
+        "foot_target_error_m": 2.613617384170645e-07,
+        "max_ik_target_error_m": 2.457562461863554e-07,
+        "loop": true,
+        "reference_speed_mps": 1.0,
+        "gait": {
+          "bob": 0.00105,
+          "sway": 0.0036000000000000003,
+          "arm_swing": 0.2205,
+          "lift": 0.036,
+          "yaw": 0.0128,
+          "stance": 0.6,
+          "lean": 0
+        }
+      },
+      "carrying_coffee": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "drinking_coffee": {
+        "duration_seconds": 3.6,
+        "frames": 217,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.0719530773294425e-07,
+        "loop": true
+      },
+      "talking_coffee": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 4.571038976364722e-07,
+        "loop": true
+      },
+      "chair_pullback": {
+        "duration_seconds": 1.3,
+        "frames": 79,
+        "foot_target_error_m": 4.617465428908392e-07,
+        "max_ik_target_error_m": 4.27743795347432e-07,
+        "loop": true
+      },
+      "chair_pushin": {
+        "duration_seconds": 1.3,
+        "frames": 79,
+        "foot_target_error_m": 4.169890812430248e-07,
+        "max_ik_target_error_m": 3.8628224721001747e-07,
+        "loop": true
+      },
+      "walking_brisk": {
+        "duration_seconds": 0.65,
+        "frames": 40,
+        "foot_target_error_m": 2.0414430298091753e-07,
+        "max_ik_target_error_m": 2.377482486606963e-07,
+        "loop": true,
+        "reference_speed_mps": 1.35,
+        "gait": {
+          "bob": 0.003,
+          "sway": 0.0064,
+          "arm_swing": 0.6615,
+          "lift": 0.05600000000000001,
+          "yaw": 0.032,
+          "stance": 0.6,
+          "lean": 0.015
+        }
+      },
+      "walking_relaxed": {
+        "duration_seconds": 1.0166666666666666,
+        "frames": 62,
+        "foot_target_error_m": 2.3254831109716129e-07,
+        "max_ik_target_error_m": 2.3000462413479583e-07,
+        "loop": true,
+        "reference_speed_mps": 0.7,
+        "gait": {
+          "bob": 0.003,
+          "sway": 0.0088,
+          "arm_swing": 0.3185,
+          "lift": 0.04000000000000001,
+          "yaw": 0.0256,
+          "stance": 0.6,
+          "lean": 0
+        }
+      },
+      "typing_focused": {
+        "duration_seconds": 2.8,
+        "frames": 169,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 4.0094924113374084e-07,
+        "loop": true
+      },
+      "typing_relaxed": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.478711107352004e-07,
+        "loop": true
+      },
+      "greeting": {
+        "duration_seconds": 1.2,
+        "frames": 73,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 2.9988008435812754e-07,
+        "loop": false
+      },
+      "laughing": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": false
+      },
+      "laughing_coffee": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": false
+      },
+      "talking_standing": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 3.998401124775034e-07,
+        "loop": true
+      },
+      "sitting_sofa_coffee": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.2782554626464844e-07,
+        "loop": true
+      },
+      "talking_sofa_coffee": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 4.4027825303954356e-07,
+        "loop": true
+      },
+      "drinking_sofa_coffee": {
+        "duration_seconds": 3.6,
+        "frames": 217,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.2782554626464844e-07,
+        "loop": true
+      },
+      "laughing_sofa_coffee": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.47551816394645e-07,
+        "loop": false
+      },
+      "sit_down_sofa_coffee": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "stand_up_sofa_coffee": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "talking_sofa_coffee_left": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.7814907850174666e-07,
+        "loop": true
+      },
+      "talking_sofa_coffee_right": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.5262583393452264e-07,
+        "loop": true
+      },
+      "coffee_putdown": {
+        "duration_seconds": 1.1,
+        "frames": 67,
+        "foot_target_error_m": 3.0899626490703684e-07,
+        "max_ik_target_error_m": 2.862419592186592e-07,
+        "loop": false
+      },
+      "phone_pickup": {
+        "duration_seconds": 1.1,
+        "frames": 67,
+        "foot_target_error_m": 5.177497816436192e-07,
+        "max_ik_target_error_m": 4.796229880878652e-07,
+        "loop": false
+      },
+      "phone_call": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.6793967007952176e-07,
+        "max_ik_target_error_m": 3.7726726833498965e-07,
+        "loop": true
+      },
+      "phone_putdown": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 3.79636223294116e-07,
+        "max_ik_target_error_m": 3.516800320507868e-07,
+        "loop": false
+      }
+    },
+    "non_loop_clips": [
+      "coffee_putdown",
+      "greeting",
+      "laughing",
+      "laughing_coffee",
+      "laughing_sofa_coffee",
+      "phone_pickup",
+      "phone_putdown",
+      "preparing_coffee",
+      "sit_down",
+      "sit_down_sofa",
+      "sit_down_sofa_coffee",
+      "stand_up",
+      "stand_up_sofa",
+      "stand_up_sofa_coffee"
+    ],
+    "cup_offset_m": [
+      0.08500000089406967,
+      0.007500000298023224,
+      -0.05076967552304268
+    ],
+    "authoring": "Original human faces, natural hair, tailored clothing, articulated hands, shoes and accessories; donor skeleton, interaction sockets and 48 office actions retained",
+    "head_top_adjustment_m": 0.012859582901000977
+  },
+  "avatar_nyx": {
+    "name": "In\u00e8s",
+    "style": "Human creative director / chestnut bob, ecru blouse, brick scarf, charcoal trousers",
+    "colors": [
+      "#e2d7c2",
+      "#8e4332",
+      "#363638"
+    ],
+    "source_asset": "apps/web/public/assets3d/avatar_design.1c0dba698d81.glb",
+    "source_sha256": "1c0dba698d817f42263efdc62c82d528eef0c5840f254d246ca618bd9658960c",
+    "output": "artifacts/avatar-atypical/avatar_nyx.glb",
+    "sha256": "93658c3270a0a698254f555dc342289bfbedecc0716a330995e7fa84216f5815",
+    "bytes": 9022908,
+    "bones": 33,
+    "vertices": 98228,
+    "height_m": 1.621131015235278,
+    "animation_donor": "avatar_design",
+    "clips": {
+      "idle": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "walking": {
+        "duration_seconds": 0.8333333333333334,
+        "frames": 51,
+        "foot_target_error_m": 2.5178107813916946e-07,
+        "max_ik_target_error_m": 2.7028258364226004e-07,
+        "loop": true,
+        "reference_speed_mps": 1.0,
+        "gait": {
+          "bob": 0.003,
+          "sway": 0.008,
+          "arm_swing": 0.49,
+          "lift": 0.05,
+          "yaw": 0.032,
+          "stance": 0.6,
+          "lean": 0
+        }
+      },
+      "typing": {
+        "duration_seconds": 2.0,
+        "frames": 121,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 4.2696442550106056e-07,
+        "loop": true
+      },
+      "working": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.674277068954096e-07,
+        "loop": true
+      },
+      "thinking": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "talking": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 4.65765583756202e-07,
+        "loop": true
+      },
+      "waiting": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "blocked": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.3881714942759493e-07,
+        "loop": true
+      },
+      "celebrating": {
+        "duration_seconds": 2.4,
+        "frames": 145,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 2.9839552036674004e-07,
+        "loop": true
+      },
+      "away": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "offline": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "reviewing": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "learning": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "requesting_approval": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.7371922147227685e-07,
+        "loop": true
+      },
+      "sitting": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 2.9988008435812754e-07,
+        "loop": true
+      },
+      "sitting_sofa": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.2782554626464844e-07,
+        "loop": true
+      },
+      "preparing_coffee": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 4.179188239384936e-07,
+        "max_ik_target_error_m": 3.8714352419276774e-07,
+        "loop": false
+      },
+      "playing_foosball": {
+        "duration_seconds": 2.0,
+        "frames": 121,
+        "foot_target_error_m": 3.704080233491896e-07,
+        "max_ik_target_error_m": 3.6286698764222625e-07,
+        "loop": true
+      },
+      "sit_down": {
+        "duration_seconds": 1.1,
+        "frames": 67,
+        "foot_target_error_m": 3.5607221545333344e-07,
+        "max_ik_target_error_m": 3.2985126407710693e-07,
+        "loop": false
+      },
+      "stand_up": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 5.142395731591785e-07,
+        "max_ik_target_error_m": 4.763712693198258e-07,
+        "loop": false
+      },
+      "sit_down_sofa": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "stand_up_sofa": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "walking_coffee": {
+        "duration_seconds": 0.7333333333333333,
+        "frames": 45,
+        "foot_target_error_m": 2.613617384170645e-07,
+        "max_ik_target_error_m": 2.457562461863554e-07,
+        "loop": true,
+        "reference_speed_mps": 1.0,
+        "gait": {
+          "bob": 0.00105,
+          "sway": 0.0036000000000000003,
+          "arm_swing": 0.2205,
+          "lift": 0.036,
+          "yaw": 0.0128,
+          "stance": 0.6,
+          "lean": 0
+        }
+      },
+      "carrying_coffee": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "drinking_coffee": {
+        "duration_seconds": 3.6,
+        "frames": 217,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.0719530773294425e-07,
+        "loop": true
+      },
+      "talking_coffee": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 4.571038976364722e-07,
+        "loop": true
+      },
+      "chair_pullback": {
+        "duration_seconds": 1.3,
+        "frames": 79,
+        "foot_target_error_m": 4.617465428908392e-07,
+        "max_ik_target_error_m": 4.27743795347432e-07,
+        "loop": true
+      },
+      "chair_pushin": {
+        "duration_seconds": 1.3,
+        "frames": 79,
+        "foot_target_error_m": 4.169890812430248e-07,
+        "max_ik_target_error_m": 3.8628224721001747e-07,
+        "loop": true
+      },
+      "walking_brisk": {
+        "duration_seconds": 0.65,
+        "frames": 40,
+        "foot_target_error_m": 2.0414430298091753e-07,
+        "max_ik_target_error_m": 2.377482486606963e-07,
+        "loop": true,
+        "reference_speed_mps": 1.35,
+        "gait": {
+          "bob": 0.003,
+          "sway": 0.0064,
+          "arm_swing": 0.6615,
+          "lift": 0.05600000000000001,
+          "yaw": 0.032,
+          "stance": 0.6,
+          "lean": 0.015
+        }
+      },
+      "walking_relaxed": {
+        "duration_seconds": 1.0166666666666666,
+        "frames": 62,
+        "foot_target_error_m": 2.3254831109716129e-07,
+        "max_ik_target_error_m": 2.3000462413479583e-07,
+        "loop": true,
+        "reference_speed_mps": 0.7,
+        "gait": {
+          "bob": 0.003,
+          "sway": 0.0088,
+          "arm_swing": 0.3185,
+          "lift": 0.04000000000000001,
+          "yaw": 0.0256,
+          "stance": 0.6,
+          "lean": 0
+        }
+      },
+      "typing_focused": {
+        "duration_seconds": 2.8,
+        "frames": 169,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 4.0094924113374084e-07,
+        "loop": true
+      },
+      "typing_relaxed": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.478711107352004e-07,
+        "loop": true
+      },
+      "greeting": {
+        "duration_seconds": 1.2,
+        "frames": 73,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 2.9988008435812754e-07,
+        "loop": false
+      },
+      "laughing": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": false
+      },
+      "laughing_coffee": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": false
+      },
+      "talking_standing": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 3.998401124775034e-07,
+        "loop": true
+      },
+      "sitting_sofa_coffee": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.2782554626464844e-07,
+        "loop": true
+      },
+      "talking_sofa_coffee": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 4.4027825303954356e-07,
+        "loop": true
+      },
+      "drinking_sofa_coffee": {
+        "duration_seconds": 3.6,
+        "frames": 217,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.2782554626464844e-07,
+        "loop": true
+      },
+      "laughing_sofa_coffee": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.47551816394645e-07,
+        "loop": false
+      },
+      "sit_down_sofa_coffee": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "stand_up_sofa_coffee": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "talking_sofa_coffee_left": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.7814907850174666e-07,
+        "loop": true
+      },
+      "talking_sofa_coffee_right": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.5262583393452264e-07,
+        "loop": true
+      },
+      "coffee_putdown": {
+        "duration_seconds": 1.1,
+        "frames": 67,
+        "foot_target_error_m": 3.0899626490703684e-07,
+        "max_ik_target_error_m": 2.862419592186592e-07,
+        "loop": false
+      },
+      "phone_pickup": {
+        "duration_seconds": 1.1,
+        "frames": 67,
+        "foot_target_error_m": 5.177497816436192e-07,
+        "max_ik_target_error_m": 4.796229880878652e-07,
+        "loop": false
+      },
+      "phone_call": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.6793967007952176e-07,
+        "max_ik_target_error_m": 3.7726726833498965e-07,
+        "loop": true
+      },
+      "phone_putdown": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 3.79636223294116e-07,
+        "max_ik_target_error_m": 3.516800320507868e-07,
+        "loop": false
+      }
+    },
+    "non_loop_clips": [
+      "coffee_putdown",
+      "greeting",
+      "laughing",
+      "laughing_coffee",
+      "laughing_sofa_coffee",
+      "phone_pickup",
+      "phone_putdown",
+      "preparing_coffee",
+      "sit_down",
+      "sit_down_sofa",
+      "sit_down_sofa_coffee",
+      "stand_up",
+      "stand_up_sofa",
+      "stand_up_sofa_coffee"
+    ],
+    "cup_offset_m": [
+      0.08500000089406967,
+      0.007500000298023224,
+      -0.05076967552304268
+    ],
+    "authoring": "Original human faces, natural hair, tailored clothing, articulated hands, shoes and accessories; donor skeleton, interaction sockets and 48 office actions retained",
+    "head_top_adjustment_m": 0.011252164840698242
+  },
+  "avatar_moss": {
+    "name": "Malik",
+    "style": "Human artisan / natural curls, olive overshirt, indigo apron, tobacco chinos",
+    "colors": [
+      "#647051",
+      "#284355",
+      "#866248"
+    ],
+    "source_asset": "apps/web/public/assets3d/avatar_design.1c0dba698d81.glb",
+    "source_sha256": "1c0dba698d817f42263efdc62c82d528eef0c5840f254d246ca618bd9658960c",
+    "output": "artifacts/avatar-atypical/avatar_moss.glb",
+    "sha256": "3d36212e361d4b2b8df6f642eec61878506a51618e7c5fa273fd28821c58c978",
+    "bytes": 9725600,
+    "bones": 33,
+    "vertices": 221049,
+    "height_m": 1.621131015235278,
+    "animation_donor": "avatar_design",
+    "clips": {
+      "idle": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "walking": {
+        "duration_seconds": 0.8333333333333334,
+        "frames": 51,
+        "foot_target_error_m": 2.5178107813916946e-07,
+        "max_ik_target_error_m": 2.7028258364226004e-07,
+        "loop": true,
+        "reference_speed_mps": 1.0,
+        "gait": {
+          "bob": 0.003,
+          "sway": 0.008,
+          "arm_swing": 0.49,
+          "lift": 0.05,
+          "yaw": 0.032,
+          "stance": 0.6,
+          "lean": 0
+        }
+      },
+      "typing": {
+        "duration_seconds": 2.0,
+        "frames": 121,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 4.2696442550106056e-07,
+        "loop": true
+      },
+      "working": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.674277068954096e-07,
+        "loop": true
+      },
+      "thinking": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "talking": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 4.65765583756202e-07,
+        "loop": true
+      },
+      "waiting": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "blocked": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.3881714942759493e-07,
+        "loop": true
+      },
+      "celebrating": {
+        "duration_seconds": 2.4,
+        "frames": 145,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 2.9839552036674004e-07,
+        "loop": true
+      },
+      "away": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "offline": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "reviewing": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "learning": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.604110068812318e-07,
+        "loop": true
+      },
+      "requesting_approval": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.7371922147227685e-07,
+        "loop": true
+      },
+      "sitting": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 2.9988008435812754e-07,
+        "loop": true
+      },
+      "sitting_sofa": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.2782554626464844e-07,
+        "loop": true
+      },
+      "preparing_coffee": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 4.179188239384936e-07,
+        "max_ik_target_error_m": 3.8714352419276774e-07,
+        "loop": false
+      },
+      "playing_foosball": {
+        "duration_seconds": 2.0,
+        "frames": 121,
+        "foot_target_error_m": 3.704080233491896e-07,
+        "max_ik_target_error_m": 3.6286698764222625e-07,
+        "loop": true
+      },
+      "sit_down": {
+        "duration_seconds": 1.1,
+        "frames": 67,
+        "foot_target_error_m": 3.5607221545333344e-07,
+        "max_ik_target_error_m": 3.2985126407710693e-07,
+        "loop": false
+      },
+      "stand_up": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 5.142395731591785e-07,
+        "max_ik_target_error_m": 4.763712693198258e-07,
+        "loop": false
+      },
+      "sit_down_sofa": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "stand_up_sofa": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "walking_coffee": {
+        "duration_seconds": 0.7333333333333333,
+        "frames": 45,
+        "foot_target_error_m": 2.613617384170645e-07,
+        "max_ik_target_error_m": 2.457562461863554e-07,
+        "loop": true,
+        "reference_speed_mps": 1.0,
+        "gait": {
+          "bob": 0.00105,
+          "sway": 0.0036000000000000003,
+          "arm_swing": 0.2205,
+          "lift": 0.036,
+          "yaw": 0.0128,
+          "stance": 0.6,
+          "lean": 0
+        }
+      },
+      "carrying_coffee": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": true
+      },
+      "drinking_coffee": {
+        "duration_seconds": 3.6,
+        "frames": 217,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 3.0719530773294425e-07,
+        "loop": true
+      },
+      "talking_coffee": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.093946077102163e-07,
+        "max_ik_target_error_m": 4.571038976364722e-07,
+        "loop": true
+      },
+      "chair_pullback": {
+        "duration_seconds": 1.3,
+        "frames": 79,
+        "foot_target_error_m": 4.617465428908392e-07,
+        "max_ik_target_error_m": 4.27743795347432e-07,
+        "loop": true
+      },
+      "chair_pushin": {
+        "duration_seconds": 1.3,
+        "frames": 79,
+        "foot_target_error_m": 4.169890812430248e-07,
+        "max_ik_target_error_m": 3.8628224721001747e-07,
+        "loop": true
+      },
+      "walking_brisk": {
+        "duration_seconds": 0.65,
+        "frames": 40,
+        "foot_target_error_m": 2.0414430298091753e-07,
+        "max_ik_target_error_m": 2.377482486606963e-07,
+        "loop": true,
+        "reference_speed_mps": 1.35,
+        "gait": {
+          "bob": 0.003,
+          "sway": 0.0064,
+          "arm_swing": 0.6615,
+          "lift": 0.05600000000000001,
+          "yaw": 0.032,
+          "stance": 0.6,
+          "lean": 0.015
+        }
+      },
+      "walking_relaxed": {
+        "duration_seconds": 1.0166666666666666,
+        "frames": 62,
+        "foot_target_error_m": 2.3254831109716129e-07,
+        "max_ik_target_error_m": 2.3000462413479583e-07,
+        "loop": true,
+        "reference_speed_mps": 0.7,
+        "gait": {
+          "bob": 0.003,
+          "sway": 0.0088,
+          "arm_swing": 0.3185,
+          "lift": 0.04000000000000001,
+          "yaw": 0.0256,
+          "stance": 0.6,
+          "lean": 0
+        }
+      },
+      "typing_focused": {
+        "duration_seconds": 2.8,
+        "frames": 169,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 4.0094924113374084e-07,
+        "loop": true
+      },
+      "typing_relaxed": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.042472703107562e-07,
+        "max_ik_target_error_m": 3.478711107352004e-07,
+        "loop": true
+      },
+      "greeting": {
+        "duration_seconds": 1.2,
+        "frames": 73,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 2.9988008435812754e-07,
+        "loop": false
+      },
+      "laughing": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": false
+      },
+      "laughing_coffee": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 3.43050492799918e-07,
+        "loop": false
+      },
+      "talking_standing": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.491726731631575e-07,
+        "max_ik_target_error_m": 3.998401124775034e-07,
+        "loop": true
+      },
+      "sitting_sofa_coffee": {
+        "duration_seconds": 4.0,
+        "frames": 241,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.2782554626464844e-07,
+        "loop": true
+      },
+      "talking_sofa_coffee": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 4.4027825303954356e-07,
+        "loop": true
+      },
+      "drinking_sofa_coffee": {
+        "duration_seconds": 3.6,
+        "frames": 217,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.2782554626464844e-07,
+        "loop": true
+      },
+      "laughing_sofa_coffee": {
+        "duration_seconds": 3.0,
+        "frames": 181,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.47551816394645e-07,
+        "loop": false
+      },
+      "sit_down_sofa_coffee": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "stand_up_sofa_coffee": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 2.781478074353513e-07,
+        "max_ik_target_error_m": 2.669762502188819e-07,
+        "loop": false
+      },
+      "talking_sofa_coffee_left": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.7814907850174666e-07,
+        "loop": true
+      },
+      "talking_sofa_coffee_right": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.5260237805142864e-07,
+        "max_ik_target_error_m": 3.5262583393452264e-07,
+        "loop": true
+      },
+      "coffee_putdown": {
+        "duration_seconds": 1.1,
+        "frames": 67,
+        "foot_target_error_m": 3.0899626490703684e-07,
+        "max_ik_target_error_m": 2.862419592186592e-07,
+        "loop": false
+      },
+      "phone_pickup": {
+        "duration_seconds": 1.1,
+        "frames": 67,
+        "foot_target_error_m": 5.177497816436192e-07,
+        "max_ik_target_error_m": 4.796229880878652e-07,
+        "loop": false
+      },
+      "phone_call": {
+        "duration_seconds": 5.0,
+        "frames": 301,
+        "foot_target_error_m": 1.6793967007952176e-07,
+        "max_ik_target_error_m": 3.7726726833498965e-07,
+        "loop": true
+      },
+      "phone_putdown": {
+        "duration_seconds": 1.0,
+        "frames": 61,
+        "foot_target_error_m": 3.79636223294116e-07,
+        "max_ik_target_error_m": 3.516800320507868e-07,
+        "loop": false
+      }
+    },
+    "non_loop_clips": [
+      "coffee_putdown",
+      "greeting",
+      "laughing",
+      "laughing_coffee",
+      "laughing_sofa_coffee",
+      "phone_pickup",
+      "phone_putdown",
+      "preparing_coffee",
+      "sit_down",
+      "sit_down_sofa",
+      "sit_down_sofa_coffee",
+      "stand_up",
+      "stand_up_sofa",
+      "stand_up_sofa_coffee"
+    ],
+    "cup_offset_m": [
+      0.08500000089406967,
+      0.007500000298023224,
+      -0.05076967552304268
+    ],
+    "authoring": "Original human faces, natural hair, tailored clothing, articulated hands, shoes and accessories; donor skeleton, interaction sockets and 48 office actions retained",
+    "head_top_adjustment_m": -0.002525925636291504
+  }
+}

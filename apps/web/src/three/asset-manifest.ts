@@ -43,17 +43,17 @@ export const ASSET_MANIFEST: Record<string, AssetEntry> = {
   },
   avatar_byte: {
     id: "avatar_byte",
-    url: resolveAgentGlbUrl("/assets3d/avatar_byte.cb5a54d04591.glb"),
+    url: resolveAgentGlbUrl("/assets3d/avatar_byte.05d5e3743ef8.glb"),
     kind: "avatar",
   },
   avatar_nyx: {
     id: "avatar_nyx",
-    url: resolveAgentGlbUrl("/assets3d/avatar_nyx.90aeb6731720.glb"),
+    url: resolveAgentGlbUrl("/assets3d/avatar_nyx.5c7daa1a4ead.glb"),
     kind: "avatar",
   },
   avatar_moss: {
     id: "avatar_moss",
-    url: resolveAgentGlbUrl("/assets3d/avatar_moss.c04355089db5.glb"),
+    url: resolveAgentGlbUrl("/assets3d/avatar_moss.96ccd7c01040.glb"),
     kind: "avatar",
   },
 };

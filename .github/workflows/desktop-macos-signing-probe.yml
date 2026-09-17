@@ -64,7 +64,7 @@ jobs:
           arch: clang_64
           aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@7e5a5c3d95cf962cfc2f36c86ffa0d2c07f1a0d4'
           py7zrversion: '==1.0.0'
-          modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets qtshadertools qtimageformats qttasktree'
+          modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets qtshadertools qtimageformats qttasktree qtmultimedia qtspeech'
           cache: false
       - name: Run offline packaging and probe safety tests
         run: python -m unittest discover -s apps/desktop/distribution/tests -v

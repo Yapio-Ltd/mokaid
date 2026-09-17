@@ -1,6 +1,6 @@
 qt_add_executable(mokaid_desktop main.cpp)
 target_link_libraries(mokaid_desktop PRIVATE mokaid_features mokaid_presentation mokaid_preview mokaid_viewport mokaid_updates
-    mokaid_application Qt6::QuickControls2 Qt6::WebEngineQuick mokaid_options)
+    mokaid_application mokaid_voice Qt6::QuickControls2 Qt6::WebEngineQuick mokaid_options)
 target_compile_definitions(mokaid_desktop PRIVATE MOKAID_API_ORIGIN="${MOKAID_API_ORIGIN}"
     MOKAID_DEVELOPMENT=$<BOOL:${MOKAID_DEVELOPMENT}>
     MOKAID_WEB_ORIGIN="${MOKAID_WEB_ORIGIN}"
@@ -35,3 +35,4 @@ qt_add_resources(mokaid_desktop desktop_ui PREFIX "/ui" BASE "${CMAKE_SOURCE_DIR
     "${CMAKE_SOURCE_DIR}/presentation/assets/workforce-energy-orb.png")
 include("${CMAKE_SOURCE_DIR}/distribution/DesktopBundle.cmake")
 mokaid_configure_bundle(mokaid_desktop)
+mokaid_bundle_voice(mokaid_desktop)

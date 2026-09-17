@@ -111,6 +111,10 @@ defmodule MokaidWeb.Router do
     post "/dispatch/analyze", DispatchController, :analyze
     post "/dispatch/confirm", DispatchController, :confirm
 
+    post "/orchestrator/chat", OrchestratorController, :chat
+    get "/orchestrator/missions", OrchestratorController, :missions
+    post "/orchestrator/missions/:id/stop", OrchestratorController, :stop
+
     resources "/tasks", TaskController, only: [:index, :create, :show, :update, :delete]
     get "/tasks/:id/runs", TaskController, :runs
     patch "/tasks/:task_id/subtasks/:id", TaskController, :update_subtask

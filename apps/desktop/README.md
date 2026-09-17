@@ -11,7 +11,7 @@ are included in the app.
 Supported product targets: macOS 13+ arm64 and Windows 11 x64. Use a full Xcode
 installation plus the Metal compiler on Mac; Visual Studio 2022 C++/Windows SDK
 and DXC on Windows. Qt must match **6.11.2 exactly** and include WebEngine,
-WebChannel, WebSockets, Positioning, ShaderTools and TaskTree alongside Qt Base
+WebChannel, WebSockets, Positioning, ShaderTools, TaskTree, Multimedia and TextToSpeech alongside Qt Base
 and Declarative. CMake 3.30+, Ninja, Python with Pillow and Node 22 are needed.
 The release tool versions, SDK hashes and Conan lock are maintained in
 [distribution](distribution) and the CI workflows.

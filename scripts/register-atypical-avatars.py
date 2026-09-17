@@ -8,10 +8,44 @@ import json
 from pathlib import Path
 import re
 import shutil
+import struct
 
 ROOT = Path(__file__).resolve().parents[1]
 STAGED = ROOT / 'artifacts/avatar-atypical'
 KINDS = ('byte', 'nyx', 'moss')
+
+
+def glb_bin(data):
+    """Read the complete padded BIN chunk after validating GLB framing."""
+    if len(data) < 12:
+        raise ValueError('Truncated GLB header')
+    magic, version, length = struct.unpack_from('<4sII', data)
+    if magic != b'glTF' or version != 2 or length != len(data):
+        raise ValueError('Invalid GLB header or declared length')
+    offset, binary, seen_json = 12, None, False
+    while offset < length:
+        if length - offset < 8:
+            raise ValueError('Truncated GLB chunk header')
+        size, kind = struct.unpack_from('<I4s', data, offset)
+        end = offset + 8 + size
+        if size % 4 or end > length:
+            raise ValueError('Invalid GLB chunk length')
+        payload = data[offset + 8:end]
+        if offset == 12 and kind != b'JSON':
+            raise ValueError('GLB must start with a JSON chunk')
+        if kind == b'JSON':
+            if seen_json:
+                raise ValueError('Duplicate GLB JSON chunk')
+            json.loads(payload)
+            seen_json = True
+        elif kind == b'BIN\0':
+            if binary is not None:
+                raise ValueError('Duplicate GLB BIN chunk')
+            binary = payload
+        offset = end
+    if not seen_json or binary is None:
+        raise ValueError('GLB must contain JSON and BIN chunks')
+    return binary
 
 
 def main():
@@ -33,14 +67,29 @@ def main():
     for kind in KINDS:
         key = 'avatar_' + kind
         source = STAGED / (key + '.glb')
-        digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        output_bytes = source.read_bytes()
+        digest = hashlib.sha256(output_bytes).hexdigest()
         entry, checked = report[key], validation[key]
+        if (entry.get('anatomy_preserved') is not True or
+                entry.get('geometry_and_animation_bytes_preserved') is not True):
+            raise ValueError(f'{key}: donor anatomy and animation preservation required')
+        donor_bytes = (ROOT / entry['source_asset']).read_bytes()
+        if hashlib.sha256(donor_bytes).hexdigest() != entry['source_sha256']:
+            raise ValueError(f'{key}: source asset checksum mismatch')
+        donor_bin = glb_bin(donor_bytes)
+        if hashlib.sha256(donor_bin).hexdigest() != entry['geometry_buffer_sha256']:
+            raise ValueError(f'{key}: original geometry buffer checksum mismatch')
+        if not glb_bin(output_bytes).startswith(donor_bin):
+            raise ValueError(f'{key}: original geometry and animation bytes changed')
         assert digest == entry['sha256'] == checked['sha256']
         assert checked['clips'] == len(entry['clips']) == 48
         assert checked['max_weight_sum_error'] < .0001
         assert checked['max_runtime_phone_grip_error_m'] < .001
         filename = f'{key}.{digest[:12]}.glb'
         path = '/assets3d/' + filename
+        style_line = f'        "style" => "{entry["style"]}",'
+        if len(style_line) > 98:
+            style_line = f'        "style" =>\n          "{entry["style"]}",'
         block = f'''    %{{
       "slug" => "{key}",
       "kind" => "character",
@@ -52,9 +101,11 @@ def main():
       "metadata" => %{{
         "display_name" => "{entry['name']}",
         "target_height_m" => 1.75,
-        "source" => "Original Blender character with calibrated office rig and 48 animations",
-        "skeleton" => "mixamo_biped",
-        "style" => "{entry['style']}",
+        "source" =>
+          "Derived from existing Mokaid character; anatomy, rig and 48 animations preserved",
+        "skeleton" => "{entry['skeleton']}",
+        "donor_slug" => "{entry['donor_slug']}",
+{style_line}
         "authoring_file" => "artifacts/avatar-atypical/{key}.blend"
       }}
     }}'''
@@ -94,6 +145,10 @@ def main():
             'path': path, 'sha256': digest, 'bytes': source.stat().st_size,
             'authoring_file': f'artifacts/avatar-atypical/{key}.blend',
             'rig_donor': entry['source_asset'], 'rig_donor_sha256': entry['source_sha256'],
+            'donor_slug': entry['donor_slug'], 'skeleton': entry['skeleton'],
+            'anatomy_preserved': entry['anatomy_preserved'],
+            'geometry_and_animation_bytes_preserved': entry['geometry_and_animation_bytes_preserved'],
+            'geometry_buffer_sha256': entry['geometry_buffer_sha256'],
             'bones': entry['bones'], 'animation_clips': list(entry['clips']),
             'validation': f'artifacts/avatar-atypical/validation.json',
             'portrait': f'/branding/agent-portraits/portrait-{kind}.png'}

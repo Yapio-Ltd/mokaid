@@ -167,6 +167,8 @@ defmodule Mokaid.AI.Orchestrator do
 
   ## ---------- Internals ----------
 
+  defp advance(%WorkTask{status: status}) when status in ["canceled", "completed"], do: :ok
+
   defp advance(%WorkTask{} = parent) do
     composite = get_in(parent.metadata || %{}, ["composite"]) || %{}
     waves = composite["waves"] || %{}

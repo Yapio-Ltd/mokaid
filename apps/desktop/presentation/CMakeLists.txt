@@ -9,6 +9,11 @@ elseif(WIN32)
   target_link_libraries(mokaid_presentation PRIVATE user32)
 endif()
 if(BUILD_TESTING)
+  qt_add_executable(mokaid_orchestrator_qml_tests ../tests/orchestrator_qml_tests.cpp)
+  target_link_libraries(mokaid_orchestrator_qml_tests PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Test mokaid_options)
+  target_compile_definitions(mokaid_orchestrator_qml_tests PRIVATE MOKAID_ORCHESTRATOR_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/qml")
+  add_test(NAME desktop-orchestrator-qml COMMAND mokaid_orchestrator_qml_tests)
+  set_tests_properties(desktop-orchestrator-qml PROPERTIES TIMEOUT 60)
   qt_add_executable(mokaid_menu_qml_tests ../tests/menu_qml_tests.cpp)
   target_link_libraries(mokaid_menu_qml_tests PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Test mokaid_options)
   target_compile_definitions(mokaid_menu_qml_tests PRIVATE MOKAID_MENU_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/qml")
@@ -26,6 +31,8 @@ if(BUILD_TESTING)
   set_tests_properties(desktop-project-runtime PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
 endif()
 set(MOKAID_QML_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/MokedDock.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/MokedMascot.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/AgentCreationPage.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/AgentsPage.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/WorkforcePortrait.qml"

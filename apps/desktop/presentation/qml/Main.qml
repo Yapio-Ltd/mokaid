@@ -20,6 +20,7 @@ ApplicationWindow {
     property bool previewsRetained: preview.documents[0] !== null || preview.documents[1] !== null
     property bool workProtected: office.hasDrafts || office.sending || missions.hasDraft || missions.busy || actionDialog.opened || activityPanels.protectedWork || previewsRetained
         || features.driveDownload.busy || features.driveDownload.pendingTransaction.length > 0 || projectRuntime.busy
+        || orchestrator.busy || orchestrator.draft.length > 0 || moked.audioActive
     onWorkProtectedChanged: updates.setInstallationAllowed(!workProtected)
     Component.onCompleted: updates.setInstallationAllowed(!workProtected)
     onClosing: function(close) {
@@ -32,6 +33,8 @@ ApplicationWindow {
     Shortcut { sequence: "Meta+,"; onActivated: preferences.open() }
     Shortcut { sequence: "Ctrl+N"; enabled: session.authenticated && !!session.workspaceId; onActivated: missions.begin() }
     Shortcut { sequence: "Meta+N"; enabled: session.authenticated && !!session.workspaceId; onActivated: missions.begin() }
+    Shortcut { sequence: "Ctrl+J"; onActivated: moked.expanded ? moked.hide() : moked.show() }
+    Shortcut { sequence: "Meta+J"; onActivated: moked.expanded ? moked.hide() : moked.show() }
     Connections {
         target: updates
         function onError(message) { notice.text = message; notice.open() }
@@ -42,8 +45,8 @@ ApplicationWindow {
         function onChanged() {
             if (window.adminMode && !session.administrator) features.navigate("office")
         }
-        function onCleared() { completionToast.visible = false; projects.close() }
-        function onWorkspaceChanged() { completionToast.visible = false; projects.close() }
+        function onCleared() { completionToast.visible = false; projects.close(); moked.resetView() }
+        function onWorkspaceChanged() { completionToast.visible = false; projects.close(); moked.resetView() }
     }
     Connections {
         target: missions
@@ -115,10 +118,17 @@ ApplicationWindow {
     ActionDialog { id: actionDialog }
     ActivityPanels { id: activityPanels; anchors.fill: parent }
     ProjectPanel { id: projects }
+    MokedDock {
+        id: moked; anchors.fill: parent; z: 20
+        controller: orchestrator; voiceController: voice
+        signedIn: session.authenticated
+        reducedMotion: system.reducedMotion
+        animated: window.visibility !== Window.Minimized
+    }
     Rectangle {
         id: completionToast; property var notification: ({})
         visible: false; z: 30; width: Math.min(460, window.width - 40); height: toastBody.implicitHeight + 32
-        anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 24
+        anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.rightMargin: moked.expanded ? 496 : 230; anchors.bottomMargin: 24
         radius: 16; color: Theme.surface; border.color: Theme.selectedBorder
         ColumnLayout {
             id: toastBody; anchors.fill: parent; anchors.margins: 16; spacing: 10

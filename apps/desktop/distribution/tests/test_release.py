@@ -388,8 +388,10 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn("-no-plugins", arguments)
         self.assertIn(f"-qmldir={(self.folder / 'qml').resolve()}", arguments)
         selected = [str(value) for value in arguments if str(value).startswith("-executable=")]
-        self.assertEqual(len(selected), 9)
+        self.assertEqual(len(selected), 11)
         self.assertTrue(any("libqsqlite.dylib" in value for value in selected))
+        self.assertTrue(any("libdarwinmediaplugin.dylib" in value for value in selected))
+        self.assertTrue(any("libqtexttospeech_speechdarwin.dylib" in value for value in selected))
         self.assertFalse(any("sqlpsql" in value or "sqlodbc" in value or "nmea" in value for value in selected))
 
     def test_macos_deployment_error_text_fails_even_when_qt_exits_zero(self):

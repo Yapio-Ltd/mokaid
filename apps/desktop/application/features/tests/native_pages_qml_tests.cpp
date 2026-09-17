@@ -167,9 +167,9 @@ private slots:
         add("relative-design","assets3d/avatar_design.1c0dba698d81.glb","design");
         add("optimized-finance","assets/optimized/avatar_finance.1db634ff8a82.glb","finance");
         add("cdn-corporate","https://cdn.example.test/assets3d/avatar_corporate.b2951a24cd02.glb?v=2#model","corporate");
-        add("byte","/assets3d/avatar_byte.cb5a54d04591.glb","byte");
-        add("nyx","/assets3d/avatar_nyx.90aeb6731720.glb","nyx");
-        add("moss","/assets3d/avatar_moss.c04355089db5.glb","moss");
+        add("byte","/assets3d/avatar_byte.05d5e3743ef8.glb","byte");
+        add("nyx","/assets3d/avatar_nyx.5c7daa1a4ead.glb","nyx");
+        add("moss","/assets3d/avatar_moss.96ccd7c01040.glb","moss");
         add("unversioned","/assets3d/avatar_research.glb","research");
         add("future-revision"," /assets3d/avatar_developer.0123456789ab.glb ","developer");
         add("default-avatar","","male");

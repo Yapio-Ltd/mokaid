@@ -1,47 +1,64 @@
-# Personnages atypiques — 17 septembre 2026
+# Personnages fondés sur les modèles Mokaid existants
 
-Trois personnages créés dans Blender 5.2.0 LTS, exportés et réimportés pour validation.
+Cette révision remplace les personnages procéduraux rejetés par trois variantes de garde-robe des personnages déjà utilisés dans Mokaid. Le corps, le visage, les cheveux et leurs proportions restent ceux du modèle source. Les changements portent sur les couleurs des vêtements dans les textures existantes ; les détails et ombrages de ces textures sont conservés.
 
-| Personnage | Direction visuelle | Source éditable |
-| --- | --- | --- |
-| Byte | Robot rétro, tête écran, céramique ivoire, corail et bleu pétrole | `avatar_byte.blend` |
-| Nyx | Hackeuse cyberpunk, coiffure asymétrique violette, veste et accents cyan | `avatar_nyx.blend` |
-| Moss | Esprit botanique, couronne végétale, oreilles pointues, tenue ambre et vert mousse | `avatar_moss.blend` |
+| Personnage | Modèle source | Identifiant conservé | Garde-robe |
+| --- | --- | --- | --- |
+| Hugo | `avatar_corporate` | `avatar_byte` | Chemise bleu pétrole à manches retroussées, pantalon anthracite, montre existante |
+| Inès | `avatar_finance` | `avatar_nyx` | Veste terracotta, chemisier ivoire, pantalon anthracite, lunettes et chignon existants |
+| Malik | `avatar_developer` | `avatar_moss` | Sweat vert forêt, jean indigo, baskets, barbe et lunettes existantes |
 
-`atypical-collection.blend` réunit les trois personnages avec leurs rigs et une scène de présentation. `characters-gallery.png` montre les modèles réellement réimportés depuis les GLB finaux. Les images `characters-typing.png`, `characters-walking.png` et `characters-carrying_coffee.png` montrent des poses issues de leurs animations. `office-new-characters.png` est un rendu du moteur Metal de l'application avec neuf personnages de démonstration et la caméra légèrement rapprochée ; le canapé gauche reste entier.
+Ces personnages reprennent le style 3D des agents existants. Ils ne sont ni de nouvelles sculptures anatomiques ni des scans photoréalistes.
 
-## Rig et animations
+## Géométrie, rig et animations
 
-Chaque personnage possède un squelette de 33 os, une peau pondérée et 48 animations squelettiques éditables : repos, marche et variantes, travail, frappe, réflexion, téléphone, café, conversations, baby-foot, assise sur chaise/canapé et transitions. Les modèles, silhouettes, vêtements et matériaux sont nouveaux. Le squelette, les mains articulées, les surfaces de contact des chaussures et les mouvements calibrés proviennent du GLB `avatar_design.1c0dba698d81.glb` utilisé par l'application. Les animations ont ainsi les mêmes conventions de contact et de nommage que les autres agents. Il n'y a pas de rig facial séparé.
+Chaque variante conserve intégralement la géométrie, les UV, les nœuds, les skins et les animations de son GLB source : 33 articulations et 48 clips, avec leurs durées et les interactions café/téléphone d’origine. Aucune nouvelle mise à l’échelle du corps, modification des os ou pondération n’est appliquée aux GLB livrés.
 
-La liste exacte des clips, les empreintes SHA-256 et les chemins de livraison sont dans `../../assets/avatar-atypical.json`. Le rapport `validation.json` contrôle les fichiers exportés, notamment les 48 clips, la normalisation des poids, les boucles, les transitions, l'appui des pieds et la tenue du téléphone et de la tasse.
+Le bloc binaire BIN original est conservé comme préfixe exact du nouveau BIN ; les nouvelles données de texture sont ajoutées à sa suite. Le script d’enregistrement vérifie cette égalité avant de mettre à jour les catalogues. `report.json` contient le chemin `source_asset`, l’empreinte du fichier source `source_sha256`, celle du BIN original `geometry_buffer_sha256`, le `donor_slug` et les indicateurs de préservation. `../../assets/avatar-atypical.json` reprend ces informations lors de l’enregistrement.
 
-## Stockage et intégration
+## Fichiers et aperçus
 
-Les GLB de production sont stockés sous un nom contenant leur empreinte dans `../../assets/optimized/` et `../../apps/web/public/assets3d/`. Les portraits sont enregistrés dans les dossiers de portraits natifs et web, avec leur provenance. Les catalogues API et web, le moteur natif, le préparateur d'assets et les règles de packaging reconnaissent les trois nouveaux avatars.
+- `avatar_byte.glb`, `avatar_nyx.glb`, `avatar_moss.glb` : variantes destinées à la livraison.
+- `avatar_byte.blend`, `avatar_nyx.blend`, `avatar_moss.blend` : sources Blender éditables issues de ces GLB, avec leur rig, leurs animations et leur nouvelle texture.
+- `atypical-collection.blend` : les trois personnages réunis dans une scène de présentation.
+- `characters-gallery.png` : aperçu des GLB réimportés, sous un éclairage neutre.
+- `proportions-reference.png` : chaque variante placée à côté de son modèle source, à la même hauteur de présentation de 1,75 m.
+- `gallery-measurements.json` : limites et dimensions des corps évalués au repos, hors accessoires, et facteurs uniformes de présentation. Seul le parent de présentation est transformé ; les proportions et les rigs restent intacts.
+- `characters-typing.png`, `characters-walking.png`, `characters-carrying_coffee.png` : poses issues des clips conservés.
+- `portrait-byte.png`, `portrait-nyx.png`, `portrait-moss.png` : portraits pour les interfaces ; `*-wardrobe.png` : textures de vêtements modifiées.
+- `office-new-characters.png` : aperçu de contrôle produit par le moteur natif.
 
-L'intégration est locale. Aucun déploiement, envoi S3, modification de la base distante ou remplacement d'un agent existant n'a été effectué. Le binaire macOS et les ressources natives ont été reconstruits ; le nouveau cadrage sera utilisé au prochain lancement de ce binaire.
+Après enregistrement, les GLB nommés avec leur empreinte sont copiés dans `../../assets/optimized/` et `../../apps/web/public/assets3d/`, avec mise à jour des portraits et de leur provenance. Les identifiants des trois variantes restent stables.
+
+`archive-rejected-procedural/` conserve les sources, la galerie et les rapports de la version humaine procédurale rejetée. `archive-fantasy/` contient la première version fantastique. Ces archives ne décrivent pas les modèles de cette révision.
 
 ## Reproduire
 
-Depuis la racine du dépôt, avec Blender installé :
+Depuis la racine du dépôt :
 
 ```sh
 /Applications/Blender.app/Contents/MacOS/Blender --background --python scripts/blender-atypical-avatars.py
 /Applications/Blender.app/Contents/MacOS/Blender --background --python scripts/validate-avatar-life.py -- artifacts/avatar-atypical
+/Applications/Blender.app/Contents/MacOS/Blender --background --python scripts/blender-atypical-gallery.py
 python3 scripts/register-atypical-avatars.py
 node apps/desktop/tools/asset-cooker/cook.mjs apps/desktop/build/assets
-/Applications/Blender.app/Contents/MacOS/Blender --background --python scripts/blender-atypical-gallery.py
 ```
 
-Le script d'enregistrement vérifie les empreintes et les rapports avant de modifier les catalogues. Les anciennes révisions ne sont pas supprimées. Pour retoucher un personnage sans recréer le trio, le script Blender accepte `-- --only byte`, `nyx` ou `moss`.
+Le script Blender accepte `-- --only byte`, `nyx` ou `moss` pour traiter une variante.
 
-## Vérifications effectuées
+## Vérification
 
-- Réimportation Blender : 48 animations et contacts validés pour chacun des trois GLB.
-- Préparateur natif : 12 tests réussis ; les trois modèles sont préparés avec les assets existants.
-- Web : 15 tests de portraits réussis et vérification TypeScript réussie.
-- Packaging : 37 tests réussis, dont les fixtures contenant les trois nouveaux assets.
-- C++ : moteur, assets réels, conversations et pages QML vérifiés ; nouveaux portraits inclus.
-- Compilation macOS et exécution du moteur sous UndefinedBehaviorSanitizer réussies.
-- Rendu Metal réel : neuf agents, animations, redimensionnement et destruction du moteur validés.
+Le validateur réimporte les GLB et contrôle les 48 clips, les poids, les boucles, les transitions, les pieds au sol et les interactions avec le téléphone et la tasse. Il écrit les résultats et les empreintes des fichiers contrôlés dans `validation.json`.
+
+Le registre exige des empreintes concordantes entre GLB, rapport d’auteur et rapport de validation. Il vérifie aussi le fichier source, l’empreinte de son BIN et la conservation de ce BIN comme préfixe de la variante. La galerie permet de comparer visuellement les silhouettes aux originaux ; ses mesures donnent les dimensions évaluées de chaque paire.
+
+Contrôles exécutés sur cette révision :
+
+- Réimport Blender : 48 clips validés pour chacun des trois personnages ; poids, contacts, boucles et transitions conformes.
+- Conservation : géométrie, nœuds, skins, animations et accessors identiques aux donneurs ; BIN source conservé octet pour octet. Les mesures des corps original/variante sont exactement égales.
+- Catalogues : les empreintes des GLB enregistrés correspondent au rapport d’auteur et au rapport de validation ; 4 tests de politique des sources passent.
+- Portraits web : 15 tests passent ; vérification TypeScript et format du catalogue API réussis.
+- Application native recompilée ; tests `desktop.engine`, `desktop.real_assets` et `desktop-native-pages-qml` réussis.
+- Rendu Metal sur Apple M4 Pro : bureau avec les trois variantes et six personnages existants, 12 frames avec vérification des ressources GPU réussies. Résultat dans `office-new-characters.png`.
+
+Les versions précédentes restent archivées. Cette révision est enregistrée dans les catalogues locaux ; elle ne modifie pas les agents affectés dans une base distante.

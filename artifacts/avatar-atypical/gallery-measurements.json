@@ -1,0 +1,193 @@
+{
+  "method": "Evaluated idle body bounds, excluding props; uniform display-parent scale only",
+  "gallery": {
+    "byte": {
+      "path": "artifacts/avatar-atypical/avatar_byte.glb",
+      "idle_body_bounds_m": [
+        [
+          -0.33372762799263,
+          -0.1612149327993393,
+          -1.580637581355404e-05
+        ],
+        [
+          0.33057817816734314,
+          0.16122521460056305,
+          1.8000054359436035
+        ]
+      ],
+      "idle_body_height_m": 1.800021242319417,
+      "display_scale": 0.9722107488826286,
+      "display_height_m": 1.75,
+      "display_body_width_m": 0.6458452452938658,
+      "display_body_depth_m": 0.3134797771734842
+    },
+    "nyx": {
+      "path": "artifacts/avatar-atypical/avatar_nyx.glb",
+      "idle_body_bounds_m": [
+        [
+          -0.2165258228778839,
+          -0.14557071030139923,
+          3.268202988238045e-07
+        ],
+        [
+          0.21803809702396393,
+          0.14209869503974915,
+          1.6005233526229858
+        ]
+      ],
+      "idle_body_height_m": 1.600523025802687,
+      "display_scale": 1.0933925796677295,
+      "display_height_m": 1.75,
+      "display_body_width_m": 0.47514896541200197,
+      "display_body_depth_m": 0.31453559319743996
+    },
+    "moss": {
+      "path": "artifacts/avatar-atypical/avatar_moss.glb",
+      "idle_body_bounds_m": [
+        [
+          -0.3143903315067291,
+          -0.058034028857946396,
+          3.288382868049666e-05
+        ],
+        [
+          0.30993756651878357,
+          0.29266276955604553,
+          1.6997125148773193
+        ]
+      ],
+      "idle_body_height_m": 1.6996796310486388,
+      "display_scale": 1.029605796311341,
+      "display_height_m": 1.75,
+      "display_body_width_m": 0.6428116226059437,
+      "display_body_depth_m": 0.361079456394876
+    }
+  },
+  "comparison": {
+    "byte": {
+      "original": {
+        "path": "apps/web/public/assets3d/avatar_corporate.b2951a24cd02.glb",
+        "idle_body_bounds_m": [
+          [
+            -0.33372762799263,
+            -0.1612149327993393,
+            -1.580637581355404e-05
+          ],
+          [
+            0.33057817816734314,
+            0.16122521460056305,
+            1.8000054359436035
+          ]
+        ],
+        "idle_body_height_m": 1.800021242319417,
+        "display_scale": 0.9722107488826286,
+        "display_height_m": 1.75,
+        "display_body_width_m": 0.6458452452938658,
+        "display_body_depth_m": 0.3134797771734842
+      },
+      "variant": {
+        "path": "artifacts/avatar-atypical/avatar_byte.glb",
+        "idle_body_bounds_m": [
+          [
+            -0.33372762799263,
+            -0.1612149327993393,
+            -1.580637581355404e-05
+          ],
+          [
+            0.33057817816734314,
+            0.16122521460056305,
+            1.8000054359436035
+          ]
+        ],
+        "idle_body_height_m": 1.800021242319417,
+        "display_scale": 0.9722107488826286,
+        "display_height_m": 1.75,
+        "display_body_width_m": 0.6458452452938658,
+        "display_body_depth_m": 0.3134797771734842
+      }
+    },
+    "nyx": {
+      "original": {
+        "path": "apps/web/public/assets3d/avatar_finance.1db634ff8a82.glb",
+        "idle_body_bounds_m": [
+          [
+            -0.2165258228778839,
+            -0.14557071030139923,
+            3.268202988238045e-07
+          ],
+          [
+            0.21803809702396393,
+            0.14209869503974915,
+            1.6005233526229858
+          ]
+        ],
+        "idle_body_height_m": 1.600523025802687,
+        "display_scale": 1.0933925796677295,
+        "display_height_m": 1.75,
+        "display_body_width_m": 0.47514896541200197,
+        "display_body_depth_m": 0.31453559319743996
+      },
+      "variant": {
+        "path": "artifacts/avatar-atypical/avatar_nyx.glb",
+        "idle_body_bounds_m": [
+          [
+            -0.2165258228778839,
+            -0.14557071030139923,
+            3.268202988238045e-07
+          ],
+          [
+            0.21803809702396393,
+            0.14209869503974915,
+            1.6005233526229858
+          ]
+        ],
+        "idle_body_height_m": 1.600523025802687,
+        "display_scale": 1.0933925796677295,
+        "display_height_m": 1.75,
+        "display_body_width_m": 0.47514896541200197,
+        "display_body_depth_m": 0.31453559319743996
+      }
+    },
+    "moss": {
+      "original": {
+        "path": "apps/web/public/assets3d/avatar_developer.867211fc6b99.glb",
+        "idle_body_bounds_m": [
+          [
+            -0.3143903315067291,
+            -0.058034028857946396,
+            3.288382868049666e-05
+          ],
+          [
+            0.30993756651878357,
+            0.29266276955604553,
+            1.6997125148773193
+          ]
+        ],
+        "idle_body_height_m": 1.6996796310486388,
+        "display_scale": 1.029605796311341,
+        "display_height_m": 1.75,
+        "display_body_width_m": 0.6428116226059437,
+        "display_body_depth_m": 0.361079456394876
+      },
+      "variant": {
+        "path": "artifacts/avatar-atypical/avatar_moss.glb",
+        "idle_body_bounds_m": [
+          [
+            -0.3143903315067291,
+            -0.058034028857946396,
+            3.288382868049666e-05
+          ],
+          [
+            0.30993756651878357,
+            0.29266276955604553,
+            1.6997125148773193
+          ]
+        ],
+        "idle_body_height_m": 1.6996796310486388,
+        "display_scale": 1.029605796311341,
+        "display_height_m": 1.75,
+        "display_body_width_m": 0.6428116226059437,
+        "display_body_depth_m": 0.361079456394876
+      }
+    }
+  }
+}

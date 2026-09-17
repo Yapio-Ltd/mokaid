@@ -8,6 +8,11 @@ Item {
     property real size: 20
     implicitWidth: size; implicitHeight: size
     readonly property var paths: ({
+        "moked": "M5 16V8Q5 4 9 5L12 8L15 5Q19 4 19 8V16Q19 20 15 19L12 16L9 19Q5 20 5 16M8 10V14M16 10V14",
+        "microphone": "M9 5C9 1 15 1 15 5V11C15 15 9 15 9 11V5M5 10V11C5 20 19 20 19 11V10M12 18V22M8 22H16",
+        "speaker": "M3 9H7L13 4V20L7 15H3V9M17 8C20 10 20 14 17 16M20 5C25 9 25 15 20 19",
+        "speaker-off": "M3 9H7L13 4V20L7 15H3V9M17 9L23 15M23 9L17 15",
+        "stop": "M6 6H18V18H6V6",
         "office": "M3 21V9L12 3L21 9V21H3M9 21V14H15V21M7 10H7.01M17 10H17.01",
         "agents": "M8 21V17M16 21V17M5 21V11C5 6 8 3 12 3C16 3 19 6 19 11V21M8 11C8 8 9.5 6 12 6C14.5 6 16 8 16 11C16 14 14.5 16 12 16C9.5 16 8 14 8 11",
         "tasks": "M21 12A9 9 0 1 1 3 12A9 9 0 1 1 21 12M8 12L11 15L17 8",

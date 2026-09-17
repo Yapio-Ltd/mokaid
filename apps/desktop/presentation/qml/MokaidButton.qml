@@ -30,7 +30,7 @@ Basic.Button {
         radius: Theme.radiusControl
         opacity: control.enabled ? 1 : .55
         gradient: Gradient {
-            GradientStop { position: 0; color: control.highlighted ? (control.down ? "#6141b5" : control.hovered ? "#9771ff" : Theme.primaryTop) : control.down || control.hovered ? Theme.controlHover : control.quiet ? "transparent" : Theme.control }
+            GradientStop { position: 0; color: control.highlighted ? (control.down ? "#6141b5" : control.hovered ? "#794bdd" : "#7548db") : control.down || control.hovered ? Theme.controlHover : control.quiet ? "transparent" : Theme.control }
             GradientStop { position: 1; color: control.highlighted ? (control.down ? "#4d2ba8" : control.hovered ? "#744bdd" : Theme.primaryBottom) : control.down || control.hovered ? Theme.control : control.quiet ? "transparent" : "#0f111d" }
         }
         border.color: control.visualFocus ? Theme.focusBorder : control.highlighted ? "#ac86ff" : control.quiet && !control.hovered ? "transparent" : control.hovered ? "#494360" : Theme.border
