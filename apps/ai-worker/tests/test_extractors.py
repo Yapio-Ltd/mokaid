@@ -175,7 +175,7 @@ def test_looks_like_text_rejects_decoded_binary():
         ("doc.pdf", None, True),
         ("feuille.xlsx", None, True),
         ("pres.pptx", None, True),
-        ("archive.zip", None, False),
+        ("archive.zip", None, True),
         ("photo.jpg", "image/jpeg", False),
         ("sans_ext", "application/pdf", True),
         ("sans_ext", "text/plain", True),

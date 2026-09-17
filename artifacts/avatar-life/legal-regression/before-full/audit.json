@@ -1,0 +1,602 @@
+{
+  "source": "/Users/olimservice/mokaid/apps/web/public/assets3d/avatar_legal.ecc4899f62c6.glb",
+  "source_sha256": "ecc4899f62c69de9ccf72a32349a74c3b116c65a64c9325daf3d60cf3ec02e1b",
+  "reference_height_m": 1.6503841543786968,
+  "robe_vertices": 5102,
+  "max_robe_upper_limb_weight": 0.9617550522089005,
+  "clips": {
+    "away": {
+      "max_edge_stretch": 4.523143772811964,
+      "max_edge_growth_m": 0.04383178197501386,
+      "max_robe_edge_stretch": 1.7520160640763396,
+      "max_robe_edge_growth_m": 0.011714468271516655,
+      "pathological_edges": 0,
+      "samples": 241,
+      "worst_edge_phase": 0.004166666666666667
+    },
+    "blocked": {
+      "max_edge_stretch": 7.959680844983431,
+      "max_edge_growth_m": 0.16598690368898653,
+      "max_robe_edge_stretch": 7.959680844983431,
+      "max_robe_edge_growth_m": 0.16598690368898653,
+      "pathological_edges": 0,
+      "samples": 181,
+      "worst_edge_phase": 0.2555555555555556
+    },
+    "carrying_coffee": {
+      "max_edge_stretch": 7.405559924896162,
+      "max_edge_growth_m": 0.09901083110629944,
+      "max_robe_edge_stretch": 4.204412388611102,
+      "max_robe_edge_growth_m": 0.09901083110629944,
+      "pathological_edges": 0,
+      "samples": 181,
+      "worst_edge_phase": 0.23333333333333334
+    },
+    "celebrating": {
+      "max_edge_stretch": 6.80142435249163,
+      "max_edge_growth_m": 0.16802618098308256,
+      "max_robe_edge_stretch": 6.80142435249163,
+      "max_robe_edge_growth_m": 0.16802618098308256,
+      "pathological_edges": 0,
+      "samples": 145,
+      "worst_edge_phase": 0.5069444444444444
+    },
+    "chair_pullback": {
+      "max_edge_stretch": 6.26925167964169,
+      "max_edge_growth_m": 0.11337388663077877,
+      "max_robe_edge_stretch": 6.26925167964169,
+      "max_robe_edge_growth_m": 0.11337388663077877,
+      "pathological_edges": 0,
+      "samples": 79,
+      "worst_edge_phase": 0.6282051282051282
+    },
+    "chair_pushin": {
+      "max_edge_stretch": 6.270507894342091,
+      "max_edge_growth_m": 0.11336469900625398,
+      "max_robe_edge_stretch": 6.270507894342091,
+      "max_robe_edge_growth_m": 0.11336469900625398,
+      "pathological_edges": 0,
+      "samples": 79,
+      "worst_edge_phase": 0.6666666666666666
+    },
+    "coffee_putdown": {
+      "max_edge_stretch": 7.401836492435803,
+      "max_edge_growth_m": 0.0987373182676679,
+      "max_robe_edge_stretch": 4.169885042727208,
+      "max_robe_edge_growth_m": 0.0987373182676679,
+      "pathological_edges": 0,
+      "samples": 67,
+      "worst_edge_phase": 0.0
+    },
+    "drinking_coffee": {
+      "max_edge_stretch": 7.698129146813169,
+      "max_edge_growth_m": 0.16627272671625065,
+      "max_robe_edge_stretch": 6.326883320472598,
+      "max_robe_edge_growth_m": 0.16627272671625065,
+      "pathological_edges": 0,
+      "samples": 217,
+      "worst_edge_phase": 0.6712962962962963
+    },
+    "drinking_sofa_coffee": {
+      "max_edge_stretch": 7.703027809651224,
+      "max_edge_growth_m": 0.19339020545142535,
+      "max_robe_edge_stretch": 7.488000879197597,
+      "max_robe_edge_growth_m": 0.19339020545142535,
+      "pathological_edges": 0,
+      "samples": 217,
+      "worst_edge_phase": 0.6851851851851851
+    },
+    "greeting": {
+      "max_edge_stretch": 5.5487081260076065,
+      "max_edge_growth_m": 0.14746312166237924,
+      "max_robe_edge_stretch": 5.462650191615121,
+      "max_robe_edge_growth_m": 0.14746312166237924,
+      "pathological_edges": 0,
+      "samples": 73,
+      "worst_edge_phase": 0.2638888888888889
+    },
+    "idle": {
+      "max_edge_stretch": 4.523143772811964,
+      "max_edge_growth_m": 0.04383178197501386,
+      "max_robe_edge_stretch": 1.7520160640763396,
+      "max_robe_edge_growth_m": 0.011714468271516655,
+      "pathological_edges": 0,
+      "samples": 241,
+      "worst_edge_phase": 0.004166666666666667
+    },
+    "laughing": {
+      "max_edge_stretch": 6.153500749526087,
+      "max_edge_growth_m": 0.08726435678028074,
+      "max_robe_edge_stretch": 3.5016542806921223,
+      "max_robe_edge_growth_m": 0.08726435678028074,
+      "pathological_edges": 0,
+      "samples": 181,
+      "worst_edge_phase": 0.05
+    },
+    "laughing_coffee": {
+      "max_edge_stretch": 7.416139217588859,
+      "max_edge_growth_m": 0.09978362631539603,
+      "max_robe_edge_stretch": 4.284897310604911,
+      "max_robe_edge_growth_m": 0.09978362631539603,
+      "pathological_edges": 0,
+      "samples": 181,
+      "worst_edge_phase": 0.4166666666666667
+    },
+    "laughing_sofa_coffee": {
+      "max_edge_stretch": 7.478440039719862,
+      "max_edge_growth_m": 0.112870463553503,
+      "max_robe_edge_stretch": 5.348338479332584,
+      "max_robe_edge_growth_m": 0.112870463553503,
+      "pathological_edges": 0,
+      "samples": 181,
+      "worst_edge_phase": 0.4166666666666667
+    },
+    "learning": {
+      "max_edge_stretch": 8.352422345981543,
+      "max_edge_growth_m": 0.17352993049511628,
+      "max_robe_edge_stretch": 8.352422345981543,
+      "max_robe_edge_growth_m": 0.17352993049511628,
+      "pathological_edges": 2,
+      "samples": 241,
+      "worst_edge_phase": 0.24166666666666667
+    },
+    "offline": {
+      "max_edge_stretch": 4.523143772811964,
+      "max_edge_growth_m": 0.04383178197501386,
+      "max_robe_edge_stretch": 1.7520160640763396,
+      "max_robe_edge_growth_m": 0.011714468271516655,
+      "pathological_edges": 0,
+      "samples": 241,
+      "worst_edge_phase": 0.004166666666666667
+    },
+    "phone_call": {
+      "max_edge_stretch": 7.785213674778774,
+      "max_edge_growth_m": 0.17305334365447178,
+      "max_robe_edge_stretch": 7.785213674778774,
+      "max_robe_edge_growth_m": 0.17305334365447178,
+      "pathological_edges": 0,
+      "samples": 301,
+      "worst_edge_phase": 0.8366666666666667
+    },
+    "phone_pickup": {
+      "max_edge_stretch": 7.69844193931371,
+      "max_edge_growth_m": 0.1723069960394762,
+      "max_robe_edge_stretch": 7.69844193931371,
+      "max_robe_edge_growth_m": 0.1723069960394762,
+      "pathological_edges": 0,
+      "samples": 67,
+      "worst_edge_phase": 0.015151515151515152
+    },
+    "phone_putdown": {
+      "max_edge_stretch": 7.707104436760269,
+      "max_edge_growth_m": 0.1723069960394762,
+      "max_robe_edge_stretch": 7.707104436760269,
+      "max_robe_edge_growth_m": 0.1723069960394762,
+      "pathological_edges": 0,
+      "samples": 61,
+      "worst_edge_phase": 0.16666666666666666
+    },
+    "playing_foosball": {
+      "max_edge_stretch": 8.018478410705052,
+      "max_edge_growth_m": 0.09761722526497593,
+      "max_robe_edge_stretch": 3.6781459447158302,
+      "max_robe_edge_growth_m": 0.09342085556469679,
+      "pathological_edges": 1,
+      "samples": 121,
+      "worst_edge_phase": 0.125
+    },
+    "preparing_coffee": {
+      "max_edge_stretch": 10.213462084972281,
+      "max_edge_growth_m": 0.11605039065642647,
+      "max_robe_edge_stretch": 4.169885042727208,
+      "max_robe_edge_growth_m": 0.10737834040032032,
+      "pathological_edges": 4,
+      "samples": 241,
+      "worst_edge_phase": 0.2833333333333333
+    },
+    "requesting_approval": {
+      "max_edge_stretch": 8.572723452547342,
+      "max_edge_growth_m": 0.18512087037525327,
+      "max_robe_edge_stretch": 8.572723452547342,
+      "max_robe_edge_growth_m": 0.18512087037525327,
+      "pathological_edges": 3,
+      "samples": 181,
+      "worst_edge_phase": 0.06666666666666667
+    },
+    "reviewing": {
+      "max_edge_stretch": 8.352422345981543,
+      "max_edge_growth_m": 0.17352993049511628,
+      "max_robe_edge_stretch": 8.352422345981543,
+      "max_robe_edge_growth_m": 0.17352993049511628,
+      "pathological_edges": 2,
+      "samples": 241,
+      "worst_edge_phase": 0.24166666666666667
+    },
+    "sit_down": {
+      "max_edge_stretch": 6.178766294721073,
+      "max_edge_growth_m": 0.11160860440049647,
+      "max_robe_edge_stretch": 6.178766294721073,
+      "max_robe_edge_growth_m": 0.11160860440049647,
+      "pathological_edges": 0,
+      "samples": 67,
+      "worst_edge_phase": 1.0
+    },
+    "sit_down_sofa": {
+      "max_edge_stretch": 5.320333340244581,
+      "max_edge_growth_m": 0.09051468713697922,
+      "max_robe_edge_stretch": 4.492297421961867,
+      "max_robe_edge_growth_m": 0.09051468713697922,
+      "pathological_edges": 0,
+      "samples": 61,
+      "worst_edge_phase": 1.0
+    },
+    "sit_down_sofa_coffee": {
+      "max_edge_stretch": 7.685769025149792,
+      "max_edge_growth_m": 0.11798436479612856,
+      "max_robe_edge_stretch": 5.255537734782235,
+      "max_robe_edge_growth_m": 0.11798436479612856,
+      "pathological_edges": 0,
+      "samples": 61,
+      "worst_edge_phase": 0.5166666666666666
+    },
+    "sitting": {
+      "max_edge_stretch": 6.198993467706649,
+      "max_edge_growth_m": 0.11176094868270431,
+      "max_robe_edge_stretch": 6.198993467706649,
+      "max_robe_edge_growth_m": 0.11176094868270431,
+      "pathological_edges": 0,
+      "samples": 241,
+      "worst_edge_phase": 0.7041666666666666
+    },
+    "sitting_sofa": {
+      "max_edge_stretch": 5.337303305128434,
+      "max_edge_growth_m": 0.09105327188290238,
+      "max_robe_edge_stretch": 4.506907868799781,
+      "max_robe_edge_growth_m": 0.09105327188290238,
+      "pathological_edges": 0,
+      "samples": 241,
+      "worst_edge_phase": 0.22916666666666666
+    },
+    "sitting_sofa_coffee": {
+      "max_edge_stretch": 7.469392005552516,
+      "max_edge_growth_m": 0.11211386816803531,
+      "max_robe_edge_stretch": 5.284302729074904,
+      "max_robe_edge_growth_m": 0.11211386816803531,
+      "pathological_edges": 0,
+      "samples": 241,
+      "worst_edge_phase": 0.25
+    },
+    "stand_up": {
+      "max_edge_stretch": 6.178766294721073,
+      "max_edge_growth_m": 0.11160860440049647,
+      "max_robe_edge_stretch": 6.178766294721073,
+      "max_robe_edge_growth_m": 0.11160860440049647,
+      "pathological_edges": 0,
+      "samples": 61,
+      "worst_edge_phase": 0.0
+    },
+    "stand_up_sofa": {
+      "max_edge_stretch": 5.320333340244581,
+      "max_edge_growth_m": 0.09051468713697922,
+      "max_robe_edge_stretch": 4.492297421961867,
+      "max_robe_edge_growth_m": 0.09051468713697922,
+      "pathological_edges": 0,
+      "samples": 61,
+      "worst_edge_phase": 0.0
+    },
+    "stand_up_sofa_coffee": {
+      "max_edge_stretch": 7.685769025149792,
+      "max_edge_growth_m": 0.11798436479612856,
+      "max_robe_edge_stretch": 5.255537734782235,
+      "max_robe_edge_growth_m": 0.11798436479612856,
+      "pathological_edges": 0,
+      "samples": 61,
+      "worst_edge_phase": 0.48333333333333334
+    },
+    "talking": {
+      "max_edge_stretch": 8.572723452547342,
+      "max_edge_growth_m": 0.18511995458852418,
+      "max_robe_edge_stretch": 8.572723452547342,
+      "max_robe_edge_growth_m": 0.18511995458852418,
+      "pathological_edges": 3,
+      "samples": 241,
+      "worst_edge_phase": 0.06666666666666667
+    },
+    "talking_coffee": {
+      "max_edge_stretch": 7.405559924896162,
+      "max_edge_growth_m": 0.09901091393661701,
+      "max_robe_edge_stretch": 4.204407430466595,
+      "max_robe_edge_growth_m": 0.09901091393661701,
+      "pathological_edges": 0,
+      "samples": 301,
+      "worst_edge_phase": 0.23333333333333334
+    },
+    "talking_sofa_coffee": {
+      "max_edge_stretch": 7.469393186896713,
+      "max_edge_growth_m": 0.11211391671612844,
+      "max_robe_edge_stretch": 5.2843065082404825,
+      "max_robe_edge_growth_m": 0.11211391671612844,
+      "pathological_edges": 0,
+      "samples": 301,
+      "worst_edge_phase": 0.24333333333333335
+    },
+    "talking_sofa_coffee_left": {
+      "max_edge_stretch": 7.497393990577426,
+      "max_edge_growth_m": 0.11498833982388654,
+      "max_robe_edge_stretch": 5.238455382894062,
+      "max_robe_edge_growth_m": 0.11498833982388654,
+      "pathological_edges": 0,
+      "samples": 301,
+      "worst_edge_phase": 0.24333333333333335
+    },
+    "talking_sofa_coffee_right": {
+      "max_edge_stretch": 7.4441190037673275,
+      "max_edge_growth_m": 0.1090724317418432,
+      "max_robe_edge_stretch": 5.31979468345572,
+      "max_robe_edge_growth_m": 0.1090724317418432,
+      "pathological_edges": 0,
+      "samples": 301,
+      "worst_edge_phase": 0.24000000000000002
+    },
+    "talking_standing": {
+      "max_edge_stretch": 4.6748180747622925,
+      "max_edge_growth_m": 0.10111953602232623,
+      "max_robe_edge_stretch": 3.9396717879998158,
+      "max_robe_edge_growth_m": 0.10111953602232623,
+      "pathological_edges": 0,
+      "samples": 301,
+      "worst_edge_phase": 0.29000000000000004
+    },
+    "thinking": {
+      "max_edge_stretch": 8.352422345981543,
+      "max_edge_growth_m": 0.17352993049511628,
+      "max_robe_edge_stretch": 8.352422345981543,
+      "max_robe_edge_growth_m": 0.17352993049511628,
+      "pathological_edges": 2,
+      "samples": 241,
+      "worst_edge_phase": 0.24166666666666667
+    },
+    "typing": {
+      "max_edge_stretch": 7.785069417934922,
+      "max_edge_growth_m": 0.1588672947897245,
+      "max_robe_edge_stretch": 7.785069417934922,
+      "max_robe_edge_growth_m": 0.1588672947897245,
+      "pathological_edges": 0,
+      "samples": 121,
+      "worst_edge_phase": 0.8333333333333334
+    },
+    "typing_focused": {
+      "max_edge_stretch": 7.788771810663653,
+      "max_edge_growth_m": 0.15898807718198374,
+      "max_robe_edge_stretch": 7.788771810663653,
+      "max_robe_edge_growth_m": 0.15898807718198374,
+      "pathological_edges": 0,
+      "samples": 169,
+      "worst_edge_phase": 0.8333333333333333
+    },
+    "typing_relaxed": {
+      "max_edge_stretch": 7.778250055926833,
+      "max_edge_growth_m": 0.15864352014627994,
+      "max_robe_edge_stretch": 7.778250055926833,
+      "max_robe_edge_growth_m": 0.15864352014627994,
+      "pathological_edges": 0,
+      "samples": 301,
+      "worst_edge_phase": 0.8433333333333334
+    },
+    "waiting": {
+      "max_edge_stretch": 7.743793673230007,
+      "max_edge_growth_m": 0.1577555342952498,
+      "max_robe_edge_stretch": 7.743793673230007,
+      "max_robe_edge_growth_m": 0.1577555342952498,
+      "pathological_edges": 0,
+      "samples": 241,
+      "worst_edge_phase": 0.7125
+    },
+    "walking": {
+      "max_edge_stretch": 7.159179683511327,
+      "max_edge_growth_m": 0.14166830485374018,
+      "max_robe_edge_stretch": 6.836521910738145,
+      "max_robe_edge_growth_m": 0.14166830485374018,
+      "pathological_edges": 0,
+      "samples": 57,
+      "worst_edge_phase": 0.6071428571428571
+    },
+    "walking_brisk": {
+      "max_edge_stretch": 7.562322110543697,
+      "max_edge_growth_m": 0.15200781188840434,
+      "max_robe_edge_stretch": 7.158536090199903,
+      "max_robe_edge_growth_m": 0.15200781188840434,
+      "pathological_edges": 0,
+      "samples": 45,
+      "worst_edge_phase": 0.6136363636363636
+    },
+    "walking_coffee": {
+      "max_edge_stretch": 7.982485465269382,
+      "max_edge_growth_m": 0.13062221601222793,
+      "max_robe_edge_stretch": 6.329602908468658,
+      "max_robe_edge_growth_m": 0.13062221601222793,
+      "pathological_edges": 0,
+      "samples": 51,
+      "worst_edge_phase": 0.24
+    },
+    "walking_relaxed": {
+      "max_edge_stretch": 6.1949190319191265,
+      "max_edge_growth_m": 0.11836243528310042,
+      "max_robe_edge_stretch": 6.180085000606126,
+      "max_robe_edge_growth_m": 0.11836243528310042,
+      "pathological_edges": 0,
+      "samples": 70,
+      "worst_edge_phase": 0.6086956521739131
+    },
+    "working": {
+      "max_edge_stretch": 7.782828683828892,
+      "max_edge_growth_m": 0.15879320774654013,
+      "max_robe_edge_stretch": 7.782828683828892,
+      "max_robe_edge_growth_m": 0.15879320774654013,
+      "pathological_edges": 0,
+      "samples": 241,
+      "worst_edge_phase": 0.8375
+    }
+  },
+  "crossfades": {
+    "walking -> preparing_coffee": {
+      "max_edge_stretch": 7.104797207480804,
+      "max_edge_growth_m": 0.12971502923631018,
+      "max_robe_edge_stretch": 6.764192166141209,
+      "max_robe_edge_growth_m": 0.12971502923631018,
+      "pathological_edges": 0
+    },
+    "preparing_coffee -> carrying_coffee": {
+      "max_edge_stretch": 7.404093567408674,
+      "max_edge_growth_m": 0.1025120902394292,
+      "max_robe_edge_stretch": 4.169885700956153,
+      "max_robe_edge_growth_m": 0.1025120902394292,
+      "pathological_edges": 0
+    },
+    "carrying_coffee -> talking_coffee": {
+      "max_edge_stretch": 7.404093567408674,
+      "max_edge_growth_m": 0.09890821703152386,
+      "max_robe_edge_stretch": 4.186909039487871,
+      "max_robe_edge_growth_m": 0.09890821703152386,
+      "pathological_edges": 0
+    },
+    "talking_coffee -> laughing_coffee": {
+      "max_edge_stretch": 7.405293656824825,
+      "max_edge_growth_m": 0.09900013239155767,
+      "max_robe_edge_stretch": 4.186909039487871,
+      "max_robe_edge_growth_m": 0.09900013239155767,
+      "pathological_edges": 0
+    },
+    "talking_coffee -> drinking_coffee": {
+      "max_edge_stretch": 7.404093567408674,
+      "max_edge_growth_m": 0.09890821703152386,
+      "max_robe_edge_stretch": 4.186909039487871,
+      "max_robe_edge_growth_m": 0.09890821703152386,
+      "pathological_edges": 0
+    },
+    "walking_coffee -> sit_down_sofa_coffee": {
+      "max_edge_stretch": 7.970152757633844,
+      "max_edge_growth_m": 0.12895162638417781,
+      "max_robe_edge_stretch": 6.249454023390203,
+      "max_robe_edge_growth_m": 0.12895162638417781,
+      "pathological_edges": 0
+    },
+    "sit_down_sofa_coffee -> sitting_sofa_coffee": {
+      "max_edge_stretch": 7.684756586231304,
+      "max_edge_growth_m": 0.11713303375197129,
+      "max_robe_edge_stretch": 5.244301944305377,
+      "max_robe_edge_growth_m": 0.11713303375197129,
+      "pathological_edges": 0
+    },
+    "sitting_sofa_coffee -> talking_sofa_coffee_left": {
+      "max_edge_stretch": 7.496085630688389,
+      "max_edge_growth_m": 0.11490517749539514,
+      "max_robe_edge_stretch": 5.269262239294469,
+      "max_robe_edge_growth_m": 0.11490517749539514,
+      "pathological_edges": 0
+    },
+    "talking_sofa_coffee_left -> drinking_sofa_coffee": {
+      "max_edge_stretch": 7.496085630688389,
+      "max_edge_growth_m": 0.11490517749539514,
+      "max_robe_edge_stretch": 5.244302856765432,
+      "max_robe_edge_growth_m": 0.11490517749539514,
+      "pathological_edges": 0
+    },
+    "talking_sofa_coffee_right -> laughing_sofa_coffee": {
+      "max_edge_stretch": 7.4691684775839455,
+      "max_edge_growth_m": 0.11210369466746398,
+      "max_robe_edge_stretch": 5.3056604290792,
+      "max_robe_edge_growth_m": 0.11210369466746398,
+      "pathological_edges": 0
+    },
+    "sitting_sofa_coffee -> stand_up_sofa_coffee": {
+      "max_edge_stretch": 7.488942145783128,
+      "max_edge_growth_m": 0.11264448558311665,
+      "max_robe_edge_stretch": 5.269262239294469,
+      "max_robe_edge_growth_m": 0.11264448558311665,
+      "pathological_edges": 0
+    },
+    "stand_up_sofa_coffee -> walking_coffee": {
+      "max_edge_stretch": 7.970152757633844,
+      "max_edge_growth_m": 0.11952733332032942,
+      "max_robe_edge_stretch": 6.249454023390203,
+      "max_robe_edge_growth_m": 0.11952733332032942,
+      "pathological_edges": 0
+    },
+    "walking_coffee -> coffee_putdown": {
+      "max_edge_stretch": 7.970152757633844,
+      "max_edge_growth_m": 0.12895162638417781,
+      "max_robe_edge_stretch": 6.249454023390203,
+      "max_robe_edge_growth_m": 0.12895162638417781,
+      "pathological_edges": 0
+    },
+    "coffee_putdown -> idle": {
+      "max_edge_stretch": 7.401836372484439,
+      "max_edge_growth_m": 0.09873737076720826,
+      "max_robe_edge_stretch": 4.169885700956153,
+      "max_robe_edge_growth_m": 0.09873737076720826,
+      "pathological_edges": 0
+    },
+    "typing -> phone_pickup": {
+      "max_edge_stretch": 7.759373299890201,
+      "max_edge_growth_m": 0.15813621357674842,
+      "max_robe_edge_stretch": 7.759373299890201,
+      "max_robe_edge_growth_m": 0.15813621357674842,
+      "pathological_edges": 0
+    },
+    "phone_pickup -> phone_call": {
+      "max_edge_stretch": 7.673789711413711,
+      "max_edge_growth_m": 0.1729330016481963,
+      "max_robe_edge_stretch": 7.673789711413711,
+      "max_robe_edge_growth_m": 0.1729330016481963,
+      "pathological_edges": 0
+    },
+    "phone_call -> phone_putdown": {
+      "max_edge_stretch": 7.759377751891622,
+      "max_edge_growth_m": 0.1729330016481963,
+      "max_robe_edge_stretch": 7.759377751891622,
+      "max_robe_edge_growth_m": 0.1729330016481963,
+      "pathological_edges": 0
+    },
+    "phone_putdown -> typing": {
+      "max_edge_stretch": 7.69051933634756,
+      "max_edge_growth_m": 0.1723069960394762,
+      "max_robe_edge_stretch": 7.69051933634756,
+      "max_robe_edge_growth_m": 0.1723069960394762,
+      "pathological_edges": 0
+    },
+    "chair_pullback -> stand_up": {
+      "max_edge_stretch": 6.203833330391382,
+      "max_edge_growth_m": 0.11239162896937513,
+      "max_robe_edge_stretch": 6.203833330391382,
+      "max_robe_edge_growth_m": 0.11239162896937513,
+      "pathological_edges": 0
+    },
+    "sit_down -> chair_pushin": {
+      "max_edge_stretch": 6.011522954970257,
+      "max_edge_growth_m": 0.10787346408286563,
+      "max_robe_edge_stretch": 6.011522954970257,
+      "max_robe_edge_growth_m": 0.10787346408286563,
+      "pathological_edges": 0
+    }
+  },
+  "robe_isolation": {
+    "coffee_putdown": {
+      "max_upper_limb_only_displacement_m": 0.24414008603735202
+    },
+    "phone_call": {
+      "max_upper_limb_only_displacement_m": 0.26426980858263066
+    },
+    "preparing_coffee": {
+      "max_upper_limb_only_displacement_m": 0.2478146824173515
+    },
+    "sitting_sofa_coffee": {
+      "max_upper_limb_only_displacement_m": 0.25043019574251507
+    },
+    "typing": {
+      "max_upper_limb_only_displacement_m": 0.2642698277671512
+    }
+  },
+  "sampled_poses": 9597,
+  "passed": false
+}

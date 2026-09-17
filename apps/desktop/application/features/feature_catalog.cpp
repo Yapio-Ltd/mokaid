@@ -47,7 +47,7 @@ QList<FeatureAction> agentActions() {
         action("progression","Skills and progression","GET","/api/agents/{id}/progression",true),
         action("permissions","Permission rules","GET","/api/agents/{id}/permission-rules",true),
         action("schedules","Schedules","GET","/api/agents/{id}/schedules",true),
-        action("upload","Add knowledge files","UPLOAD","/api/agents/{id}/files",true,false,{field("files","Files","files",true)}),
+        action("upload","Add reference files","UPLOAD","/api/agents/{id}/files",true,false,{field("files","Files","files",true)}),
         action("transfer","Copy agent to another workspace (charges destination credits)","POST","/api/agents/{id}/transfer",true,true,
             {field("target_workspace_id","Destination workspace ID","text",true)}),
         action("assign-task","Assign a task","POST","/api/agents/{id}/assign-task",true,false,{field("task_id","Task ID","text",true)})};
@@ -88,9 +88,6 @@ const QList<FeatureDescriptor>& featureCatalog() {
         const QVariantList projectFields{field("name","Name","text",true),field("description","Description","multiline"),
             field("status","Status","enum",false,{"planning","active","in_review","on_hold","completed","archived"}),
             field("priority","Priority","enum",false,{"low","medium","high","urgent"}),field("due_at","Due date","datetime")};
-        const QVariantList knowledgeFields{field("title","Title","text",true),field("type","Type","enum",true,{"document","link","note"}),
-            field("body","Content","multiline"),field("source_url","Source URL"),field("status","Status","enum",false,{"draft","published","archived"}),
-            field("visibility","Visibility","enum",false,{"workspace","restricted","private"}),field("category_id","Category ID"),field("project_id","Project ID"),field("agent_id","Agent ID")};
         const QVariantList planFields{field("key","Plan key","text",true),field("name","Name","text",true),
             field("price_cents_monthly","Monthly price (cents)","int",true),field("price_cents_yearly","Yearly price (cents)","int",true),
             field("limits","Limits","json"),field("features","Feature list","json")};
@@ -117,14 +114,6 @@ const QList<FeatureDescriptor>& featureCatalog() {
                 action("tasks","Project tasks","GET","/api/tasks?project_id={id}",true),
                 action("files","Project files","GET","/api/drive/{drive_folder_id}/children",true),
                 action("assign-agent","Assign agent","POST","/api/projects/{id}/agents",true,false,{field("agent_id","Agent ID","text",true)})}),
-            page("knowledge","Knowledge","knowledge","/api/knowledge","/api/knowledge/{id}",{
-                action("create","Add knowledge","POST","/api/knowledge",false,false,knowledgeFields),
-                action("edit","Edit knowledge","PATCH","/api/knowledge/{id}",true,false,knowledgeFields),
-                action("delete","Delete knowledge","DELETE","/api/knowledge/{id}",true,true),
-                action("upload","Upload documents","UPLOAD","/api/knowledge/upload",false,false,{field("files","Documents","files",true),field("agent_id","Agent ID"),field("project_id","Project ID")}),
-                action("graph","Knowledge graph","GET","/api/knowledge-graph"),
-                action("rebuild","Rebuild communities","POST","/api/knowledge-graph/rebuild",false,true),
-                action("reindex","Reindex documents","POST","/api/knowledge-graph/reindex",false,true)}),
             page("drive","Files","drive","/api/drive","/api/drive/{id}",{
                 action("create","New folder","POST","/api/drive",false,false,{field("name","Folder name","text",true),field("parent_id","Parent folder ID")},{{"kind","folder"}}),
                 action("edit","Rename or move","PATCH","/api/drive/{id}",true,false,{field("name","Name"),field("parent_id","Parent folder ID")}),

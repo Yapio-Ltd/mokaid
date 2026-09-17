@@ -248,6 +248,8 @@ def detect_mission_kind(request: RunRequest) -> str:
     if looks_like_research(text) and _EXPLICIT_REPORT_RE.search(text):
         return "document"
 
+    if re.search(r"\b(analyse\w*|analy[sz]e\w*|d[ée]cri\w*|describe\w*|transcri\w*)\b", text) and not _EXPLICIT_REPORT_RE.search(text):
+        return "analysis"
     if re.search(r"\b(image|logo|photo|picture|design|visuel|avatar)\b", text):
         return "image"
     if re.search(r"\b(rapport|report|document|résumé|resume|brief|markdown)\b", text):
@@ -280,6 +282,7 @@ def producer_tool_succeeded(tool_calls: list[Any]) -> bool:
             or output.get("report")
             or output.get("transcript")
             or output.get("analysis")
+            or output.get("text")
             or output.get("drive_item_id")
         ):
             return True

@@ -1,0 +1,51 @@
+{
+  "manifestSha256": "c3104f113ff3e616da56f48db4ac463353965286edabb145802adc7edfbdee6b",
+  "note": "Offscreen Debug build with Metal API Validation; nine real avatars. Not a full-app FPS guarantee.",
+  "cases": [
+    {
+      "name": "final-desk",
+      "viewport": [
+        1807,
+        835
+      ],
+      "simulationSeconds": 11,
+      "status": "working",
+      "gpu": "Apple M4 Pro",
+      "drawCalls": 162,
+      "triangles": 652525,
+      "cpuEncodeMeanMs": 3.23778,
+      "gpuMeanMs": 1.9519,
+      "passed": true
+    },
+    {
+      "name": "final-chat",
+      "viewport": [
+        1110,
+        835
+      ],
+      "simulationSeconds": 14.2,
+      "status": "working",
+      "gpu": "Apple M4 Pro",
+      "drawCalls": 162,
+      "triangles": 652525,
+      "cpuEncodeMeanMs": 2.91975,
+      "gpuMeanMs": 2.08205,
+      "passed": true
+    },
+    {
+      "name": "final-social",
+      "viewport": [
+        1807,
+        835
+      ],
+      "simulationSeconds": 90,
+      "status": "idle",
+      "gpu": "Apple M4 Pro",
+      "drawCalls": 162,
+      "triangles": 652525,
+      "cpuEncodeMeanMs": 3.43362,
+      "gpuMeanMs": 2.20951,
+      "passed": true
+    }
+  ]
+}

@@ -13,6 +13,7 @@ class SystemController final : public QObject {
     Q_PROPERTY(QString productName READ productName CONSTANT)
     Q_PROPERTY(QString assetRoot READ assetRoot CONSTANT)
     Q_PROPERTY(QString error READ error NOTIFY changed)
+    Q_PROPERTY(bool missionSound READ missionSound WRITE setMissionSound NOTIFY changed)
 public:
     explicit SystemController(QString assets, QObject* parent = nullptr);
     bool reducedMotion() const { return settings_.value("accessibility/reducedMotion", false).toBool(); }
@@ -22,6 +23,9 @@ public:
     QString productName() const;
     QString assetRoot() const { return assets_; }
     QString error() const { return error_; }
+    bool missionSound() const { return settings_.value("notifications/missionSound", true).toBool(); }
+    void setMissionSound(bool value);
+    Q_INVOKABLE void notifyMission();
     void setReducedMotion(bool value);
     void setSoftwareWeb(bool value);
     void setQuality(const QString& value);

@@ -6,6 +6,7 @@ defmodule MokaidWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug MokaidWeb.Plugs.BrowserSession
     plug MokaidWeb.Plugs.RateLimiter
   end
 
@@ -109,6 +110,10 @@ defmodule MokaidWeb.Router do
 
     post "/dispatch/analyze", DispatchController, :analyze
     post "/dispatch/confirm", DispatchController, :confirm
+
+    post "/orchestrator/chat", OrchestratorController, :chat
+    get "/orchestrator/missions", OrchestratorController, :missions
+    post "/orchestrator/missions/:id/stop", OrchestratorController, :stop
 
     resources "/tasks", TaskController, only: [:index, :create, :show, :update, :delete]
     get "/tasks/:id/runs", TaskController, :runs

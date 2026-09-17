@@ -56,7 +56,14 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       workspaceId: null,
       workspaces: [],
-      setSession: (token, user) => set({ token, user }),
+      setSession: (token, user) => {
+        if (get().user?.id !== user.id) {
+          disposeOfficeIfLoaded();
+          set({ token, user, workspaces: [], workspaceId: null });
+        } else {
+          set({ token, user });
+        }
+      },
       establishSession: (token, user, workspaces) => {
         const prevWorkspace = get().workspaceId;
         const nextWorkspace = pickWorkspaceId(workspaces, prevWorkspace);
@@ -94,6 +101,16 @@ export const useAuthStore = create<AuthState>()(
         set({ token: null, user: null, workspaceId: null, workspaces: [] });
       },
     }),
-    { name: "mokaid-auth" },
+    {
+      name: "mokaid-auth",
+      version: 1,
+      // Stateless legacy tokens cannot survive the server-side session migration.
+      migrate: () => ({ token: null, user: null, workspaceId: null, workspaces: [] }),
+      // Only a CSRF marker may reach localStorage, never an API bearer credential.
+      partialize: ({ token, user, workspaceId, workspaces }) =>
+        token?.startsWith("browser:")
+          ? { token, user, workspaceId, workspaces }
+          : { token: null, user: null, workspaceId: null, workspaces: [] },
+    },
   ),
 );

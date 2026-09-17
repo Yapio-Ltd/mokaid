@@ -1,0 +1,1941 @@
+{
+  "source": "assets/optimized/office.desktop.7f5bd60003b7.glb",
+  "proposedTable": false,
+  "deskAudit": true,
+  "movedTriangles": 0,
+  "coordinates": "Native right-handed X,Y,Z",
+  "bodySlab": [
+    0.12,
+    1.55
+  ],
+  "note": "Distances are between horizontal point and triangle projection clipped to body slab; components weld positions at0.1mm. Proposed table, when enabled, virtually scales only the original isolated foosball triangle bounds1.6x and translates its center to(-3.10,-4.67).",
+  "nearest": [
+    {
+      "id": "desk8-socket",
+      "point": [
+        2.158,
+        0,
+        -3.19
+      ],
+      "meshes": [
+        {
+          "name": "instance_3",
+          "material": "Chair",
+          "distance": 0,
+          "triangle": [
+            [
+              2.1562,
+              0.4348,
+              -3.1469
+            ],
+            [
+              2.1562,
+              0.4348,
+              -3.2769
+            ],
+            [
+              2.2915,
+              0.4348,
+              -3.1469
+            ]
+          ]
+        },
+        {
+          "name": "Cube.003",
+          "material": "Table",
+          "distance": 0.1927,
+          "triangle": [
+            [
+              0.9991,
+              0.7075,
+              -2.0751
+            ],
+            [
+              0.9991,
+              0.7075,
+              -2.9973
+            ],
+            [
+              3.2728,
+              0.7075,
+              -2.9973
+            ]
+          ]
+        },
+        {
+          "name": "instance_2.003",
+          "material": "Keyboard",
+          "distance": 0.4696,
+          "triangle": [
+            [
+              2.325,
+              0.7669,
+              -2.7204
+            ],
+            [
+              1.8935,
+              0.7669,
+              -2.5714
+            ],
+            [
+              1.8935,
+              0.7669,
+              -2.7204
+            ]
+          ]
+        },
+        {
+          "name": "Cylinder.009",
+          "material": "Mug",
+          "distance": 0.6245,
+          "triangle": [
+            [
+              2.6748,
+              0.7689,
+              -2.8272
+            ],
+            [
+              2.6771,
+              0.7689,
+              -2.8387
+            ],
+            [
+              2.6816,
+              0.7689,
+              -2.8496
+            ]
+          ]
+        },
+        {
+          "name": "Plane.020",
+          "material": "Cupboard",
+          "distance": 0.6719,
+          "triangle": [
+            [
+              3.2009,
+              0.6556,
+              -2.8701
+            ],
+            [
+              2.7489,
+              0.6556,
+              -2.8701
+            ],
+            [
+              2.7489,
+              0.6556,
+              -2.1473
+            ]
+          ]
+        },
+        {
+          "name": "Cylinder.001",
+          "material": "Table Light",
+          "distance": 0.6917,
+          "triangle": [
+            [
+              2.627,
+              0.7641,
+              -2.6665
+            ],
+            [
+              2.5679,
+              0.7641,
+              -2.5646
+            ],
+            [
+              2.5679,
+              0.7641,
+              -2.6328
+            ]
+          ]
+        },
+        {
+          "name": "Cube.048",
+          "material": "Books 2",
+          "distance": 0.7691,
+          "triangle": [
+            [
+              1.2423,
+              0.7717,
+              -2.7803
+            ],
+            [
+              1.2423,
+              0.7961,
+              -2.7803
+            ],
+            [
+              1.5071,
+              0.7961,
+              -2.7803
+            ]
+          ]
+        },
+        {
+          "name": "instance_5.001",
+          "material": "Monitor ",
+          "distance": 0.8095,
+          "triangle": [
+            [
+              1.9293,
+              0.7702,
+              -2.1795
+            ],
+            [
+              1.9293,
+              0.7702,
+              -2.3805
+            ],
+            [
+              2.3285,
+              0.7702,
+              -2.3805
+            ]
+          ]
+        },
+        {
+          "name": "Cube.040",
+          "material": "walet",
+          "distance": 0.8391,
+          "triangle": [
+            [
+              2.8377,
+              0.7799,
+              -2.6487
+            ],
+            [
+              2.8377,
+              0.7939,
+              -2.6487
+            ],
+            [
+              2.8205,
+              0.7907,
+              -2.675
+            ]
+          ]
+        },
+        {
+          "name": "Cylinder.017",
+          "material": "Pen Holder",
+          "distance": 0.923,
+          "triangle": [
+            [
+              2.8913,
+              0.8162,
+              -2.6271
+            ],
+            [
+              2.8764,
+              0.8162,
+              -2.6089
+            ],
+            [
+              2.8828,
+              0.8162,
+              -2.6185
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desk8-back-near",
+      "point": [
+        2.158,
+        0,
+        -3.7
+      ],
+      "meshes": [
+        {
+          "name": "instance_3",
+          "material": "Chair",
+          "distance": 0.227,
+          "triangle": [
+            [
+              2.1562,
+              1.0344,
+              -3.473
+            ],
+            [
+              2.1562,
+              1.0426,
+              -3.4046
+            ],
+            [
+              2.2811,
+              1.0285,
+              -3.473
+            ]
+          ]
+        },
+        {
+          "name": "Cube.003",
+          "material": "Table",
+          "distance": 0.7027,
+          "triangle": [
+            [
+              0.9991,
+              0.7075,
+              -2.0751
+            ],
+            [
+              0.9991,
+              0.7075,
+              -2.9973
+            ],
+            [
+              3.2728,
+              0.7075,
+              -2.9973
+            ]
+          ]
+        },
+        {
+          "name": "instance_2.003",
+          "material": "Keyboard",
+          "distance": 0.9796,
+          "triangle": [
+            [
+              2.325,
+              0.7669,
+              -2.7204
+            ],
+            [
+              1.8935,
+              0.7669,
+              -2.5714
+            ],
+            [
+              1.8935,
+              0.7669,
+              -2.7204
+            ]
+          ]
+        },
+        {
+          "name": "Cylinder.009",
+          "material": "Mug",
+          "distance": 0.9912,
+          "triangle": [
+            [
+              2.6962,
+              0.8844,
+              -2.8677
+            ],
+            [
+              2.6984,
+              0.888,
+              -2.8647
+            ],
+            [
+              2.7058,
+              0.8844,
+              -2.874
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desk8-back-far",
+      "point": [
+        2.158,
+        0,
+        -4
+      ],
+      "meshes": [
+        {
+          "name": "instance_3",
+          "material": "Chair",
+          "distance": 0.527,
+          "triangle": [
+            [
+              2.1562,
+              1.0344,
+              -3.473
+            ],
+            [
+              2.1562,
+              1.0426,
+              -3.4046
+            ],
+            [
+              2.2811,
+              1.0285,
+              -3.473
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desk8-left-exit",
+      "point": [
+        1.45,
+        0,
+        -3.7
+      ],
+      "meshes": [
+        {
+          "name": "instance_3",
+          "material": "Chair",
+          "distance": 0.4835,
+          "triangle": [
+            [
+              1.8635,
+              0.6322,
+              -3.4479
+            ],
+            [
+              1.8661,
+              0.6314,
+              -3.439
+            ],
+            [
+              1.8619,
+              0.6429,
+              -3.4468
+            ]
+          ]
+        },
+        {
+          "name": "wall 1",
+          "material": "Solo items",
+          "distance": 0.4868,
+          "triangle": [
+            [
+              0.9632,
+              0.5319,
+              -2.9628
+            ],
+            [
+              0.9632,
+              -0.0219,
+              -2.9628
+            ],
+            [
+              0.9632,
+              -0.0219,
+              -4.3334
+            ]
+          ]
+        },
+        {
+          "name": "Cube.003",
+          "material": "Table",
+          "distance": 0.7027,
+          "triangle": [
+            [
+              0.9991,
+              0.7075,
+              -2.0751
+            ],
+            [
+              0.9991,
+              0.7075,
+              -2.9973
+            ],
+            [
+              3.2728,
+              0.7075,
+              -2.9973
+            ]
+          ]
+        },
+        {
+          "name": "Plane.020",
+          "material": "Cupboard",
+          "distance": 0.8195,
+          "triangle": [
+            [
+              1.4799,
+              0.0129,
+              -2.8805
+            ],
+            [
+              1.0772,
+              0.3,
+              -2.8805
+            ],
+            [
+              1.4799,
+              0.3,
+              -2.8805
+            ]
+          ]
+        },
+        {
+          "name": "Plane.031",
+          "material": "additional",
+          "distance": 0.9074,
+          "triangle": [
+            [
+              0.912,
+              1.151,
+              -2.9626
+            ],
+            [
+              0.912,
+              0.874,
+              -2.9626
+            ],
+            [
+              0.912,
+              0.874,
+              -2.9693
+            ]
+          ]
+        },
+        {
+          "name": "Cube.048",
+          "material": "Books 2",
+          "distance": 0.9197,
+          "triangle": [
+            [
+              1.2423,
+              0.7717,
+              -2.7803
+            ],
+            [
+              1.2423,
+              0.7961,
+              -2.7803
+            ],
+            [
+              1.5071,
+              0.7961,
+              -2.7803
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desk8-right-exit",
+      "point": [
+        3.05,
+        0,
+        -3.7
+      ],
+      "meshes": [
+        {
+          "name": "instance_3",
+          "material": "Chair",
+          "distance": 0.6497,
+          "triangle": [
+            [
+              2.4118,
+              0.6791,
+              -3.4028
+            ],
+            [
+              2.4686,
+              0.6791,
+              -3.4028
+            ],
+            [
+              2.4644,
+              0.6735,
+              -3.4187
+            ]
+          ]
+        },
+        {
+          "name": "Cube.003",
+          "material": "Table",
+          "distance": 0.7027,
+          "triangle": [
+            [
+              0.9991,
+              0.7075,
+              -2.0751
+            ],
+            [
+              0.9991,
+              0.7075,
+              -2.9973
+            ],
+            [
+              3.2728,
+              0.7075,
+              -2.9973
+            ]
+          ]
+        },
+        {
+          "name": "Plane.020",
+          "material": "Cupboard",
+          "distance": 0.8135,
+          "triangle": [
+            [
+              3.0393,
+              0.2222,
+              -2.8866
+            ],
+            [
+              2.9111,
+              0.2222,
+              -2.8866
+            ],
+            [
+              2.9111,
+              0.2436,
+              -2.8822
+            ]
+          ]
+        },
+        {
+          "name": "Cylinder.009",
+          "material": "Mug",
+          "distance": 0.8742,
+          "triangle": [
+            [
+              2.762,
+              0.7689,
+              -2.8741
+            ],
+            [
+              2.74,
+              0.7689,
+              -2.8807
+            ],
+            [
+              2.7512,
+              0.7689,
+              -2.8785
+            ]
+          ]
+        },
+        {
+          "name": "instance_3.005",
+          "material": "Material.002",
+          "distance": 0.9564,
+          "triangle": [
+            [
+              3.9971,
+              0.5021,
+              -3.461
+            ],
+            [
+              3.9887,
+              0.4928,
+              -3.4738
+            ],
+            [
+              3.9785,
+              0.4669,
+              -3.4704
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desk5-socket",
+      "point": [
+        -6.019,
+        0,
+        -0.665
+      ],
+      "meshes": [
+        {
+          "name": "instance_4.002",
+          "material": "Table",
+          "distance": 0,
+          "triangle": [
+            [
+              -6.1806,
+              0.7649,
+              -1.1421
+            ],
+            [
+              -5.2587,
+              0.7649,
+              0.7992
+            ],
+            [
+              -6.1806,
+              0.7649,
+              0.7992
+            ]
+          ]
+        },
+        {
+          "name": "Object_122.012",
+          "material": "Office_Chair_Leather.001",
+          "distance": 0,
+          "triangle": [
+            [
+              -6.0277,
+              0.4316,
+              -0.7491
+            ],
+            [
+              -5.8978,
+              0.4316,
+              -0.7491
+            ],
+            [
+              -6.0277,
+              0.4316,
+              -0.6139
+            ]
+          ]
+        },
+        {
+          "name": "Cube.048",
+          "material": "Books 2",
+          "distance": 0.0057,
+          "triangle": [
+            [
+              -5.8715,
+              0.8556,
+              -0.6593
+            ],
+            [
+              -6.0969,
+              0.8556,
+              -0.6593
+            ],
+            [
+              -6.0969,
+              0.8556,
+              -0.3464
+            ]
+          ]
+        },
+        {
+          "name": "Object_122.002",
+          "material": "Chair",
+          "distance": 0.0134,
+          "triangle": [
+            [
+              -6.0045,
+              0.3884,
+              -0.6569
+            ],
+            [
+              -6.0045,
+              0.4534,
+              -0.6569
+            ],
+            [
+              -6.0057,
+              0.4534,
+              -0.6633
+            ]
+          ]
+        },
+        {
+          "name": "instance_10",
+          "material": "Chair",
+          "distance": 0.2285,
+          "triangle": [
+            [
+              -5.784,
+              0.1684,
+              -0.8939
+            ],
+            [
+              -5.8229,
+              0.1683,
+              -0.922
+            ],
+            [
+              -5.8696,
+              0.1353,
+              -0.8379
+            ]
+          ]
+        },
+        {
+          "name": "Cylinder.017",
+          "material": "Pen Holder",
+          "distance": 0.3273,
+          "triangle": [
+            [
+              -5.7676,
+              0.8253,
+              -0.4531
+            ],
+            [
+              -5.7676,
+              0.9622,
+              -0.4531
+            ],
+            [
+              -5.7585,
+              0.9584,
+              -0.467
+            ]
+          ]
+        },
+        {
+          "name": "Plane.031",
+          "material": "additional",
+          "distance": 0.3719,
+          "triangle": [
+            [
+              -5.7682,
+              0.839,
+              -0.3509
+            ],
+            [
+              -5.632,
+              0.8271,
+              -0.3903
+            ],
+            [
+              -5.7682,
+              0.8271,
+              -0.3903
+            ]
+          ]
+        },
+        {
+          "name": "Cube.047",
+          "material": "Book 1",
+          "distance": 0.447,
+          "triangle": [
+            [
+              -5.5713,
+              0.8401,
+              -0.6686
+            ],
+            [
+              -5.572,
+              0.8366,
+              -0.6686
+            ],
+            [
+              -5.5706,
+              0.8366,
+              -0.6652
+            ]
+          ]
+        },
+        {
+          "name": "instance_6.001",
+          "material": "Keyboard",
+          "distance": 0.5596,
+          "triangle": [
+            [
+              -5.4068,
+              0.8281,
+              0.0806
+            ],
+            [
+              -5.5559,
+              0.8281,
+              0.0806
+            ],
+            [
+              -5.5559,
+              0.8281,
+              -0.3508
+            ]
+          ]
+        },
+        {
+          "name": "instance_9",
+          "material": "Chair",
+          "distance": 0.7923,
+          "triangle": [
+            [
+              -5.238,
+              0.1684,
+              -0.249
+            ],
+            [
+              -5.294,
+              0.1353,
+              -0.3345
+            ],
+            [
+              -5.3085,
+              0.1353,
+              -0.3146
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desk5-back",
+      "point": [
+        -6.33,
+        0,
+        -1.178
+      ],
+      "meshes": [
+        {
+          "name": "Object_122.012",
+          "material": "Office_Chair_Plastic.001",
+          "distance": 0.1242,
+          "triangle": [
+            [
+              -6.0225,
+              0.6521,
+              -1.0718
+            ],
+            [
+              -6.2791,
+              0.6607,
+              -1.0057
+            ],
+            [
+              -6.2783,
+              0.6607,
+              -1.0651
+            ]
+          ]
+        },
+        {
+          "name": "instance_4.002",
+          "material": "Table",
+          "distance": 0.1536,
+          "triangle": [
+            [
+              -6.1806,
+              0.7649,
+              -1.1421
+            ],
+            [
+              -5.2587,
+              0.7649,
+              -1.1421
+            ],
+            [
+              -5.2587,
+              0.7649,
+              0.7992
+            ]
+          ]
+        },
+        {
+          "name": "Cube.048",
+          "material": "Books 2",
+          "distance": 0.3188,
+          "triangle": [
+            [
+              -5.7596,
+              0.8635,
+              -0.688
+            ],
+            [
+              -5.7596,
+              0.8635,
+              -0.9435
+            ],
+            [
+              -6.1141,
+              0.8635,
+              -0.9435
+            ]
+          ]
+        },
+        {
+          "name": "instance_10",
+          "material": "Chair",
+          "distance": 0.3433,
+          "triangle": [
+            [
+              -5.922,
+              0.7043,
+              -1.078
+            ],
+            [
+              -5.9892,
+              0.7043,
+              -1.078
+            ],
+            [
+              -5.9824,
+              0.713,
+              -1.3338
+            ]
+          ]
+        },
+        {
+          "name": "Object_122.002",
+          "material": "Chair",
+          "distance": 0.601,
+          "triangle": [
+            [
+              -5.9957,
+              0.4534,
+              -0.6786
+            ],
+            [
+              -6.001,
+              0.3884,
+              -0.675
+            ],
+            [
+              -6.001,
+              0.4534,
+              -0.675
+            ]
+          ]
+        },
+        {
+          "name": "Plane.031",
+          "material": "additional",
+          "distance": 0.7089,
+          "triangle": [
+            [
+              -5.6022,
+              0.8271,
+              -0.9637
+            ],
+            [
+              -5.6543,
+              0.8271,
+              -0.887
+            ],
+            [
+              -5.6543,
+              0.8271,
+              -0.9637
+            ]
+          ]
+        },
+        {
+          "name": "Cube.047",
+          "material": "Book 1",
+          "distance": 0.8508,
+          "triangle": [
+            [
+              -5.5699,
+              0.8401,
+              -0.7942
+            ],
+            [
+              -5.5679,
+              0.8394,
+              -0.7942
+            ],
+            [
+              -5.5706,
+              0.8366,
+              -0.7942
+            ]
+          ]
+        },
+        {
+          "name": "Cylinder.017",
+          "material": "Pen Holder",
+          "distance": 0.853,
+          "triangle": [
+            [
+              -5.5404,
+              0.8269,
+              -0.8364
+            ],
+            [
+              -5.5404,
+              0.8269,
+              -0.8348
+            ],
+            [
+              -5.5484,
+              0.8312,
+              -0.8364
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "node": "Cube.003",
+      "triangles": 12,
+      "bodySlabBounds": {
+        "min": [
+          0.5049,
+          0.12,
+          -3.0696
+        ],
+        "max": [
+          0.5443,
+          0.7136,
+          -2.9934
+        ]
+      },
+      "distanceToSecondTarget": 1.7325
+    },
+    {
+      "node": "Cube.003",
+      "triangles": 12,
+      "bodySlabBounds": {
+        "min": [
+          0.5049,
+          0.12,
+          -3.8605
+        ],
+        "max": [
+          0.5443,
+          0.7136,
+          -3.7842
+        ]
+      },
+      "distanceToSecondTarget": 1.6159
+    },
+    {
+      "node": "Cube.003",
+      "triangles": 12,
+      "bodySlabBounds": {
+        "min": [
+          -1.0742,
+          0.7075,
+          -3.8878
+        ],
+        "max": [
+          0.5932,
+          0.7699,
+          -2.9657
+        ]
+      },
+      "distanceToSecondTarget": 1.5648
+    },
+    {
+      "node": "Cube.003",
+      "triangles": 32,
+      "bodySlabBounds": {
+        "min": [
+          -1.0235,
+          0.672,
+          -3.8566
+        ],
+        "max": [
+          0.5425,
+          0.7075,
+          -2.9973
+        ]
+      },
+      "distanceToSecondTarget": 1.6155
+    },
+    {
+      "node": "Cube.003",
+      "triangles": 12,
+      "bodySlabBounds": {
+        "min": [
+          1.0562,
+          0.12,
+          -2.1791
+        ],
+        "max": [
+          1.1026,
+          0.7136,
+          -2.1029
+        ]
+      },
+      "distanceToSecondTarget": 1.8512
+    },
+    {
+      "node": "Cube.003",
+      "triangles": 12,
+      "bodySlabBounds": {
+        "min": [
+          3.1693,
+          0.12,
+          -2.1791
+        ],
+        "max": [
+          3.2152,
+          0.7136,
+          -2.1029
+        ]
+      },
+      "distanceToSecondTarget": 1.8264
+    },
+    {
+      "node": "Cube.003",
+      "triangles": 12,
+      "bodySlabBounds": {
+        "min": [
+          1.0562,
+          0.12,
+          -2.9696
+        ],
+        "max": [
+          1.1026,
+          0.7136,
+          -2.8932
+        ]
+      },
+      "distanceToSecondTarget": 1.2835
+    },
+    {
+      "node": "Cube.003",
+      "triangles": 12,
+      "bodySlabBounds": {
+        "min": [
+          3.1693,
+          0.12,
+          -2.9696
+        ],
+        "max": [
+          3.2152,
+          0.7136,
+          -2.8932
+        ]
+      },
+      "distanceToSecondTarget": 1.2475
+    },
+    {
+      "node": "Cube.003",
+      "triangles": 12,
+      "bodySlabBounds": {
+        "min": [
+          0.9991,
+          0.7075,
+          -2.9973
+        ],
+        "max": [
+          3.2728,
+          0.7699,
+          -2.0751
+        ]
+      },
+      "distanceToSecondTarget": 0.7027
+    },
+    {
+      "node": "Cube.003",
+      "triangles": 32,
+      "bodySlabBounds": {
+        "min": [
+          1.0584,
+          0.672,
+          -2.9657
+        ],
+        "max": [
+          3.213,
+          0.7075,
+          -2.1064
+        ]
+      },
+      "distanceToSecondTarget": 0.7343
+    },
+    {
+      "node": "instance_3",
+      "triangles": 160,
+      "bodySlabBounds": {
+        "min": [
+          2.1237,
+          0.1469,
+          -3.1927
+        ],
+        "max": [
+          2.1886,
+          0.4044,
+          -3.1278
+        ]
+      },
+      "distanceToSecondTarget": 0.5073
+    },
+    {
+      "node": "instance_3",
+      "triangles": 128,
+      "bodySlabBounds": {
+        "min": [
+          1.87,
+          0.4348,
+          -3.4255
+        ],
+        "max": [
+          2.4425,
+          0.5243,
+          -2.8684
+        ]
+      },
+      "distanceToSecondTarget": 0.2745
+    },
+    {
+      "node": "instance_3",
+      "triangles": 128,
+      "bodySlabBounds": {
+        "min": [
+          1.8878,
+          0.4734,
+          -3.473
+        ],
+        "max": [
+          2.4247,
+          1.0426,
+          -3.3418
+        ]
+      },
+      "distanceToSecondTarget": 0.227
+    },
+    {
+      "node": "instance_3",
+      "triangles": 26,
+      "bodySlabBounds": {
+        "min": [
+          1.9407,
+          0.3665,
+          -3.1796
+        ],
+        "max": [
+          2.0745,
+          0.4376,
+          -3.1409
+        ]
+      },
+      "distanceToSecondTarget": 0.5327
+    },
+    {
+      "node": "instance_3",
+      "triangles": 2,
+      "bodySlabBounds": {
+        "min": [
+          2.038,
+          0.4446,
+          -3.1623
+        ],
+        "max": [
+          2.064,
+          0.4446,
+          -3.1315
+        ]
+      },
+      "distanceToSecondTarget": 0.5458
+    },
+    {
+      "node": "instance_3",
+      "triangles": 28,
+      "bodySlabBounds": {
+        "min": [
+          2.0067,
+          0.4044,
+          -3.3097
+        ],
+        "max": [
+          2.3056,
+          0.4483,
+          -3.0108
+        ]
+      },
+      "distanceToSecondTarget": 0.3903
+    },
+    {
+      "node": "instance_3",
+      "triangles": 140,
+      "bodySlabBounds": {
+        "min": [
+          1.9302,
+          0.12,
+          -3.39
+        ],
+        "max": [
+          2.3822,
+          0.1534,
+          -2.9599
+        ]
+      },
+      "distanceToSecondTarget": 0.31
+    },
+    {
+      "node": "instance_3",
+      "triangles": 184,
+      "bodySlabBounds": {
+        "min": [
+          1.8334,
+          0.4425,
+          -3.4479
+        ],
+        "max": [
+          1.9006,
+          0.6791,
+          -3.0186
+        ]
+      },
+      "distanceToSecondTarget": 0.3694
+    },
+    {
+      "node": "instance_3",
+      "triangles": 184,
+      "bodySlabBounds": {
+        "min": [
+          2.4118,
+          0.4425,
+          -3.4479
+        ],
+        "max": [
+          2.479,
+          0.6791,
+          -3.0186
+        ]
+      },
+      "distanceToSecondTarget": 0.3668
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 128,
+      "bodySlabBounds": {
+        "min": [
+          -6.3062,
+          0.4316,
+          -1.0354
+        ],
+        "max": [
+          -5.7491,
+          0.5211,
+          -0.4628
+        ]
+      },
+      "distanceToSecondTarget": 8.3996
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 128,
+      "bodySlabBounds": {
+        "min": [
+          -6.3537,
+          0.4702,
+          -1.0175
+        ],
+        "max": [
+          -6.2225,
+          1.0394,
+          -0.4806
+        ]
+      },
+      "distanceToSecondTarget": 8.8435
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 128,
+      "bodySlabBounds": {
+        "min": [
+          -6.2722,
+          0.4838,
+          -0.0869
+        ],
+        "max": [
+          -5.7151,
+          0.5733,
+          0.4857
+        ]
+      },
+      "distanceToSecondTarget": 8.7316
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 128,
+      "bodySlabBounds": {
+        "min": [
+          -6.3196,
+          0.5224,
+          -0.069
+        ],
+        "max": [
+          -6.1885,
+          1.0916,
+          0.4679
+        ]
+      },
+      "distanceToSecondTarget": 9.1458
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 26,
+      "bodySlabBounds": {
+        "min": [
+          -6.0604,
+          0.3634,
+          -0.6673
+        ],
+        "max": [
+          -6.0217,
+          0.4344,
+          -0.5334
+        ]
+      },
+      "distanceToSecondTarget": 8.7291
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 2,
+      "bodySlabBounds": {
+        "min": [
+          -6.0432,
+          0.4414,
+          -0.6568
+        ],
+        "max": [
+          -6.0123,
+          0.4414,
+          -0.6308
+        ]
+      },
+      "distanceToSecondTarget": 8.7186
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 28,
+      "bodySlabBounds": {
+        "min": [
+          -6.1904,
+          0.4012,
+          -0.8985
+        ],
+        "max": [
+          -5.8915,
+          0.4452,
+          -0.5996
+        ]
+      },
+      "distanceToSecondTarget": 8.5231
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 128,
+      "bodySlabBounds": {
+        "min": [
+          -6.0735,
+          0.195,
+          -0.7815
+        ],
+        "max": [
+          -6.0085,
+          0.3359,
+          -0.7165
+        ]
+      },
+      "distanceToSecondTarget": 8.6815
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 140,
+      "bodySlabBounds": {
+        "min": [
+          -6.3695,
+          0.12,
+          -1.0654
+        ],
+        "max": [
+          -5.7679,
+          0.2006,
+          -0.4327
+        ]
+      },
+      "distanceToSecondTarget": 8.3953
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 76,
+      "bodySlabBounds": {
+        "min": [
+          -6.1531,
+          0.12,
+          -1.0523
+        ],
+        "max": [
+          -6.1233,
+          0.1303,
+          -1.0352
+        ]
+      },
+      "distanceToSecondTarget": 8.6943
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 76,
+      "bodySlabBounds": {
+        "min": [
+          -6.3487,
+          0.12,
+          -0.762
+        ],
+        "max": [
+          -6.3398,
+          0.1284,
+          -0.7335
+        ]
+      },
+      "distanceToSecondTarget": 8.9928
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 76,
+      "bodySlabBounds": {
+        "min": [
+          -6.1496,
+          0.12,
+          -0.4662
+        ],
+        "max": [
+          -6.1225,
+          0.1284,
+          -0.4504
+        ]
+      },
+      "distanceToSecondTarget": 8.8937
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 76,
+      "bodySlabBounds": {
+        "min": [
+          -5.8045,
+          0.12,
+          -0.5787
+        ],
+        "max": [
+          -5.7832,
+          0.1284,
+          -0.5546
+        ]
+      },
+      "distanceToSecondTarget": 8.5329
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 76,
+      "bodySlabBounds": {
+        "min": [
+          -5.8033,
+          0.12,
+          -0.9398
+        ],
+        "max": [
+          -5.7823,
+          0.1284,
+          -0.9152
+        ]
+      },
+      "distanceToSecondTarget": 8.4141
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 184,
+      "bodySlabBounds": {
+        "min": [
+          -6.3287,
+          0.4393,
+          -0.4935
+        ],
+        "max": [
+          -5.8994,
+          0.6759,
+          -0.4263
+        ]
+      },
+      "distanceToSecondTarget": 8.6735
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 184,
+      "bodySlabBounds": {
+        "min": [
+          -6.3287,
+          0.4393,
+          -1.0718
+        ],
+        "max": [
+          -5.8994,
+          0.6759,
+          -1.0047
+        ]
+      },
+      "distanceToSecondTarget": 8.4815
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 26,
+      "bodySlabBounds": {
+        "min": [
+          -6.0262,
+          0.4156,
+          0.2812
+        ],
+        "max": [
+          -5.9876,
+          0.4866,
+          0.4151
+        ]
+      },
+      "distanceToSecondTarget": 9.0715
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 2,
+      "bodySlabBounds": {
+        "min": [
+          -6.009,
+          0.4936,
+          0.2917
+        ],
+        "max": [
+          -5.9782,
+          0.4936,
+          0.3177
+        ]
+      },
+      "distanceToSecondTarget": 9.0627
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 28,
+      "bodySlabBounds": {
+        "min": [
+          -6.1564,
+          0.4534,
+          0.0501
+        ],
+        "max": [
+          -5.8575,
+          0.4974,
+          0.3489
+        ]
+      },
+      "distanceToSecondTarget": 8.8494
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 128,
+      "bodySlabBounds": {
+        "min": [
+          -6.0393,
+          0.196,
+          0.1671
+        ],
+        "max": [
+          -5.9744,
+          0.3881,
+          0.232
+        ]
+      },
+      "distanceToSecondTarget": 9.0159
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 140,
+      "bodySlabBounds": {
+        "min": [
+          -6.3355,
+          0.12,
+          -0.1168
+        ],
+        "max": [
+          -5.7338,
+          0.2024,
+          0.5157
+        ]
+      },
+      "distanceToSecondTarget": 8.723
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 76,
+      "bodySlabBounds": {
+        "min": [
+          -6.1191,
+          0.12,
+          -0.1039
+        ],
+        "max": [
+          -6.0893,
+          0.1303,
+          -0.0867
+        ]
+      },
+      "distanceToSecondTarget": 8.9972
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 76,
+      "bodySlabBounds": {
+        "min": [
+          -6.3146,
+          0.12,
+          0.1865
+        ],
+        "max": [
+          -6.3057,
+          0.1284,
+          0.2151
+        ]
+      },
+      "distanceToSecondTarget": 9.3153
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 76,
+      "bodySlabBounds": {
+        "min": [
+          -6.1155,
+          0.12,
+          0.4823
+        ],
+        "max": [
+          -6.0884,
+          0.1284,
+          0.4982
+        ]
+      },
+      "distanceToSecondTarget": 9.2509
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 76,
+      "bodySlabBounds": {
+        "min": [
+          -5.7703,
+          0.12,
+          0.3698
+        ],
+        "max": [
+          -5.7491,
+          0.1284,
+          0.3939
+        ]
+      },
+      "distanceToSecondTarget": 8.8935
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 76,
+      "bodySlabBounds": {
+        "min": [
+          -5.7692,
+          0.12,
+          0.0088
+        ],
+        "max": [
+          -5.7483,
+          0.1284,
+          0.0334
+        ]
+      },
+      "distanceToSecondTarget": 8.7428
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 184,
+      "bodySlabBounds": {
+        "min": [
+          -6.2945,
+          0.4915,
+          0.455
+        ],
+        "max": [
+          -5.8653,
+          0.7282,
+          0.5222
+        ]
+      },
+      "distanceToSecondTarget": 9.0371
+    },
+    {
+      "node": "Object_122.012",
+      "triangles": 184,
+      "bodySlabBounds": {
+        "min": [
+          -6.2945,
+          0.4915,
+          -0.1234
+        ],
+        "max": [
+          -5.8653,
+          0.7282,
+          -0.0562
+        ]
+      },
+      "distanceToSecondTarget": 8.7919
+    },
+    {
+      "node": "Plane.005",
+      "triangles": 18,
+      "bodySlabBounds": {
+        "min": [
+          -7.4296,
+          0.12,
+          -6.4726
+        ],
+        "max": [
+          7.0676,
+          1.55,
+          6.4726
+        ]
+      },
+      "distanceToSecondTarget": 9.5876
+    },
+    {
+      "node": "wall 1",
+      "triangles": 104,
+      "bodySlabBounds": {
+        "min": [
+          -1.2004,
+          0.12,
+          -4.9401
+        ],
+        "max": [
+          0.9632,
+          1.2107,
+          -2.0733
+        ]
+      },
+      "distanceToSecondTarget": 1.1948
+    }
+  ],
+  "seatCushions": [
+    {
+      "node": "Object_122.012",
+      "targetNativeXZ": [
+        -6.019,
+        -0.665
+      ],
+      "upwardTriangles": 32,
+      "area": 0.265,
+      "centroid": [
+        -6.0388,
+        0.51,
+        -0.7491
+      ],
+      "bounds": {
+        "min": [
+          -6.2928,
+          0.5018,
+          -1.0227
+        ],
+        "max": [
+          -5.7627,
+          0.5211,
+          -0.4754
+        ]
+      }
+    },
+    {
+      "node": "Object_122.012",
+      "targetNativeXZ": [
+        -6.03,
+        0.197
+      ],
+      "upwardTriangles": 32,
+      "area": 0.265,
+      "centroid": [
+        -6.0047,
+        0.5622,
+        0.1994
+      ],
+      "bounds": {
+        "min": [
+          -6.2587,
+          0.554,
+          -0.0743
+        ],
+        "max": [
+          -5.7286,
+          0.5733,
+          0.4731
+        ]
+      }
+    }
+  ]
+}

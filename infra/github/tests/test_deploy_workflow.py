@@ -79,6 +79,16 @@ def test_exact_scanned_images_pass_staging_before_production_mutations():
     assert "continue-on-error" not in stage
 
 
+def test_private_worker_endpoint_is_only_forwarded_to_the_api_revision():
+    steps = deployment()["steps"]
+    preparations = [step for step in steps if "prepare-ecs-task.sh" in step.get("run", "")]
+    for step in preparations:
+        if step.get("id") == "api_task":
+            assert step["env"]["AI_WORKER_URL"] == "http://ai-worker.mokaid-prod.internal:8100"
+        else:
+            assert "AI_WORKER_URL" not in step["env"]
+
+
 @pytest.mark.parametrize(
     ("service", "repository"),
     (("api", "api"), ("worker", "ai-worker"), ("web", "web"), ("crm", "crm")),

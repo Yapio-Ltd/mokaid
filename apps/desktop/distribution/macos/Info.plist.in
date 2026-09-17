@@ -12,6 +12,7 @@
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSMicrophoneUsageDescription</key><string>Moked uses your microphone to transcribe your voice locally on this computer. You review the text before sending it to your workspace.</string>
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>SUFeedURL</key><string>https://downloads.mokaid.com/@MOKAID_RELEASE_CHANNEL@/macos-arm64.xml</string>
   <key>SUPublicEDKey</key><string>@MOKAID_UPDATE_PUBLIC_KEY@</string>

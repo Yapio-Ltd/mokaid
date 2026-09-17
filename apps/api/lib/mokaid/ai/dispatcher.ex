@@ -39,7 +39,7 @@ defmodule Mokaid.AI.Dispatcher do
       }
   """
   def analyze(workspace_id, params) do
-    instruction = String.trim(params["instruction"] || "")
+    instruction = presence(params["instruction"]) || ""
     files = normalize_files(params["files"] || [])
 
     if instruction == "" and files == [] do
@@ -94,16 +94,44 @@ defmodule Mokaid.AI.Dispatcher do
   files, applies MCP grants and starts the AI run.
   """
   def confirm(workspace_id, member, params) do
-    instruction = String.trim(params["instruction"] || "")
-    task_params = params["task"] || %{}
-    drive_ids = List.wrap(params["drive_item_ids"])
+    Repo.transaction(fn ->
+      with {:ok, request_id} <- validate_request_id(params["client_request_id"]) do
+        # Retry after a lost HTTP response must not create a second task or
+        # specialist. The lock serializes concurrent confirmations per workspace.
+        fingerprint = request_fingerprint(params)
 
-    with {:ok, agent} <- resolve_agent(workspace_id, member, params),
+        case replay_confirmation(workspace_id, request_id, fingerprint) do
+          nil -> create_confirmation(workspace_id, member, params, request_id, fingerprint)
+          existing -> existing
+        end
+      else
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+  end
+
+  defp create_confirmation(workspace_id, member, params, request_id, fingerprint) do
+    instruction = presence(params["instruction"]) || ""
+    task_params = if is_map(params["task"]), do: params["task"], else: %{}
+
+    # A failed start must not leave an apparently accepted mission or a
+    # paid-for unused employee. All state and the Oban job share this transaction.
+    with {:ok, drive_ids} <- validate_ids(params["drive_item_ids"], :invalid_attachments),
+         {:ok, files} <- validate_attachments(workspace_id, drive_ids),
+         :ok <- validate_request(instruction, task_params, files),
+         :ok <- validate_project(workspace_id, task_params["project_id"]),
+         {:ok, grant_ids} <-
+           validate_ids(params["grant_installation_ids"], :invalid_integrations),
+         :ok <- validate_grants(workspace_id, grant_ids),
+         {:ok, agent} <- resolve_agent(workspace_id, member, params),
+         :ok <- validate_start(agent, params),
          {:ok, task} <-
            Tasks.create_task(
              workspace_id,
              %{
-               "title" => presence(task_params["title"]) || derive_title(instruction, drive_ids),
+               "title" =>
+                 presence(task_params["title"]) ||
+                   derive_title(instruction, Enum.map(files, & &1.name)),
                "description" => presence(task_params["description"]) || instruction,
                "priority" => normalize_priority(task_params["priority"]),
                "project_id" => presence(task_params["project_id"]),
@@ -111,31 +139,138 @@ defmodule Mokaid.AI.Dispatcher do
                "metadata" => %{
                  "source" => "dispatch",
                  "instruction" => instruction,
+                 "dispatch_request_id" => request_id,
+                 "dispatch_request_fingerprint" => fingerprint,
                  "drive_item_ids" => drive_ids,
-                 "domain_requested" => detect_categories(instruction, []),
+                 "domain_requested" =>
+                   detect_categories(instruction, Enum.map(files, &%{"name" => &1.name})),
                  "capability_match" => normalize_capability_match(params["capability_match"])
                }
              },
              member
-           ) do
-      link_drive_items(workspace_id, task.id, drive_ids)
-      apply_grants(workspace_id, agent, List.wrap(params["grant_installation_ids"]), member)
-
-      run =
-        if params["start_now"] != false and agent != nil and agent.kind != "human_linked" do
-          # Composite requests are decomposed inside start_run (waves of child
-          # missions); ordinary ones go straight to the worker queue.
-          case Mokaid.AI.start_run(task, %{
-                 "instruction" => instruction,
-                 "drive_item_ids" => drive_ids
-               }) do
-            {:ok, run} -> run
-            _ -> nil
-          end
-        end
-
-      {:ok, %{task: Tasks.get_task(workspace_id, task.id), agent: agent, run: run}}
+           ),
+         :ok <- link_drive_items(workspace_id, task.id, drive_ids),
+         :ok <- apply_grants(workspace_id, agent, grant_ids, member),
+         {:ok, run} <- maybe_start_run(task, agent, instruction, drive_ids, params) do
+      %{task: Tasks.get_task(workspace_id, task.id), agent: agent, run: run}
+    else
+      {:error, reason} -> Repo.rollback(reason)
     end
+  end
+
+  defp validate_request_id(nil), do: {:ok, nil}
+
+  defp validate_request_id(id) do
+    case Ecto.UUID.cast(id) do
+      {:ok, id} -> {:ok, id}
+      :error -> {:error, :invalid_request_id}
+    end
+  end
+
+  defp request_fingerprint(params) do
+    params
+    |> Map.delete("client_request_id")
+    |> :erlang.term_to_binary([:deterministic])
+    |> then(&:crypto.hash(:sha256, &1))
+    |> Base.encode16(case: :lower)
+  end
+
+  defp replay_confirmation(_workspace_id, nil, _fingerprint), do: nil
+
+  defp replay_confirmation(workspace_id, request_id, fingerprint) do
+    Repo.query!("SELECT pg_advisory_xact_lock(hashtext($1::text), hashtext($2::text))", [
+      workspace_id,
+      request_id
+    ])
+
+    case Repo.one(
+           from t in WorkTask,
+             where:
+               t.workspace_id == ^workspace_id and
+                 fragment("?->>'dispatch_request_id' = ?", t.metadata, ^request_id),
+             select: t.id,
+             limit: 1
+         ) do
+      nil ->
+        nil
+
+      id ->
+        task = Tasks.get_task(workspace_id, id)
+
+        if task.metadata["dispatch_request_fingerprint"] != fingerprint,
+          do: Repo.rollback(:request_id_conflict)
+
+        agent = task.assigned_agent_id && Agents.get_agent(workspace_id, task.assigned_agent_id)
+        %{task: task, agent: agent, run: List.last(task.execution_runs)}
+    end
+  end
+
+  defp validate_ids(nil, _error), do: {:ok, []}
+
+  defp validate_ids(ids, error) when is_list(ids) do
+    if Enum.all?(ids, &match?({:ok, _}, Ecto.UUID.cast(&1))) do
+      {:ok, Enum.uniq(ids)}
+    else
+      {:error, error}
+    end
+  end
+
+  defp validate_ids(_, error), do: {:error, error}
+
+  defp validate_attachments(_workspace_id, []), do: {:ok, []}
+
+  defp validate_attachments(workspace_id, ids) do
+    files =
+      Repo.all(
+        from d in DriveItem,
+          where:
+            d.workspace_id == ^workspace_id and d.id in ^ids and d.kind == "file" and
+              d.status == "active" and not is_nil(d.storage_key),
+          order_by: [asc: d.id],
+          lock: "FOR UPDATE"
+      )
+
+    if length(files) == length(ids), do: {:ok, files}, else: {:error, :invalid_attachments}
+  end
+
+  defp validate_request(instruction, task, files) do
+    if instruction == "" and presence(task["title"]) == nil and
+         presence(task["description"]) == nil and files == [],
+       do: {:error, :empty_request},
+       else: :ok
+  end
+
+  defp validate_project(_workspace_id, id) when id in [nil, ""], do: :ok
+
+  defp validate_project(workspace_id, id) do
+    with {:ok, id} <- Ecto.UUID.cast(id),
+         %{} <- Mokaid.Projects.get_project(workspace_id, id) do
+      :ok
+    else
+      _ -> {:error, :project_not_found}
+    end
+  end
+
+  defp validate_grants(workspace_id, ids) do
+    if Enum.all?(ids, fn id ->
+         match?(%{status: "connected"}, MCP.get_installation(workspace_id, id))
+       end),
+       do: :ok,
+       else: {:error, :invalid_integrations}
+  end
+
+  defp validate_start(nil, %{"start_now" => false}), do: :ok
+  defp validate_start(nil, _params), do: {:error, :no_agent_assigned}
+  defp validate_start(_agent, _params), do: :ok
+
+  defp maybe_start_run(_task, _agent, _instruction, _ids, %{"start_now" => false}),
+    do: {:ok, nil}
+
+  defp maybe_start_run(_task, %{kind: "human_linked"}, _instruction, _ids, _params),
+    do: {:ok, nil}
+
+  defp maybe_start_run(task, _agent, instruction, ids, _params) do
+    Mokaid.AI.start_run(task, %{"instruction" => instruction, "drive_item_ids" => ids})
   end
 
   # Sanitized snapshot of the routing decision, persisted on the task so the
@@ -160,7 +295,9 @@ defmodule Mokaid.AI.Dispatcher do
     else
       Repo.all(
         from d in DriveItem,
-          where: d.workspace_id == ^workspace_id and d.id in ^ids and d.kind == "file"
+          where:
+            d.workspace_id == ^workspace_id and d.id in ^ids and d.kind == "file" and
+              d.status == "active"
       )
       |> Enum.map(&file_entry/1)
     end
@@ -570,7 +707,11 @@ defmodule Mokaid.AI.Dispatcher do
     extension_categories =
       files
       |> Enum.map(fn f ->
-        f["name"] |> to_string() |> Path.extname() |> String.trim_leading(".")
+        f["name"]
+        |> to_string()
+        |> Path.extname()
+        |> String.trim_leading(".")
+        |> String.downcase()
       end)
       |> Enum.flat_map(fn ext ->
         for {category, exts} <- @file_categories, ext in exts, do: category
@@ -583,7 +724,9 @@ defmodule Mokaid.AI.Dispatcher do
           Enum.any?(keywords, &keyword_in_text?(text, &1)),
           do: category
 
-    Enum.uniq(extension_categories ++ keyword_categories)
+    # The requested work determines the specialist; a PDF can be legal work,
+    # and a spreadsheet can be input to a software project.
+    Enum.uniq(keyword_categories ++ extension_categories)
   end
 
   # Word-boundary match so short tokens like "ads"/"tax"/"api" don't fire inside
@@ -852,9 +995,20 @@ defmodule Mokaid.AI.Dispatcher do
 
   defp resolve_agent(workspace_id, _member, %{"agent_id" => id})
        when is_binary(id) and id != "" do
-    case Agents.get_agent(workspace_id, id) do
-      nil -> {:error, :agent_not_found}
-      agent -> {:ok, agent}
+    with {:ok, id} <- Ecto.UUID.cast(id),
+         %{} = agent <- Agents.get_agent(workspace_id, id) do
+      cond do
+        agent.archived_at != nil or agent.status in ["archived", "training"] ->
+          {:error, :agent_unavailable}
+
+        agent.kind in ["ai", "hybrid"] and not agent.ai_enabled ->
+          {:error, :agent_unavailable}
+
+        true ->
+          {:ok, agent}
+      end
+    else
+      _ -> {:error, :agent_not_found}
     end
   end
 
@@ -873,6 +1027,7 @@ defmodule Mokaid.AI.Dispatcher do
                "department" => attrs["department"],
                "archetype_key" => archetype_key,
                "boost_key" => attrs["boost_key"],
+               "instructions" => presence(attrs["instructions"]),
                "avatar_config" => %{"primary_color" => random_agent_color()}
              },
              member
@@ -923,15 +1078,12 @@ defmodule Mokaid.AI.Dispatcher do
   defp apply_grants(_workspace_id, _agent, [], _member), do: :ok
 
   defp apply_grants(workspace_id, agent, installation_ids, member) do
-    installation_ids
-    |> Enum.filter(&is_binary/1)
-    |> Enum.each(fn installation_id ->
-      if MCP.get_installation(workspace_id, installation_id) do
-        MCP.set_grant(workspace_id, agent.id, installation_id, true, member)
+    Enum.reduce_while(installation_ids, :ok, fn installation_id, :ok ->
+      case MCP.set_grant(workspace_id, agent.id, installation_id, true, member) do
+        {:ok, _grant} -> {:cont, :ok}
+        {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
-
-    :ok
   end
 
   defp graph_overlap_bonus(workspace_id, agent_id, instruction)
@@ -965,7 +1117,10 @@ defmodule Mokaid.AI.Dispatcher do
 
     workspace_id
     |> Agents.list_agents()
-    |> Enum.filter(fn agent -> agent.kind in ["ai", "hybrid"] end)
+    |> Enum.filter(fn agent ->
+      agent.kind in ["ai", "hybrid"] and agent.ai_enabled and
+        agent.status not in ["archived", "training"]
+    end)
     |> Enum.map(fn agent -> %{agent: agent, open_tasks: Map.get(open_counts, agent.id, 0)} end)
   end
 

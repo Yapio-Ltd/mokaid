@@ -59,8 +59,9 @@ std::shared_ptr<const Scene> loadScene(const std::filesystem::path &path) {
   Reader r(path);
   char magic[8]{};
   r.bytes(magic, 8);
+  const auto version = r.value<std::uint32_t>();
   if (std::memcmp(magic, "MOKASSET", 8) ||
-      r.value<std::uint32_t>() != assetVersion)
+      (version != 3 && version != assetVersion))
     throw std::runtime_error("Unsupported Mokaid asset format");
   auto s = std::make_shared<Scene>();
   s->residentBytes = std::filesystem::file_size(path);
@@ -106,6 +107,7 @@ std::shared_ptr<const Scene> loadScene(const std::filesystem::path &path) {
     m.metallicRoughnessTexture = r.value<std::int32_t>();
     m.alphaMode = r.value<std::uint32_t>();
     m.alphaCutoff = r.value<float>();
+    m.surfaceKind = version >= 4 ? r.count(3) : 0;
     if (!finite(m.color) || !finite(m.emissive) ||
         !std::isfinite(m.roughness) || m.roughness < 0 || m.roughness > 1 ||
         !std::isfinite(m.metallic) || m.metallic < 0 || m.metallic > 1 ||
@@ -219,6 +221,26 @@ std::shared_ptr<const Scene> loadScene(const std::filesystem::path &path) {
       if (height > .2F && height < 1.3F)
         s->sittingPelvisHeight = height;
     }
+    if (resolveAnimation(*s, "sitting_sofa") == "sitting_sofa" && !s->skins.front().joints.empty()) {
+      const auto sitting = evaluatePose(*s, "sitting_sofa", 0);
+      const float height = sitting.world[s->skins.front().joints.front()].m[13] * 1.75F / std::max(.1F, s->referenceHeight);
+      if (height > .2F && height < 1.3F) s->sofaPelvisHeight = height;
+    }
+    if(!s->skins.front().joints.empty()) {
+      const auto reference=evaluatePose(*s,"idle",0);
+      const auto &joints=s->skins.front().joints;
+      const auto head=*std::max_element(joints.begin(),joints.end(),[&](auto a,auto b){return reference.world[a].m[13]<reference.world[b].m[13];});
+      const float crown=std::max(0.F,max.y-reference.world[head].m[13]);
+      for(const auto &clip:s->animations) {
+        HeadTrack track;track.clip=clip.name;track.duration=clip.duration;
+        for(std::size_t i=0;i<track.positions.size();++i) {
+          const auto pose=evaluatePose(*s,clip.name,clip.duration*static_cast<float>(i)/16);
+          const auto &m=pose.world[head];track.positions[i]={m.m[12],m.m[13]+crown,m.m[14]};
+        }
+        s->headTracks.push_back(std::move(track));
+      }
+      s->residentBytes+=s->headTracks.capacity()*sizeof(HeadTrack);
+    }
   }
   return s;
 }
@@ -298,8 +320,10 @@ std::vector<Node> animatedNodes(const Scene &s, std::string_view name,
                          [name](const auto &a) { return a.name == name; });
   if (it != s.animations.end()) {
     const auto &a = *it;
-    const float t =
-        a.duration > 0 ? std::fmod(std::max(0.F, seconds), a.duration) : 0;
+    const bool oneShot = oneShotAnimation(name);
+    const float t = a.duration <= 0 ? 0 : oneShot
+        ? std::clamp(seconds, 0.F, a.duration)
+        : std::fmod(std::max(0.F, seconds), a.duration);
     for (const auto &c : a.channels) {
       const auto upper = std::upper_bound(c.times.begin(), c.times.end(), t);
       const std::size_t lo = upper == c.times.begin()
@@ -344,13 +368,37 @@ Pose composePose(std::span<const Node> nodes) {
   return p;
 }
 } // namespace
+bool oneShotAnimation(std::string_view name) {
+  return name=="sit_down"||name=="stand_up"||name=="sit_down_sofa"||name=="stand_up_sofa"||name=="preparing_coffee"||
+    name=="coffee_putdown"||name=="phone_pickup"||name=="phone_putdown"||name=="greeting"||name=="laughing"||name=="laughing_coffee"||
+    name=="laughing_sofa_coffee"||name=="sit_down_sofa_coffee"||name=="stand_up_sofa_coffee";
+}
+Vec3 headPosition(const Scene &scene,std::span<const AnimationSample> samples) {
+  Vec3 result{};float weight=0;
+  for(const auto &sample:samples) {
+    const auto it=std::find_if(scene.headTracks.begin(),scene.headTracks.end(),[&](const auto &track){return track.clip==sample.clip;});
+    if(it==scene.headTracks.end()||sample.weight<=0)continue;
+    const float time=it->duration<=0?0:oneShotAnimation(it->clip)?std::clamp(sample.seconds,0.F,it->duration):std::fmod(std::max(0.F,sample.seconds),it->duration);
+    const float index=it->duration<=0?0:time/it->duration*16;
+    const auto lo=static_cast<std::size_t>(std::min(16.F,std::floor(index))),hi=std::min<std::size_t>(16,lo+1);
+    result=result+(it->positions[lo]*(1-(index-lo))+it->positions[hi]*(index-lo))*sample.weight;weight+=sample.weight;
+  }
+  return weight>0?result*(1/weight):Vec3{0,scene.referenceMinY+scene.referenceHeight,0};
+}
 Pose evaluatePose(const Scene &s, std::string_view name, float seconds) {
   return composePose(animatedNodes(s, name, seconds));
 }
 Pose evaluateInstancePose(const Instance &instance) {
   const auto &scene = *instance.scene;
+  const auto placed = [&](std::vector<Node> nodes) {
+    for (const auto &offset : instance.nodeTranslations) {
+      if (offset.node >= nodes.size()) throw std::runtime_error("Invalid instance node translation");
+      nodes[offset.node].translation = nodes[offset.node].translation + offset.delta;
+    }
+    return composePose(nodes);
+  };
   if (instance.animationSamples.empty())
-    return evaluatePose(scene, instance.animation, instance.animationTime);
+    return placed(animatedNodes(scene, instance.animation, instance.animationTime));
   std::vector<Node> blended;
   float accumulated = 0;
   for (const auto &layer : instance.animationSamples) {
@@ -372,8 +420,7 @@ Pose evaluateInstancePose(const Instance &instance) {
     }
     accumulated += layer.weight;
   }
-  return blended.empty() ? evaluatePose(scene, instance.animation, instance.animationTime)
-                         : composePose(blended);
+  return placed(blended.empty() ? animatedNodes(scene, instance.animation, instance.animationTime) : std::move(blended));
 }
 std::array<Mat4, maxSkinJoints> skinMatrices(const Scene &s, const Mesh &m,
                                              const Pose &p) {

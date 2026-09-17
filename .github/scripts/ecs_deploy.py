@@ -3,6 +3,7 @@
 from __future__ import annotations
 import copy
 from collections.abc import Callable, Mapping
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -25,6 +26,9 @@ TASK_ARN = re.compile(r"arn:(aws|aws-cn|aws-us-gov):ecs:[a-z0-9-]+:\d{12}:task/[
 IMAGE_DIGEST = re.compile(r"[a-z0-9][a-z0-9._:/-]*@sha256:[0-9a-f]{64}")
 NAME = re.compile(r"[A-Za-z0-9_-]{1,255}")
 CLUSTER_ARN = re.compile(r"arn:(aws|aws-cn|aws-us-gov):ecs:[a-z0-9-]+:\d{12}:cluster/[A-Za-z0-9_-]+")
+# Matches infra/terraform/environments/prod/main.tf. Never fall back to all
+# RFC1918 space (or is_private, which also includes reserved/loopback ranges).
+PRODUCTION_VPC = ipaddress.IPv4Network("10.10.0.0/16")
 
 
 class AwsClient(Protocol):
@@ -37,6 +41,34 @@ def required(env: Mapping[str, str], key: str) -> str:
     if not value or any(ord(char) < 32 for char in value):
         raise Failure(f"{key} is required and must not contain control characters")
     return value
+
+
+def trusted_alb_cidrs(value: str) -> str:
+    """Accept only an explicit, bounded list of narrow production VPC networks."""
+    message = "MOKAID_TRUSTED_ALB_CIDRS must contain distinct canonical IPv4 CIDRs within the production VPC, each /24 or narrower"
+    if not isinstance(value, str) or not value or len(value) > 512:
+        raise Failure(message)
+    entries = value.split(",")
+    if not 1 <= len(entries) <= 16:
+        raise Failure(message)
+    networks: list[ipaddress.IPv4Network] = []
+    for entry in entries:
+        try:
+            network = ipaddress.IPv4Network(entry, strict=True)
+        except (ipaddress.AddressValueError, ipaddress.NetmaskValueError, ValueError):
+            raise Failure(message) from None
+        if (str(network) != entry or network.prefixlen < 24
+                or not network.subnet_of(PRODUCTION_VPC)
+                or any(network.overlaps(previous) for previous in networks)):
+            raise Failure(message)
+        networks.append(network)
+    return value
+
+
+def validate_trusted_alb(env: Mapping[str, str], _aws: AwsClient) -> None:
+    # Offline workflow preflight: no AWS reads, credentials or mutation required.
+    trusted_alb_cidrs(required(env, "MOKAID_TRUSTED_ALB_CIDRS"))
+    print("Validated explicit production ALB network configuration")
 
 
 def exact_definition(value: object) -> str:
@@ -209,11 +241,15 @@ def prepare(env: Mapping[str, str], aws: AwsClient) -> None:
     if not NAME.fullmatch(container) or not IMAGE_DIGEST.fullmatch(image):
         raise Failure("An exact container name and immutable repository@sha256 image digest are required")
     overrides = {}
-    for key in ("MOKAID_DESKTOP_ONLY_BUSINESS", "DESKTOP_AUTH_WEB_BASE_URL"):
+    for key in ("MOKAID_DESKTOP_ONLY_BUSINESS", "DESKTOP_AUTH_WEB_BASE_URL", "MOKAID_TRUSTED_ALB_CIDRS", "AI_WORKER_URL"):
         if key in env:
             if container != "mokaid-prod-api":
-                raise Failure("Desktop rollout overrides are restricted to mokaid-prod-api")
+                raise Failure("API environment overrides are restricted to mokaid-prod-api")
             value = env[key]
+            if key == "MOKAID_TRUSTED_ALB_CIDRS":
+                value = trusted_alb_cidrs(value)
+            if key == "AI_WORKER_URL" and value != "http://ai-worker.mokaid-prod.internal:8100":
+                raise Failure("Worker HTTP override must use the private production discovery endpoint")
             if (key == "MOKAID_DESKTOP_ONLY_BUSINESS" and value not in ("true", "false")) or (
                     key == "DESKTOP_AUTH_WEB_BASE_URL" and value != "https://mokaid.com"):
                 raise Failure("Invalid explicitly allowed desktop rollout setting")
@@ -228,6 +264,8 @@ def prepare(env: Mapping[str, str], aws: AwsClient) -> None:
     if overrides:
         if any(item.get("name") in overrides for item in target.get("secrets", [])):
             raise Failure("An environment override conflicts with a secret reference")
+        if any(sum(item.get("name") == key for item in target.get("environment", [])) > 1 for key in overrides):
+            raise Failure("An environment override has duplicate existing entries")
         target["environment"] = [item for item in target.get("environment", []) if item.get("name") not in overrides]
         target["environment"].extend({"name": key, "value": value} for key, value in overrides.items())
     for key in ("taskDefinitionArn", "revision", "status", "requiresAttributes", "compatibilities",
@@ -239,8 +277,13 @@ def prepare(env: Mapping[str, str], aws: AwsClient) -> None:
     prepared = exact_definition(registered.get("taskDefinitionArn", ""))
     if prepared == previous or not same_family(previous, prepared) or registered.get("status") != "ACTIVE":
         raise Failure("Registered task identity does not match the intended new family revision")
-    if named_container(registered, container).get("image") != image:
+    registered_target = named_container(registered, container)
+    if registered_target.get("image") != image:
         raise Failure("Registered task definition does not contain the requested immutable image")
+    for key, value in overrides.items():
+        entries = [item for item in registered_target.get("environment", []) if item.get("name") == key]
+        if len(entries) != 1 or entries[0].get("value") != value:
+            raise Failure("Registered task definition did not preserve the explicit API environment override")
     outputs(destination, {"task_definition": prepared, "previous_task_definition": previous,
                           "container": container, "image": image})
     print(f"Prepared exact ECS task revision {prepared}; live service unchanged")
@@ -504,9 +547,10 @@ def main() -> int:
     os.umask(0o077)
     signal.signal(signal.SIGTERM, interrupted)
     try:
-        commands = {"prepare": prepare, "deploy": deploy, "migrate": migrate, "rollback-batch": rollback_batch}
+        commands = {"prepare": prepare, "deploy": deploy, "migrate": migrate, "rollback-batch": rollback_batch,
+                    "validate-trusted-alb": validate_trusted_alb}
         if len(sys.argv) != 2 or sys.argv[1] not in commands:
-            raise Failure("Expected prepare, deploy, migrate or rollback-batch")
+            raise Failure("Expected prepare, deploy, migrate, rollback-batch or validate-trusted-alb")
         commands[sys.argv[1]](dict(os.environ), Aws())
         return 0
     except (Failure, KeyboardInterrupt) as error:

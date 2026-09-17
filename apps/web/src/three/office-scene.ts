@@ -10,9 +10,11 @@
 import {
   Color3,
   Color4,
+  Constants,
   DefaultRenderingPipeline,
   Engine,
   FreeCamera,
+  GlowLayer,
   HemisphericLight,
   ImageProcessingConfiguration,
   Matrix,
@@ -50,6 +52,7 @@ import {
   type AgentModelTemplate,
 } from "./agent-model";
 import { resolveOfficeGlbUrl } from "./office-asset";
+import { fitOfficeProjection, type OfficeCameraFootprint } from "./office-camera";
 import { fetchAssetCached } from "./asset-cache";
 import {
   ENERGY_TO_INTENSITY_AREA,
@@ -193,6 +196,7 @@ interface AvatarNode {
   footOffset: number;
   /** Pelvis height above root while the sitting clip is active. */
   sitPelvisHeight: number;
+  sofaPelvisHeight: number;
   /** Desk chair facing (raw-authored) once centered home is set. */
   deskFacing: number;
   /** Desk chair cushion Y in raw GLB space. */
@@ -256,6 +260,7 @@ export class OfficeScene {
   private materials = new Map<string, StandardMaterial>();
   private shadowGenerator: ShadowGenerator | null = null;
   private pipeline: DefaultRenderingPipeline | null = null;
+  private glowLayer: GlowLayer | null = null;
   private sceneLights: Light[] = [];
   private fpsTimer = 0;
   private disposed = false;
@@ -268,6 +273,9 @@ export class OfficeScene {
   /** Patrol paths in the centered world frame (offset from raw GLB coords). */
   private paths: OfficePath[] = OFFICE_PATHS;
   private camera: FreeCamera | null = null;
+  /** Measured once after import; resizing only fits these four cached values. */
+  private cameraFootprint: OfficeCameraFootprint | null = null;
+  private cameraPlacementOverride = false;
   /** AABB centering offsets applied when the GLB loads. */
   private centerOffset = { x: 0, y: 0, z: 0 };
   private obstacleColliders: Mesh[] = [];
@@ -414,12 +422,11 @@ export class OfficeScene {
 
     this.startRenderLoop();
 
-    // Only resize the render buffer — never reframe the camera. The office
-    // stays statically framed regardless of the side panel opening/closing.
+    // Keep the complete office in view as side panels change the canvas aspect.
     const resize = () => {
       this.lastClientW = 0;
       this.lastClientH = 0;
-      this.engine.resize();
+      this.syncEngineSize();
     };
     window.addEventListener("resize", resize);
     this.scene.onDisposeObservable.add(() => window.removeEventListener("resize", resize));
@@ -469,7 +476,7 @@ export class OfficeScene {
     avatar.activePath = { id: `debug-sit-${slot.id}`, loop: false, waypoints: [] };
     avatar.pathIndex = 0;
     this.lastPoiKey.set(avatar.agent.id, `${poi.id}:${slot.id}`);
-    this.blendToSocket(avatar, socket, "sitting", 0.05);
+    this.blendToSocket(avatar, socket, "sitting_sofa", 0.05);
     // Force-complete into hold so Y + clip diagnostics are meaningful.
     avatar.socketBlend = null;
     avatar.socketLocked = true;
@@ -492,12 +499,12 @@ export class OfficeScene {
         if (c instanceof TransformNode) stack.push(c);
       }
     }
-    const sit = avatar.anims.sitting;
+    const sit = avatar.anims.sitting_sofa ?? avatar.anims.sitting;
     return {
       ok: true,
       rootY: avatar.root.position.y,
       seatY,
-      sitPelvisHeight: avatar.sitPelvisHeight,
+      sitPelvisHeight: avatar.sofaPelvisHeight,
       hipsY,
       anim: avatar.currentAnim,
       sittingPlaying: Boolean(sit?.isPlaying),
@@ -882,6 +889,7 @@ export class OfficeScene {
     if (!this.camera) return;
 
     const override = readOfficeCamOverride();
+    this.cameraPlacementOverride = override !== null;
     const raw = override ?? {
       px: OFFICE_CAMERA.position.x,
       py: OFFICE_CAMERA.position.y,
@@ -933,11 +941,20 @@ export class OfficeScene {
   private setupBloomPipeline() {
     if (!this.camera) return;
     const pipeline = new DefaultRenderingPipeline("office-pp", true, this.scene, [this.camera]);
-    pipeline.bloomEnabled = true;
-    pipeline.bloomThreshold = OFFICE_BLOOM.threshold;
-    pipeline.bloomWeight = OFFICE_BLOOM.weight;
-    pipeline.bloomKernel = OFFICE_BLOOM.kernel;
-    pipeline.bloomScale = OFFICE_BLOOM.scale;
+    // Bright diffuse surfaces (shirts, pots) must never become glow sources.
+    // GlowLayer reads emissiveColor/Texture/Intensity and retains other meshes
+    // as occluders. It composites before this pipeline's single HDR tone map.
+    pipeline.bloomEnabled = false;
+    const glow = new GlowLayer("office-emission", this.scene, {
+      camera: this.camera,
+      mainTextureRatio: OFFICE_BLOOM.scale,
+      blurKernelSize: OFFICE_BLOOM.kernel,
+      mainTextureType: this.engine.getCaps().textureHalfFloatRender
+        ? Constants.TEXTURETYPE_HALF_FLOAT
+        : Constants.TEXTURETYPE_UNSIGNED_BYTE,
+    });
+    glow.intensity = OFFICE_BLOOM.weight;
+    this.glowLayer = glow;
     // MSAA sharpens edges; FXAA is only used as a fallback on the low profile.
     pipeline.samples = 4;
     pipeline.fxaaEnabled = false;
@@ -945,7 +962,7 @@ export class OfficeScene {
     pipeline.imageProcessingEnabled = true;
     pipeline.imageProcessing.toneMappingEnabled = true;
     pipeline.imageProcessing.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
-    // Keep below neon emissive so pure-white decor is not auto-bloomed.
+    // Exposure controls the scene once; glow sources are selected by emission.
     pipeline.imageProcessing.exposure = 1.12;
     pipeline.imageProcessing.contrast = 1.08;
     pipeline.imageProcessing.vignetteEnabled = true;
@@ -1066,9 +1083,42 @@ export class OfficeScene {
     }
   }
 
-  /** Shift FreeCamera from raw GLB coords into the centered world frame. */
-  private reframeCamera(centerX: number, minY: number, centerZ: number) {
+  /** Cache the actual silhouette once; a world AABB adds large empty corners. */
+  private reframeCamera(centerX: number, minY: number, centerZ: number, meshes: AbstractMesh[]) {
     this.applyCameraPlacement(centerX, minY, centerZ);
+    if (!this.camera || this.cameraPlacementOverride) return;
+
+    const view = this.camera.getViewMatrix(true);
+    const point = Vector3.Zero();
+    const footprint = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+    for (const mesh of meshes) {
+      if (!mesh.isVisible || !mesh.isEnabled() || mesh.visibility <= 0) continue;
+      const positions = mesh.getVerticesData("position");
+      if (!positions) continue;
+      const worldView = mesh.computeWorldMatrix(true).multiply(view);
+      for (let i = 0; i < positions.length; i += 3) {
+        Vector3.TransformCoordinatesFromFloatsToRef(
+          positions[i], positions[i + 1], positions[i + 2], worldView, point,
+        );
+        if (point.z <= this.camera.minZ) continue;
+        const x = point.x / point.z;
+        const y = point.y / point.z;
+        footprint.minX = Math.min(footprint.minX, x);
+        footprint.maxX = Math.max(footprint.maxX, x);
+        footprint.minY = Math.min(footprint.minY, y);
+        footprint.maxY = Math.max(footprint.maxY, y);
+      }
+    }
+    this.cameraFootprint = footprint;
+    this.fitCameraToCanvas();
+  }
+
+  private fitCameraToCanvas() {
+    if (!this.camera || !this.cameraFootprint || this.cameraPlacementOverride) return;
+    if (this.canvas.clientWidth <= 0 || this.canvas.clientHeight <= 0) return;
+    this.camera.unfreezeProjectionMatrix();
+    const projection = this.camera.getProjectionMatrix(true);
+    this.camera.freezeProjectionMatrix(fitOfficeProjection(projection, this.cameraFootprint));
   }
 
   private material(key: string, hex: string, emissive = 0): StandardMaterial {
@@ -1151,7 +1201,7 @@ export class OfficeScene {
       this.checkFoosballTableDrift();
 
       this.recreateBlenderLights(centerX, minY, centerZ);
-      this.reframeCamera(centerX, minY, centerZ);
+      this.reframeCamera(centerX, minY, centerZ, result.meshes);
 
       // Desk slots + patrol paths are authored in raw GLB space; apply centering.
       this.deskSlots = OFFICE_DESK_SLOTS.map(
@@ -1218,9 +1268,11 @@ export class OfficeScene {
       if (name !== "Solo items") continue;
       if (seen.has(mat)) continue;
       seen.add(mat);
-      await this.dampenNearWhiteAlbedo(mat, "solo-items-albedo-soft-whites", 0.35);
-      if (this.disposed) return;
+      // Classify the original atlas: dimming white paper/plastic first can
+      // turn it into a cool midtone and falsely select it as a screen.
       await this.boostSoloItemsScreenEmissive(mat);
+      if (this.disposed) return;
+      await this.dampenNearWhiteAlbedo(mat, "solo-items-albedo-soft-whites", 0.35);
       if (this.disposed) return;
       // Matte only — keep full direct light so the meeting board stays bright.
       mat.metallic = 0;
@@ -1732,6 +1784,7 @@ export class OfficeScene {
       avatarUrl,
       footOffset: template.footOffset,
       sitPelvisHeight: template.sitPelvisHeight,
+      sofaPelvisHeight: template.sofaPelvisHeight,
       deskFacing: desk?.facing ?? 0,
       deskSeatHeight: desk?.seatHeight ?? 0.5,
       reportedActivity: null,
@@ -1845,7 +1898,7 @@ export class OfficeScene {
       if (!avatar.socketLocked || avatar.socketId !== `desk_${avatar.seatIndex}`) {
         this.snapToDeskSocket(avatar, state);
       } else {
-        playAgentAnimation(avatar, state as AgentAnimName);
+        playAgentAnimation(avatar, deskClipFor(state));
       }
       if (state === "away" || state === "offline") {
         avatar.root.position.y = avatar.baseY;
@@ -2506,7 +2559,7 @@ export class OfficeScene {
   }
 
   private poiAnimForSlot(animation: SecondaryActivity): AgentAnimName | string {
-    if (animation === "sitting_sofa") return "sitting";
+    if (animation === "sitting_sofa") return "sitting_sofa";
     if (animation === "playing_foosball") return "playing_foosball";
     if (animation === "preparing_coffee") return "preparing_coffee";
     return "idle";
@@ -2632,12 +2685,12 @@ export class OfficeScene {
       avatar.root.rotation.y = socket.facing + Math.sin(t * 1.4 + avatar.phase) * 0.04;
       avatar.facing = avatar.root.rotation.y;
     } else if (animation === "sitting_sofa") {
-      playAgentAnimation(avatar, "sitting" as AgentAnimName);
-      if (import.meta.env.DEV && !avatar.anims.sitting) {
+      playAgentAnimation(avatar, "sitting_sofa" as AgentAnimName);
+      if (import.meta.env.DEV && !avatar.anims.sitting_sofa) {
         console.warn("[OfficeScene] missing sitting clip on sofa hold", avatar.agent.name);
       }
       const seatY = (socket.seatHeight || 0.48) - this.centerOffset.y;
-      avatar.root.position.y = seatY - avatar.sitPelvisHeight;
+      avatar.root.position.y = seatY - avatar.sofaPelvisHeight;
       avatar.baseY = avatar.root.position.y;
       avatar.root.rotation.y = socket.facing;
       avatar.facing = socket.facing;
@@ -2651,6 +2704,7 @@ export class OfficeScene {
 
   /** Walk quickly to the desk chair then blend into the seat socket. */
   private beginDeskSitRoute(avatar: AvatarNode, state: AgentAnimName | string) {
+    state = deskClipFor(state);
     if (avatar.socketLocked && avatar.socketId === `desk_${avatar.seatIndex}` && !avatar.socketExit) {
       avatar.pendingDeskState = state;
       avatar.idleBehavior = "desk_sit";
@@ -2794,6 +2848,7 @@ export class OfficeScene {
 
   /** Pin an agent on their desk chair each frame while desk_sit is active. */
   private holdDeskSocket(avatar: AvatarNode, state: AgentAnimName | string, t: number) {
+    state = deskClipFor(state);
     const socket = deskSocket(avatar.seatIndex);
     if (!socket) return;
     this.detachCrowdAgent(avatar);
@@ -2820,6 +2875,7 @@ export class OfficeScene {
 
   /** Immediate seat (spawn / already at desk) — no blend. */
   private snapToDeskSocket(avatar: AvatarNode, state: AgentAnimName | string) {
+    state = deskClipFor(state);
     const socket = deskSocket(avatar.seatIndex);
     if (!socket) return;
     this.detachCrowdAgent(avatar);
@@ -2857,7 +2913,7 @@ export class OfficeScene {
     setAgentCollisionsEnabled(avatar.collider, false);
     const dest = this.toCentered(socket.position.x, socket.position.z);
     const toY = socket.sits
-      ? (socket.seatHeight || 0.48) - this.centerOffset.y - avatar.sitPelvisHeight
+      ? (socket.seatHeight || 0.48) - this.centerOffset.y - (anim === "sitting_sofa" ? avatar.sofaPelvisHeight : avatar.sitPelvisHeight)
       : floorYAt(dest.x, dest.z) + avatar.footOffset;
 
     avatar.socketBlend = {
@@ -2905,10 +2961,14 @@ export class OfficeScene {
     if (u >= (blend.sits ? 0.55 : 0.85)) {
       playAgentAnimation(
         avatar,
-        (blend.sits ? "sitting" : blend.anim) as AgentAnimName,
+        (blend.sits && blend.anim !== "sitting_sofa" ? "sitting" : blend.anim) as AgentAnimName,
       );
     } else {
       playAgentAnimation(avatar, "walking");
+      // Differentiate the smoothstep path: the stride slows with the body as
+      // it approaches a fixture, rather than skating through the final metres.
+      const travel = Math.hypot(blend.toX - blend.fromX, blend.toZ - blend.fromZ);
+      setAgentWalkSpeed(avatar, travel * 6 * u * (1 - u) / Math.max(.05, blend.duration));
       this.reportActivity(avatar, "walking");
     }
 
@@ -2931,7 +2991,7 @@ export class OfficeScene {
       ? poiById(avatar.agent.officePoiId ?? "")?.slots.find((s) => s.id === avatar.agent.officeSlotId)
       : null;
     if (slot?.animation === "sitting_sofa") {
-      playAgentAnimation(avatar, "sitting");
+      playAgentAnimation(avatar, "sitting_sofa");
       this.reportActivity(avatar, "sitting_sofa");
     } else if (slot?.animation) {
       this.reportActivity(avatar, slot.animation);
@@ -3172,12 +3232,12 @@ export class OfficeScene {
     syncColliderToRoot(avatar.collider, avatar.root);
 
     const moved = Math.hypot(pos.x - beforeX, pos.z - beforeZ);
-    setAgentWalkSpeed(avatar, moved / Math.max(dt, 0.001));
     if (moved / Math.max(dt, 0.001) < CROWD_MOVE_EPS) {
       playAgentAnimation(avatar, "idle");
       this.reportActivity(avatar, "walking");
     } else {
       playAgentAnimation(avatar, "walking");
+      setAgentWalkSpeed(avatar, moved / Math.max(dt, 0.001));
       this.reportActivity(avatar, "walking");
     }
     return false;
@@ -3253,8 +3313,7 @@ export class OfficeScene {
 
   /** Idle → sitting at desk; busy → current visual task pose at desk. */
   private defaultDeskAnim(avatar: AvatarNode): AgentAnimName | string {
-    if (isIdleVisual(avatar.agent.visualState)) return "sitting";
-    return avatar.agent.visualState;
+    return deskClipFor(avatar.agent.visualState);
   }
 
   /** Plant feet exactly on the floor surface using footOffset + nav floor height. */
@@ -3396,8 +3455,11 @@ export class OfficeScene {
   private applyRenderQuality(tier: RenderQuality) {
     if (!this.pipeline) return;
     const settings = this.profile.tiers[tier];
-    this.pipeline.bloomEnabled = settings.bloomEnabled;
-    this.pipeline.bloomWeight = OFFICE_BLOOM.weight * settings.bloomWeightMul;
+    this.pipeline.bloomEnabled = false;
+    if (this.glowLayer) {
+      this.glowLayer.isEnabled = settings.bloomEnabled;
+      this.glowLayer.intensity = OFFICE_BLOOM.weight * settings.bloomWeightMul;
+    }
     this.pipeline.samples = settings.samples;
     this.pipeline.fxaaEnabled = settings.fxaa;
     // Clamped to ≤ 1: never render below the canvas CSS resolution.
@@ -3431,6 +3493,7 @@ export class OfficeScene {
     this.lastClientH = ch;
     // Engine.resize() respects adaptToDeviceRatio + hardwareScalingLevel.
     this.engine.resize();
+    this.fitCameraToCanvas();
   }
 
   private reportOverlay() {
@@ -3507,6 +3570,8 @@ export class OfficeScene {
     this.officeCrowd?.destroy();
     this.officeCrowd = null;
     disposeObstacleColliders(this.obstacleColliders);
+    this.glowLayer?.dispose();
+    this.glowLayer = null;
     this.pipeline?.dispose();
     this.pipeline = null;
     for (const light of this.sceneLights) light.dispose();
@@ -3567,4 +3632,11 @@ function meshCentre(avatar: AvatarNode): { x: number; z: number } | null {
 
 function isIdleVisual(state: string): boolean {
   return state === "idle" || state === "walking";
+}
+
+/** Standing clips cannot use a chair's seated pelvis offset. Keep status intact. */
+function deskClipFor(state: string): AgentAnimName {
+  return ["idle", "walking", "away", "offline", "celebrating"].includes(state)
+    ? "sitting"
+    : state as AgentAnimName;
 }

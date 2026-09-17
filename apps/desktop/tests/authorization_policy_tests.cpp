@@ -38,9 +38,14 @@ private slots:
                  QByteArray(valid).replace("Host:", "X-Host:"),
                  QByteArray(valid).replace("\r\n\r\n", "\r\nHost: 127.0.0.1:54321\r\n\r\n"),
                  QByteArray(valid).replace("/callback?", "http://evil.invalid/callback?"),
+                 QByteArray(valid).replace("/callback?", "//evil.invalid/callback?"),
+                 QByteArray(valid).replace("/callback?", "/%63allback?"),
+                 QByteArray(valid).replace("/callback?", "/callback%?"),
                  QByteArray(valid).replace("/callback?", "/other?"),
                  QByteArray(valid).replace("code=one-time-code", "code="),
-                 QByteArray(valid).replace("state=transaction", "state=transaction&state=second")})
+                 QByteArray(valid).replace("state=transaction", "state=transaction&state=second"),
+                 QByteArray(valid).replace("\r\n\r\n", ""),
+                 QByteArray(valid).append("unexpected body")})
             QVERIFY(!allowedLoopbackRequest(broken, callback, "transaction"));
     }
 };

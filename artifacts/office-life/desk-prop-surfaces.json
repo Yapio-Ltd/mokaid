@@ -1,0 +1,5435 @@
+{
+  "source": "assets/optimized/office.desktop.fe4052470911.glb",
+  "queries": [
+    {
+      "seat": 0,
+      "forward": 0.4,
+      "right": -0.3,
+      "point": [
+        1.381480253646431,
+        3.8433903378901024
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.6720994084821204
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.4,
+      "right": -0.2,
+      "point": [
+        1.481480169146443,
+        3.843260337926719
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.6720994084821204
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.4,
+      "right": 0,
+      "point": [
+        1.6814800001464667,
+        3.8430003379999524
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966354
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.6720994084821204
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.4,
+      "right": 0.2,
+      "point": [
+        1.8814798311464904,
+        3.842740338073186
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.769976362587162
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.6720994084821204
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.4,
+      "right": 0.3,
+      "point": [
+        1.9814797466465024,
+        3.8426103381098025
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871617
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.6720994084821204
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.5,
+      "right": -0.3,
+      "point": [
+        1.3813502536830475,
+        3.7433904223900907
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.5,
+      "right": -0.2,
+      "point": [
+        1.4813501691830595,
+        3.743260422426707
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.5,
+      "right": 0,
+      "point": [
+        1.6813500001830832,
+        3.7430004224999407
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.5,
+      "right": 0.2,
+      "point": [
+        1.881349831183107,
+        3.742740422573174
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.5,
+      "right": 0.3,
+      "point": [
+        1.981349746683119,
+        3.7426104226097907
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966352
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.6,
+      "right": -0.3,
+      "point": [
+        1.3812202537196643,
+        3.643390506890079
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871617
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.6,
+      "right": -0.2,
+      "point": [
+        1.481220169219676,
+        3.6432605069266955
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.6,
+      "right": 0,
+      "point": [
+        1.6812200002197,
+        3.643000506999929
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966352
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.6,
+      "right": 0.2,
+      "point": [
+        1.881219831219724,
+        3.6427405070731624
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.6,
+      "right": 0.3,
+      "point": [
+        1.9812197467197357,
+        3.642610507109779
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871617
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.7,
+      "right": -0.3,
+      "point": [
+        1.3810902537562808,
+        3.543390591390067
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.7,
+      "right": -0.2,
+      "point": [
+        1.4810901692562926,
+        3.5432605914266837
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_0.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602557
+        },
+        {
+          "node": "instance_0.003",
+          "material": "Keyboard",
+          "height": 0.786400383347618
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.7,
+      "right": 0,
+      "point": [
+        1.6810900002563165,
+        3.543000591499917
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_0.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602556
+        },
+        {
+          "node": "instance_0.003",
+          "material": "Keyboard",
+          "height": 0.786400383347618
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.7,
+      "right": 0.2,
+      "point": [
+        1.8810898312563404,
+        3.5427405915731507
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_0.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602556
+        },
+        {
+          "node": "instance_0.003",
+          "material": "Keyboard",
+          "height": 0.7797750896807747
+        }
+      ]
+    },
+    {
+      "seat": 0,
+      "forward": 0.7,
+      "right": 0.3,
+      "point": [
+        1.9810897467563522,
+        3.542610591609767
+      ],
+      "hits": [
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7075294356966354
+        },
+        {
+          "node": "instance_0.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.4,
+      "right": -0.3,
+      "point": [
+        4.863073971322698,
+        2.3765157732791184
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966354
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871617
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.4,
+      "right": -0.2,
+      "point": [
+        4.963062571039315,
+        2.3780257158972558
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.4,
+      "right": 0,
+      "point": [
+        5.16303977047255,
+        2.381045601133531
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.4,
+      "right": 0.2,
+      "point": [
+        5.363016969905785,
+        2.384065486369806
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.4,
+      "right": 0.3,
+      "point": [
+        5.4630055696224025,
+        2.385575428987943
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.5,
+      "right": -0.3,
+      "point": [
+        4.864583913940836,
+        2.276527173562501
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.5,
+      "right": -0.2,
+      "point": [
+        4.964572513657453,
+        2.2780371161806383
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602556
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.7864003833476181
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.5,
+      "right": 0,
+      "point": [
+        5.164549713090688,
+        2.2810570014169134
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966354
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602556
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.7864003833476179
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.5,
+      "right": 0.2,
+      "point": [
+        5.364526912523923,
+        2.2840768866531884
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602555
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.7803972705863624
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.5,
+      "right": 0.3,
+      "point": [
+        5.46451551224054,
+        2.2855868292713257
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.6,
+      "right": -0.3,
+      "point": [
+        4.866093856558972,
+        2.1765385738458836
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.6,
+      "right": -0.2,
+      "point": [
+        4.96608245627559,
+        2.178048516464021
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602556
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.786400383347618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.6,
+      "right": 0,
+      "point": [
+        5.166059655708825,
+        2.181068401700296
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602555
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.7864003833476179
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.6,
+      "right": 0.2,
+      "point": [
+        5.36603685514206,
+        2.184088286936571
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602555
+        },
+        {
+          "node": "instance_1.003",
+          "material": "Keyboard",
+          "height": 0.786400383347618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.6,
+      "right": 0.3,
+      "point": [
+        5.466025454858677,
+        2.1855982295547083
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.7,
+      "right": -0.3,
+      "point": [
+        4.86760379917711,
+        2.076549974129266
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.7,
+      "right": -0.2,
+      "point": [
+        4.967592398893728,
+        2.0780599167474034
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.7,
+      "right": 0,
+      "point": [
+        5.1675695983269625,
+        2.0810798019836785
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.7,
+      "right": 0.2,
+      "point": [
+        5.367546797760197,
+        2.0840996872199535
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 1,
+      "forward": 0.7,
+      "right": 0.3,
+      "point": [
+        5.467535397476815,
+        2.085609629838091
+      ],
+      "hits": [
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_1.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.4,
+      "right": -0.3,
+      "point": [
+        -1.722711426592026,
+        2.5676220036515858
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.4,
+      "right": -0.2,
+      "point": [
+        -1.8226455759852365,
+        2.5639935349586715
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.4,
+      "right": 0,
+      "point": [
+        -2.022513874771658,
+        2.5567365975728427
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.4,
+      "right": 0.2,
+      "point": [
+        -2.222382173558079,
+        2.5494796601870138
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.4,
+      "right": 0.3,
+      "point": [
+        -2.3223163229512895,
+        2.5458511914940996
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.5,
+      "right": -0.3,
+      "point": [
+        -1.7263398952849403,
+        2.667556153044796
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.769976362587162
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.5,
+      "right": -0.2,
+      "point": [
+        -1.8262740446781507,
+        2.663927684351882
+      ],
+      "hits": [
+        {
+          "node": "instance_3.001",
+          "material": "Monitor ",
+          "height": 0.7701727384614099
+        },
+        {
+          "node": "instance_3.001",
+          "material": "Monitor ",
+          "height": 0.785538739942341
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.5,
+      "right": 0,
+      "point": [
+        -2.026142343464572,
+        2.656670746966053
+      ],
+      "hits": [
+        {
+          "node": "instance_3.001",
+          "material": "Monitor ",
+          "height": 1.1231520118244158
+        },
+        {
+          "node": "instance_3.001",
+          "material": "Monitor ",
+          "height": 0.7701727384614099
+        },
+        {
+          "node": "instance_3.001",
+          "material": "Monitor ",
+          "height": 0.785538739942341
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.5,
+      "right": 0.2,
+      "point": [
+        -2.2260106422509933,
+        2.649413809580224
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.5,
+      "right": 0.3,
+      "point": [
+        -2.3259447916442038,
+        2.64578534088731
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.6,
+      "right": -0.3,
+      "point": [
+        -1.729968363977855,
+        2.7674903024380066
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.6,
+      "right": -0.2,
+      "point": [
+        -1.8299025133710654,
+        2.7638618337450924
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.6,
+      "right": 0,
+      "point": [
+        -2.0297708121574867,
+        2.7566048963592635
+      ],
+      "hits": [
+        {
+          "node": "instance_3.001",
+          "material": "Monitor ",
+          "height": 0.7701727384614098
+        },
+        {
+          "node": "instance_3.001",
+          "material": "Monitor ",
+          "height": 0.785538739942341
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.6,
+      "right": 0.2,
+      "point": [
+        -2.229639110943908,
+        2.7493479589734346
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.6,
+      "right": 0.3,
+      "point": [
+        -2.3295732603371184,
+        2.7457194902805204
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.7,
+      "right": -0.3,
+      "point": [
+        -1.7335968326707691,
+        2.8674244518312175
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.7,
+      "right": -0.2,
+      "point": [
+        -1.8335309820639796,
+        2.8637959831383033
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.7,
+      "right": 0,
+      "point": [
+        -2.033399280850401,
+        2.8565390457524744
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966354
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.7,
+      "right": 0.2,
+      "point": [
+        -2.233267579636822,
+        2.8492821083666455
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.769976362587162
+        }
+      ]
+    },
+    {
+      "seat": 2,
+      "forward": 0.7,
+      "right": 0.3,
+      "point": [
+        -2.3332017290300326,
+        2.8456536396737313
+      ],
+      "hits": [
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_2.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.4,
+      "right": -0.3,
+      "point": [
+        2.8973898748209646,
+        0.8924934880540474
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.4,
+      "right": -0.2,
+      "point": [
+        2.883544131753801,
+        0.793456649458916
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.4,
+      "right": 0,
+      "point": [
+        2.8558526456194744,
+        0.5953829722686533
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.6719977432813025
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.4,
+      "right": 0.2,
+      "point": [
+        2.828161159485148,
+        0.39730929507839063
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.4,
+      "right": 0.3,
+      "point": [
+        2.814315416417984,
+        0.2982724564832593
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745747
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.5,
+      "right": -0.3,
+      "point": [
+        2.798353036225833,
+        0.9063392311212107
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.5,
+      "right": -0.2,
+      "point": [
+        2.7845072931586694,
+        0.8073023925260794
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.5,
+      "right": 0,
+      "point": [
+        2.756815807024343,
+        0.6092287153358167
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.5,
+      "right": 0.2,
+      "point": [
+        2.7291243208900164,
+        0.411155038145554
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.5,
+      "right": 0.3,
+      "point": [
+        2.7152785778228528,
+        0.31211819955042264
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.6,
+      "right": -0.3,
+      "point": [
+        2.699316197630702,
+        0.920184974188374
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745747
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.6,
+      "right": -0.2,
+      "point": [
+        2.6854704545635384,
+        0.8211481355932426
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745745
+        },
+        {
+          "node": "instance_2.001",
+          "material": "Monitor ",
+          "height": 0.7700578207062829
+        },
+        {
+          "node": "instance_2.001",
+          "material": "Monitor ",
+          "height": 0.7854238221872141
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.6,
+      "right": 0,
+      "point": [
+        2.657778968429212,
+        0.6230744584029799
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "instance_2.001",
+          "material": "Monitor ",
+          "height": 1.1230370940692889
+        },
+        {
+          "node": "instance_2.001",
+          "material": "Monitor ",
+          "height": 0.7700578207062829
+        },
+        {
+          "node": "instance_2.001",
+          "material": "Monitor ",
+          "height": 0.7854238221872141
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.6,
+      "right": 0.2,
+      "point": [
+        2.6300874822948854,
+        0.4250007812127172
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.6,
+      "right": 0.3,
+      "point": [
+        2.6162417392277217,
+        0.3259639426175859
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "instance_2.001",
+          "material": "Monitor ",
+          "height": 1.3298364644957434
+        },
+        {
+          "node": "instance_2.001",
+          "material": "Monitor ",
+          "height": 0.9142415662321951
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.7,
+      "right": -0.3,
+      "point": [
+        2.6002793590355706,
+        0.9340307172555373
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.7,
+      "right": -0.2,
+      "point": [
+        2.586433615968407,
+        0.834993878660406
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745747
+        },
+        {
+          "node": "instance_2.001",
+          "material": "Monitor ",
+          "height": 0.7700578207062829
+        },
+        {
+          "node": "instance_2.001",
+          "material": "Monitor ",
+          "height": 0.7854238221872141
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.7,
+      "right": 0,
+      "point": [
+        2.5587421298340804,
+        0.6369202014701433
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "instance_2.001",
+          "material": "Monitor ",
+          "height": 0.7700578207062829
+        },
+        {
+          "node": "instance_2.001",
+          "material": "Monitor ",
+          "height": 0.7854238221872141
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.7,
+      "right": 0.2,
+      "point": [
+        2.531050643699754,
+        0.4388465242798806
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 3,
+      "forward": 0.7,
+      "right": 0.3,
+      "point": [
+        2.5172049006325903,
+        0.33980968568474923
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.4,
+      "right": -0.3,
+      "point": [
+        2.199722710780268,
+        0.30148344820483897
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.4,
+      "right": -0.2,
+      "point": [
+        2.1807186337738615,
+        0.39966106814510116
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.4,
+      "right": 0,
+      "point": [
+        2.142710479761049,
+        0.5960163080256257
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "instance_4.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602556
+        },
+        {
+          "node": "instance_4.003",
+          "material": "Keyboard",
+          "height": 0.7798376589965768
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.4,
+      "right": 0.2,
+      "point": [
+        2.104702325748236,
+        0.7923715479061502
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.4,
+      "right": 0.3,
+      "point": [
+        2.0856982487418296,
+        0.8905491678464124
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.5,
+      "right": -0.3,
+      "point": [
+        2.2979003307205303,
+        0.32048752521124535
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.5,
+      "right": -0.2,
+      "point": [
+        2.278896253714124,
+        0.41866514515150755
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726668
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.5,
+      "right": 0,
+      "point": [
+        2.240888099701311,
+        0.615020385032032
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "instance_4.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602557
+        },
+        {
+          "node": "instance_4.003",
+          "material": "Keyboard",
+          "height": 0.786400383347618
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.5,
+      "right": 0.2,
+      "point": [
+        2.2028799456884984,
+        0.8113756249125565
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "instance_4.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602556
+        },
+        {
+          "node": "instance_4.003",
+          "material": "Keyboard",
+          "height": 0.7864003833476179
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.5,
+      "right": 0.3,
+      "point": [
+        2.183875868682092,
+        0.9095532448528187
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.6,
+      "right": -0.3,
+      "point": [
+        2.3960779506607928,
+        0.33949160221765184
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.6,
+      "right": -0.2,
+      "point": [
+        2.3770738736543864,
+        0.43766922215791404
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.6,
+      "right": 0,
+      "point": [
+        2.3390657196415736,
+        0.6340244620384385
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.6,
+      "right": 0.2,
+      "point": [
+        2.301057565628761,
+        0.830379701918963
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.6,
+      "right": 0.3,
+      "point": [
+        2.2820534886223545,
+        0.9285573218592252
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.7,
+      "right": -0.3,
+      "point": [
+        2.4942555706010547,
+        0.35849567922405823
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.7,
+      "right": -0.2,
+      "point": [
+        2.4752514935946484,
+        0.4566732991643204
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.7,
+      "right": 0,
+      "point": [
+        2.4372433395818356,
+        0.6530285390448449
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.7,
+      "right": 0.2,
+      "point": [
+        2.399235185569023,
+        0.8493837789253694
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 4,
+      "forward": 0.7,
+      "right": 0.3,
+      "point": [
+        2.3802311085626164,
+        0.9475613988656316
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.4,
+      "right": -0.3,
+      "point": [
+        -5.619,
+        -0.9650000000000001
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.4,
+      "right": -0.2,
+      "point": [
+        -5.619,
+        -0.865
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.4,
+      "right": 0,
+      "point": [
+        -5.619,
+        -0.665
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.4,
+      "right": 0.2,
+      "point": [
+        -5.619,
+        -0.465
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.4,
+      "right": 0.3,
+      "point": [
+        -5.619,
+        -0.36500000000000005
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.5,
+      "right": -0.3,
+      "point": [
+        -5.519,
+        -0.9650000000000001
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        },
+        {
+          "node": "Plane.031",
+          "material": "additional",
+          "height": 0.8271126897274428
+        },
+        {
+          "node": "Plane.031",
+          "material": "additional",
+          "height": 0.841261370206535
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.5,
+      "right": -0.2,
+      "point": [
+        -5.519,
+        -0.865
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.5,
+      "right": 0,
+      "point": [
+        -5.519,
+        -0.665
+      ],
+      "hits": [
+        {
+          "node": "Cube.047",
+          "material": "Book 1",
+          "height": 0.8434762906540385
+        },
+        {
+          "node": "Cube.047",
+          "material": "Book 1",
+          "height": 0.8325522829598384
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.5,
+      "right": 0.2,
+      "point": [
+        -5.519,
+        -0.465
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.5,
+      "right": 0.3,
+      "point": [
+        -5.519,
+        -0.36500000000000005
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.6,
+      "right": -0.3,
+      "point": [
+        -5.4190000000000005,
+        -0.9650000000000001
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396957
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.6,
+      "right": -0.2,
+      "point": [
+        -5.4190000000000005,
+        -0.865
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.6,
+      "right": 0,
+      "point": [
+        -5.4190000000000005,
+        -0.665
+      ],
+      "hits": [
+        {
+          "node": "Cube.047",
+          "material": "Book 1",
+          "height": 0.8434762906540385
+        },
+        {
+          "node": "Cube.047",
+          "material": "Book 1",
+          "height": 0.8325522829598384
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396957
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302223
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.6,
+      "right": 0.2,
+      "point": [
+        -5.4190000000000005,
+        -0.465
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.6,
+      "right": 0.3,
+      "point": [
+        -5.4190000000000005,
+        -0.36500000000000005
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.7,
+      "right": -0.3,
+      "point": [
+        -5.319,
+        -0.9650000000000001
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.827300235630222
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.7,
+      "right": -0.2,
+      "point": [
+        -5.319,
+        -0.865
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.827300235630222
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.7,
+      "right": 0,
+      "point": [
+        -5.319,
+        -0.665
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.7,
+      "right": 0.2,
+      "point": [
+        -5.319,
+        -0.465
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 5,
+      "forward": 0.7,
+      "right": 0.3,
+      "point": [
+        -5.319,
+        -0.36500000000000005
+      ],
+      "hits": [
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.7648533087396956
+        },
+        {
+          "node": "instance_4.002",
+          "material": "Table",
+          "height": 0.8273002356302221
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.4,
+      "right": -0.3,
+      "point": [
+        -0.5793992434979578,
+        -0.6571550233298165
+      ],
+      "hits": [
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.4,
+      "right": -0.2,
+      "point": [
+        -0.6792065305454321,
+        -0.6633602994899117
+      ],
+      "hits": [
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7708519403691065
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7794343631311607
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.4,
+      "right": 0,
+      "point": [
+        -0.878821104640381,
+        -0.6757708518101022
+      ],
+      "hits": [
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7708519745579098
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7798245074455118
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.4,
+      "right": 0.2,
+      "point": [
+        -1.0784356787353298,
+        -0.6881814041302927
+      ],
+      "hits": [
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.4,
+      "right": 0.3,
+      "point": [
+        -1.1782429657828042,
+        -0.694386680290388
+      ],
+      "hits": [
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.5,
+      "right": -0.3,
+      "point": [
+        -0.585604519658053,
+        -0.5573477362823421
+      ],
+      "hits": [
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7739297609270579
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7798244437632806
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871617
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.5,
+      "right": -0.2,
+      "point": [
+        -0.6854118067055274,
+        -0.5635530124424374
+      ],
+      "hits": [
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7708519279700804
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7778739102299428
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.5,
+      "right": 0,
+      "point": [
+        -0.8850263808004762,
+        -0.5759635647626279
+      ],
+      "hits": [
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7708519621588836
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7778739444187461
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871617
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.5,
+      "right": 0.2,
+      "point": [
+        -1.084640954895425,
+        -0.5883741170828184
+      ],
+      "hits": [
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.5,
+      "right": 0.3,
+      "point": [
+        -1.1844482419428994,
+        -0.5945793932429136
+      ],
+      "hits": [
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871617
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.6,
+      "right": -0.3,
+      "point": [
+        -0.5918097958181483,
+        -0.4575404492348677
+      ],
+      "hits": [
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7708518984766524
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.6,
+      "right": -0.2,
+      "point": [
+        -0.6916170828656226,
+        -0.46374572539496295
+      ],
+      "hits": [
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7708519155710543
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7798244484586562
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871617
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.6,
+      "right": 0,
+      "point": [
+        -0.8912316569605715,
+        -0.47615627771515345
+      ],
+      "hits": [
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7708519497598574
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7798244826474594
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.769976362587162
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.6,
+      "right": 0.2,
+      "point": [
+        -1.0908462310555203,
+        -0.48856683003534396
+      ],
+      "hits": [
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.6,
+      "right": 0.3,
+      "point": [
+        -1.1906535181029947,
+        -0.4947721061954392
+      ],
+      "hits": [
+        {
+          "node": "Circle.001",
+          "material": "mug plate",
+          "height": 0.7814022499628521
+        },
+        {
+          "node": "Circle.001",
+          "material": "mug plate",
+          "height": 0.7654317420415424
+        },
+        {
+          "node": "Cylinder.017",
+          "material": "Pen Holder",
+          "height": 0.7788026313179229
+        },
+        {
+          "node": "Cylinder.017",
+          "material": "Pen Holder",
+          "height": 0.8974871938809487
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.7,
+      "right": -0.3,
+      "point": [
+        -0.5980150719782436,
+        -0.35773316218739337
+      ],
+      "hits": [
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966352
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.7,
+      "right": -0.2,
+      "point": [
+        -0.6978223590257179,
+        -0.3639384383474886
+      ],
+      "hits": [
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.7,
+      "right": 0,
+      "point": [
+        -0.8974369331206667,
+        -0.37634899066767913
+      ],
+      "hits": [
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.7,
+      "right": 0.2,
+      "point": [
+        -1.0970515072156155,
+        -0.38875954298786963
+      ],
+      "hits": [
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871618
+        }
+      ]
+    },
+    {
+      "seat": 6,
+      "forward": 0.7,
+      "right": 0.3,
+      "point": [
+        -1.19685879426309,
+        -0.3949648191479649
+      ],
+      "hits": [
+        {
+          "node": "Circle.001",
+          "material": "mug plate",
+          "height": 0.7814022499628521
+        },
+        {
+          "node": "Circle.001",
+          "material": "mug plate",
+          "height": 0.7654317420415424
+        },
+        {
+          "node": "Cylinder.017",
+          "material": "Pen Holder",
+          "height": 0.778802631317923
+        },
+        {
+          "node": "Cylinder.017",
+          "material": "Pen Holder",
+          "height": 0.895783590012735
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7075294356966353
+        },
+        {
+          "node": "instance_3.002",
+          "material": "Table",
+          "height": 0.7699763625871617
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.4,
+      "right": -0.3,
+      "point": [
+        5.4664656833844045,
+        -1.0476228755853751
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745747
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.4,
+      "right": -0.2,
+      "point": [
+        5.366469461471936,
+        -1.0467536211736252
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.4,
+      "right": 0,
+      "point": [
+        5.166477017646999,
+        -1.045015112350126
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.4,
+      "right": 0.2,
+      "point": [
+        4.966484573822062,
+        -1.0432766035266265
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.4,
+      "right": 0.3,
+      "point": [
+        4.866488351909593,
+        -1.0424073491148766
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.5,
+      "right": -0.3,
+      "point": [
+        5.467334937796155,
+        -0.9476266536729064
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.5,
+      "right": -0.2,
+      "point": [
+        5.367338715883686,
+        -0.9467573992611568
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.5,
+      "right": 0,
+      "point": [
+        5.167346272058749,
+        -0.9450188904376573
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.5,
+      "right": 0.2,
+      "point": [
+        4.967353828233812,
+        -0.9432803816141578
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726668
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.5,
+      "right": 0.3,
+      "point": [
+        4.8673576063213435,
+        -0.9424111272024082
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.6,
+      "right": -0.3,
+      "point": [
+        5.468204192207904,
+        -0.847630431760438
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726666
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.6,
+      "right": -0.2,
+      "point": [
+        5.368207970295435,
+        -0.8467611773486883
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726668
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7708509797619572
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.779823512649559
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.6,
+      "right": 0,
+      "point": [
+        5.168215526470498,
+        -0.8450226685251888
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7708510121112713
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7798235449988732
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.6,
+      "right": 0.2,
+      "point": [
+        4.968223082645562,
+        -0.8432841597016894
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.6,
+      "right": 0.3,
+      "point": [
+        4.868226860733093,
+        -0.8424149052899397
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.7,
+      "right": -0.3,
+      "point": [
+        5.469073446619654,
+        -0.7476342098479695
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.7,
+      "right": -0.2,
+      "point": [
+        5.369077224707185,
+        -0.7467649554362198
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726668
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7708509661849587
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7778729484448211
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.7,
+      "right": 0,
+      "point": [
+        5.169084780882248,
+        -0.7450264466127203
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.770850998534273
+        },
+        {
+          "node": "model_1",
+          "material": "Lap Top",
+          "height": 0.7778729807941354
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.7,
+      "right": 0.2,
+      "point": [
+        4.969092337057312,
+        -0.7432879377892209
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 7,
+      "forward": 0.7,
+      "right": 0.3,
+      "point": [
+        4.869096115144843,
+        -0.7424186833774712
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "Plane.031",
+          "material": "additional",
+          "height": 0.7697733004174374
+        },
+        {
+          "node": "Plane.031",
+          "material": "additional",
+          "height": 0.7892858990470835
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.4,
+      "right": -0.3,
+      "point": [
+        2.444355225139785,
+        -2.78012113370516
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.4,
+      "right": -0.2,
+      "point": [
+        2.3444119795158365,
+        -2.7834897616381755
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.4,
+      "right": 0,
+      "point": [
+        2.144525488267939,
+        -2.790227017504206
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726666
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.4,
+      "right": 0.2,
+      "point": [
+        1.9446389970200422,
+        -2.7969642733702362
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.4,
+      "right": 0.3,
+      "point": [
+        1.8446957513960935,
+        -2.8003329013032516
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.5,
+      "right": -0.3,
+      "point": [
+        2.4409865972067695,
+        -2.6801778880812117
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.5,
+      "right": -0.2,
+      "point": [
+        2.341043351582821,
+        -2.683546516014227
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.5,
+      "right": 0,
+      "point": [
+        2.141156860334924,
+        -2.6902837718802575
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "instance_2.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602556
+        },
+        {
+          "node": "instance_2.003",
+          "material": "Keyboard",
+          "height": 0.7864003833476179
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.5,
+      "right": 0.2,
+      "point": [
+        1.9412703690870268,
+        -2.697021027746288
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "instance_2.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602557
+        },
+        {
+          "node": "instance_2.003",
+          "material": "Keyboard",
+          "height": 0.7864003833476179
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.5,
+      "right": 0.3,
+      "point": [
+        1.8413271234630781,
+        -2.7003896556793032
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.6,
+      "right": -0.3,
+      "point": [
+        2.4376179692737545,
+        -2.5802346424572633
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.6,
+      "right": -0.2,
+      "point": [
+        2.337674723649806,
+        -2.5836032703902783
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.6,
+      "right": 0,
+      "point": [
+        2.137788232401909,
+        -2.5903405262563086
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "instance_2.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602557
+        },
+        {
+          "node": "instance_2.003",
+          "material": "Keyboard",
+          "height": 0.7864003833476179
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.6,
+      "right": 0.2,
+      "point": [
+        1.9379017411540118,
+        -2.597077782122339
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        },
+        {
+          "node": "instance_2.003",
+          "material": "Keyboard",
+          "height": 0.7669115606602556
+        },
+        {
+          "node": "instance_2.003",
+          "material": "Keyboard",
+          "height": 0.7864003833476179
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.6,
+      "right": 0.3,
+      "point": [
+        1.8379584955300632,
+        -2.600446410055354
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.7,
+      "right": -0.3,
+      "point": [
+        2.4342493413407396,
+        -2.480291396833315
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.7,
+      "right": -0.2,
+      "point": [
+        2.334306095716791,
+        -2.48366002476633
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.7,
+      "right": 0,
+      "point": [
+        2.134419604468894,
+        -2.49039728063236
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.7,
+      "right": 0.2,
+      "point": [
+        1.9345331132209969,
+        -2.4971345364983906
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": 8,
+      "forward": 0.7,
+      "right": 0.3,
+      "point": [
+        1.8345898675970482,
+        -2.5005031644314055
+      ],
+      "hits": [
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7075087152726667
+        },
+        {
+          "node": "Cube.003",
+          "material": "Table",
+          "height": 0.7698694465745746
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.5,
+      "right": -0.3,
+      "point": [
+        -1.49,
+        5.58
+      ],
+      "hits": []
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.5,
+      "right": -0.2,
+      "point": [
+        -1.59,
+        5.58
+      ],
+      "hits": []
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.5,
+      "right": -0.1,
+      "point": [
+        -1.69,
+        5.58
+      ],
+      "hits": []
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.5,
+      "right": 0,
+      "point": [
+        -1.79,
+        5.58
+      ],
+      "hits": []
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.5,
+      "right": 0.1,
+      "point": [
+        -1.8900000000000001,
+        5.58
+      ],
+      "hits": []
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.5,
+      "right": 0.2,
+      "point": [
+        -1.99,
+        5.58
+      ],
+      "hits": []
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.5,
+      "right": 0.3,
+      "point": [
+        -2.09,
+        5.58
+      ],
+      "hits": []
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.55,
+      "right": -0.3,
+      "point": [
+        -1.49,
+        5.63
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.55,
+      "right": -0.2,
+      "point": [
+        -1.59,
+        5.63
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677057
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.55,
+      "right": -0.1,
+      "point": [
+        -1.69,
+        5.63
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.55,
+      "right": 0,
+      "point": [
+        -1.79,
+        5.63
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.55,
+      "right": 0.1,
+      "point": [
+        -1.8900000000000001,
+        5.63
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.55,
+      "right": 0.2,
+      "point": [
+        -1.99,
+        5.63
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677057
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.55,
+      "right": 0.3,
+      "point": [
+        -2.09,
+        5.63
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.6,
+      "right": -0.3,
+      "point": [
+        -1.49,
+        5.68
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677059
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426723
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.6,
+      "right": -0.2,
+      "point": [
+        -1.59,
+        5.68
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6550106991157931
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.6,
+      "right": -0.1,
+      "point": [
+        -1.69,
+        5.68
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6550106991157932
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677059
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.6,
+      "right": 0,
+      "point": [
+        -1.79,
+        5.68
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6550106991157931
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.6,
+      "right": 0.1,
+      "point": [
+        -1.8900000000000001,
+        5.68
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6550106991157931
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.6,
+      "right": 0.2,
+      "point": [
+        -1.99,
+        5.68
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6550106991157931
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426723
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.6,
+      "right": 0.3,
+      "point": [
+        -2.09,
+        5.68
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.65,
+      "right": -0.3,
+      "point": [
+        -1.49,
+        5.73
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677059
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.65,
+      "right": -0.2,
+      "point": [
+        -1.59,
+        5.73
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.65,
+      "right": -0.1,
+      "point": [
+        -1.69,
+        5.73
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.65,
+      "right": 0,
+      "point": [
+        -1.79,
+        5.73
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.65,
+      "right": 0.1,
+      "point": [
+        -1.8900000000000001,
+        5.73
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.65,
+      "right": 0.2,
+      "point": [
+        -1.99,
+        5.73
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.65,
+      "right": 0.3,
+      "point": [
+        -2.09,
+        5.73
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.7,
+      "right": -0.3,
+      "point": [
+        -1.49,
+        5.78
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677057
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677059
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426723
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080637
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.7,
+      "right": -0.2,
+      "point": [
+        -1.59,
+        5.78
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.7,
+      "right": -0.1,
+      "point": [
+        -1.69,
+        5.78
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426723
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.7,
+      "right": 0,
+      "point": [
+        -1.79,
+        5.78
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.7,
+      "right": 0.1,
+      "point": [
+        -1.8900000000000001,
+        5.78
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.7,
+      "right": 0.2,
+      "point": [
+        -1.99,
+        5.78
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.7,
+      "right": 0.3,
+      "point": [
+        -2.09,
+        5.78
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426723
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.8,
+      "right": -0.3,
+      "point": [
+        -1.49,
+        5.88
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677059
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 1.1592706141048197
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.8,
+      "right": -0.2,
+      "point": [
+        -1.59,
+        5.88
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852434
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 1.1592706141048197
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7996515229476735
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.8730606316453587
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.8,
+      "right": -0.1,
+      "point": [
+        -1.69,
+        5.88
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 1.1592706141048197
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.8,
+      "right": 0,
+      "point": [
+        -1.79,
+        5.88
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.930800339791471
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 1.1592706141048197
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.8,
+      "right": 0.1,
+      "point": [
+        -1.8900000000000001,
+        5.88
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.930800339791471
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 1.1592706141048197
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.8,
+      "right": 0.2,
+      "point": [
+        -1.99,
+        5.88
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426722
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.930800339791471
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 1.1592706141048197
+        }
+      ]
+    },
+    {
+      "seat": "coffee",
+      "forward": 0.8,
+      "right": 0.3,
+      "point": [
+        -2.09,
+        5.88
+      ],
+      "hits": [
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6615428655677058
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7029132578426721
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.6985584802080638
+        },
+        {
+          "node": "Cube.021",
+          "material": "coffee table",
+          "height": 0.7100675353852433
+        }
+      ]
+    }
+  ]
+}

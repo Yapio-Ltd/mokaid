@@ -1,4 +1,4 @@
-add_library(mokaid_engine STATIC src/scene.cpp src/office.cpp src/navigation.cpp)
+add_library(mokaid_engine STATIC src/scene.cpp src/office.cpp src/navigation.cpp src/traffic.cpp)
 target_include_directories(mokaid_engine PUBLIC include)
 target_compile_features(mokaid_engine PUBLIC cxx_std_20)
 if(MSVC)

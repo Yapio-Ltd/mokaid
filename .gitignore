@@ -83,6 +83,8 @@ assets/raw/developer/
 # Graphify (commit graph.json / GRAPH_REPORT.md; keep local cost/cache out)
 graphify-out/cost.json
 graphify-out/cache/
+graphify-out/.pending_changes
+graphify-out/.rebuild.lock
 apps/web/graphify-out/
 apps/api/graphify-out/
 
@@ -100,3 +102,9 @@ apps/web/src/three/graphify-out/
 # Terraform plan files (may embed sensitive values)
 *.tfplan
 infra/terraform/environments/*/tfplan
+
+# Regenerable native validation builds and downloaded shader SDKs.
+/artifacts/desktop-office-quality/screen-probe-build/
+/artifacts/desktop-office-quality/screens-assets/
+/artifacts/desktop-office-quality/screens-dxc-sdk/
+/artifacts/desktop-office-quality/screens-dxil/

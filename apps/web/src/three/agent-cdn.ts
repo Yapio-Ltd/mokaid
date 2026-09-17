@@ -6,7 +6,7 @@
 import { env } from "@/lib/env";
 
 /** Hashed filename matching assets/optimized + S3 upload + asset_3d seed. */
-export const DEFAULT_AVATAR_CDN_PATH = "/assets3d/avatar_male.342ae6ded162.glb";
+export const DEFAULT_AVATAR_CDN_PATH = "/assets3d/avatar_male.21ca01757e1a.glb";
 
 export function resolveAgentGlbUrl(cdnPath?: string | null): string {
   const path = (cdnPath && cdnPath.trim()) || DEFAULT_AVATAR_CDN_PATH;

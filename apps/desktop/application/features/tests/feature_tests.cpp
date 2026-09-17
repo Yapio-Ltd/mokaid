@@ -112,6 +112,33 @@ struct DriveFixture {
 class FeatureTests final : public QObject {
     Q_OBJECT
 private slots:
+    void richPresentationDataKeepsRealValuesAndFiltersNestedCredentials() {
+        LocalApi remote;
+        remote.handler=[](QTcpSocket* socket,const QString&) {
+            LocalApi::reply(socket,R"({"data":[{"id":"agent-a","display_name":"Avery","status":"idle","skills":[{"name":"Research","level":72,"api_key":"hidden"}],"avatar_config":{"primary_color":"violet","credential":"hidden"},"token_usage":42},{"id":"agent-b","display_name":"Orion","status":"active"}],"meta":{"counts":{"total":2},"access_token":"hidden"}})");
+        };
+        ApiClient api(remote.origin()); api.setSession("test-alice","alice",false); api.setWorkspace("workspace-a");
+        PhoenixClient realtime; SessionController session(api,realtime); QTemporaryDir directory;
+        CacheStore cache(directory.path()); FeatureController controller(api,session,cache);
+        controller.navigate("agents"); QTRY_COMPARE(controller.allRecords().size(),2);
+        const auto first=controller.allRecords().first().toMap();
+        QCOMPARE(first.value("_rowId").toString(),QString("agent-a"));
+        QCOMPARE(first.value("skills").toList().first().toMap().value("level").toInt(),72);
+        QVERIFY(!first.value("skills").toList().first().toMap().contains("api_key"));
+        QVERIFY(!first.value("avatar_config").toMap().contains("credential"));
+        QCOMPARE(first.value("token_usage").toInt(),42);
+        QCOMPARE(controller.overview().value("meta").toMap().value("counts").toMap().value("total").toInt(),2);
+        QVERIFY(!controller.overview().value("meta").toMap().contains("access_token"));
+        QSignalSpy changes(&controller,&FeatureController::changed);
+        controller.search("Research"); QCOMPARE(controller.visibleRecords().size(),1);
+        QCOMPARE(controller.visibleRecords().first().toMap().value("_rowId").toString(),QString("agent-a"));
+        controller.search("hidden"); QCOMPARE(controller.visibleRecords().size(),0);
+        controller.search("Orion");
+        QCOMPARE(controller.visibleRecords().size(),1); QCOMPARE(controller.allRecords().size(),2);
+        QCOMPARE(controller.visibleRecords().first().toMap().value("_rowId").toString(),QString("agent-b"));
+        QVERIFY(!changes.isEmpty());
+        QVERIFY(controller.selectedRecord().isEmpty());
+    }
     void actionFormContextCannotCrossFolderSelectionOrAccount() {
         DriveFixture f; auto& c=*f.controller;
         c.navigate("drive"); QTRY_VERIFY(!c.busy()); const auto rootContext=c.actionContext("create");
@@ -363,7 +390,8 @@ private slots:
         QTRY_COMPARE(QDir(f.directory.path()).entryList({".mokaid-download-*"},QDir::Files|QDir::Hidden).size(),0);
     }
     void catalogSecurityBoundaries() {
-        QCOMPARE(featureCatalog().size(),32);
+        QCOMPARE(featureCatalog().size(),31);
+        QVERIFY(findFeature("knowledge")==nullptr);
         QSet<QString> pages;
         int admin=0;
         for (const auto& feature : featureCatalog()) {
@@ -567,6 +595,37 @@ private slots:
         QCOMPARE(restored,fullText);
         QVERIFY(browser.canGoBack()); browser.goTo(0); QVERIFY(!browser.canGoBack());
         browser.enter(detailRow(browser,"latest_run")); browser.enter(detailRow(browser,"token_usage")); QCOMPARE(browser.rows()->rowCount(),2);
+    }
+    void deliverablesAreCuratedDeduplicatedAndSeparateFromInputs() {
+        DetailBrowser browser;
+        const QVariantMap report{{"id","report1"},{"name","Report.pdf"},{"mime_type","application/pdf"},
+            {"source","output"},{"access_token","never-visible"},{"storage_key","private-storage"}};
+        const QVariantMap input{{"id","input1"},{"name","Source.csv"},{"mime_type","text/csv"},{"source","input"}};
+        const QVariantMap image{{"drive_item_id","image1"},{"name","Hero.png"},{"mime_type","image/png"},
+            {"size_bytes",1024},{"credentials",QVariantMap{{"secret","hidden"}}}};
+        browser.setDocument({{"attachments",QVariantList{input,report}},
+            {"latest_run",QVariantMap{{"output",QVariantMap{{"files",QVariantList{report,image}}}}}},
+            {"metadata",QVariantMap{{"files",QVariantList{input}}}}},"task:1","Details","tasks");
+        const auto files=browser.deliverables(); QCOMPARE(files.size(),2);
+        QCOMPARE(files[0].toMap().value("id").toString(),QString("report1"));
+        QCOMPARE(files[1].toMap().value("id").toString(),QString("image1"));
+        QVERIFY(!files[0].toMap().contains("access_token")); QVERIFY(!files[0].toMap().contains("storage_key"));
+        QVERIFY(!files[1].toMap().contains("credentials"));
+        browser.setDocument(report,"drive:1","Details","drive"); QCOMPARE(browser.deliverables().size(),1);
+        browser.setDocument({{"id","folder1"},{"name","Folder"},{"kind","folder"},{"mime_type","application/octet-stream"}},"drive:2","Details","drive");
+        QVERIFY(browser.deliverables().isEmpty());
+        browser.setDocument({{"attachments",QVariantList{report}}},"admin:1","Details","admin-users");
+        QVERIFY(browser.deliverables().isEmpty());
+    }
+    void previewCollectionUsesVisibleFilesAndExcludesFoldersAndPrivateFields() {
+        RecordListModel records;
+        records.setRecords({QVariantMap{{"id","image1"},{"name","Hero.png"},{"mime_type","image/png"},{"secret","hidden"}},
+            QVariantMap{{"id","file2"},{"name","Report.pdf"},{"mime_type","application/pdf"}},
+            QVariantMap{{"id","folder1"},{"name","Hero sources"},{"kind","folder"},{"mime_type","application/octet-stream"}}});
+        QCOMPARE(records.previewFiles().size(),2);
+        records.setQuery("Hero"); const auto files=records.previewFiles(); QCOMPARE(files.size(),1);
+        QCOMPARE(files.first().toMap().value("id").toString(),QString("image1"));
+        QVERIFY(!files.first().toMap().contains("secret"));
     }
     void nestedSecretsAreNeverExposedAndTokenCountsRemainVisible() {
         DetailBrowser browser;

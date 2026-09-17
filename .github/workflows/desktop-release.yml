@@ -95,7 +95,7 @@ jobs:
           arch: clang_64
           aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@7e5a5c3d95cf962cfc2f36c86ffa0d2c07f1a0d4'
           py7zrversion: '==1.0.0'
-          modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets qtshadertools qtimageformats qttasktree'
+          modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets qtshadertools qtimageformats qttasktree qtmultimedia qtspeech'
           cache: true
       - run: python -m pip install cmake==4.1.0 ninja==1.13.0 conan==2.19.1 -r apps/desktop/distribution/requirements.txt
       - run: python -m unittest discover -s apps/desktop/distribution/tests -v
@@ -155,7 +155,7 @@ jobs:
           # Qt 6.11 now uses qt6_6112/qt6_6112_msvc2022_64 (host remains windows).
           aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@7e5a5c3d95cf962cfc2f36c86ffa0d2c07f1a0d4'
           py7zrversion: '==1.0.0'
-          modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets qtshadertools qtimageformats qttasktree'
+          modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets qtshadertools qtimageformats qttasktree qtmultimedia qtspeech'
           cache: true
       - run: python -m pip install cmake==4.1.0 ninja==1.13.0 conan==2.19.1 -r apps/desktop/distribution/requirements.txt
       - run: python -m unittest discover -s apps/desktop/distribution/tests -v

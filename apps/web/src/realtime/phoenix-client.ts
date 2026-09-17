@@ -1,4 +1,5 @@
 import { Socket, Channel, Presence } from "phoenix";
+import { browserCsrfToken } from "@/lib/browser-session";
 import { resolveWsUrl } from "@/lib/env";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -11,7 +12,11 @@ export function getSocket(): Socket | null {
 
   if (!socket) {
     socket = new Socket(resolveWsUrl(), {
-      params: { token },
+      params: () => {
+        const current = useAuthStore.getState().token;
+        const csrf = browserCsrfToken(current);
+        return csrf ? { _csrf_token: csrf } : { token: current };
+      },
       reconnectAfterMs: (tries: number) => Math.min(1000 * 2 ** tries, 10_000),
     });
     socket.connect();

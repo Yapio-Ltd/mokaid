@@ -1,0 +1,70 @@
+{
+  "fixture": {
+    "kind": "deterministic obstacle slalom, one actor",
+    "start": [
+      -5,
+      0,
+      -4
+    ],
+    "goal": [
+      5,
+      0,
+      4
+    ],
+    "obstacles": [
+      [
+        -3.2,
+        -2.4,
+        -6,
+        1.2
+      ],
+      [
+        -0.4,
+        0.4,
+        -1.2,
+        6
+      ],
+      [
+        2.4,
+        3.2,
+        -6,
+        1.2
+      ]
+    ],
+    "step_seconds": 0.016666666666666666,
+    "target_speed_mps": 0.9,
+    "body_radius_m": 0.35
+  },
+  "before": {
+    "arrival_seconds": 26.8,
+    "internal_stop_count": 6,
+    "stationary_rotation_seconds": 1.0,
+    "minimum_forward_velocity_dot": 0.951237,
+    "maximum_yaw_rate_rad_s": 2.8,
+    "samples_csv": "trajectory-before.csv"
+  },
+  "after": {
+    "arrival_seconds": 21.8333,
+    "internal_stop_count": 0,
+    "stationary_rotation_seconds": 0.0,
+    "minimum_forward_velocity_dot": 0.998885,
+    "maximum_yaw_rate_rad_s": 2.11927,
+    "samples_csv": "trajectory-after.csv"
+  },
+  "travel_time_reduction_percent": 18.532462686567165,
+  "validation": {
+    "native_suites_passed": [
+      "navigation",
+      "traffic",
+      "office_activities",
+      "real_navigation"
+    ],
+    "max_curve_step_distance_budget_error_m": 4.09188e-05,
+    "real_nine_agent_activity_return_seconds": 148.069,
+    "activity_step_two_fixed_ticks_process_cpu_ms": {
+      "p95": 26.526,
+      "max": 56.795
+    },
+    "socket_contract": "Original local polyline endpoints are visited exactly; authored timed smoothstep transitions remain unchanged."
+  }
+}

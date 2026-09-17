@@ -84,7 +84,7 @@ jobs:
           # Upstream Qt 6.11 Windows architecture-directory fix; not yet in aqt 3.3.0.
           aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@7e5a5c3d95cf962cfc2f36c86ffa0d2c07f1a0d4'
           py7zrversion: '==1.0.0'
-          modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets qtshadertools qtimageformats qttasktree'
+          modules: 'qtwebengine qtwebchannel qtpositioning qtwebsockets qtshadertools qtimageformats qttasktree qtmultimedia qtspeech'
           cache: true
       - run: python -m pip install cmake==4.1.0 ninja==1.13.0 conan==2.19.1 -r apps/desktop/distribution/requirements.txt
       - name: Build and test including native updater SDK

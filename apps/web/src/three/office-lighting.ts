@@ -91,11 +91,10 @@ export const OFFICE_WORLD = {
 } as const;
 
 export const OFFICE_BLOOM = {
-  // Bloom only for intentional emitters (neon / screens / lamps). Threshold
-  // high enough that white pots and wall art diffuse do not halo.
-  threshold: 0.82,
-  weight: 0.58,
-  kernel: 64,
+  // Emission-only GlowLayer settings (neon / screens / lamps). No luminance
+  // threshold: bright diffuse surfaces are never part of the emission mask.
+  weight: 0.20,
+  kernel: 40,
   scale: 0.5,
 } as const;
 

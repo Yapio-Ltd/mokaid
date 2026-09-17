@@ -36,7 +36,9 @@ class GraphicsProbe final : public QObject {
     Q_PROPERTY(QString assetRoot READ assetRoot CONSTANT)
     Q_PROPERTY(QVariantList fixtureAgents READ fixtureAgents CONSTANT)
     Q_PROPERTY(PreviewDocument* document READ document CONSTANT)
+    Q_PROPERTY(bool nativePreviewAvailable READ nativePreviewAvailable CONSTANT)
 public:
+    bool nativePreviewAvailable() const { return false; }
     GraphicsProbe(QString assets, QString output, QString machine, QByteArray fixture)
         : assets_(std::move(assets)), output_(std::move(output)), machine_(std::move(machine)),
           document_(std::make_unique<PreviewDocument>(QVariantMap{{"name", "graphics-fixture.html"},

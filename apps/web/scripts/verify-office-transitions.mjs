@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const base = process.env.MOKAID_WEB_URL || "http://127.0.0.1:5173";
 const out = fileURLToPath(new URL("../tmp-office-verify/", import.meta.url));
 mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, channel: process.env.MOKAID_BROWSER_CHANNEL });
 try {
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errors = [];

@@ -1,9 +1,13 @@
 #include <mokaid/application/office_controller.hpp>
 #include <mokaid/application/artifact_service.hpp>
 #include <mokaid/application/activity_controller.hpp>
+#include <mokaid/application/mission_controller.hpp>
+#include <mokaid/application/orchestrator_controller.hpp>
+#include <mokaid/voice/voice_controller.hpp>
 #include <mokaid/features/feature_controller.hpp>
 #include <mokaid/presentation/system_controller.hpp>
 #include <mokaid/presentation/frame_profiler.hpp>
+#include <mokaid/presentation/project_runtime.hpp>
 #include <mokaid/preview/preview_controller.hpp>
 #include <mokaid/updates/update_service.hpp>
 #include <native_viewport.hpp>
@@ -30,6 +34,7 @@ int main(int argc, char* argv[]) {
     if (QSettings().value("web/software", false).toBool())
         qputenv("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu --disable-gpu-compositing");
 #ifdef Q_OS_MACOS
+    if (qEnvironmentVariableIsEmpty("QT_MEDIA_BACKEND")) qputenv("QT_MEDIA_BACKEND", "darwin");
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Metal);
 #elif defined(Q_OS_WIN)
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Direct3D11);
@@ -57,15 +62,29 @@ int main(int argc, char* argv[]) {
     SessionController session(api, realtime, nullptr, QUrl(QStringLiteral(MOKAID_WEB_ORIGIN)));
     OfficeController office(api, session, realtime, cache);
     ActivityController activity(api, session, realtime, cache);
+    MissionController missions(api, session, realtime, activity);
+    OrchestratorController orchestrator(api, session, realtime, cache, missions);
+    VoiceController voice;
     FeatureController features(api, session, cache);
     ArtifactService artifacts(api, session, cache);
     PreviewController preview(artifacts);
     SystemController system(assets);
     FrameProfiler profiler;
+    ProjectRuntime projectRuntime;
     auto updates = mokaid::updates::createUpdateService();
     QObject::connect(&session, &SessionController::cleared, &preview, &PreviewController::clear);
     QObject::connect(&session, &SessionController::workspaceChanged, &preview, &PreviewController::clear);
+    QObject::connect(&session, &SessionController::cleared, &projectRuntime, &ProjectRuntime::clear);
+    QObject::connect(&session, &SessionController::workspaceChanged, &projectRuntime, &ProjectRuntime::clear);
+    QObject::connect(&session, &SessionController::cleared, &voice, &VoiceController::cancel);
+    QObject::connect(&session, &SessionController::workspaceChanged, &voice, &VoiceController::cancel);
+    QObject::connect(&orchestrator, &OrchestratorController::openTask, &features, [&features, &preview](const QString& id) { preview.setVisible(false); features.openRecord("tasks", id); });
+    QObject::connect(&missions, &MissionController::launched, &office, [&office](const QString&, const QString&) { office.refresh(); });
+    QObject::connect(&missions, &MissionController::launched, &features, [&features](const QString&, const QString&) { features.refresh(); });
     QObject::connect(&features, &FeatureController::openDelivery, &preview, &PreviewController::openFile);
+    QObject::connect(&preview, &PreviewController::downloadRequested, &features, [&features](const QVariantMap& file) {
+        static_cast<DriveDownload*>(features.driveDownload())->request(file);
+    });
     QObject::connect(&features, &FeatureController::requestExternal, &system, &SystemController::openBrowser);
     QObject::connect(&realtime, &PhoenixClient::rejoined, &features, &FeatureController::refresh);
     QObject::connect(&activity, &ActivityController::navigateRequested, &features, &FeatureController::openRecord);
@@ -73,7 +92,7 @@ int main(int argc, char* argv[]) {
     qmlRegisterUncreatableType<PreviewDocument>("Mokaid.Preview", 1, 0, "PreviewDocument", "Owned by PreviewController");
     QQmlApplicationEngine engine;
     for (const auto& entry : {std::pair{"session", static_cast<QObject*>(&session)}, {"office", &office},
-             {"features", &features}, {"activity", &activity}, {"preview", &preview}, {"system", &system}, {"profiler", &profiler}, {"updates", updates.get()}})
+             {"features", &features}, {"activity", &activity}, {"missions", &missions}, {"orchestrator", &orchestrator}, {"voice", &voice}, {"projectRuntime", &projectRuntime}, {"preview", &preview}, {"system", &system}, {"profiler", &profiler}, {"updates", updates.get()}})
         engine.rootContext()->setContextProperty(QString::fromLatin1(entry.first), entry.second);
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
     engine.loadFromModule("Mokaid.Desktop", "Main");

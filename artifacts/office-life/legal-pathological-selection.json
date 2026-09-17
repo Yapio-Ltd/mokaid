@@ -1,0 +1,2173 @@
+{
+  "source": "/Users/olimservice/mokaid/artifacts/avatar-life/avatar_legal.blend",
+  "source_sha256": "8f826c019208784efddc74ea566c7a43c29c12b8d815600b4dba82bbebff3b36",
+  "object": "char1",
+  "threshold": {
+    "ratio_greater_than": 10,
+    "growth_metres_greater_than": 0.05
+  },
+  "vertex_count": 13696,
+  "polygon_count": 21929,
+  "samples": [
+    {
+      "clip": "greeting",
+      "phase": 0.25,
+      "bad_edges": 5
+    },
+    {
+      "clip": "greeting",
+      "phase": 0.5,
+      "bad_edges": 9
+    },
+    {
+      "clip": "greeting",
+      "phase": 0.75,
+      "bad_edges": 5
+    },
+    {
+      "clip": "phone_call",
+      "phase": 0.25,
+      "bad_edges": 9
+    },
+    {
+      "clip": "phone_call",
+      "phase": 0.5,
+      "bad_edges": 9
+    },
+    {
+      "clip": "phone_call",
+      "phase": 0.75,
+      "bad_edges": 9
+    },
+    {
+      "clip": "talking_standing",
+      "phase": 0.25,
+      "bad_edges": 11
+    },
+    {
+      "clip": "talking_standing",
+      "phase": 0.5,
+      "bad_edges": 10
+    },
+    {
+      "clip": "talking_standing",
+      "phase": 0.75,
+      "bad_edges": 9
+    },
+    {
+      "clip": "typing",
+      "phase": 0.25,
+      "bad_edges": 5
+    },
+    {
+      "clip": "typing",
+      "phase": 0.5,
+      "bad_edges": 5
+    },
+    {
+      "clip": "typing",
+      "phase": 0.75,
+      "bad_edges": 4
+    }
+  ],
+  "selection": {
+    "polygon_indices": [
+      4751,
+      4752,
+      9734,
+      9735,
+      11896,
+      11897,
+      12127,
+      12128,
+      12247,
+      12248,
+      12249,
+      12250,
+      12251,
+      12858,
+      12859,
+      12860,
+      14898,
+      14900,
+      15208,
+      15707,
+      15837,
+      15838,
+      15839,
+      15876,
+      16278,
+      16281,
+      16381
+    ],
+    "edge_indices": [
+      2468,
+      3199,
+      6904,
+      7648,
+      12169,
+      15737,
+      18717,
+      19705,
+      20326,
+      24530,
+      24753,
+      24754,
+      25304,
+      29047,
+      33440,
+      35370,
+      35461,
+      35462
+    ],
+    "vertex_indices": [
+      3143,
+      3144,
+      3167,
+      3168,
+      3169,
+      3170,
+      6251,
+      6252,
+      7192,
+      7304,
+      7306,
+      7428,
+      7430,
+      7506,
+      7507,
+      7508,
+      7509,
+      7521,
+      7614,
+      7615,
+      7749,
+      7750,
+      7816,
+      7818,
+      7819,
+      7880,
+      7881,
+      7882,
+      7883,
+      8139,
+      8186,
+      8187,
+      8466,
+      9711,
+      9798,
+      9799,
+      9913,
+      9914,
+      9984,
+      9986,
+      9988,
+      10150,
+      10152,
+      10153,
+      10300
+    ]
+  },
+  "bounds_xyz": [
+    [
+      -0.20160044729709625,
+      0.1880623996257782
+    ],
+    [
+      -0.07788434624671936,
+      0.13895313441753387
+    ],
+    [
+      0.616672694683075,
+      0.8842701315879822
+    ]
+  ],
+  "face_class_counts": {
+    "arm-hand": 8,
+    "arm-leg": 6,
+    "arm-leg-pelvis": 2,
+    "leg-pelvis": 6,
+    "arm": 4,
+    "leg": 1
+  },
+  "vertices": [
+    {
+      "index": 3143,
+      "rest": [
+        -0.20160044729709625,
+        0.030484091490507126,
+        0.708121120929718
+      ],
+      "dominant_bone": "RightHand",
+      "bone_class": "hand",
+      "weights": {
+        "RightHand": 1.0
+      }
+    },
+    {
+      "index": 3144,
+      "rest": [
+        -0.19817614555358887,
+        0.03390836343169212,
+        0.7284653782844543
+      ],
+      "dominant_bone": "RightHand",
+      "bone_class": "hand",
+      "weights": {
+        "RightHand": 1.0
+      }
+    },
+    {
+      "index": 3167,
+      "rest": [
+        -0.1948525607585907,
+        0.04408048465847969,
+        0.6877768039703369
+      ],
+      "dominant_bone": "RightHand",
+      "bone_class": "hand",
+      "weights": {
+        "RightHand": 1.0
+      }
+    },
+    {
+      "index": 3168,
+      "rest": [
+        -0.1914282888174057,
+        0.04408048838376999,
+        0.708121120929718
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 1.0
+      }
+    },
+    {
+      "index": 3169,
+      "rest": [
+        -0.19485259056091309,
+        0.04065621644258499,
+        0.7284653782844543
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 1.0
+      }
+    },
+    {
+      "index": 3170,
+      "rest": [
+        -0.19817617535591125,
+        0.0372319370508194,
+        0.7488096952438354
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 1.0
+      }
+    },
+    {
+      "index": 6251,
+      "rest": [
+        -0.1846804916858673,
+        0.04740406945347786,
+        0.7081211805343628
+      ],
+      "dominant_bone": "RightHand",
+      "bone_class": "hand",
+      "weights": {
+        "RightHand": 1.0
+      }
+    },
+    {
+      "index": 6252,
+      "rest": [
+        -0.1880040317773819,
+        0.047404054552316666,
+        0.7284653186798096
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 1.0
+      }
+    },
+    {
+      "index": 7192,
+      "rest": [
+        -0.1270720213651657,
+        0.08466830104589462,
+        0.6674326062202454
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 0.4301261305809021,
+        "RightHand": 0.3057469427585602,
+        "Hips": 0.21147941052913666,
+        "RightUpLeg": 0.05264752358198166
+      }
+    },
+    {
+      "index": 7304,
+      "rest": [
+        0.17446599900722504,
+        -0.06096433848142624,
+        0.616672933101654
+      ],
+      "dominant_bone": "grip_thumb.l",
+      "bone_class": "hand",
+      "weights": {
+        "grip_thumb.l": 1.0
+      }
+    },
+    {
+      "index": 7306,
+      "rest": [
+        0.16429385542869568,
+        -0.06096433475613594,
+        0.616672933101654
+      ],
+      "dominant_bone": "LeftForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "LeftForeArm": 1.0
+      }
+    },
+    {
+      "index": 7428,
+      "rest": [
+        -0.1643362194299698,
+        -0.060964349657297134,
+        0.6166727542877197
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 1.0
+      }
+    },
+    {
+      "index": 7430,
+      "rest": [
+        -0.17450831830501556,
+        -0.060964349657297134,
+        0.616672694683075
+      ],
+      "dominant_bone": "grip_thumb.r",
+      "bone_class": "hand",
+      "weights": {
+        "grip_thumb.r": 1.0
+      }
+    },
+    {
+      "index": 7506,
+      "rest": [
+        -0.12364773452281952,
+        0.09151685237884521,
+        0.6470884084701538
+      ],
+      "dominant_bone": "RightUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "RightUpLeg": 0.5852522850036621,
+        "Hips": 0.2287803739309311,
+        "LeftUpLeg": 0.145274817943573,
+        "RightLeg": 0.04069250449538231
+      }
+    },
+    {
+      "index": 7507,
+      "rest": [
+        -0.11689990013837814,
+        0.09826470166444778,
+        0.6708568334579468
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 0.34997203946113586,
+        "RightHand": 0.3171865940093994,
+        "Hips": 0.29477185010910034,
+        "RightUpLeg": 0.038069505244493484
+      }
+    },
+    {
+      "index": 7508,
+      "rest": [
+        -0.10330351442098618,
+        0.11176040768623352,
+        0.6674326658248901
+      ],
+      "dominant_bone": "Hips",
+      "bone_class": "pelvis",
+      "weights": {
+        "Hips": 0.39081835746765137,
+        "RightHand": 0.3669319152832031,
+        "RightForeArm": 0.19760608673095703,
+        "RightUpLeg": 0.04464367777109146
+      }
+    },
+    {
+      "index": 7509,
+      "rest": [
+        -0.07963569462299347,
+        0.12878108024597168,
+        0.6641090512275696
+      ],
+      "dominant_bone": "Hips",
+      "bone_class": "pelvis",
+      "weights": {
+        "Hips": 0.4950462281703949,
+        "RightHand": 0.3665761649608612,
+        "LeftHand": 0.07025598734617233,
+        "RightUpLeg": 0.06812162697315216
+      }
+    },
+    {
+      "index": 7521,
+      "rest": [
+        0.12028181552886963,
+        0.09151683747768402,
+        0.6945250034332275
+      ],
+      "dominant_bone": "LeftForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "LeftForeArm": 0.45012688636779785,
+        "Hips": 0.3175424039363861,
+        "LeftHand": 0.13253170251846313,
+        "LeftUpLeg": 0.09979903697967529
+      }
+    },
+    {
+      "index": 7614,
+      "rest": [
+        0.1880623996257782,
+        -0.06096433848142624,
+        0.6199964284896851
+      ],
+      "dominant_bone": "LeftForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "LeftForeArm": 1.0
+      }
+    },
+    {
+      "index": 7615,
+      "rest": [
+        0.17446599900722504,
+        -0.06096433475613594,
+        0.6199964880943298
+      ],
+      "dominant_bone": "LeftForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "LeftForeArm": 1.0
+      }
+    },
+    {
+      "index": 7749,
+      "rest": [
+        -0.17450831830501556,
+        -0.060964349657297134,
+        0.6199963092803955
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 1.0
+      }
+    },
+    {
+      "index": 7750,
+      "rest": [
+        -0.1880040466785431,
+        -0.060964345932006836,
+        0.6199962496757507
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 1.0
+      }
+    },
+    {
+      "index": 7816,
+      "rest": [
+        -0.11347562819719315,
+        0.10501256585121155,
+        0.6437647938728333
+      ],
+      "dominant_bone": "RightUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "RightUpLeg": 0.5534967184066772,
+        "Hips": 0.24062402546405792,
+        "LeftUpLeg": 0.16223403811454773,
+        "RightLeg": 0.04364525154232979
+      }
+    },
+    {
+      "index": 7818,
+      "rest": [
+        -0.09655564278364182,
+        0.12193252146244049,
+        0.6403403878211975
+      ],
+      "dominant_bone": "RightUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "RightUpLeg": 0.5089459419250488,
+        "Hips": 0.2564389705657959,
+        "LeftUpLeg": 0.1881537139415741,
+        "RightLeg": 0.04646136611700058
+      }
+    },
+    {
+      "index": 7819,
+      "rest": [
+        -0.0694635733962059,
+        0.13552896678447723,
+        0.6301684975624084
+      ],
+      "dominant_bone": "RightUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "RightUpLeg": 0.461261123418808,
+        "Hips": 0.2617030143737793,
+        "LeftUpLeg": 0.22650708258152008,
+        "RightLeg": 0.050528787076473236
+      }
+    },
+    {
+      "index": 7880,
+      "rest": [
+        0.05924908071756363,
+        0.13895313441753387,
+        0.6539369821548462
+      ],
+      "dominant_bone": "LeftUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "LeftUpLeg": 0.4329220950603485,
+        "Hips": 0.2935555577278137,
+        "RightUpLeg": 0.23765258491039276,
+        "LeftLeg": 0.03586976230144501
+      }
+    },
+    {
+      "index": 7881,
+      "rest": [
+        0.08644187450408936,
+        0.12535670399665833,
+        0.6641092300415039
+      ],
+      "dominant_bone": "Hips",
+      "bone_class": "pelvis",
+      "weights": {
+        "Hips": 0.42977041006088257,
+        "LeftHand": 0.23033292591571808,
+        "LeftForeArm": 0.1753731667995453,
+        "LeftUpLeg": 0.16452351212501526
+      }
+    },
+    {
+      "index": 7882,
+      "rest": [
+        0.11010967195034027,
+        0.10501246899366379,
+        0.6708570718765259
+      ],
+      "dominant_bone": "Hips",
+      "bone_class": "pelvis",
+      "weights": {
+        "Hips": 0.3341394066810608,
+        "LeftForeArm": 0.3095371127128601,
+        "LeftHand": 0.21756546199321747,
+        "LeftUpLeg": 0.13875801861286163
+      }
+    },
+    {
+      "index": 7883,
+      "rest": [
+        0.1270296573638916,
+        0.08466825634241104,
+        0.6708571314811707
+      ],
+      "dominant_bone": "LeftForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "LeftForeArm": 0.42880484461784363,
+        "Hips": 0.23704954981803894,
+        "LeftHand": 0.22300085425376892,
+        "LeftUpLeg": 0.11114475876092911
+      }
+    },
+    {
+      "index": 8139,
+      "rest": [
+        -0.12364773452281952,
+        0.09484042972326279,
+        0.6234205365180969
+      ],
+      "dominant_bone": "RightUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "RightUpLeg": 0.5901861786842346,
+        "Hips": 0.20180153846740723,
+        "LeftUpLeg": 0.15125389397144318,
+        "RightLeg": 0.056758370250463486
+      }
+    },
+    {
+      "index": 8186,
+      "rest": [
+        0.0999375507235527,
+        0.11518458276987076,
+        0.6437650322914124
+      ],
+      "dominant_bone": "LeftUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "LeftUpLeg": 0.5335016846656799,
+        "Hips": 0.24251139163970947,
+        "RightUpLeg": 0.18274356424808502,
+        "LeftLeg": 0.041243381798267365
+      }
+    },
+    {
+      "index": 8187,
+      "rest": [
+        0.12028180807828903,
+        0.09484036266803741,
+        0.6505129337310791
+      ],
+      "dominant_bone": "LeftUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "LeftUpLeg": 0.5907095074653625,
+        "Hips": 0.22230981290340424,
+        "RightUpLeg": 0.15027543902397156,
+        "LeftLeg": 0.036705225706100464
+      }
+    },
+    {
+      "index": 8466,
+      "rest": [
+        0.1270296573638916,
+        0.08809252828359604,
+        0.6301686763763428
+      ],
+      "dominant_bone": "LeftUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "LeftUpLeg": 0.6210303902626038,
+        "Hips": 0.18777409195899963,
+        "RightUpLeg": 0.14346058666706085,
+        "LeftLeg": 0.047734905034303665
+      }
+    },
+    {
+      "index": 9711,
+      "rest": [
+        0.13720177114009857,
+        -0.03729653358459473,
+        0.8639262318611145
+      ],
+      "dominant_bone": "LeftArm",
+      "bone_class": "arm",
+      "weights": {
+        "LeftArm": 0.5082080960273743,
+        "Spine02": 0.17875255644321442,
+        "Hips": 0.16861435770988464,
+        "LeftForeArm": 0.1444249451160431
+      }
+    },
+    {
+      "index": 9798,
+      "rest": [
+        -0.13724416494369507,
+        -0.03729652985930443,
+        0.8639258146286011
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 1.0
+      }
+    },
+    {
+      "index": 9799,
+      "rest": [
+        -0.13724417984485626,
+        -0.03729652985930443,
+        0.8436824679374695
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 1.0
+      }
+    },
+    {
+      "index": 9913,
+      "rest": [
+        0.13720177114009857,
+        -0.03729653358459473,
+        0.8436825275421143
+      ],
+      "dominant_bone": "LeftForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "LeftForeArm": 1.0
+      }
+    },
+    {
+      "index": 9914,
+      "rest": [
+        0.1304539293050766,
+        -0.03729653358459473,
+        0.843682587146759
+      ],
+      "dominant_bone": "LeftArm",
+      "bone_class": "arm",
+      "weights": {
+        "LeftArm": 0.3733213543891907,
+        "Hips": 0.2390056997537613,
+        "LeftForeArm": 0.2224673628807068,
+        "Spine02": 0.16520558297634125
+      }
+    },
+    {
+      "index": 9984,
+      "rest": [
+        -0.13039562106132507,
+        -0.03387224301695824,
+        0.8842701315879822
+      ],
+      "dominant_bone": "RightArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightArm": 0.6190168857574463,
+        "Spine02": 0.18088693916797638,
+        "Hips": 0.12219205498695374,
+        "Spine01": 0.0779041051864624
+      }
+    },
+    {
+      "index": 9986,
+      "rest": [
+        -0.13039560616016388,
+        -0.03387224301695824,
+        0.8639258146286011
+      ],
+      "dominant_bone": "RightArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightArm": 0.5112317800521851,
+        "Spine02": 0.16612428426742554,
+        "Hips": 0.16505710780620575,
+        "RightForeArm": 0.15758684277534485
+      }
+    },
+    {
+      "index": 9988,
+      "rest": [
+        -0.13039559125900269,
+        -0.03729652613401413,
+        0.8436822891235352
+      ],
+      "dominant_bone": "RightArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightArm": 0.3688289225101471,
+        "RightForeArm": 0.28783395886421204,
+        "Hips": 0.20635807514190674,
+        "Spine02": 0.13697907328605652
+      }
+    },
+    {
+      "index": 10150,
+      "rest": [
+        -0.13039560616016388,
+        -0.060964345932006836,
+        0.7046968936920166
+      ],
+      "dominant_bone": "RightForeArm",
+      "bone_class": "arm",
+      "weights": {
+        "RightForeArm": 0.4340391457080841,
+        "RightUpLeg": 0.28191325068473816,
+        "Hips": 0.2586131691932678,
+        "RightHand": 0.025434445589780807
+      }
+    },
+    {
+      "index": 10152,
+      "rest": [
+        -0.1270720511674881,
+        -0.06438864022493362,
+        0.6606848835945129
+      ],
+      "dominant_bone": "RightUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "RightUpLeg": 0.4836629629135132,
+        "RightForeArm": 0.2822690010070801,
+        "Hips": 0.12468213587999344,
+        "RightHand": 0.1093858927488327
+      }
+    },
+    {
+      "index": 10153,
+      "rest": [
+        -0.1270720511674881,
+        -0.0677122101187706,
+        0.6403405666351318
+      ],
+      "dominant_bone": "RightUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "RightUpLeg": 0.8518844842910767,
+        "Hips": 0.0748157724738121,
+        "LeftUpLeg": 0.05397557467222214,
+        "RightLeg": 0.01932414248585701
+      }
+    },
+    {
+      "index": 10300,
+      "rest": [
+        -0.11347564309835434,
+        -0.07788434624671936,
+        0.6606848835945129
+      ],
+      "dominant_bone": "RightUpLeg",
+      "bone_class": "leg",
+      "weights": {
+        "RightUpLeg": 0.5836220979690552,
+        "RightForeArm": 0.1983175277709961,
+        "Hips": 0.1588318943977356,
+        "RightHand": 0.05922846496105194
+      }
+    }
+  ],
+  "faces": [
+    {
+      "polygon_index": 4751,
+      "vertices": [
+        3143,
+        3144,
+        3169
+      ],
+      "dominant_classes": [
+        "hand",
+        "hand",
+        "arm"
+      ],
+      "dominant_bones": [
+        "RightHand",
+        "RightHand",
+        "RightForeArm"
+      ]
+    },
+    {
+      "polygon_index": 4752,
+      "vertices": [
+        3144,
+        3170,
+        3169
+      ],
+      "dominant_classes": [
+        "hand",
+        "arm",
+        "arm"
+      ],
+      "dominant_bones": [
+        "RightHand",
+        "RightForeArm",
+        "RightForeArm"
+      ]
+    },
+    {
+      "polygon_index": 9734,
+      "vertices": [
+        3167,
+        3168,
+        6251
+      ],
+      "dominant_classes": [
+        "hand",
+        "arm",
+        "hand"
+      ],
+      "dominant_bones": [
+        "RightHand",
+        "RightForeArm",
+        "RightHand"
+      ]
+    },
+    {
+      "polygon_index": 9735,
+      "vertices": [
+        6251,
+        3168,
+        6252
+      ],
+      "dominant_classes": [
+        "hand",
+        "arm",
+        "arm"
+      ],
+      "dominant_bones": [
+        "RightHand",
+        "RightForeArm",
+        "RightForeArm"
+      ]
+    },
+    {
+      "polygon_index": 11896,
+      "vertices": [
+        7614,
+        7304,
+        7615
+      ],
+      "dominant_classes": [
+        "arm",
+        "hand",
+        "arm"
+      ],
+      "dominant_bones": [
+        "LeftForeArm",
+        "grip_thumb.l",
+        "LeftForeArm"
+      ]
+    },
+    {
+      "polygon_index": 11897,
+      "vertices": [
+        7304,
+        7306,
+        7615
+      ],
+      "dominant_classes": [
+        "hand",
+        "arm",
+        "arm"
+      ],
+      "dominant_bones": [
+        "grip_thumb.l",
+        "LeftForeArm",
+        "LeftForeArm"
+      ]
+    },
+    {
+      "polygon_index": 12127,
+      "vertices": [
+        7428,
+        7749,
+        7430
+      ],
+      "dominant_classes": [
+        "arm",
+        "arm",
+        "hand"
+      ],
+      "dominant_bones": [
+        "RightForeArm",
+        "RightForeArm",
+        "grip_thumb.r"
+      ]
+    },
+    {
+      "polygon_index": 12128,
+      "vertices": [
+        7749,
+        7750,
+        7430
+      ],
+      "dominant_classes": [
+        "arm",
+        "arm",
+        "hand"
+      ],
+      "dominant_bones": [
+        "RightForeArm",
+        "RightForeArm",
+        "grip_thumb.r"
+      ]
+    },
+    {
+      "polygon_index": 12247,
+      "vertices": [
+        7506,
+        7507,
+        7816
+      ],
+      "dominant_classes": [
+        "leg",
+        "arm",
+        "leg"
+      ],
+      "dominant_bones": [
+        "RightUpLeg",
+        "RightForeArm",
+        "RightUpLeg"
+      ]
+    },
+    {
+      "polygon_index": 12248,
+      "vertices": [
+        7507,
+        7816,
+        7508
+      ],
+      "dominant_classes": [
+        "arm",
+        "leg",
+        "pelvis"
+      ],
+      "dominant_bones": [
+        "RightForeArm",
+        "RightUpLeg",
+        "Hips"
+      ]
+    },
+    {
+      "polygon_index": 12249,
+      "vertices": [
+        7508,
+        7816,
+        7509
+      ],
+      "dominant_classes": [
+        "pelvis",
+        "leg",
+        "pelvis"
+      ],
+      "dominant_bones": [
+        "Hips",
+        "RightUpLeg",
+        "Hips"
+      ]
+    },
+    {
+      "polygon_index": 12250,
+      "vertices": [
+        7816,
+        7818,
+        7509
+      ],
+      "dominant_classes": [
+        "leg",
+        "leg",
+        "pelvis"
+      ],
+      "dominant_bones": [
+        "RightUpLeg",
+        "RightUpLeg",
+        "Hips"
+      ]
+    },
+    {
+      "polygon_index": 12251,
+      "vertices": [
+        7818,
+        7819,
+        7509
+      ],
+      "dominant_classes": [
+        "leg",
+        "leg",
+        "pelvis"
+      ],
+      "dominant_bones": [
+        "RightUpLeg",
+        "RightUpLeg",
+        "Hips"
+      ]
+    },
+    {
+      "polygon_index": 12858,
+      "vertices": [
+        7880,
+        8186,
+        7881
+      ],
+      "dominant_classes": [
+        "leg",
+        "leg",
+        "pelvis"
+      ],
+      "dominant_bones": [
+        "LeftUpLeg",
+        "LeftUpLeg",
+        "Hips"
+      ]
+    },
+    {
+      "polygon_index": 12859,
+      "vertices": [
+        7881,
+        8186,
+        7882
+      ],
+      "dominant_classes": [
+        "pelvis",
+        "leg",
+        "pelvis"
+      ],
+      "dominant_bones": [
+        "Hips",
+        "LeftUpLeg",
+        "Hips"
+      ]
+    },
+    {
+      "polygon_index": 12860,
+      "vertices": [
+        8186,
+        8187,
+        7882
+      ],
+      "dominant_classes": [
+        "leg",
+        "leg",
+        "pelvis"
+      ],
+      "dominant_bones": [
+        "LeftUpLeg",
+        "LeftUpLeg",
+        "Hips"
+      ]
+    },
+    {
+      "polygon_index": 14898,
+      "vertices": [
+        7521,
+        7883,
+        8466
+      ],
+      "dominant_classes": [
+        "arm",
+        "arm",
+        "leg"
+      ],
+      "dominant_bones": [
+        "LeftForeArm",
+        "LeftForeArm",
+        "LeftUpLeg"
+      ]
+    },
+    {
+      "polygon_index": 14900,
+      "vertices": [
+        7883,
+        8187,
+        8466
+      ],
+      "dominant_classes": [
+        "arm",
+        "leg",
+        "leg"
+      ],
+      "dominant_bones": [
+        "LeftForeArm",
+        "LeftUpLeg",
+        "LeftUpLeg"
+      ]
+    },
+    {
+      "polygon_index": 15208,
+      "vertices": [
+        7883,
+        7882,
+        8187
+      ],
+      "dominant_classes": [
+        "arm",
+        "pelvis",
+        "leg"
+      ],
+      "dominant_bones": [
+        "LeftForeArm",
+        "Hips",
+        "LeftUpLeg"
+      ]
+    },
+    {
+      "polygon_index": 15707,
+      "vertices": [
+        9913,
+        9711,
+        9914
+      ],
+      "dominant_classes": [
+        "arm",
+        "arm",
+        "arm"
+      ],
+      "dominant_bones": [
+        "LeftForeArm",
+        "LeftArm",
+        "LeftArm"
+      ]
+    },
+    {
+      "polygon_index": 15837,
+      "vertices": [
+        9984,
+        9986,
+        9798
+      ],
+      "dominant_classes": [
+        "arm",
+        "arm",
+        "arm"
+      ],
+      "dominant_bones": [
+        "RightArm",
+        "RightArm",
+        "RightForeArm"
+      ]
+    },
+    {
+      "polygon_index": 15838,
+      "vertices": [
+        9986,
+        9988,
+        9798
+      ],
+      "dominant_classes": [
+        "arm",
+        "arm",
+        "arm"
+      ],
+      "dominant_bones": [
+        "RightArm",
+        "RightArm",
+        "RightForeArm"
+      ]
+    },
+    {
+      "polygon_index": 15839,
+      "vertices": [
+        9798,
+        9988,
+        9799
+      ],
+      "dominant_classes": [
+        "arm",
+        "arm",
+        "arm"
+      ],
+      "dominant_bones": [
+        "RightForeArm",
+        "RightArm",
+        "RightForeArm"
+      ]
+    },
+    {
+      "polygon_index": 15876,
+      "vertices": [
+        8139,
+        7507,
+        7192
+      ],
+      "dominant_classes": [
+        "leg",
+        "arm",
+        "arm"
+      ],
+      "dominant_bones": [
+        "RightUpLeg",
+        "RightForeArm",
+        "RightForeArm"
+      ]
+    },
+    {
+      "polygon_index": 16278,
+      "vertices": [
+        7507,
+        8139,
+        7816
+      ],
+      "dominant_classes": [
+        "arm",
+        "leg",
+        "leg"
+      ],
+      "dominant_bones": [
+        "RightForeArm",
+        "RightUpLeg",
+        "RightUpLeg"
+      ]
+    },
+    {
+      "polygon_index": 16281,
+      "vertices": [
+        10150,
+        10152,
+        10153
+      ],
+      "dominant_classes": [
+        "arm",
+        "leg",
+        "leg"
+      ],
+      "dominant_bones": [
+        "RightForeArm",
+        "RightUpLeg",
+        "RightUpLeg"
+      ]
+    },
+    {
+      "polygon_index": 16381,
+      "vertices": [
+        10152,
+        10300,
+        10153
+      ],
+      "dominant_classes": [
+        "leg",
+        "leg",
+        "leg"
+      ],
+      "dominant_bones": [
+        "RightUpLeg",
+        "RightUpLeg",
+        "RightUpLeg"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "edge_index": 18717,
+      "vertices": [
+        3144,
+        3169
+      ],
+      "polygon_indices": [
+        4751,
+        4752
+      ],
+      "rest_length": 0.007521937182503608,
+      "max_ratio": 12.04170010879942,
+      "max_posed_length": 0.0905769117889361,
+      "samples": [
+        {
+          "clip": "greeting",
+          "phase": 0.25,
+          "ratio": 12.04170010879942,
+          "posed_length": 0.0905769117889361
+        },
+        {
+          "clip": "greeting",
+          "phase": 0.5,
+          "ratio": 10.034883850548955,
+          "posed_length": 0.07548176595754916
+        },
+        {
+          "clip": "greeting",
+          "phase": 0.75,
+          "ratio": 12.041690060237633,
+          "posed_length": 0.09057683620428555
+        }
+      ]
+    },
+    {
+      "edge_index": 19705,
+      "vertices": [
+        3168,
+        6251
+      ],
+      "polygon_indices": [
+        9734,
+        9735
+      ],
+      "rest_length": 0.007521898430248789,
+      "max_ratio": 10.21640416859063,
+      "max_posed_length": 0.07684675447850904,
+      "samples": [
+        {
+          "clip": "greeting",
+          "phase": 0.25,
+          "ratio": 10.21640416859063,
+          "posed_length": 0.07684675447850904
+        },
+        {
+          "clip": "greeting",
+          "phase": 0.75,
+          "ratio": 10.216397792955584,
+          "posed_length": 0.0768467065216298
+        }
+      ]
+    },
+    {
+      "edge_index": 15737,
+      "vertices": [
+        7304,
+        7615
+      ],
+      "polygon_indices": [
+        11896,
+        11897
+      ],
+      "rest_length": 0.003323554992677869,
+      "max_ratio": 18.07988366132946,
+      "max_posed_length": 0.06008948760964656,
+      "samples": [
+        {
+          "clip": "greeting",
+          "phase": 0.25,
+          "ratio": 18.0798423104121,
+          "posed_length": 0.06008935017759871
+        },
+        {
+          "clip": "greeting",
+          "phase": 0.5,
+          "ratio": 18.079828775708034,
+          "posed_length": 0.06008930519426544
+        },
+        {
+          "clip": "greeting",
+          "phase": 0.75,
+          "ratio": 18.07988366132946,
+          "posed_length": 0.06008948760964656
+        },
+        {
+          "clip": "typing",
+          "phase": 0.25,
+          "ratio": 16.30284598549422,
+          "posed_length": 0.05418340516994767
+        },
+        {
+          "clip": "typing",
+          "phase": 0.5,
+          "ratio": 16.141009114589647,
+          "posed_length": 0.05364553142965341
+        }
+      ]
+    },
+    {
+      "edge_index": 3199,
+      "vertices": [
+        9798,
+        9986
+      ],
+      "polygon_indices": [
+        15837,
+        15838
+      ],
+      "rest_length": 0.007656924882999243,
+      "max_ratio": 20.677331056501163,
+      "max_posed_length": 0.1583247706805368,
+      "samples": [
+        {
+          "clip": "greeting",
+          "phase": 0.25,
+          "ratio": 19.459558260646183,
+          "posed_length": 0.14900037585811524
+        },
+        {
+          "clip": "greeting",
+          "phase": 0.75,
+          "ratio": 19.533357786281456,
+          "posed_length": 0.1495654532823055
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.25,
+          "ratio": 20.677331056501163,
+          "posed_length": 0.1583247706805368
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.5,
+          "ratio": 20.117152792480802,
+          "posed_length": 0.15403552779184396
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.75,
+          "ratio": 19.097324540805655,
+          "posed_length": 0.1462267794752069
+        }
+      ]
+    },
+    {
+      "edge_index": 7648,
+      "vertices": [
+        9799,
+        9988
+      ],
+      "polygon_indices": [
+        15839
+      ],
+      "rest_length": 0.006848588589729013,
+      "max_ratio": 20.764145860530647,
+      "max_posed_length": 0.1422050924158991,
+      "samples": [
+        {
+          "clip": "greeting",
+          "phase": 0.25,
+          "ratio": 19.07440653925022,
+          "posed_length": 0.13063276298056153
+        },
+        {
+          "clip": "greeting",
+          "phase": 0.5,
+          "ratio": 11.208623195360303,
+          "posed_length": 0.07676324892231652
+        },
+        {
+          "clip": "greeting",
+          "phase": 0.75,
+          "ratio": 19.13957380647673,
+          "posed_length": 0.13107906678331283
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.25,
+          "ratio": 20.764145860530647,
+          "posed_length": 0.1422050924158991
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.5,
+          "ratio": 19.91929975625741,
+          "posed_length": 0.1364190890260964
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.75,
+          "ratio": 18.597419001752986,
+          "posed_length": 0.12736607157381502
+        }
+      ]
+    },
+    {
+      "edge_index": 6904,
+      "vertices": [
+        7430,
+        7749
+      ],
+      "polygon_indices": [
+        12127,
+        12128
+      ],
+      "rest_length": 0.0033236146480947644,
+      "max_ratio": 16.140841497561063,
+      "max_posed_length": 0.053645937233869775,
+      "samples": [
+        {
+          "clip": "greeting",
+          "phase": 0.5,
+          "ratio": 16.140841497561063,
+          "posed_length": 0.053645937233869775
+        }
+      ]
+    },
+    {
+      "edge_index": 24530,
+      "vertices": [
+        7506,
+        7507
+      ],
+      "polygon_indices": [
+        12247
+      ],
+      "rest_length": 0.025612589562305353,
+      "max_ratio": 17.868802815448667,
+      "max_posed_length": 0.457666312481853,
+      "samples": [
+        {
+          "clip": "greeting",
+          "phase": 0.5,
+          "ratio": 17.868802815448667,
+          "posed_length": 0.457666312481853
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.25,
+          "ratio": 12.382120363143798,
+          "posed_length": 0.3171381667722654
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.5,
+          "ratio": 12.466605432691729,
+          "posed_length": 0.3193020481827394
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.75,
+          "ratio": 12.374855898666738,
+          "posed_length": 0.31695210502522453
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.25,
+          "ratio": 15.037286049786086,
+          "posed_length": 0.385143835724151
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.5,
+          "ratio": 14.371935837319773,
+          "posed_length": 0.3681024938170587
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.75,
+          "ratio": 13.424334967214604,
+          "posed_length": 0.34383198166217155
+        },
+        {
+          "clip": "typing",
+          "phase": 0.25,
+          "ratio": 12.382121853676315,
+          "posed_length": 0.317138204948663
+        },
+        {
+          "clip": "typing",
+          "phase": 0.5,
+          "ratio": 12.46660526187272,
+          "posed_length": 0.3193020438076222
+        },
+        {
+          "clip": "typing",
+          "phase": 0.75,
+          "ratio": 12.374850277206045,
+          "posed_length": 0.31695196104505907
+        }
+      ]
+    },
+    {
+      "edge_index": 29047,
+      "vertices": [
+        7507,
+        7816
+      ],
+      "polygon_indices": [
+        12247,
+        12248,
+        16278
+      ],
+      "rest_length": 0.028128951093909026,
+      "max_ratio": 16.694277080748858,
+      "max_posed_length": 0.469592503552551,
+      "samples": [
+        {
+          "clip": "greeting",
+          "phase": 0.5,
+          "ratio": 16.694277080748858,
+          "posed_length": 0.469592503552551
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.25,
+          "ratio": 11.758022217568168,
+          "posed_length": 0.3307408319190708
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.5,
+          "ratio": 11.834672966730896,
+          "posed_length": 0.3328969370935806
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.75,
+          "ratio": 11.751602538896538,
+          "posed_length": 0.33056025309167786
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.25,
+          "ratio": 14.089908797890981,
+          "posed_length": 0.3963343554935139
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.5,
+          "ratio": 13.475350286386755,
+          "posed_length": 0.379047469179066
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.75,
+          "ratio": 12.60943368531608,
+          "posed_length": 0.3546901434561451
+        },
+        {
+          "clip": "typing",
+          "phase": 0.25,
+          "ratio": 11.758024820315908,
+          "posed_length": 0.3307409051316346
+        },
+        {
+          "clip": "typing",
+          "phase": 0.5,
+          "ratio": 11.83467445859074,
+          "posed_length": 0.3328969790580332
+        },
+        {
+          "clip": "typing",
+          "phase": 0.75,
+          "ratio": 11.751599033282744,
+          "posed_length": 0.3305601544824389
+        }
+      ]
+    },
+    {
+      "edge_index": 33440,
+      "vertices": [
+        7508,
+        7816
+      ],
+      "polygon_indices": [
+        12248,
+        12249
+      ],
+      "rest_length": 0.026630310560616408,
+      "max_ratio": 15.183328115919844,
+      "max_posed_length": 0.40433674307068423,
+      "samples": [
+        {
+          "clip": "greeting",
+          "phase": 0.5,
+          "ratio": 15.183328115919844,
+          "posed_length": 0.40433674307068423
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.25,
+          "ratio": 10.202568120923075,
+          "posed_length": 0.2716975575760261
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.5,
+          "ratio": 10.27474054334953,
+          "posed_length": 0.2736195315991546
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.75,
+          "ratio": 10.199189623768573,
+          "posed_length": 0.27160758714757355
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.25,
+          "ratio": 12.958757840468493,
+          "posed_length": 0.3450957457714988
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.5,
+          "ratio": 12.42963603763823,
+          "posed_length": 0.33100506783773564
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.75,
+          "ratio": 11.658449698955916,
+          "posed_length": 0.3104681361385209
+        },
+        {
+          "clip": "typing",
+          "phase": 0.25,
+          "ratio": 10.202570373482025,
+          "posed_length": 0.2716976175623705
+        },
+        {
+          "clip": "typing",
+          "phase": 0.5,
+          "ratio": 10.27474278008593,
+          "posed_length": 0.27361959116413953
+        },
+        {
+          "clip": "typing",
+          "phase": 0.75,
+          "ratio": 10.199187499223296,
+          "posed_length": 0.271607530570273
+        }
+      ]
+    },
+    {
+      "edge_index": 35370,
+      "vertices": [
+        7192,
+        8139
+      ],
+      "polygon_indices": [
+        15876
+      ],
+      "rest_length": 0.04530187841652598,
+      "max_ratio": 11.513411533924144,
+      "max_posed_length": 0.5215791694692594,
+      "samples": [
+        {
+          "clip": "greeting",
+          "phase": 0.5,
+          "ratio": 11.513411533924144,
+          "posed_length": 0.5215791694692594
+        }
+      ]
+    },
+    {
+      "edge_index": 12169,
+      "vertices": [
+        10152,
+        10153
+      ],
+      "polygon_indices": [
+        16281,
+        16381
+      ],
+      "rest_length": 0.020614008246640954,
+      "max_ratio": 11.364229319303071,
+      "max_posed_length": 0.2342623169048324,
+      "samples": [
+        {
+          "clip": "greeting",
+          "phase": 0.5,
+          "ratio": 11.364229319303071,
+          "posed_length": 0.2342623169048324
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.25,
+          "ratio": 11.000311081459122,
+          "posed_length": 0.2267605033488142
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.5,
+          "ratio": 10.403144821908276,
+          "posed_length": 0.21445051314981733
+        }
+      ]
+    },
+    {
+      "edge_index": 20326,
+      "vertices": [
+        7881,
+        8186
+      ],
+      "polygon_indices": [
+        12858,
+        12859
+      ],
+      "rest_length": 0.026447905507723263,
+      "max_ratio": 11.07173150948883,
+      "max_posed_length": 0.29282410876984283,
+      "samples": [
+        {
+          "clip": "phone_call",
+          "phase": 0.25,
+          "ratio": 11.066893126679508,
+          "posed_length": 0.29269614367849167
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.5,
+          "ratio": 11.070907905231062,
+          "posed_length": 0.2928023261622576
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.75,
+          "ratio": 11.07173150948883,
+          "posed_length": 0.29282410876984283
+        }
+      ]
+    },
+    {
+      "edge_index": 24753,
+      "vertices": [
+        7882,
+        8186
+      ],
+      "polygon_indices": [
+        12859,
+        12860
+      ],
+      "rest_length": 0.03067446045203298,
+      "max_ratio": 11.76103998083548,
+      "max_posed_length": 0.36076355576691665,
+      "samples": [
+        {
+          "clip": "phone_call",
+          "phase": 0.25,
+          "ratio": 11.76103998083548,
+          "posed_length": 0.36076355576691665
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.5,
+          "ratio": 11.758828893847914,
+          "posed_length": 0.36069573186656056
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.75,
+          "ratio": 11.75659279038413,
+          "posed_length": 0.360627140599294
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.25,
+          "ratio": 10.330569109678086,
+          "posed_length": 0.316884633601814
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.5,
+          "ratio": 10.573035117550898,
+          "posed_length": 0.3243221475712709
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.75,
+          "ratio": 10.037099993636714,
+          "posed_length": 0.30788262680790984
+        }
+      ]
+    },
+    {
+      "edge_index": 24754,
+      "vertices": [
+        7882,
+        8187
+      ],
+      "polygon_indices": [
+        12860,
+        15208
+      ],
+      "rest_length": 0.02491642122219075,
+      "max_ratio": 13.856829586785816,
+      "max_posed_length": 0.34526260278847076,
+      "samples": [
+        {
+          "clip": "phone_call",
+          "phase": 0.25,
+          "ratio": 13.856829586785816,
+          "posed_length": 0.34526260278847076
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.5,
+          "ratio": 13.856602329561346,
+          "posed_length": 0.3452569403517401
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.75,
+          "ratio": 13.855117017670699,
+          "posed_length": 0.3452199316950264
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.25,
+          "ratio": 11.946312278542063,
+          "posed_length": 0.29765934878398337
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.5,
+          "ratio": 12.304626605640546,
+          "posed_length": 0.30658725948791504
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.75,
+          "ratio": 11.662850800726721,
+          "posed_length": 0.29059650320247166
+        }
+      ]
+    },
+    {
+      "edge_index": 35462,
+      "vertices": [
+        7883,
+        8466
+      ],
+      "polygon_indices": [
+        14898,
+        14900
+      ],
+      "rest_length": 0.040832290689756565,
+      "max_ratio": 10.305864720547175,
+      "max_posed_length": 0.4208120640786891,
+      "samples": [
+        {
+          "clip": "phone_call",
+          "phase": 0.25,
+          "ratio": 10.303330903338967,
+          "posed_length": 0.4207086025178888
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.5,
+          "ratio": 10.30581287834913,
+          "posed_length": 0.4208099472429885
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.75,
+          "ratio": 10.305864720547175,
+          "posed_length": 0.4208120640786891
+        }
+      ]
+    },
+    {
+      "edge_index": 35461,
+      "vertices": [
+        7883,
+        8187
+      ],
+      "polygon_indices": [
+        14900,
+        15208
+      ],
+      "rest_length": 0.02372533683306046,
+      "max_ratio": 17.71360405798763,
+      "max_posed_length": 0.42026122280322314,
+      "samples": [
+        {
+          "clip": "phone_call",
+          "phase": 0.25,
+          "ratio": 17.71360405798763,
+          "posed_length": 0.42026122280322314
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.5,
+          "ratio": 17.708602021032576,
+          "posed_length": 0.4201425477916131
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.75,
+          "ratio": 17.704301531858185,
+          "posed_length": 0.42004051723740377
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.25,
+          "ratio": 15.27511555604316,
+          "posed_length": 0.3624072617310456
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.5,
+          "ratio": 15.690755948806936,
+          "posed_length": 0.3722684700507917
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.75,
+          "ratio": 14.841255129774913,
+          "posed_length": 0.35211377697929624
+        },
+        {
+          "clip": "typing",
+          "phase": 0.25,
+          "ratio": 13.037823197868748,
+          "posed_length": 0.30932674693932555
+        },
+        {
+          "clip": "typing",
+          "phase": 0.5,
+          "ratio": 13.03288391389171,
+          "posed_length": 0.3092095607632562
+        },
+        {
+          "clip": "typing",
+          "phase": 0.75,
+          "ratio": 13.02894778678335,
+          "posed_length": 0.3091161748217926
+        }
+      ]
+    },
+    {
+      "edge_index": 25304,
+      "vertices": [
+        9913,
+        9914
+      ],
+      "polygon_indices": [
+        15707
+      ],
+      "rest_length": 0.006747841758416763,
+      "max_ratio": 27.253225626307255,
+      "max_posed_length": 0.18390045393274992,
+      "samples": [
+        {
+          "clip": "phone_call",
+          "phase": 0.25,
+          "ratio": 26.983041531916186,
+          "posed_length": 0.18207729441815784
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.5,
+          "ratio": 27.17076280764033,
+          "posed_length": 0.18334400788143249
+        },
+        {
+          "clip": "phone_call",
+          "phase": 0.75,
+          "ratio": 27.253225626307255,
+          "posed_length": 0.18390045393274992
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.25,
+          "ratio": 24.390213365262017,
+          "posed_length": 0.16458130024280967
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.5,
+          "ratio": 24.499907385016446,
+          "posed_length": 0.1653214981299572
+        },
+        {
+          "clip": "talking_standing",
+          "phase": 0.75,
+          "ratio": 23.17229718778442,
+          "posed_length": 0.156362994602175
+        }
+      ]
+    },
+    {
+      "edge_index": 2468,
+      "vertices": [
+        7509,
+        7818
+      ],
+      "polygon_indices": [
+        12250,
+        12251
+      ],
+      "rest_length": 0.029968930108799686,
+      "max_ratio": 10.1089638548082,
+      "max_posed_length": 0.3029548312371292,
+      "samples": [
+        {
+          "clip": "talking_standing",
+          "phase": 0.25,
+          "ratio": 10.1089638548082,
+          "posed_length": 0.3029548312371292
+        }
+      ]
+    }
+  ]
+}

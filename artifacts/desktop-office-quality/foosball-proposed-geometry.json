@@ -1,0 +1,677 @@
+{
+  "source": "assets/optimized/office.desktop.3b42a72d2131.glb",
+  "proposedTable": true,
+  "movedTriangles": 2500,
+  "coordinates": "Native right-handed X,Y,Z",
+  "bodySlab": [
+    0.12,
+    1.55
+  ],
+  "note": "Distances are between horizontal point and triangle projection clipped to body slab; components weld positions at0.1mm. Proposed table, when enabled, virtually scales only the original isolated foosball triangle bounds1.6x and translates its center to(-3.10,-4.67).",
+  "nearest": [
+    {
+      "id": "new-west-player",
+      "point": [
+        -4.2308,
+        0,
+        -4.67
+      ],
+      "meshes": [
+        {
+          "name": "wall 1",
+          "material": "Solo items",
+          "distance": 0.4733,
+          "triangle": [
+            [
+              -3.7808,
+              0.9447,
+              -4.5186
+            ],
+            [
+              -3.7808,
+              0.9664,
+              -4.5186
+            ],
+            [
+              -3.7808,
+              0.9562,
+              -4.5232
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "new-east-player",
+      "point": [
+        -1.9772,
+        0,
+        -4.67
+      ],
+      "meshes": [
+        {
+          "name": "wall 1",
+          "material": "Solo items",
+          "distance": 0.4734,
+          "triangle": [
+            [
+              -2.4273,
+              0.971,
+              -4.5083
+            ],
+            [
+              -2.4273,
+              0.9402,
+              -4.5083
+            ],
+            [
+              -2.4273,
+              0.9562,
+              -4.5232
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "new-west-approach",
+      "point": [
+        -4.3,
+        0,
+        -4.67
+      ],
+      "meshes": [
+        {
+          "name": "wall 1",
+          "material": "Solo items",
+          "distance": 0.5395,
+          "triangle": [
+            [
+              -3.7808,
+              0.9447,
+              -4.5186
+            ],
+            [
+              -3.7808,
+              0.9664,
+              -4.5186
+            ],
+            [
+              -3.7808,
+              0.9562,
+              -4.5232
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "new-east-approach",
+      "point": [
+        -1.88,
+        0,
+        -4.67
+      ],
+      "meshes": [
+        {
+          "name": "wall 1",
+          "material": "Solo items",
+          "distance": 0.5666,
+          "triangle": [
+            [
+              -2.4273,
+              0.971,
+              -4.5083
+            ],
+            [
+              -2.4273,
+              0.9402,
+              -4.5083
+            ],
+            [
+              -2.4273,
+              0.9562,
+              -4.5232
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "new-south-approach",
+      "point": [
+        -3.1,
+        0,
+        -3.3
+      ],
+      "meshes": [
+        {
+          "name": "wall 1",
+          "material": "Solo items",
+          "distance": 0.514,
+          "triangle": [
+            [
+              -2.5357,
+              0.6204,
+              -3.814
+            ],
+            [
+              -3.6849,
+              0.6204,
+              -3.814
+            ],
+            [
+              -3.6849,
+              0.6204,
+              -5.5396
+            ]
+          ]
+        },
+        {
+          "name": "instance_1.006",
+          "material": "Material.002",
+          "distance": 0.9715,
+          "triangle": [
+            [
+              -4.0598,
+              0.6278,
+              -3.1493
+            ],
+            [
+              -4.0909,
+              0.6619,
+              -3.1326
+            ],
+            [
+              -4.0735,
+              0.6508,
+              -3.1316
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "wall1Components": [
+    {
+      "triangles": 104,
+      "bodySlabBounds": {
+        "min": [
+          -1.2004,
+          0.12,
+          -4.9401
+        ],
+        "max": [
+          0.9632,
+          1.2107,
+          -2.0733
+        ]
+      },
+      "distanceEast": 0.7768
+    },
+    {
+      "triangles": 28,
+      "bodySlabBounds": {
+        "min": [
+          -3.6849,
+          0.6204,
+          -5.5396
+        ],
+        "max": [
+          -2.5357,
+          1.0224,
+          -3.814
+        ]
+      },
+      "distanceEast": 0.5585
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -3.4873,
+          0.8397,
+          -5.4242
+        ],
+        "max": [
+          -3.4291,
+          1.0247,
+          -5.3648
+        ]
+      },
+      "distanceEast": 1.6096
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -3.4873,
+          0.8397,
+          -4.8715
+        ],
+        "max": [
+          -3.4291,
+          1.0247,
+          -4.8133
+        ]
+      },
+      "distanceEast": 1.4589
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -3.1356,
+          0.8397,
+          -5.4242
+        ],
+        "max": [
+          -3.0773,
+          1.0247,
+          -5.3648
+        ]
+      },
+      "distanceEast": 1.3012
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -3.1356,
+          0.8397,
+          -4.8715
+        ],
+        "max": [
+          -3.0773,
+          1.0247,
+          -4.8133
+        ]
+      },
+      "distanceEast": 1.1094
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -2.7847,
+          0.8397,
+          -5.4242
+        ],
+        "max": [
+          -2.7253,
+          1.0247,
+          -5.3648
+        ]
+      },
+      "distanceEast": 1.021
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -2.7847,
+          0.8397,
+          -4.8715
+        ],
+        "max": [
+          -2.7253,
+          1.0247,
+          -4.8133
+        ]
+      },
+      "distanceEast": 0.7617
+    },
+    {
+      "triangles": 252,
+      "bodySlabBounds": {
+        "min": [
+          -3.7808,
+          0.931,
+          -5.4162
+        ],
+        "max": [
+          -2.4273,
+          0.9801,
+          -5.3671
+        ]
+      },
+      "distanceEast": 0.8348
+    },
+    {
+      "triangles": 252,
+      "bodySlabBounds": {
+        "min": [
+          -3.7808,
+          0.931,
+          -5.1433
+        ],
+        "max": [
+          -2.4273,
+          0.9801,
+          -5.0942
+        ]
+      },
+      "distanceEast": 0.6248
+    },
+    {
+      "triangles": 252,
+      "bodySlabBounds": {
+        "min": [
+          -3.7808,
+          0.931,
+          -4.8704
+        ],
+        "max": [
+          -2.4273,
+          0.9801,
+          -4.8213
+        ]
+      },
+      "distanceEast": 0.4778
+    },
+    {
+      "triangles": 252,
+      "bodySlabBounds": {
+        "min": [
+          -3.7808,
+          0.931,
+          -3.9864
+        ],
+        "max": [
+          -2.4273,
+          0.9801,
+          -3.9373
+        ]
+      },
+      "distanceEast": 0.8235
+    },
+    {
+      "triangles": 252,
+      "bodySlabBounds": {
+        "min": [
+          -3.7808,
+          0.931,
+          -4.2594
+        ],
+        "max": [
+          -2.4273,
+          0.9801,
+          -4.2103
+        ]
+      },
+      "distanceEast": 0.6154
+    },
+    {
+      "triangles": 252,
+      "bodySlabBounds": {
+        "min": [
+          -3.7808,
+          0.931,
+          -4.5323
+        ],
+        "max": [
+          -2.4273,
+          0.9801,
+          -4.4832
+        ]
+      },
+      "distanceEast": 0.4734
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -3.4873,
+          0.8397,
+          -4.5369
+        ],
+        "max": [
+          -3.4291,
+          1.0247,
+          -4.4786
+        ]
+      },
+      "distanceEast": 1.458
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -3.4873,
+          0.8397,
+          -3.9853
+        ],
+        "max": [
+          -3.4291,
+          1.0247,
+          -3.9259
+        ]
+      },
+      "distanceEast": 1.6052
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -3.1356,
+          0.8397,
+          -4.5369
+        ],
+        "max": [
+          -3.0773,
+          1.0247,
+          -4.4786
+        ]
+      },
+      "distanceEast": 1.1082
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -3.1356,
+          0.8397,
+          -3.9853
+        ],
+        "max": [
+          -3.0773,
+          1.0247,
+          -3.9259
+        ]
+      },
+      "distanceEast": 1.2958
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -2.7847,
+          0.8397,
+          -4.5369
+        ],
+        "max": [
+          -2.7253,
+          1.0247,
+          -4.4786
+        ]
+      },
+      "distanceEast": 0.7599
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -2.7847,
+          0.8397,
+          -3.9853
+        ],
+        "max": [
+          -2.7253,
+          1.0247,
+          -3.9259
+        ]
+      },
+      "distanceEast": 1.0141
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -3.2909,
+          0.8397,
+          -4.2628
+        ],
+        "max": [
+          -3.2327,
+          1.0247,
+          -4.2034
+        ]
+      },
+      "distanceEast": 1.3198
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -3.2909,
+          0.8397,
+          -5.149
+        ],
+        "max": [
+          -3.2327,
+          1.0247,
+          -5.0908
+        ]
+      },
+      "distanceEast": 1.3241
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -2.9871,
+          0.8397,
+          -4.2628
+        ],
+        "max": [
+          -2.9286,
+          1.0247,
+          -4.2034
+        ]
+      },
+      "distanceEast": 1.0349
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -2.9871,
+          0.8397,
+          -5.149
+        ],
+        "max": [
+          -2.9286,
+          1.0247,
+          -5.0908
+        ]
+      },
+      "distanceEast": 1.0403
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -2.6831,
+          0.8397,
+          -4.2628
+        ],
+        "max": [
+          -2.6248,
+          1.0247,
+          -4.2034
+        ]
+      },
+      "distanceEast": 0.765
+    },
+    {
+      "triangles": 44,
+      "bodySlabBounds": {
+        "min": [
+          -2.6831,
+          0.8397,
+          -5.149
+        ],
+        "max": [
+          -2.6248,
+          1.0247,
+          -5.0908
+        ]
+      },
+      "distanceEast": 0.7723
+    },
+    {
+      "triangles": 20,
+      "bodySlabBounds": {
+        "min": [
+          -2.8224,
+          0.12,
+          -4.1178
+        ],
+        "max": [
+          -2.6477,
+          0.6364,
+          -3.943
+        ]
+      },
+      "distanceEast": 0.8686
+    },
+    {
+      "triangles": 20,
+      "bodySlabBounds": {
+        "min": [
+          -2.8224,
+          0.12,
+          -5.4105
+        ],
+        "max": [
+          -2.6477,
+          0.6364,
+          -5.2358
+        ]
+      },
+      "distanceEast": 0.8773
+    },
+    {
+      "triangles": 20,
+      "bodySlabBounds": {
+        "min": [
+          -3.573,
+          0.12,
+          -4.1178
+        ],
+        "max": [
+          -3.3982,
+          0.6364,
+          -3.943
+        ]
+      },
+      "distanceEast": 1.5246
+    },
+    {
+      "triangles": 20,
+      "bodySlabBounds": {
+        "min": [
+          -3.573,
+          0.12,
+          -5.4105
+        ],
+        "max": [
+          -3.3982,
+          0.6364,
+          -5.2358
+        ]
+      },
+      "distanceEast": 1.5295
+    }
+  ]
+}

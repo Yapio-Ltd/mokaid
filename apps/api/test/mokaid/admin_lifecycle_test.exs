@@ -75,13 +75,13 @@ defmodule Mokaid.AdminLifecycleTest do
     assert sub2.credits_balance == sub.credits_balance
   end
 
-  test "authenticate rejects suspended users", %{target: target} do
+  test "authenticate rejects suspended users without disclosing account status", %{target: target} do
     {:ok, banned} =
       target
       |> User.moderation_changeset(%{status: "suspended", banned_at: DateTime.utc_now()})
       |> Repo.update()
 
-    assert {:error, :inactive} =
+    assert {:error, :invalid_credentials} =
              Accounts.authenticate_by_password(banned.email, "test-password-1234")
   end
 end

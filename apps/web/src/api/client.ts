@@ -1,3 +1,5 @@
+import { sessionHeaders } from "@/lib/browser-session";
+import { disconnect } from "@/realtime/phoenix-client";
 import { resolveApiUrl } from "@/lib/env";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -30,17 +32,27 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     }
   }
 
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers.Authorization = `Bearer ${token}`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...sessionHeaders(token),
+  };
   if (workspaceId && !options.skipWorkspace) headers["x-workspace-id"] = workspaceId;
 
   const response = await fetch(url, {
     method: options.method ?? "GET",
+    credentials: "include",
     headers,
     body: options.body != null ? JSON.stringify(options.body) : undefined,
   });
 
-  if (response.status === 401) {
+  // A delayed rejection from a previous account must never erase a newer session.
+  if (
+    response.status === 401 &&
+    token &&
+    useAuthStore.getState().token === token &&
+    !path.startsWith("/api/auth/")
+  ) {
+    disconnect();
     useAuthStore.getState().logout();
   }
 
@@ -63,17 +75,18 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
   const { token, workspaceId } = useAuthStore.getState();
 
-  const headers: Record<string, string> = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
+  const headers = sessionHeaders(token);
   if (workspaceId) headers["x-workspace-id"] = workspaceId;
 
   const response = await fetch(resolveApiUrl(path), {
     method: "POST",
+    credentials: "include",
     headers,
     body: formData,
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && token && useAuthStore.getState().token === token) {
+    disconnect();
     useAuthStore.getState().logout();
   }
 
@@ -100,17 +113,24 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
 export async function fetchDriveFileBlob(fileId: string): Promise<Blob> {
   const { token, workspaceId } = useAuthStore.getState();
 
-  const headers: Record<string, string> = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
+  const headers = sessionHeaders(token);
   if (workspaceId) headers["x-workspace-id"] = workspaceId;
 
-  const response = await fetch(resolveApiUrl(`/api/drive/${fileId}/raw`), { headers });
+  const response = await fetch(resolveApiUrl(`/api/drive/${fileId}/raw`), {
+    headers,
+    credentials: "include",
+  });
 
-  if (response.status === 401) {
+  if (response.status === 401 && token && useAuthStore.getState().token === token) {
+    disconnect();
     useAuthStore.getState().logout();
   }
   if (!response.ok) {
-    throw new ApiError(response.status, "download_failed", `Download failed with ${response.status}`);
+    throw new ApiError(
+      response.status,
+      "download_failed",
+      `Download failed with ${response.status}`,
+    );
   }
 
   return response.blob();
@@ -122,12 +142,23 @@ export async function fetchWorkspaceLogoBlob(workspaceId: string): Promise<Blob 
   if (!token) return null;
 
   const response = await fetch(resolveApiUrl(`/api/workspaces/${workspaceId}/logo`), {
+    credentials: "include",
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...sessionHeaders(token),
       "x-workspace-id": activeWorkspaceId ?? workspaceId,
     },
   });
 
   if (!response.ok) return null;
   return response.blob();
+}
+
+/** Revoke the server session before removing the local account state. */
+export async function signOut(): Promise<void> {
+  const token = useAuthStore.getState().token;
+  await apiFetch("/api/auth/logout", { method: "POST", body: {}, skipWorkspace: true });
+  if (useAuthStore.getState().token === token) {
+    disconnect();
+    useAuthStore.getState().logout();
+  }
 }

@@ -6,9 +6,28 @@
 #include <QJsonObject>
 #include <QSaveFile>
 #include <QSysInfo>
+#include <QGuiApplication>
+#include <QWindow>
+#ifdef Q_OS_MACOS
+#include <AudioToolbox/AudioServices.h>
+#elif defined(Q_OS_WIN)
+#include <windows.h>
+#endif
 #include <cmath>
 namespace mokaid::desktop {
 SystemController::SystemController(QString assets, QObject* parent) : QObject(parent), assets_(std::move(assets)) {}
+void SystemController::setMissionSound(bool value) { settings_.setValue("notifications/missionSound", value); emit changed(); }
+void SystemController::notifyMission() {
+    for (auto* window : QGuiApplication::topLevelWindows()) {
+        if (window->isVisible()) { window->alert(5000); break; }
+    }
+    if (!missionSound()) return;
+#ifdef Q_OS_MACOS
+    AudioServicesPlayAlertSound(kSystemSoundID_UserPreferredAlert);
+#elif defined(Q_OS_WIN)
+    MessageBeep(MB_OK);
+#endif
+}
 QString SystemController::version() const { return QCoreApplication::applicationVersion(); }
 QString SystemController::productName() const { return QCoreApplication::applicationName(); }
 void SystemController::setReducedMotion(bool value) { settings_.setValue("accessibility/reducedMotion", value); emit changed(); }

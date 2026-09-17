@@ -4,8 +4,14 @@ import QtQuick.Controls.Basic as Basic
 Basic.TextArea {
     // Explicit native design-system control.
     id: control
-    padding: 12; selectByMouse: true
+    padding: 14; selectByMouse: true
+    font.family: Theme.fontFamily; font.pixelSize: 13
     color: Theme.text; placeholderTextColor: Theme.muted
-    selectionColor: Theme.primary; selectedTextColor: "white"
-    background: Rectangle { radius: 8; color: Theme.deep; border.color: control.activeFocus ? Theme.primary : Theme.border; border.width: control.activeFocus ? 2 : 1 }
+    selectionColor: Theme.selection; selectedTextColor: Theme.text
+    opacity: enabled ? 1 : .6
+    background: Rectangle {
+        radius: Theme.radiusControl; color: control.enabled ? "#0e101a" : Theme.surface
+        border.color: control.activeFocus ? Theme.focusBorder : Theme.border; border.width: 1
+        Rectangle { anchors.fill: parent; anchors.margins: -3; radius: parent.radius + 3; color: "transparent"; border.color: Theme.focusHalo; visible: control.activeFocus }
+    }
 }

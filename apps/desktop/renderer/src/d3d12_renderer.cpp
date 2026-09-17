@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstring>
@@ -9,6 +10,7 @@
 #include <unordered_map>
 #include <windows.h>
 #include <wrl/client.h>
+#include "office_lighting.hpp"
 
 namespace mokaid::renderer {
 namespace {
@@ -37,8 +39,9 @@ std::vector<char> read(const std::filesystem::path &p) {
 }
 struct Uniforms {
   engine::Mat4 viewProjection, model;
-  engine::Vec4 color, emissive, camera, params;
+  engine::Vec4 color, emissive, camera, params, display;
 };
+static_assert(sizeof(Uniforms) == 208);
 struct MeshGpu {
   ComPtr<ID3D12Resource> vertices, indices;
   D3D12_VERTEX_BUFFER_VIEW vb{};
@@ -52,13 +55,16 @@ struct SceneGpu {
 };
 struct FrameSlot {
   ComPtr<ID3D12CommandAllocator> allocator;
-  ComPtr<ID3D12Resource> color, depth, constants;
+  ComPtr<ID3D12Resource> color, hdr, emission, bloomA, bloomB, depth, constants;
   ComPtr<ID3D11Texture2D> imported;
   std::vector<ComPtr<ID3D12Resource>> staging;
   std::uint64_t produced{}, consumed{};
   std::byte *mapped{};
 };
 class D3D12Renderer final : public Renderer {
+  static constexpr UINT targetsPerSlot = 5;
+  static constexpr UINT sampledTargetsPerSlot = 4;
+  static constexpr UINT firstSceneDescriptor = 1 + 3 * sampledTargetsPerSlot;
   ComPtr<ID3D12Device> device_;
   ComPtr<ID3D11Device5> qtDevice_;
   ComPtr<ID3D11DeviceContext4> qtContext_;
@@ -68,9 +74,10 @@ class D3D12Renderer final : public Renderer {
   ComPtr<ID3D11Fence> qtProduced_, qtConsumed_;
   Handle completion_;
   ComPtr<ID3D12DescriptorHeap> rtv_, dsv_, srv_;
-  UINT rtvStep_{}, dsvStep_{}, srvStep_{}, nextDescriptor_{1};
-  ComPtr<ID3D12RootSignature> root_;
+  UINT rtvStep_{}, dsvStep_{}, srvStep_{}, nextDescriptor_{firstSceneDescriptor};
+  ComPtr<ID3D12RootSignature> root_, postRoot_;
   ComPtr<ID3D12PipelineState> opaque_, transparent_;
+  ComPtr<ID3D12PipelineState> downsample_, blur_, composite_;
   ComPtr<ID3D12Resource> white_;
   std::array<FrameSlot, 3> slots_;
   std::size_t slot_{2};
@@ -278,9 +285,10 @@ public:
     if (!completion_.value)
       throw std::runtime_error("GPU wait event creation failed");
     D3D12_DESCRIPTOR_HEAP_DESC hd{};
-    hd.NumDescriptors = 3;
+    hd.NumDescriptors = static_cast<UINT>(slots_.size()) * targetsPerSlot;
     hd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     check(device_->CreateDescriptorHeap(&hd, IID_PPV_ARGS(&rtv_)), "RTV heap");
+    hd.NumDescriptors = static_cast<UINT>(slots_.size());
     hd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     check(device_->CreateDescriptorHeap(&hd, IID_PPV_ARGS(&dsv_)), "DSV heap");
     hd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -319,7 +327,7 @@ public:
     emissionRange.BaseShaderRegister = 1;
     D3D12_DESCRIPTOR_RANGE materialRange = range;
     materialRange.BaseShaderRegister = 2;
-    std::array<D3D12_ROOT_PARAMETER, 5> params{};
+    std::array<D3D12_ROOT_PARAMETER, 6> params{};
     for (UINT i = 0; i < 2; ++i) {
       params[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
       params[i].Descriptor.ShaderRegister = i;
@@ -334,6 +342,9 @@ public:
     params[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
     params[4].DescriptorTable = {1, &materialRange};
     params[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    params[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+    params[5].Descriptor.ShaderRegister = 2;
+    params[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     D3D12_STATIC_SAMPLER_DESC sampler{};
     sampler.Filter = D3D12_FILTER_ANISOTROPIC;
     sampler.AddressU = sampler.AddressV = sampler.AddressW =
@@ -356,6 +367,33 @@ public:
                                        blob->GetBufferSize(),
                                        IID_PPV_ARGS(&root_)),
           "Create root signature");
+    // Fullscreen passes reuse t0/t1 but have their own root constants and a
+    // clamp sampler, so bloom never wraps across the viewport edges.
+    std::array<D3D12_ROOT_PARAMETER, 3> postParams{};
+    postParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    postParams[0].Constants.ShaderRegister = 3;
+    postParams[0].Constants.Num32BitValues = 4;
+    postParams[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    postParams[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    postParams[1].DescriptorTable = {1, &range};
+    postParams[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    postParams[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    postParams[2].DescriptorTable = {1, &emissionRange};
+    postParams[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    D3D12_STATIC_SAMPLER_DESC postSampler = sampler;
+    postSampler.ShaderRegister = 1;
+    postSampler.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+    postSampler.AddressU = postSampler.AddressV = postSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+    postSampler.MaxAnisotropy = 1;
+    D3D12_ROOT_SIGNATURE_DESC postSignature{};
+    postSignature.NumParameters = static_cast<UINT>(postParams.size());
+    postSignature.pParameters = postParams.data();
+    postSignature.NumStaticSamplers = 1;
+    postSignature.pStaticSamplers = &postSampler;
+    check(D3D12SerializeRootSignature(&postSignature, D3D_ROOT_SIGNATURE_VERSION_1, &blob, &error),
+          "Serialize post-processing root signature");
+    check(device_->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&postRoot_)),
+          "Create post-processing root signature");
     const auto vs = read(path / "office.vs.dxil"),
                ps = read(path / "office.ps.dxil");
     const D3D12_INPUT_ELEMENT_DESC layout[] = {
@@ -377,15 +415,21 @@ public:
     pd.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
     pd.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
     pd.RasterizerState.DepthClipEnable = TRUE;
-    pd.BlendState.RenderTarget[0].RenderTargetWriteMask =
-        D3D12_COLOR_WRITE_ENABLE_ALL;
+    pd.BlendState.IndependentBlendEnable = TRUE;
+    for (UINT i = 0; i < 2; ++i) {
+      auto &blend = pd.BlendState.RenderTarget[i];
+      blend.SrcBlend = blend.SrcBlendAlpha = D3D12_BLEND_ONE;
+      blend.DestBlend = blend.DestBlendAlpha = D3D12_BLEND_ZERO;
+      blend.BlendOp = blend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+      blend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+    }
     pd.DepthStencilState.DepthEnable = TRUE;
     pd.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
     pd.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
     pd.SampleMask = UINT_MAX;
     pd.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    pd.NumRenderTargets = 1;
-    pd.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pd.NumRenderTargets = 2;
+    pd.RTVFormats[0] = pd.RTVFormats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT;
     pd.DSVFormat = DXGI_FORMAT_D32_FLOAT;
     pd.SampleDesc.Count = 1;
     check(device_->CreateGraphicsPipelineState(&pd, IID_PPV_ARGS(&opaque_)),
@@ -398,10 +442,40 @@ public:
     blend.SrcBlendAlpha = D3D12_BLEND_ONE;
     blend.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
     blend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+    pd.BlendState.RenderTarget[1] = blend;
     pd.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
     check(
         device_->CreateGraphicsPipelineState(&pd, IID_PPV_ARGS(&transparent_)),
         "Transparent pipeline");
+    const auto postVs = read(path / "office.post.vs.dxil");
+    const auto downsamplePs = read(path / "bloomDownsample.ps.dxil");
+    const auto blurPs = read(path / "bloomBlur.ps.dxil");
+    const auto compositePs = read(path / "officeComposite.ps.dxil");
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC post{};
+    post.pRootSignature = postRoot_.Get();
+    post.VS = {postVs.data(), postVs.size()};
+    post.PS = {downsamplePs.data(), downsamplePs.size()};
+    post.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+    post.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    post.RasterizerState.DepthClipEnable = TRUE;
+    post.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+    post.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+    auto &postBlend = post.BlendState.RenderTarget[0];
+    postBlend.SrcBlend = postBlend.SrcBlendAlpha = D3D12_BLEND_ONE;
+    postBlend.DestBlend = postBlend.DestBlendAlpha = D3D12_BLEND_ZERO;
+    postBlend.BlendOp = postBlend.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+    postBlend.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+    post.SampleMask = UINT_MAX;
+    post.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    post.NumRenderTargets = 1;
+    post.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    post.SampleDesc.Count = 1;
+    check(device_->CreateGraphicsPipelineState(&post, IID_PPV_ARGS(&downsample_)), "Bloom downsample pipeline");
+    post.PS = {blurPs.data(), blurPs.size()};
+    check(device_->CreateGraphicsPipelineState(&post, IID_PPV_ARGS(&blur_)), "Bloom blur pipeline");
+    post.PS = {compositePs.data(), compositePs.size()};
+    post.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    check(device_->CreateGraphicsPipelineState(&post, IID_PPV_ARGS(&composite_)), "Display composition pipeline");
   }
   ~D3D12Renderer() override {
     if (device_ && FAILED(device_->GetDeviceRemovedReason()))
@@ -440,6 +514,7 @@ public:
       auto &f = slots_[i];
       f.imported.Reset();
       f.color.Reset();
+      f.hdr.Reset(); f.emission.Reset(); f.bloomA.Reset(); f.bloomB.Reset();
       f.depth.Reset();
       D3D12_RESOURCE_DESC d{};
       d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -462,7 +537,31 @@ public:
                                            IID_PPV_ARGS(&f.imported)),
             "Import render target into Qt");
       device_->CreateRenderTargetView(f.color.Get(), nullptr,
-                                      cpu(rtv_.Get(), rtvStep_, i));
+                                      cpu(rtv_.Get(), rtvStep_, i * targetsPerSlot));
+      auto makeIntermediate = [&](ComPtr<ID3D12Resource> &target, UINT targetWidth,
+                                  UINT targetHeight, UINT index) {
+        auto desc = d;
+        desc.Width = targetWidth;
+        desc.Height = targetHeight;
+        desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        check(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr, IID_PPV_ARGS(&target)),
+            "Create HDR/bloom target");
+        device_->CreateRenderTargetView(target.Get(), nullptr,
+            cpu(rtv_.Get(), rtvStep_, i * targetsPerSlot + 1 + index));
+        D3D12_SHADER_RESOURCE_VIEW_DESC view{};
+        view.Format = desc.Format;
+        view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        view.Texture2D.MipLevels = 1;
+        device_->CreateShaderResourceView(target.Get(), &view,
+            cpu(srv_.Get(), srvStep_, 1 + i * sampledTargetsPerSlot + index));
+      };
+      const UINT halfWidth = std::max(1U, (w + 1) / 2), halfHeight = std::max(1U, (h + 1) / 2);
+      makeIntermediate(f.hdr, w, h, 0);
+      makeIntermediate(f.emission, w, h, 1);
+      makeIntermediate(f.bloomA, halfWidth, halfHeight, 2);
+      makeIntermediate(f.bloomB, halfWidth, halfHeight, 3);
       d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
       d.Format = DXGI_FORMAT_D32_FLOAT;
       D3D12_CLEAR_VALUE clear{};
@@ -500,15 +599,23 @@ public:
     poses.reserve(frame.instances.size());
     for (const auto &instance : frame.instances)
       poses.push_back(engine::evaluateInstancePose(instance));
-    transition(f.color.Get(), D3D12_RESOURCE_STATE_COMMON,
+    transition(f.hdr.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
                D3D12_RESOURCE_STATE_RENDER_TARGET);
-    const auto rt = cpu(rtv_.Get(), rtvStep_, static_cast<UINT>(slot_)),
-               ds = cpu(dsv_.Get(), dsvStep_, static_cast<UINT>(slot_));
-    const float clear[4] = {.013F, .018F, .022F, 1};
-    commands_->ClearRenderTargetView(rt, clear, 0, nullptr);
+    transition(f.emission.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+               D3D12_RESOURCE_STATE_RENDER_TARGET);
+    const auto slotIndex = static_cast<UINT>(slot_);
+    const auto rtvBase = slotIndex * targetsPerSlot;
+    const auto srvBase = 1 + slotIndex * sampledTargetsPerSlot;
+    const std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 2> rt{
+        cpu(rtv_.Get(), rtvStep_, rtvBase + 1), cpu(rtv_.Get(), rtvStep_, rtvBase + 2)};
+    const auto ds = cpu(dsv_.Get(), dsvStep_, slotIndex);
+    const float clear[4] = {.008505F, .008505F, .011558F, 1};
+    const float noEmission[4] = {0, 0, 0, 1};
+    commands_->ClearRenderTargetView(rt[0], clear, 0, nullptr);
+    commands_->ClearRenderTargetView(rt[1], noEmission, 0, nullptr);
     commands_->ClearDepthStencilView(ds, D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0,
                                      nullptr);
-    commands_->OMSetRenderTargets(1, &rt, FALSE, &ds);
+    commands_->OMSetRenderTargets(static_cast<UINT>(rt.size()), rt.data(), FALSE, &ds);
     D3D12_VIEWPORT viewport{
         0, 0, static_cast<float>(width_), static_cast<float>(height_), 0, 1};
     D3D12_RECT scissor{0, 0, static_cast<LONG>(width_),
@@ -521,7 +628,12 @@ public:
     commands_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     stats_.drawCalls = 0;
     stats_.triangles = 0;
-    std::size_t offset = 0;
+    const auto lighting = lightingFor(frame);
+    std::memcpy(f.mapped, &lighting, sizeof(lighting));
+    commands_->SetGraphicsRootConstantBufferView(5, f.constants->GetGPUVirtualAddress());
+    // D3D12 root CBVs must start at a 256-byte boundary. The 912-byte light
+    // block occupies the first 1024 bytes of this frame's own upload buffer.
+    std::size_t offset = (sizeof(lighting) + 255) & ~std::size_t(255);
     for (int alpha = 0; alpha < 2; ++alpha) {
       commands_->SetPipelineState(alpha ? transparent_.Get() : opaque_.Get());
       for (std::size_t instanceIndex = 0; instanceIndex < frame.instances.size(); ++instanceIndex) {
@@ -532,6 +644,7 @@ public:
         for (std::size_t j = 0; j < s.meshes.size(); ++j) {
           const auto &m = s.meshes[j];
           const auto &mat = s.materials[m.material];
+          if ((i.surfaceMask & (1U << mat.surfaceKind)) == 0) continue;
           if ((mat.alphaMode == 2) != (alpha == 1))
             continue;
           const Uniforms u{frame.viewProjection,
@@ -541,7 +654,9 @@ public:
                            {frame.camera.x, frame.camera.y, frame.camera.z, 1},
                            {m.skin >= 0 ? 1.F : 0.F,
                             static_cast<float>(mat.alphaMode), mat.alphaCutoff,
-                            mat.roughness}};
+                            mat.roughness},
+                           {static_cast<float>(mat.surfaceKind), frame.sceneSeconds,
+                            static_cast<float>(m.material + m.node * 3), 0}};
           const auto bones = engine::skinMatrices(s, m, pose);
           if (offset + 256 + sizeof(bones) > constantsCapacity)
             throw std::runtime_error("Per-frame uniform budget exceeded");
@@ -574,8 +689,40 @@ public:
         }
       }
     }
-    transition(f.color.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
-               D3D12_RESOURCE_STATE_COMMON);
+    transition(f.hdr.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+               D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    transition(f.emission.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+               D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    commands_->SetGraphicsRootSignature(postRoot_.Get());
+    auto postPass = [&](ID3D12PipelineState *pipeline, ID3D12Resource *target,
+                        UINT targetDescriptor, UINT sourceDescriptor, UINT secondSourceDescriptor,
+                        UINT targetWidth, UINT targetHeight, float directionX, float directionY,
+                        D3D12_RESOURCE_STATES initialState, D3D12_RESOURCE_STATES finalState) {
+      transition(target, initialState, D3D12_RESOURCE_STATE_RENDER_TARGET);
+      const auto output = cpu(rtv_.Get(), rtvStep_, targetDescriptor);
+      commands_->OMSetRenderTargets(1, &output, FALSE, nullptr);
+      const D3D12_VIEWPORT postViewport{0, 0, static_cast<float>(targetWidth), static_cast<float>(targetHeight), 0, 1};
+      const D3D12_RECT postScissor{0, 0, static_cast<LONG>(targetWidth), static_cast<LONG>(targetHeight)};
+      commands_->RSSetViewports(1, &postViewport);
+      commands_->RSSetScissorRects(1, &postScissor);
+      commands_->SetPipelineState(pipeline);
+      const std::array<float, 4> postConstants{
+          static_cast<float>(targetWidth), static_cast<float>(targetHeight), directionX, directionY};
+      commands_->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(postConstants.size()), postConstants.data(), 0);
+      commands_->SetGraphicsRootDescriptorTable(1, gpu(sourceDescriptor));
+      commands_->SetGraphicsRootDescriptorTable(2, gpu(secondSourceDescriptor));
+      commands_->DrawInstanced(3, 1, 0, 0);
+      transition(target, D3D12_RESOURCE_STATE_RENDER_TARGET, finalState);
+    };
+    const UINT halfWidth = std::max(1U, (width_ + 1) / 2), halfHeight = std::max(1U, (height_ + 1) / 2);
+    postPass(downsample_.Get(), f.bloomA.Get(), rtvBase + 3, srvBase + 1, 0, halfWidth, halfHeight, 0, 0,
+             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    postPass(blur_.Get(), f.bloomB.Get(), rtvBase + 4, srvBase + 2, 0, halfWidth, halfHeight, 2, 0,
+             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    postPass(blur_.Get(), f.bloomA.Get(), rtvBase + 3, srvBase + 3, 0, halfWidth, halfHeight, 0, 2,
+             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    postPass(composite_.Get(), f.color.Get(), rtvBase, srvBase, srvBase + 2, width_, height_, 0, 0,
+             D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COMMON);
     check(commands_->Close(), "Close frame commands");
     ID3D12CommandList *lists[] = {commands_.Get()};
     queue_->ExecuteCommandLists(1, lists);

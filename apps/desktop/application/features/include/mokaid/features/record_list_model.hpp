@@ -14,7 +14,9 @@ public:
     void setRecords(QVariantList records);
     void setQuery(const QString& query);
     QVariantMap record(const QString& id) const;
+    Q_INVOKABLE QVariantList previewFiles() const;
     const QVariantList& allRecords() const { return all_; }
+    const QVariantList& visibleRecords() const { return visible_; }
 private:
     void reconcile();
     QVariantList all_, visible_;

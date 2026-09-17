@@ -23,3 +23,7 @@ assets/optimized
 *.blend
 *.blend1
 office.glb
+artifacts
+graphify-out
+.impeccable
+apps/web/tmp-office-camera

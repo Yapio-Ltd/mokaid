@@ -11,7 +11,7 @@ are included in the app.
 Supported product targets: macOS 13+ arm64 and Windows 11 x64. Use a full Xcode
 installation plus the Metal compiler on Mac; Visual Studio 2022 C++/Windows SDK
 and DXC on Windows. Qt must match **6.11.2 exactly** and include WebEngine,
-WebChannel, WebSockets, Positioning, ShaderTools and TaskTree alongside Qt Base
+WebChannel, WebSockets, Positioning, ShaderTools, TaskTree, Multimedia and TextToSpeech alongside Qt Base
 and Declarative. CMake 3.30+, Ninja, Python with Pillow and Node 22 are needed.
 The release tool versions, SDK hashes and Conan lock are maintained in
 [distribution](distribution) and the CI workflows.
@@ -38,6 +38,16 @@ backend catalogs. Do not substitute older optimized GLBs for the catalog packs.
 Cook before configuring so the real-asset CTest is registered. Core/simulation
 tests also build without Qt via the `portable-tests` preset.
 
+Before opening the development app, build the `mokaid_desktop` target and
+restart any running instance. Building only `mokaid_graphics_probe`,
+`mokaid_metal_smoke` or the shaders does not update the app executable. The
+development app reads shaders from the build directory: an old executable with
+new shaders can produce a nearly black scene with bright, saturated neon.
+Launch `build/macos-debug/app/Mokaid.app` for local iteration: it reads the
+current `build/assets` pack. The `build/development-stage*` bundles are packaging
+snapshots with their own embedded assets; rebuilding the debug app does not
+refresh those snapshots.
+
 ## Connect to a development server
 
 The native session requires the new Phoenix endpoints and database migration
@@ -61,15 +71,28 @@ one transaction ID. It never accepts an arbitrary server-returned redirect.
 The temporary loopback callback is bound to PKCE and state. OS credential
 storage holds the rotating refresh token; workspace cache contains no session
 token. API and WebSocket credentials are headers, not URL parameters.
+Refresh requests are serialized. A lost response or ambiguous server failure
+requires fresh browser sign-in, since replaying an already rotated credential
+revokes its session family. Connection failures proven to occur before the HTTP
+request, and rate limiting, retain the saved credential for a delayed retry.
+Vault write failures revoke issued credentials and clear local identity; a
+failed vault erase leaves a sign-out marker that prevents automatic restoration.
 The serialized SQLite worker retains at most 500 entries / 256 MiB of payloads,
 with an 8 MiB per-entry ceiling; database pages and its WAL add storage overhead.
 
 ## Validation and current limits
 
+The [desktop mission guide](../../docs/desktop-missions-2026-09-16.md) documents
+file drop/upload, agent matching, bounded delivery review, notifications and
+explicit local Next.js/Vite previews, including current limits and test evidence.
+
 The normal app builds and launches on the local Apple M4 Pro. Native contract
 tests cover domain policies, real cooked assets, incremental models, user and
 workspace isolation, admin revocation, HTTP transport, authorization URLs,
 Phoenix joins/rejoins, activity/search and preview resource filtering. The
+[session lifecycle tests](tests/session_controller_tests.cpp) use real loopback
+HTTP and an in-memory vault to cover PKCE, cancellation, rotation, sign-out races
+and storage failures without touching the user's keychain. The
 [graphics probe](tests/graphics/README.md) is a separate test executable using
 real GPU rendering and an explicitly labelled HTML fixture. It tests QML,
 Metal and protected WebEngine together without accessing workspace data.
@@ -84,7 +107,7 @@ python3 -m unittest discover -s distribution/tests -v
 
 Read the exact remaining work before interpreting a successful build:
 
-- [Native feature coverage and gaps](application/features/PARITY.md): all 32
+- [Native feature coverage and gaps](application/features/PARITY.md): all 31
   registered screens use actual APIs, but rich screen layouts, onboarding,
   some nested workflows and visual/copy parity are not complete.
 - [Renderer coverage and gaps](renderer/README.md): authored assets and native

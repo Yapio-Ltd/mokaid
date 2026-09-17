@@ -29,6 +29,19 @@ QVariantMap RecordListModel::record(const QString& id) const {
     for (const auto& value : all_) if (featureRecordId(value.toMap()) == id) return value.toMap();
     return {};
 }
+QVariantList RecordListModel::previewFiles() const {
+    QVariantList result;
+    for (const auto& value : visible_) {
+        const auto record=value.toMap();
+        if (record.value("kind").toString()=="folder" || record.value("name").toString().isEmpty()
+            || !record.contains("mime_type")) continue;
+        QVariantMap file;
+        for (const auto& key : {"id","name","mime_type","extension","size_bytes","version","source"})
+            if (record.contains(key)) file.insert(key,record.value(key));
+        result.append(file);
+    }
+    return result;
+}
 void RecordListModel::reconcile() {
     QVariantList next;
     QSet<QString> ids;
@@ -37,7 +50,17 @@ void RecordListModel::reconcile() {
         const auto id = featureRecordId(record);
         if (ids.contains(id)) continue;
         if (!query_.isEmpty()) {
-            const auto text=QString::fromUtf8(QJsonDocument::fromVariant(publicDisplayRecord(record)).toJson(QJsonDocument::Compact));
+            auto text=QString::fromUtf8(QJsonDocument::fromVariant(publicDisplayRecord(record)).toJson(QJsonDocument::Compact));
+            // Match the skill labels shown in the workforce view, without
+            // indexing arbitrary nested payloads or hidden credentials.
+            for (const auto& skill : record.value("skills").toList()) {
+                if (skill.metaType().id()==QMetaType::QString) text+=' '+skill.toString();
+                else {
+                    const auto fields=skill.toMap();
+                    for (const auto& key : {"name","label","key"})
+                        if (fields.value(key).metaType().id()==QMetaType::QString) text+=' '+fields.value(key).toString();
+                }
+            }
             if (!text.contains(query_,Qt::CaseInsensitive)) continue;
         }
         ids.insert(id); next.append(record);

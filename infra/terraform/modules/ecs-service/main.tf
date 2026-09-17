@@ -71,6 +71,17 @@ variable "alb_security_group_id" {
   default = ""
 }
 
+variable "service_registry" {
+  description = "Optional private Cloud Map A-record service for awsvpc task discovery."
+  type        = object({ registry_arn = string })
+  default     = null
+
+  validation {
+    condition     = var.service_registry == null ? true : can(regex("^arn:[a-z0-9-]+:servicediscovery:[a-z0-9-]+:[0-9]{12}:service/srv-[a-zA-Z0-9]+$", var.service_registry.registry_arn))
+    error_message = "service_registry.registry_arn must be a Cloud Map service ARN."
+  }
+}
+
 variable "log_retention_days" {
   type    = number
   default = 30
@@ -246,6 +257,13 @@ resource "aws_ecs_service" "this" {
       target_group_arn = var.target_group_arn
       container_name   = var.name
       container_port   = var.container_port
+    }
+  }
+
+  dynamic "service_registries" {
+    for_each = var.service_registry == null ? [] : [var.service_registry]
+    content {
+      registry_arn = service_registries.value.registry_arn
     }
   }
 

@@ -1,0 +1,2017 @@
+{
+  "note": "Offline silhouette analysis, not a GPU screenshot or runtime acceptance test. Current camera values and QML margins are read directly from production sources. Source geometry projects all vertices with the same perspective fit and recenter calculation as native code.",
+  "currentCamera": {
+    "x": 7.256,
+    "y": 7.32,
+    "wideDrop": 1.3,
+    "z": -13.704,
+    "aspectStart": 1.45,
+    "aspectSpan": 0.65,
+    "silhouetteSpan": 1.94,
+    "topMargin": 74,
+    "bottomMargin": 100,
+    "sourceSha256": "3e9ba9e39f5216d8029a8f120a6785f21cad0873800867352a15a6bd750aee2d"
+  },
+  "baseline": {
+    "path": "/Users/olimservice/mokaid/apps/web/public/assets3d/office.a830ba995121.glb",
+    "sha256": "a830ba995121e9a4d49e85698f1c3161a4962bbc677a0994127f8f102bf58613",
+    "coordinates": "Native right-handed Y-up: (-glTF.x, glTF.y, -glTF.z)",
+    "bounds": {
+      "min": [
+        -7.4299,
+        -0.1419,
+        -6.4726
+      ],
+      "max": [
+        7.0676,
+        2.409,
+        6.936
+      ]
+    },
+    "meshCount": 77,
+    "triangleCount": 219802,
+    "degenerateTriangleCount": 830,
+    "nonFinitePositionCount": 0,
+    "textureHashes": [
+      {
+        "name": "office7 B_Solo items_Emissive",
+        "sha256": "c1b22d4dd7cd6484db52cc541b809f0cd385fd569988bddbd4d4fbe0fbabe5d9"
+      },
+      {
+        "name": "office7 B_Solo items_Normal",
+        "sha256": "72a110d796e9d7d3228eaa60d94e676f862856d831d2ba718e7e69d3d1bc0c61"
+      },
+      {
+        "name": "office7 B_Solo items_BaseColor",
+        "sha256": "4f6ced4f452cec79759877a32ec69a9a6f1d2002187369d293fa6b79af622e1e"
+      },
+      {
+        "name": "office7 B_Solo items_Metallic.png-office7 B_Solo items_Roughness.png",
+        "sha256": "8e8bb84fc5806ef8acf77d9086247c47be73075182ce08b628c000d5c0e73455"
+      },
+      {
+        "name": "office7 B_base_Emissive",
+        "sha256": "fb893f80d3787e0052595da5a9f842d3d2ac37257942d1e60c20e3badef5194a"
+      },
+      {
+        "name": "Chair_Chair_Normal",
+        "sha256": "be46bacfaff6e8a4bcd00d7bd4fa6ca5943433d8c0a09ae347940c95deb225e7"
+      },
+      {
+        "name": "Chair_Chair_BaseColor",
+        "sha256": "0b5beed2a98d528e871915c8529393805666ca57d711538ecdf4c8035411b898"
+      },
+      {
+        "name": "Chair_Chair_Metallic-Chair_Chair_Roughness",
+        "sha256": "15442b535a5a1d25da346ea83b781bc1a41a9c36f2e8ee462b2707718be6ae31"
+      },
+      {
+        "name": "Office_Chair_Leather.001_normal",
+        "sha256": "058c377f990ee45782834d10c13f8660d2d835f2b8a945359152f58cc8ad8727"
+      },
+      {
+        "name": "Office_Chair_Leather.001_baseColor",
+        "sha256": "d9d58563319b0633d4e628eb3896cc332de06b19aa9a53929bd2efb04d1326a7"
+      },
+      {
+        "name": "Office_Chair_Leather.001_metallicRoughness",
+        "sha256": "da6d64a48bfda432c5f58f6467495ffd7f311852a6750c9d1a4a68da8628c45d"
+      },
+      {
+        "name": "Office_Chair_Plastic.001_normal",
+        "sha256": "59975c9b277e3d96072a00f0cebd72b1dea33c0626bd1204deead9f10d15d061"
+      },
+      {
+        "name": "office7 B_Monitor _Emissive",
+        "sha256": "cdda07d42bb356480a11788fd29897775044fa144c02801a7a2288c17e83c473"
+      },
+      {
+        "name": "office7 B_Monitor _Normal",
+        "sha256": "0c13174b294d3a465a85953fb80f320216d905d56e630958313020c8085360e2"
+      },
+      {
+        "name": "office7 B_Monitor _BaseColor",
+        "sha256": "3ebcffaeaf00796ac90d58679c8f8cfa11db2205d0604523a279cc3427ea399e"
+      },
+      {
+        "name": "office7 B_Lap Top_Emissive",
+        "sha256": "c5b385f18a8169f68b6e8cbf8a45e613d10416897c6f2f2ee9ceac7ef83e1f96"
+      },
+      {
+        "name": "office7 B_Lap Top_Normal",
+        "sha256": "a3d82a6aa766ca06c99af6d6d29f315f74c167cf901b8363eef6dfde3a06c678"
+      },
+      {
+        "name": "office7 B_Lap Top_BaseColor",
+        "sha256": "d472717ef15b749dce5b6762b62afdea39290f83810ca92f8721be7ce03829ed"
+      },
+      {
+        "name": "office7 B_Lap Top_Metallic.png-office7 B_Lap Top_Roughness.png",
+        "sha256": "8be92ccc75b4c1fa3a87ba460b2f5e14336a4e68687d0aaa9a1f5e7a460bcd7e"
+      },
+      {
+        "name": "office7 B_Table_Normal",
+        "sha256": "d4a9bd4693ed714abc08cb892d63a30ccb9f6215e8ba1c5d5ad67945de72436e"
+      },
+      {
+        "name": "office7 B_Table_BaseColor",
+        "sha256": "39cfe42bc7221856ae1d6731dd76c5eb0644b2ed93baac820295e2b11e6e17d3"
+      },
+      {
+        "name": "office7 B_Table_Metallic-office7 B_Table_Roughness",
+        "sha256": "d194e9fcaa2a8a985d84a857518b7e8939bd109ae77cc8380c97122b784b4356"
+      },
+      {
+        "name": "office7 B_Sofa_Normal",
+        "sha256": "6b0dfd724fc228d9e9eb10006e41f3f311347a0dc6aa795e1013d39dd165371c"
+      },
+      {
+        "name": "office7 B_Sofa_BaseColor",
+        "sha256": "3d394619167198c9e358668d97c1d538ac4628a5fe9bf29a044db707c6487b44"
+      },
+      {
+        "name": "office7 B_Sofa_Metallic-office7 B_Sofa_Roughness",
+        "sha256": "3b9f98c8898292326b02ed8961361a9c690b065ba0803c6a7e55f181bb7f94a2"
+      },
+      {
+        "name": "office7 B_cupboard 02_Normal",
+        "sha256": "4a2dd5c9cbda1c0bc8eacde5d469498b2eb95fed0f255a20de58094b0fdc2169"
+      },
+      {
+        "name": "office7 B_cupboard 02_BaseColor",
+        "sha256": "1dc85fa3f77aa9d33a994cac6fcb6ae086a990567f17cb884cef3b991131ebfa"
+      },
+      {
+        "name": "office7 B_cupboard 02_Metallic-office7 B_cupboard 02_Roughness",
+        "sha256": "7b54e9c5c0432f7f7793ca0d1acbc196056be315364c8312e6cbd1585b8f5df6"
+      },
+      {
+        "name": "office7 B_Keyboard_Normal",
+        "sha256": "e2b5cdd93e2fdb9c5133328d5a5fa30b7b9cc2630c7df2d824b60bda21466baa"
+      },
+      {
+        "name": "office7 B_Keyboard_BaseColor",
+        "sha256": "a027df075c6cf162696125dd96bf2d218d5d0fee2a821b14ffbcd68fec64d74c"
+      },
+      {
+        "name": "office7 B_Keyboard_Metallic-office7 B_Keyboard_Roughness",
+        "sha256": "3978f6b859d089a87faeedec23d2b8fd1549d01f00f3f62719e178c2380b6af2"
+      },
+      {
+        "name": "office7 B_Mug_Normal",
+        "sha256": "584323ea7bd26c01e3ce60d7078ad84cd132efc2318c5a9e54b341fc8f6a47d9"
+      },
+      {
+        "name": "office7 B_Mug_BaseColor",
+        "sha256": "b5fdf3272debcd8ea0683cd9407bba150bb59515608964d3f3a1188bcc3d4521"
+      },
+      {
+        "name": "office7 B_Mug_Metallic-office7 B_Mug_Roughness",
+        "sha256": "3f44f2c604e71d7a95744b25af00d4fd55195257d3924a232dfe7afbda753f1f"
+      },
+      {
+        "name": "Untitled",
+        "sha256": "f42aefb0cea28304b7afebe30ec57148696ded5dbc18a7634db5b7b70c044bfc"
+      },
+      {
+        "name": "office7 B_Books 2_Normal",
+        "sha256": "f25118db6fd1ffca58e40423352fe97c2335b7b91293c45d913e03a710748903"
+      },
+      {
+        "name": "office7 B_Books 2_BaseColor",
+        "sha256": "5f0eeeb0c208db2d0ffaa1164ca3bec26bd304c89d4fdefac9f6dd6dcf0038fc"
+      },
+      {
+        "name": "office7 B_Books 2_Metallic-office7 B_Books 2_Roughness",
+        "sha256": "bf385bb2d1dde1b31320e87849d346665b212c407f992c960c0e73be67f02228"
+      },
+      {
+        "name": "office7 B_Book 1_Normal",
+        "sha256": "9d9c2eaca338a1a74c31261c2841592bc04d1ed3b239ed52f628779879cb2913"
+      },
+      {
+        "name": "office7 B_Book 1_BaseColor",
+        "sha256": "3a6d4e2bd41100c101ea85db4d5eac1e35fb7b97cd4ade786915fc8097bc0ca2"
+      },
+      {
+        "name": "office7 B_Book 1_Metallic-office7 B_Book 1_Roughness",
+        "sha256": "cb8ab10ffb938003591485a3087fe3749331d29833ec491fcbbbe41537fdb41b"
+      },
+      {
+        "name": "office7 B_Table Light_Emissive",
+        "sha256": "faa1053022f737ac077e7ef0c33a77ec7b47ea879b738bcba42db2239e6efd81"
+      },
+      {
+        "name": "office7 B_Table Light_Normal",
+        "sha256": "843a372c2a40af72b0edad7e6171070a66737bb0ea65ab1b3f8ac61f00bd1c5a"
+      },
+      {
+        "name": "office7 B_Table Light_BaseColor",
+        "sha256": "69eb51fbe5fad42ac6edf9f05dcb7bb69d642eee3ed47bdfa30cc73a7570fe96"
+      },
+      {
+        "name": "office7 B_Candles_Emissive",
+        "sha256": "4faddc1edbf65bb248a4e575a5157b99267a686e03906bed1ed066a733c2a06b"
+      },
+      {
+        "name": "office7 B_Candles_Normal",
+        "sha256": "bc97063b53c23bfd54479344702aed8541a30dee3a14913131c426f68f1587e1"
+      },
+      {
+        "name": "office7 B_Candles_BaseColor",
+        "sha256": "ba481f3bcd8ff4b26d28a630f90da59279d350b419c9adf0a4b6f90d01df7b0c"
+      },
+      {
+        "name": "office7 B_Candles_Metallic-office7 B_Candles_Roughness",
+        "sha256": "00e02bc2a0ce1424b0c6cd03214117a637404748e5057d723027683bdb1d1035"
+      },
+      {
+        "name": "office7 B_walet_Normal",
+        "sha256": "a3f8ce86d099b00eb0d127fd56b2a444662cf2b6d9ccb692f842ae006fe209bb"
+      },
+      {
+        "name": "office7 B_walet_BaseColor",
+        "sha256": "efcb5eaa2758fe0bc094d215bb3b55307b32e46baca84e5df15f2b8af460fa72"
+      },
+      {
+        "name": "office7 B_walet_Metallic-office7 B_walet_Roughness",
+        "sha256": "15f339d5c6b5d26293ba4999ea1a846dd16c5e6a15c705364f528fde2a65d8bb"
+      },
+      {
+        "name": "office7 B_phone_Normal",
+        "sha256": "005ac47857f2e44c81a97009931a2e88326541218e68eda89af60b4830207ecc"
+      },
+      {
+        "name": "office7 B_phone_BaseColor",
+        "sha256": "deee9d6ab174231e74e5d805ff61f6e02dafb2cc87e2366b8041b37a1bc9333c"
+      },
+      {
+        "name": "office7 B_phone_Metallic-office7 B_phone_Roughness",
+        "sha256": "480e9dc0220e4ca539a5b063c7db79f5b9a84502ce327d8b7de926f155f53686"
+      },
+      {
+        "name": "office7 B_plant pot N_BaseColor",
+        "sha256": "8094caea7d8601297e95384792c2bc8dc15a11915d6c1c5fabc136de6dbe208b"
+      },
+      {
+        "name": "office7 B_plant pot N_Metallic-office7 B_plant pot N_Roughness",
+        "sha256": "addc262dcca29e8e56ae5ecf118cdb7374069999e0dca556bd0c4032b1cfc03d"
+      },
+      {
+        "name": "office7 B_dividing wall N_Emissive",
+        "sha256": "34603432966e4835f5faa3fc1d182db4cfa4e756d4b8c1ed901ef121bf6b2d61"
+      },
+      {
+        "name": "office7 B_dividing wall N_Normal",
+        "sha256": "6531534160370b60ecefcaf0e9c5aace7eba0bf84a2ad69e66fae72f23b66ad7"
+      },
+      {
+        "name": "office7 B_dividing wall N_BaseColor",
+        "sha256": "9eb7202c945e1fb858d10619cf87d086a2d6e68f936d817225756e8eb0e7a243"
+      },
+      {
+        "name": "office7 B_dividing wall N_Metallic.png-office7 B_dividing wall N_Roughness.png",
+        "sha256": "31be3d0ade68d314640c2aaf470a59432ac5e4c6de739d96b4c6305be51800a4"
+      },
+      {
+        "name": "office7 B_coffee table_Emissive",
+        "sha256": "ae42ebfa87a8934f644f51f7fb729d7a576cba47332c4293c8447518e7421885"
+      },
+      {
+        "name": "office7 B_coffee table_Normal",
+        "sha256": "2cb8dd60fb80ced2bdf3ccc7ed14ed9e20720e3345515d5be962e5e706b1a393"
+      },
+      {
+        "name": "office7 B_coffee table_BaseColor",
+        "sha256": "9fa81ef8eb1c1ca8d7eb91cd90ffd45a6584474e46ad1c478ec2a4d732047dbf"
+      },
+      {
+        "name": "office7 B_coffee table_Metallic-office7 B_coffee table_Roughness",
+        "sha256": "f9a9bab8753ef2d2e646195f724578d87b86ae1451b8ffe7309fc854ec2ec394"
+      },
+      {
+        "name": "office7 B_additional_Emissive",
+        "sha256": "b48c54f2749b9921d17478b0f630d362278429c0378d6d397b3163d4e682105e"
+      },
+      {
+        "name": "office7 B_additional_Normal",
+        "sha256": "cfd0f9ba768737d8a29a2471e26d00405512d60689b62cdac618a5b11109e72d"
+      },
+      {
+        "name": "office7 B_additional_BaseColor",
+        "sha256": "794ce5f81c93787f5daeddd2ef625cc4fb8d7ab9a4326f7bccf511250ee419c2"
+      },
+      {
+        "name": "office7 B_additional_Metallic-office7 B_additional_Roughness",
+        "sha256": "cccd28c32792a23c93315cf1ad2b8d329c9e0d1f0eab5ea6175d636c744f101a"
+      },
+      {
+        "name": "office7 B_cupbords solo.001_Normal",
+        "sha256": "0541dc39b65c0544454622802244329b9ece0871de2039fe01e79117753c6a23"
+      },
+      {
+        "name": "office7 B_cupbords solo.001_BaseColor",
+        "sha256": "0f19c803d5bf5009418915a08d0292f58810fcb662c2336fc7e7839c1ff9f37e"
+      },
+      {
+        "name": "office7 B_cupbords solo.001_Metallic-office7 B_cupbords solo.001_Roughness",
+        "sha256": "bba48ed234d3f36daa67959a5ec40d5c832c6884d49364ecbcd2789f9ddd2060"
+      },
+      {
+        "name": "office7 B_book rack small_Normal",
+        "sha256": "ca5ad1a2b21437932177f3928686b0c642fbd23ef38d31be3dee825cdc37c4b4"
+      },
+      {
+        "name": "office7 B_book rack small_BaseColor",
+        "sha256": "b28cb7479a72707cbd0b22a21a7529da53cf0582f6b2df6f87b7db9318b5b282"
+      },
+      {
+        "name": "office7 B_book rack small_Metallic-office7 B_book rack small_Roughness",
+        "sha256": "618c9c1ca9e10dd800f1f227f3bde14a0c58f57f0c94bf43bf5fe0754c5a2013"
+      },
+      {
+        "name": "office7 B_Cupboard_Normal",
+        "sha256": "6725e31918b02c074f8b87e7f12e9b97b71cbf29d82f7c873aacdd5da98f4547"
+      },
+      {
+        "name": "office7 B_Cupboard_BaseColor",
+        "sha256": "824f6e0e16f72329aa04c796b35e15a54ba1dcbd6de8384df3f668307d108e34"
+      },
+      {
+        "name": "office7 B_Cupboard_Metallic-office7 B_Cupboard_Roughness",
+        "sha256": "e011744cefa8012390b951670e13a855e39aae6da19164f0f537a1d83a76e197"
+      },
+      {
+        "name": "office7 B_sofa 01_Normal",
+        "sha256": "a71f428da71b73c08b8b9313c4a8ed20e1e026dfe8ba5771cdb21df25d6ea278"
+      },
+      {
+        "name": "office7 B_sofa 01_BaseColor",
+        "sha256": "5b97cde20595082efbb361be2dfb0f04fa351d0dd784976f4c6d9335b88d978c"
+      },
+      {
+        "name": "office7 B_sofa 01_Metallic-office7 B_sofa 01_Roughness",
+        "sha256": "9fc1289d825933894bfc04b8942be3961b3ade6effdd339693e94dc47274da48"
+      },
+      {
+        "name": "office7 B_mug plate_Normal",
+        "sha256": "dcb12ff55909dd340c43be7969b3a6c861341b260214656f1492f2827e5f514b"
+      },
+      {
+        "name": "office7 B_mug plate_BaseColor",
+        "sha256": "1ce568a3c25c9ffe4f9de914b1390bdfd299f114132b810e3b84b885fa6486b1"
+      },
+      {
+        "name": "office7 B_mug plate_Metallic-office7 B_mug plate_Roughness",
+        "sha256": "156499b1def0f598f3f876b2fdb39e7827db2ca3576ef391c62eb017c610a5df"
+      },
+      {
+        "name": "ARECA_NORMAL",
+        "sha256": "c7b4a9a0985d91eb99f223421e730f734cf7823e61addcff03172928c9df3f2c"
+      },
+      {
+        "name": "ARECA_DIFFUSE.png-ARECA_OPACITY",
+        "sha256": "335e6dd83a80c1474f5878d426d357122a71c531b09ca59664ef580a432838e8"
+      },
+      {
+        "name": "ARECA_ROUGHNESS",
+        "sha256": "041b69b6ad573c4576f47c0a145ef04ec64264ae3e0f30e33855ce94ca934485"
+      }
+    ],
+    "materialTextureBindings": [
+      {
+        "name": "Solo items",
+        "textures": {
+          "BaseColor": "4f6ced4f452cec79759877a32ec69a9a6f1d2002187369d293fa6b79af622e1e",
+          "Emissive": "c1b22d4dd7cd6484db52cc541b809f0cd385fd569988bddbd4d4fbe0fbabe5d9",
+          "Normal": "72a110d796e9d7d3228eaa60d94e676f862856d831d2ba718e7e69d3d1bc0c61",
+          "MetallicRoughness": "8e8bb84fc5806ef8acf77d9086247c47be73075182ce08b628c000d5c0e73455",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "base",
+        "textures": {
+          "BaseColor": null,
+          "Emissive": "fb893f80d3787e0052595da5a9f842d3d2ac37257942d1e60c20e3badef5194a",
+          "Normal": null,
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Chair",
+        "textures": {
+          "BaseColor": "0b5beed2a98d528e871915c8529393805666ca57d711538ecdf4c8035411b898",
+          "Emissive": null,
+          "Normal": "be46bacfaff6e8a4bcd00d7bd4fa6ca5943433d8c0a09ae347940c95deb225e7",
+          "MetallicRoughness": "15442b535a5a1d25da346ea83b781bc1a41a9c36f2e8ee462b2707718be6ae31",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Office_Chair_Leather.001",
+        "textures": {
+          "BaseColor": "d9d58563319b0633d4e628eb3896cc332de06b19aa9a53929bd2efb04d1326a7",
+          "Emissive": null,
+          "Normal": "058c377f990ee45782834d10c13f8660d2d835f2b8a945359152f58cc8ad8727",
+          "MetallicRoughness": "da6d64a48bfda432c5f58f6467495ffd7f311852a6750c9d1a4a68da8628c45d",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Office_Chair_Plastic.001",
+        "textures": {
+          "BaseColor": null,
+          "Emissive": null,
+          "Normal": "59975c9b277e3d96072a00f0cebd72b1dea33c0626bd1204deead9f10d15d061",
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Monitor ",
+        "textures": {
+          "BaseColor": "3ebcffaeaf00796ac90d58679c8f8cfa11db2205d0604523a279cc3427ea399e",
+          "Emissive": "cdda07d42bb356480a11788fd29897775044fa144c02801a7a2288c17e83c473",
+          "Normal": "0c13174b294d3a465a85953fb80f320216d905d56e630958313020c8085360e2",
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Lap Top",
+        "textures": {
+          "BaseColor": "d472717ef15b749dce5b6762b62afdea39290f83810ca92f8721be7ce03829ed",
+          "Emissive": "c5b385f18a8169f68b6e8cbf8a45e613d10416897c6f2f2ee9ceac7ef83e1f96",
+          "Normal": "a3d82a6aa766ca06c99af6d6d29f315f74c167cf901b8363eef6dfde3a06c678",
+          "MetallicRoughness": "8be92ccc75b4c1fa3a87ba460b2f5e14336a4e68687d0aaa9a1f5e7a460bcd7e",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Table",
+        "textures": {
+          "BaseColor": "39cfe42bc7221856ae1d6731dd76c5eb0644b2ed93baac820295e2b11e6e17d3",
+          "Emissive": null,
+          "Normal": "d4a9bd4693ed714abc08cb892d63a30ccb9f6215e8ba1c5d5ad67945de72436e",
+          "MetallicRoughness": "d194e9fcaa2a8a985d84a857518b7e8939bd109ae77cc8380c97122b784b4356",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Sofa",
+        "textures": {
+          "BaseColor": "3d394619167198c9e358668d97c1d538ac4628a5fe9bf29a044db707c6487b44",
+          "Emissive": null,
+          "Normal": "6b0dfd724fc228d9e9eb10006e41f3f311347a0dc6aa795e1013d39dd165371c",
+          "MetallicRoughness": "3b9f98c8898292326b02ed8961361a9c690b065ba0803c6a7e55f181bb7f94a2",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Cupboard",
+        "textures": {
+          "BaseColor": "1dc85fa3f77aa9d33a994cac6fcb6ae086a990567f17cb884cef3b991131ebfa",
+          "Emissive": null,
+          "Normal": "4a2dd5c9cbda1c0bc8eacde5d469498b2eb95fed0f255a20de58094b0fdc2169",
+          "MetallicRoughness": "7b54e9c5c0432f7f7793ca0d1acbc196056be315364c8312e6cbd1585b8f5df6",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Keyboard",
+        "textures": {
+          "BaseColor": "a027df075c6cf162696125dd96bf2d218d5d0fee2a821b14ffbcd68fec64d74c",
+          "Emissive": null,
+          "Normal": "e2b5cdd93e2fdb9c5133328d5a5fa30b7b9cc2630c7df2d824b60bda21466baa",
+          "MetallicRoughness": "3978f6b859d089a87faeedec23d2b8fd1549d01f00f3f62719e178c2380b6af2",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Mug",
+        "textures": {
+          "BaseColor": "b5fdf3272debcd8ea0683cd9407bba150bb59515608964d3f3a1188bcc3d4521",
+          "Emissive": null,
+          "Normal": "584323ea7bd26c01e3ce60d7078ad84cd132efc2318c5a9e54b341fc8f6a47d9",
+          "MetallicRoughness": "3f44f2c604e71d7a95744b25af00d4fd55195257d3924a232dfe7afbda753f1f",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Pen Holder",
+        "textures": {
+          "BaseColor": "f42aefb0cea28304b7afebe30ec57148696ded5dbc18a7634db5b7b70c044bfc",
+          "Emissive": null,
+          "Normal": null,
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Books 2",
+        "textures": {
+          "BaseColor": "5f0eeeb0c208db2d0ffaa1164ca3bec26bd304c89d4fdefac9f6dd6dcf0038fc",
+          "Emissive": null,
+          "Normal": "f25118db6fd1ffca58e40423352fe97c2335b7b91293c45d913e03a710748903",
+          "MetallicRoughness": "bf385bb2d1dde1b31320e87849d346665b212c407f992c960c0e73be67f02228",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Book 1",
+        "textures": {
+          "BaseColor": "3a6d4e2bd41100c101ea85db4d5eac1e35fb7b97cd4ade786915fc8097bc0ca2",
+          "Emissive": null,
+          "Normal": "9d9c2eaca338a1a74c31261c2841592bc04d1ed3b239ed52f628779879cb2913",
+          "MetallicRoughness": "cb8ab10ffb938003591485a3087fe3749331d29833ec491fcbbbe41537fdb41b",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Table Light",
+        "textures": {
+          "BaseColor": "69eb51fbe5fad42ac6edf9f05dcb7bb69d642eee3ed47bdfa30cc73a7570fe96",
+          "Emissive": "faa1053022f737ac077e7ef0c33a77ec7b47ea879b738bcba42db2239e6efd81",
+          "Normal": "843a372c2a40af72b0edad7e6171070a66737bb0ea65ab1b3f8ac61f00bd1c5a",
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Candles",
+        "textures": {
+          "BaseColor": "ba481f3bcd8ff4b26d28a630f90da59279d350b419c9adf0a4b6f90d01df7b0c",
+          "Emissive": "4faddc1edbf65bb248a4e575a5157b99267a686e03906bed1ed066a733c2a06b",
+          "Normal": "bc97063b53c23bfd54479344702aed8541a30dee3a14913131c426f68f1587e1",
+          "MetallicRoughness": "00e02bc2a0ce1424b0c6cd03214117a637404748e5057d723027683bdb1d1035",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "walet",
+        "textures": {
+          "BaseColor": "efcb5eaa2758fe0bc094d215bb3b55307b32e46baca84e5df15f2b8af460fa72",
+          "Emissive": null,
+          "Normal": "a3f8ce86d099b00eb0d127fd56b2a444662cf2b6d9ccb692f842ae006fe209bb",
+          "MetallicRoughness": "15f339d5c6b5d26293ba4999ea1a846dd16c5e6a15c705364f528fde2a65d8bb",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "phone",
+        "textures": {
+          "BaseColor": "deee9d6ab174231e74e5d805ff61f6e02dafb2cc87e2366b8041b37a1bc9333c",
+          "Emissive": null,
+          "Normal": "005ac47857f2e44c81a97009931a2e88326541218e68eda89af60b4830207ecc",
+          "MetallicRoughness": "480e9dc0220e4ca539a5b063c7db79f5b9a84502ce327d8b7de926f155f53686",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "walet 2",
+        "textures": {
+          "BaseColor": null,
+          "Emissive": null,
+          "Normal": null,
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "plant pot N",
+        "textures": {
+          "BaseColor": "8094caea7d8601297e95384792c2bc8dc15a11915d6c1c5fabc136de6dbe208b",
+          "Emissive": null,
+          "Normal": null,
+          "MetallicRoughness": "addc262dcca29e8e56ae5ecf118cdb7374069999e0dca556bd0c4032b1cfc03d",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "dividing wall N",
+        "textures": {
+          "BaseColor": "9eb7202c945e1fb858d10619cf87d086a2d6e68f936d817225756e8eb0e7a243",
+          "Emissive": "34603432966e4835f5faa3fc1d182db4cfa4e756d4b8c1ed901ef121bf6b2d61",
+          "Normal": "6531534160370b60ecefcaf0e9c5aace7eba0bf84a2ad69e66fae72f23b66ad7",
+          "MetallicRoughness": "31be3d0ade68d314640c2aaf470a59432ac5e4c6de739d96b4c6305be51800a4",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "coffee table",
+        "textures": {
+          "BaseColor": "9fa81ef8eb1c1ca8d7eb91cd90ffd45a6584474e46ad1c478ec2a4d732047dbf",
+          "Emissive": "ae42ebfa87a8934f644f51f7fb729d7a576cba47332c4293c8447518e7421885",
+          "Normal": "2cb8dd60fb80ced2bdf3ccc7ed14ed9e20720e3345515d5be962e5e706b1a393",
+          "MetallicRoughness": "f9a9bab8753ef2d2e646195f724578d87b86ae1451b8ffe7309fc854ec2ec394",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "additional",
+        "textures": {
+          "BaseColor": "794ce5f81c93787f5daeddd2ef625cc4fb8d7ab9a4326f7bccf511250ee419c2",
+          "Emissive": "b48c54f2749b9921d17478b0f630d362278429c0378d6d397b3163d4e682105e",
+          "Normal": "cfd0f9ba768737d8a29a2471e26d00405512d60689b62cdac618a5b11109e72d",
+          "MetallicRoughness": "cccd28c32792a23c93315cf1ad2b8d329c9e0d1f0eab5ea6175d636c744f101a",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "cupbords solo.001",
+        "textures": {
+          "BaseColor": "0f19c803d5bf5009418915a08d0292f58810fcb662c2336fc7e7839c1ff9f37e",
+          "Emissive": null,
+          "Normal": "0541dc39b65c0544454622802244329b9ece0871de2039fe01e79117753c6a23",
+          "MetallicRoughness": "bba48ed234d3f36daa67959a5ec40d5c832c6884d49364ecbcd2789f9ddd2060",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "book rack small",
+        "textures": {
+          "BaseColor": "b28cb7479a72707cbd0b22a21a7529da53cf0582f6b2df6f87b7db9318b5b282",
+          "Emissive": null,
+          "Normal": "ca5ad1a2b21437932177f3928686b0c642fbd23ef38d31be3dee825cdc37c4b4",
+          "MetallicRoughness": "618c9c1ca9e10dd800f1f227f3bde14a0c58f57f0c94bf43bf5fe0754c5a2013",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "cupbords solo",
+        "textures": {
+          "BaseColor": "824f6e0e16f72329aa04c796b35e15a54ba1dcbd6de8384df3f668307d108e34",
+          "Emissive": null,
+          "Normal": "6725e31918b02c074f8b87e7f12e9b97b71cbf29d82f7c873aacdd5da98f4547",
+          "MetallicRoughness": "e011744cefa8012390b951670e13a855e39aae6da19164f0f537a1d83a76e197",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "sofa 01",
+        "textures": {
+          "BaseColor": "5b97cde20595082efbb361be2dfb0f04fa351d0dd784976f4c6d9335b88d978c",
+          "Emissive": null,
+          "Normal": "a71f428da71b73c08b8b9313c4a8ed20e1e026dfe8ba5771cdb21df25d6ea278",
+          "MetallicRoughness": "9fc1289d825933894bfc04b8942be3961b3ade6effdd339693e94dc47274da48",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "mug plate",
+        "textures": {
+          "BaseColor": "1ce568a3c25c9ffe4f9de914b1390bdfd299f114132b810e3b84b885fa6486b1",
+          "Emissive": null,
+          "Normal": "dcb12ff55909dd340c43be7969b3a6c861341b260214656f1492f2827e5f514b",
+          "MetallicRoughness": "156499b1def0f598f3f876b2fdb39e7827db2ca3576ef391c62eb017c610a5df",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Material.003",
+        "textures": {
+          "BaseColor": null,
+          "Emissive": null,
+          "Normal": null,
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Material.002",
+        "textures": {
+          "BaseColor": "335e6dd83a80c1474f5878d426d357122a71c531b09ca59664ef580a432838e8",
+          "Emissive": null,
+          "Normal": "c7b4a9a0985d91eb99f223421e730f734cf7823e61addcff03172928c9df3f2c",
+          "MetallicRoughness": "041b69b6ad573c4576f47c0a145ef04ec64264ae3e0f30e33855ce94ca934485",
+          "Occlusion": null
+        }
+      }
+    ],
+    "chairs": [],
+    "floorArea": 182.7199,
+    "floorBorderNativeXZ": [
+      [
+        [
+          -7.4296,
+          -0.1398
+        ],
+        [
+          -7.4296,
+          6.4726
+        ]
+      ],
+      [
+        [
+          -7.4296,
+          6.4726
+        ],
+        [
+          0.0004,
+          6.4726
+        ]
+      ],
+      [
+        [
+          -7.4296,
+          -6.4726
+        ],
+        [
+          0.0004,
+          -6.4726
+        ]
+      ],
+      [
+        [
+          -7.4296,
+          -0.1398
+        ],
+        [
+          -7.4296,
+          -6.4726
+        ]
+      ],
+      [
+        [
+          0.0004,
+          -6.4726
+        ],
+        [
+          5.5049,
+          -6.4726
+        ]
+      ],
+      [
+        [
+          5.5049,
+          -6.4726
+        ],
+        [
+          7.0676,
+          -0.1398
+        ]
+      ],
+      [
+        [
+          0.0004,
+          6.4726
+        ],
+        [
+          7.0676,
+          6.4726
+        ]
+      ],
+      [
+        [
+          7.0676,
+          -0.1398
+        ],
+        [
+          7.0676,
+          6.4726
+        ]
+      ]
+    ],
+    "diagonalExtremes": [
+      {
+        "name": "Plane.005",
+        "materials": [
+          "base"
+        ],
+        "maxNativeXMinusZ": 11.9775
+      },
+      {
+        "name": "instance_3",
+        "materials": [
+          "Material.002"
+        ],
+        "maxNativeXMinusZ": 8.3494
+      },
+      {
+        "name": "instance_3",
+        "materials": [
+          "Material.003"
+        ],
+        "maxNativeXMinusZ": 8.0457
+      },
+      {
+        "name": "Cube.003",
+        "materials": [
+          "Table"
+        ],
+        "maxNativeXMinusZ": 7.2419
+      },
+      {
+        "name": "instance_0",
+        "materials": [
+          "Chair"
+        ],
+        "maxNativeXMinusZ": 7.1579
+      },
+      {
+        "name": "instance_2",
+        "materials": [
+          "Material.002"
+        ],
+        "maxNativeXMinusZ": 6.9873
+      },
+      {
+        "name": "Cube.016",
+        "materials": [
+          "plant pot N"
+        ],
+        "maxNativeXMinusZ": 6.9056
+      },
+      {
+        "name": "instance_3",
+        "materials": [
+          "Material.002"
+        ],
+        "maxNativeXMinusZ": 6.8429
+      },
+      {
+        "name": "Cube.054",
+        "materials": [
+          "phone"
+        ],
+        "maxNativeXMinusZ": 6.8224
+      },
+      {
+        "name": "instance_2",
+        "materials": [
+          "Material.003"
+        ],
+        "maxNativeXMinusZ": 6.6836
+      },
+      {
+        "name": "instance_2",
+        "materials": [
+          "Material.002"
+        ],
+        "maxNativeXMinusZ": 6.5833
+      },
+      {
+        "name": "Cylinder.009",
+        "materials": [
+          "Mug"
+        ],
+        "maxNativeXMinusZ": 6.5595
+      }
+    ]
+  },
+  "candidate": {
+    "path": "/Users/olimservice/mokaid/assets/optimized/office.desktop.4fe5f78c1fb5.glb",
+    "sha256": "4fe5f78c1fb54a3bb6815cab39c9457ed10a895b633c1dac032c5b4e8eb348a0",
+    "coordinates": "Native right-handed Y-up: (-glTF.x, glTF.y, -glTF.z)",
+    "bounds": {
+      "min": [
+        -7.4299,
+        -0.19,
+        -6.4846
+      ],
+      "max": [
+        7.3795,
+        2.409,
+        6.936
+      ]
+    },
+    "meshCount": 81,
+    "triangleCount": 220116,
+    "degenerateTriangleCount": 826,
+    "nonFinitePositionCount": 0,
+    "textureHashes": [
+      {
+        "name": "Chair_Chair_Normal",
+        "sha256": "be46bacfaff6e8a4bcd00d7bd4fa6ca5943433d8c0a09ae347940c95deb225e7"
+      },
+      {
+        "name": "Chair_Chair_BaseColor",
+        "sha256": "0b5beed2a98d528e871915c8529393805666ca57d711538ecdf4c8035411b898"
+      },
+      {
+        "name": "Chair_Chair_Metallic-Chair_Chair_Roughness",
+        "sha256": "15442b535a5a1d25da346ea83b781bc1a41a9c36f2e8ee462b2707718be6ae31"
+      },
+      {
+        "name": "Office_Chair_Leather",
+        "sha256": "058c377f990ee45782834d10c13f8660d2d835f2b8a945359152f58cc8ad8727"
+      },
+      {
+        "name": "Office_Chair_Leather",
+        "sha256": "d9d58563319b0633d4e628eb3896cc332de06b19aa9a53929bd2efb04d1326a7"
+      },
+      {
+        "name": "Office_Chair_Leather",
+        "sha256": "da6d64a48bfda432c5f58f6467495ffd7f311852a6750c9d1a4a68da8628c45d"
+      },
+      {
+        "name": "Office_Chair_Plastic",
+        "sha256": "59975c9b277e3d96072a00f0cebd72b1dea33c0626bd1204deead9f10d15d061"
+      },
+      {
+        "name": "office7 B_mug plate_Normal",
+        "sha256": "dcb12ff55909dd340c43be7969b3a6c861341b260214656f1492f2827e5f514b"
+      },
+      {
+        "name": "office7 B_mug plate_BaseColor",
+        "sha256": "1ce568a3c25c9ffe4f9de914b1390bdfd299f114132b810e3b84b885fa6486b1"
+      },
+      {
+        "name": "office7 B_mug plate_Metallic-office7 B_mug plate_Roughness",
+        "sha256": "156499b1def0f598f3f876b2fdb39e7827db2ca3576ef391c62eb017c610a5df"
+      },
+      {
+        "name": "office7 B_cupbords solo",
+        "sha256": "0541dc39b65c0544454622802244329b9ece0871de2039fe01e79117753c6a23"
+      },
+      {
+        "name": "office7 B_cupbords solo",
+        "sha256": "0f19c803d5bf5009418915a08d0292f58810fcb662c2336fc7e7839c1ff9f37e"
+      },
+      {
+        "name": "office7 B_cupbords solo.001_Metallic-office7 B_cupbords solo",
+        "sha256": "bba48ed234d3f36daa67959a5ec40d5c832c6884d49364ecbcd2789f9ddd2060"
+      },
+      {
+        "name": "office7 B_Sofa_Normal",
+        "sha256": "6b0dfd724fc228d9e9eb10006e41f3f311347a0dc6aa795e1013d39dd165371c"
+      },
+      {
+        "name": "office7 B_Sofa_BaseColor",
+        "sha256": "3d394619167198c9e358668d97c1d538ac4628a5fe9bf29a044db707c6487b44"
+      },
+      {
+        "name": "office7 B_Sofa_Metallic-office7 B_Sofa_Roughness",
+        "sha256": "3b9f98c8898292326b02ed8961361a9c690b065ba0803c6a7e55f181bb7f94a2"
+      },
+      {
+        "name": "office7 B_Table_Normal",
+        "sha256": "d4a9bd4693ed714abc08cb892d63a30ccb9f6215e8ba1c5d5ad67945de72436e"
+      },
+      {
+        "name": "office7 B_Table_BaseColor",
+        "sha256": "39cfe42bc7221856ae1d6731dd76c5eb0644b2ed93baac820295e2b11e6e17d3"
+      },
+      {
+        "name": "office7 B_Table_Metallic-office7 B_Table_Roughness",
+        "sha256": "d194e9fcaa2a8a985d84a857518b7e8939bd109ae77cc8380c97122b784b4356"
+      },
+      {
+        "name": "office7 B_plant pot N_BaseColor",
+        "sha256": "8094caea7d8601297e95384792c2bc8dc15a11915d6c1c5fabc136de6dbe208b"
+      },
+      {
+        "name": "office7 B_plant pot N_Metallic-office7 B_plant pot N_Roughness",
+        "sha256": "addc262dcca29e8e56ae5ecf118cdb7374069999e0dca556bd0c4032b1cfc03d"
+      },
+      {
+        "name": "office7 B_coffee table_Emissive",
+        "sha256": "ae42ebfa87a8934f644f51f7fb729d7a576cba47332c4293c8447518e7421885"
+      },
+      {
+        "name": "office7 B_coffee table_Normal",
+        "sha256": "2cb8dd60fb80ced2bdf3ccc7ed14ed9e20720e3345515d5be962e5e706b1a393"
+      },
+      {
+        "name": "office7 B_coffee table_BaseColor",
+        "sha256": "9fa81ef8eb1c1ca8d7eb91cd90ffd45a6584474e46ad1c478ec2a4d732047dbf"
+      },
+      {
+        "name": "office7 B_coffee table_Metallic-office7 B_coffee table_Roughness",
+        "sha256": "f9a9bab8753ef2d2e646195f724578d87b86ae1451b8ffe7309fc854ec2ec394"
+      },
+      {
+        "name": "office7 B_walet_Normal",
+        "sha256": "a3f8ce86d099b00eb0d127fd56b2a444662cf2b6d9ccb692f842ae006fe209bb"
+      },
+      {
+        "name": "office7 B_walet_BaseColor",
+        "sha256": "efcb5eaa2758fe0bc094d215bb3b55307b32e46baca84e5df15f2b8af460fa72"
+      },
+      {
+        "name": "office7 B_walet_Metallic-office7 B_walet_Roughness",
+        "sha256": "15f339d5c6b5d26293ba4999ea1a846dd16c5e6a15c705364f528fde2a65d8bb"
+      },
+      {
+        "name": "office7 B_Book 1_Normal",
+        "sha256": "9d9c2eaca338a1a74c31261c2841592bc04d1ed3b239ed52f628779879cb2913"
+      },
+      {
+        "name": "office7 B_Book 1_BaseColor",
+        "sha256": "3a6d4e2bd41100c101ea85db4d5eac1e35fb7b97cd4ade786915fc8097bc0ca2"
+      },
+      {
+        "name": "office7 B_Book 1_Metallic-office7 B_Book 1_Roughness",
+        "sha256": "cb8ab10ffb938003591485a3087fe3749331d29833ec491fcbbbe41537fdb41b"
+      },
+      {
+        "name": "office7 B_Books 2_Normal",
+        "sha256": "f25118db6fd1ffca58e40423352fe97c2335b7b91293c45d913e03a710748903"
+      },
+      {
+        "name": "office7 B_Books 2_BaseColor",
+        "sha256": "5f0eeeb0c208db2d0ffaa1164ca3bec26bd304c89d4fdefac9f6dd6dcf0038fc"
+      },
+      {
+        "name": "office7 B_Books 2_Metallic-office7 B_Books 2_Roughness",
+        "sha256": "bf385bb2d1dde1b31320e87849d346665b212c407f992c960c0e73be67f02228"
+      },
+      {
+        "name": "office7 B_phone_Normal",
+        "sha256": "005ac47857f2e44c81a97009931a2e88326541218e68eda89af60b4830207ecc"
+      },
+      {
+        "name": "office7 B_phone_BaseColor",
+        "sha256": "deee9d6ab174231e74e5d805ff61f6e02dafb2cc87e2366b8041b37a1bc9333c"
+      },
+      {
+        "name": "office7 B_phone_Metallic-office7 B_phone_Roughness",
+        "sha256": "480e9dc0220e4ca539a5b063c7db79f5b9a84502ce327d8b7de926f155f53686"
+      },
+      {
+        "name": "office7 B_sofa 01_Normal",
+        "sha256": "a71f428da71b73c08b8b9313c4a8ed20e1e026dfe8ba5771cdb21df25d6ea278"
+      },
+      {
+        "name": "office7 B_sofa 01_BaseColor",
+        "sha256": "5b97cde20595082efbb361be2dfb0f04fa351d0dd784976f4c6d9335b88d978c"
+      },
+      {
+        "name": "office7 B_sofa 01_Metallic-office7 B_sofa 01_Roughness",
+        "sha256": "9fc1289d825933894bfc04b8942be3961b3ade6effdd339693e94dc47274da48"
+      },
+      {
+        "name": "office7 B_Table Light_Emissive",
+        "sha256": "faa1053022f737ac077e7ef0c33a77ec7b47ea879b738bcba42db2239e6efd81"
+      },
+      {
+        "name": "office7 B_Table Light_Normal",
+        "sha256": "843a372c2a40af72b0edad7e6171070a66737bb0ea65ab1b3f8ac61f00bd1c5a"
+      },
+      {
+        "name": "office7 B_Table Light_BaseColor",
+        "sha256": "69eb51fbe5fad42ac6edf9f05dcb7bb69d642eee3ed47bdfa30cc73a7570fe96"
+      },
+      {
+        "name": "office7 B_Candles_Emissive",
+        "sha256": "4faddc1edbf65bb248a4e575a5157b99267a686e03906bed1ed066a733c2a06b"
+      },
+      {
+        "name": "office7 B_Candles_Normal",
+        "sha256": "bc97063b53c23bfd54479344702aed8541a30dee3a14913131c426f68f1587e1"
+      },
+      {
+        "name": "office7 B_Candles_BaseColor",
+        "sha256": "ba481f3bcd8ff4b26d28a630f90da59279d350b419c9adf0a4b6f90d01df7b0c"
+      },
+      {
+        "name": "office7 B_Candles_Metallic-office7 B_Candles_Roughness",
+        "sha256": "00e02bc2a0ce1424b0c6cd03214117a637404748e5057d723027683bdb1d1035"
+      },
+      {
+        "name": "office7 B_Mug_Normal",
+        "sha256": "584323ea7bd26c01e3ce60d7078ad84cd132efc2318c5a9e54b341fc8f6a47d9"
+      },
+      {
+        "name": "office7 B_Mug_BaseColor",
+        "sha256": "b5fdf3272debcd8ea0683cd9407bba150bb59515608964d3f3a1188bcc3d4521"
+      },
+      {
+        "name": "office7 B_Mug_Metallic-office7 B_Mug_Roughness",
+        "sha256": "3f44f2c604e71d7a95744b25af00d4fd55195257d3924a232dfe7afbda753f1f"
+      },
+      {
+        "name": "Untitled",
+        "sha256": "f42aefb0cea28304b7afebe30ec57148696ded5dbc18a7634db5b7b70c044bfc"
+      },
+      {
+        "name": "office7 B_Lap Top_Emissive",
+        "sha256": "c5b385f18a8169f68b6e8cbf8a45e613d10416897c6f2f2ee9ceac7ef83e1f96"
+      },
+      {
+        "name": "office7 B_Lap Top_Normal",
+        "sha256": "a3d82a6aa766ca06c99af6d6d29f315f74c167cf901b8363eef6dfde3a06c678"
+      },
+      {
+        "name": "office7 B_Lap Top_BaseColor",
+        "sha256": "d472717ef15b749dce5b6762b62afdea39290f83810ca92f8721be7ce03829ed"
+      },
+      {
+        "name": "office7 B_Lap Top_Metallic.png-office7 B_Lap Top_Roughness",
+        "sha256": "8be92ccc75b4c1fa3a87ba460b2f5e14336a4e68687d0aaa9a1f5e7a460bcd7e"
+      },
+      {
+        "name": "ARECA_NORMAL",
+        "sha256": "c7b4a9a0985d91eb99f223421e730f734cf7823e61addcff03172928c9df3f2c"
+      },
+      {
+        "name": "ARECA_DIFFUSE",
+        "sha256": "335e6dd83a80c1474f5878d426d357122a71c531b09ca59664ef580a432838e8"
+      },
+      {
+        "name": "ARECA_ROUGHNESS",
+        "sha256": "041b69b6ad573c4576f47c0a145ef04ec64264ae3e0f30e33855ce94ca934485"
+      },
+      {
+        "name": "office7 B_Monitor _Emissive",
+        "sha256": "cdda07d42bb356480a11788fd29897775044fa144c02801a7a2288c17e83c473"
+      },
+      {
+        "name": "office7 B_Monitor _Normal",
+        "sha256": "0c13174b294d3a465a85953fb80f320216d905d56e630958313020c8085360e2"
+      },
+      {
+        "name": "office7 B_Monitor _BaseColor",
+        "sha256": "3ebcffaeaf00796ac90d58679c8f8cfa11db2205d0604523a279cc3427ea399e"
+      },
+      {
+        "name": "office7 B_Keyboard_Normal",
+        "sha256": "e2b5cdd93e2fdb9c5133328d5a5fa30b7b9cc2630c7df2d824b60bda21466baa"
+      },
+      {
+        "name": "office7 B_Keyboard_BaseColor",
+        "sha256": "a027df075c6cf162696125dd96bf2d218d5d0fee2a821b14ffbcd68fec64d74c"
+      },
+      {
+        "name": "office7 B_Keyboard_Metallic-office7 B_Keyboard_Roughness",
+        "sha256": "3978f6b859d089a87faeedec23d2b8fd1549d01f00f3f62719e178c2380b6af2"
+      },
+      {
+        "name": "office7 B_Cupboard_Normal",
+        "sha256": "6725e31918b02c074f8b87e7f12e9b97b71cbf29d82f7c873aacdd5da98f4547"
+      },
+      {
+        "name": "office7 B_Cupboard_BaseColor",
+        "sha256": "824f6e0e16f72329aa04c796b35e15a54ba1dcbd6de8384df3f668307d108e34"
+      },
+      {
+        "name": "office7 B_Cupboard_Metallic-office7 B_Cupboard_Roughness",
+        "sha256": "e011744cefa8012390b951670e13a855e39aae6da19164f0f537a1d83a76e197"
+      },
+      {
+        "name": "office7 B_base_Emissive",
+        "sha256": "fb893f80d3787e0052595da5a9f842d3d2ac37257942d1e60c20e3badef5194a"
+      },
+      {
+        "name": "office7 B_dividing wall N_Emissive",
+        "sha256": "34603432966e4835f5faa3fc1d182db4cfa4e756d4b8c1ed901ef121bf6b2d61"
+      },
+      {
+        "name": "office7 B_dividing wall N_Normal",
+        "sha256": "6531534160370b60ecefcaf0e9c5aace7eba0bf84a2ad69e66fae72f23b66ad7"
+      },
+      {
+        "name": "office7 B_dividing wall N_BaseColor",
+        "sha256": "9eb7202c945e1fb858d10619cf87d086a2d6e68f936d817225756e8eb0e7a243"
+      },
+      {
+        "name": "office7 B_dividing wall N_Metallic.png-office7 B_dividing wall N_Roughness",
+        "sha256": "31be3d0ade68d314640c2aaf470a59432ac5e4c6de739d96b4c6305be51800a4"
+      },
+      {
+        "name": "office7 B_cupboard 02_Normal",
+        "sha256": "4a2dd5c9cbda1c0bc8eacde5d469498b2eb95fed0f255a20de58094b0fdc2169"
+      },
+      {
+        "name": "office7 B_cupboard 02_BaseColor",
+        "sha256": "1dc85fa3f77aa9d33a994cac6fcb6ae086a990567f17cb884cef3b991131ebfa"
+      },
+      {
+        "name": "office7 B_cupboard 02_Metallic-office7 B_cupboard 02_Roughness",
+        "sha256": "7b54e9c5c0432f7f7793ca0d1acbc196056be315364c8312e6cbd1585b8f5df6"
+      },
+      {
+        "name": "office7 B_additional_Emissive",
+        "sha256": "b48c54f2749b9921d17478b0f630d362278429c0378d6d397b3163d4e682105e"
+      },
+      {
+        "name": "office7 B_additional_Normal",
+        "sha256": "cfd0f9ba768737d8a29a2471e26d00405512d60689b62cdac618a5b11109e72d"
+      },
+      {
+        "name": "office7 B_additional_BaseColor",
+        "sha256": "794ce5f81c93787f5daeddd2ef625cc4fb8d7ab9a4326f7bccf511250ee419c2"
+      },
+      {
+        "name": "office7 B_additional_Metallic-office7 B_additional_Roughness",
+        "sha256": "cccd28c32792a23c93315cf1ad2b8d329c9e0d1f0eab5ea6175d636c744f101a"
+      },
+      {
+        "name": "office7 B_book rack small_Normal",
+        "sha256": "ca5ad1a2b21437932177f3928686b0c642fbd23ef38d31be3dee825cdc37c4b4"
+      },
+      {
+        "name": "office7 B_book rack small_BaseColor",
+        "sha256": "b28cb7479a72707cbd0b22a21a7529da53cf0582f6b2df6f87b7db9318b5b282"
+      },
+      {
+        "name": "office7 B_book rack small_Metallic-office7 B_book rack small_Roughness",
+        "sha256": "618c9c1ca9e10dd800f1f227f3bde14a0c58f57f0c94bf43bf5fe0754c5a2013"
+      },
+      {
+        "name": "office7 B_Solo items_Emissive",
+        "sha256": "c1b22d4dd7cd6484db52cc541b809f0cd385fd569988bddbd4d4fbe0fbabe5d9"
+      },
+      {
+        "name": "office7 B_Solo items_Normal",
+        "sha256": "72a110d796e9d7d3228eaa60d94e676f862856d831d2ba718e7e69d3d1bc0c61"
+      },
+      {
+        "name": "office7 B_Solo items_BaseColor",
+        "sha256": "4f6ced4f452cec79759877a32ec69a9a6f1d2002187369d293fa6b79af622e1e"
+      },
+      {
+        "name": "office7 B_Solo items_Metallic.png-office7 B_Solo items_Roughness",
+        "sha256": "8e8bb84fc5806ef8acf77d9086247c47be73075182ce08b628c000d5c0e73455"
+      }
+    ],
+    "materialTextureBindings": [
+      {
+        "name": "Chair",
+        "textures": {
+          "BaseColor": "0b5beed2a98d528e871915c8529393805666ca57d711538ecdf4c8035411b898",
+          "Emissive": null,
+          "Normal": "be46bacfaff6e8a4bcd00d7bd4fa6ca5943433d8c0a09ae347940c95deb225e7",
+          "MetallicRoughness": "15442b535a5a1d25da346ea83b781bc1a41a9c36f2e8ee462b2707718be6ae31",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Office_Chair_Leather.001",
+        "textures": {
+          "BaseColor": "d9d58563319b0633d4e628eb3896cc332de06b19aa9a53929bd2efb04d1326a7",
+          "Emissive": null,
+          "Normal": "058c377f990ee45782834d10c13f8660d2d835f2b8a945359152f58cc8ad8727",
+          "MetallicRoughness": "da6d64a48bfda432c5f58f6467495ffd7f311852a6750c9d1a4a68da8628c45d",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Office_Chair_Plastic.001",
+        "textures": {
+          "BaseColor": null,
+          "Emissive": null,
+          "Normal": "59975c9b277e3d96072a00f0cebd72b1dea33c0626bd1204deead9f10d15d061",
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "mug plate",
+        "textures": {
+          "BaseColor": "1ce568a3c25c9ffe4f9de914b1390bdfd299f114132b810e3b84b885fa6486b1",
+          "Emissive": null,
+          "Normal": "dcb12ff55909dd340c43be7969b3a6c861341b260214656f1492f2827e5f514b",
+          "MetallicRoughness": "156499b1def0f598f3f876b2fdb39e7827db2ca3576ef391c62eb017c610a5df",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "cupbords solo.001",
+        "textures": {
+          "BaseColor": "0f19c803d5bf5009418915a08d0292f58810fcb662c2336fc7e7839c1ff9f37e",
+          "Emissive": null,
+          "Normal": "0541dc39b65c0544454622802244329b9ece0871de2039fe01e79117753c6a23",
+          "MetallicRoughness": "bba48ed234d3f36daa67959a5ec40d5c832c6884d49364ecbcd2789f9ddd2060",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Sofa",
+        "textures": {
+          "BaseColor": "3d394619167198c9e358668d97c1d538ac4628a5fe9bf29a044db707c6487b44",
+          "Emissive": null,
+          "Normal": "6b0dfd724fc228d9e9eb10006e41f3f311347a0dc6aa795e1013d39dd165371c",
+          "MetallicRoughness": "3b9f98c8898292326b02ed8961361a9c690b065ba0803c6a7e55f181bb7f94a2",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Table",
+        "textures": {
+          "BaseColor": "39cfe42bc7221856ae1d6731dd76c5eb0644b2ed93baac820295e2b11e6e17d3",
+          "Emissive": null,
+          "Normal": "d4a9bd4693ed714abc08cb892d63a30ccb9f6215e8ba1c5d5ad67945de72436e",
+          "MetallicRoughness": "d194e9fcaa2a8a985d84a857518b7e8939bd109ae77cc8380c97122b784b4356",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "plant pot N",
+        "textures": {
+          "BaseColor": "8094caea7d8601297e95384792c2bc8dc15a11915d6c1c5fabc136de6dbe208b",
+          "Emissive": null,
+          "Normal": null,
+          "MetallicRoughness": "addc262dcca29e8e56ae5ecf118cdb7374069999e0dca556bd0c4032b1cfc03d",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "coffee table",
+        "textures": {
+          "BaseColor": "9fa81ef8eb1c1ca8d7eb91cd90ffd45a6584474e46ad1c478ec2a4d732047dbf",
+          "Emissive": "ae42ebfa87a8934f644f51f7fb729d7a576cba47332c4293c8447518e7421885",
+          "Normal": "2cb8dd60fb80ced2bdf3ccc7ed14ed9e20720e3345515d5be962e5e706b1a393",
+          "MetallicRoughness": "f9a9bab8753ef2d2e646195f724578d87b86ae1451b8ffe7309fc854ec2ec394",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "walet 2",
+        "textures": {
+          "BaseColor": null,
+          "Emissive": null,
+          "Normal": null,
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "walet",
+        "textures": {
+          "BaseColor": "efcb5eaa2758fe0bc094d215bb3b55307b32e46baca84e5df15f2b8af460fa72",
+          "Emissive": null,
+          "Normal": "a3f8ce86d099b00eb0d127fd56b2a444662cf2b6d9ccb692f842ae006fe209bb",
+          "MetallicRoughness": "15f339d5c6b5d26293ba4999ea1a846dd16c5e6a15c705364f528fde2a65d8bb",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Book 1",
+        "textures": {
+          "BaseColor": "3a6d4e2bd41100c101ea85db4d5eac1e35fb7b97cd4ade786915fc8097bc0ca2",
+          "Emissive": null,
+          "Normal": "9d9c2eaca338a1a74c31261c2841592bc04d1ed3b239ed52f628779879cb2913",
+          "MetallicRoughness": "cb8ab10ffb938003591485a3087fe3749331d29833ec491fcbbbe41537fdb41b",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Books 2",
+        "textures": {
+          "BaseColor": "5f0eeeb0c208db2d0ffaa1164ca3bec26bd304c89d4fdefac9f6dd6dcf0038fc",
+          "Emissive": null,
+          "Normal": "f25118db6fd1ffca58e40423352fe97c2335b7b91293c45d913e03a710748903",
+          "MetallicRoughness": "bf385bb2d1dde1b31320e87849d346665b212c407f992c960c0e73be67f02228",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "phone",
+        "textures": {
+          "BaseColor": "deee9d6ab174231e74e5d805ff61f6e02dafb2cc87e2366b8041b37a1bc9333c",
+          "Emissive": null,
+          "Normal": "005ac47857f2e44c81a97009931a2e88326541218e68eda89af60b4830207ecc",
+          "MetallicRoughness": "480e9dc0220e4ca539a5b063c7db79f5b9a84502ce327d8b7de926f155f53686",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "sofa 01",
+        "textures": {
+          "BaseColor": "5b97cde20595082efbb361be2dfb0f04fa351d0dd784976f4c6d9335b88d978c",
+          "Emissive": null,
+          "Normal": "a71f428da71b73c08b8b9313c4a8ed20e1e026dfe8ba5771cdb21df25d6ea278",
+          "MetallicRoughness": "9fc1289d825933894bfc04b8942be3961b3ade6effdd339693e94dc47274da48",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Table Light",
+        "textures": {
+          "BaseColor": "69eb51fbe5fad42ac6edf9f05dcb7bb69d642eee3ed47bdfa30cc73a7570fe96",
+          "Emissive": "faa1053022f737ac077e7ef0c33a77ec7b47ea879b738bcba42db2239e6efd81",
+          "Normal": "843a372c2a40af72b0edad7e6171070a66737bb0ea65ab1b3f8ac61f00bd1c5a",
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Candles",
+        "textures": {
+          "BaseColor": "ba481f3bcd8ff4b26d28a630f90da59279d350b419c9adf0a4b6f90d01df7b0c",
+          "Emissive": "4faddc1edbf65bb248a4e575a5157b99267a686e03906bed1ed066a733c2a06b",
+          "Normal": "bc97063b53c23bfd54479344702aed8541a30dee3a14913131c426f68f1587e1",
+          "MetallicRoughness": "00e02bc2a0ce1424b0c6cd03214117a637404748e5057d723027683bdb1d1035",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Mug",
+        "textures": {
+          "BaseColor": "b5fdf3272debcd8ea0683cd9407bba150bb59515608964d3f3a1188bcc3d4521",
+          "Emissive": null,
+          "Normal": "584323ea7bd26c01e3ce60d7078ad84cd132efc2318c5a9e54b341fc8f6a47d9",
+          "MetallicRoughness": "3f44f2c604e71d7a95744b25af00d4fd55195257d3924a232dfe7afbda753f1f",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Pen Holder",
+        "textures": {
+          "BaseColor": "f42aefb0cea28304b7afebe30ec57148696ded5dbc18a7634db5b7b70c044bfc",
+          "Emissive": null,
+          "Normal": null,
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Desktop rim",
+        "textures": {
+          "BaseColor": null,
+          "Emissive": null,
+          "Normal": null,
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Desktop plinth",
+        "textures": {
+          "BaseColor": null,
+          "Emissive": null,
+          "Normal": null,
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Material.003",
+        "textures": {
+          "BaseColor": null,
+          "Emissive": null,
+          "Normal": null,
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Lap Top",
+        "textures": {
+          "BaseColor": "d472717ef15b749dce5b6762b62afdea39290f83810ca92f8721be7ce03829ed",
+          "Emissive": "c5b385f18a8169f68b6e8cbf8a45e613d10416897c6f2f2ee9ceac7ef83e1f96",
+          "Normal": "a3d82a6aa766ca06c99af6d6d29f315f74c167cf901b8363eef6dfde3a06c678",
+          "MetallicRoughness": "8be92ccc75b4c1fa3a87ba460b2f5e14336a4e68687d0aaa9a1f5e7a460bcd7e",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Material.002",
+        "textures": {
+          "BaseColor": "335e6dd83a80c1474f5878d426d357122a71c531b09ca59664ef580a432838e8",
+          "Emissive": null,
+          "Normal": "c7b4a9a0985d91eb99f223421e730f734cf7823e61addcff03172928c9df3f2c",
+          "MetallicRoughness": "041b69b6ad573c4576f47c0a145ef04ec64264ae3e0f30e33855ce94ca934485",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Monitor ",
+        "textures": {
+          "BaseColor": "3ebcffaeaf00796ac90d58679c8f8cfa11db2205d0604523a279cc3427ea399e",
+          "Emissive": "cdda07d42bb356480a11788fd29897775044fa144c02801a7a2288c17e83c473",
+          "Normal": "0c13174b294d3a465a85953fb80f320216d905d56e630958313020c8085360e2",
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Keyboard",
+        "textures": {
+          "BaseColor": "a027df075c6cf162696125dd96bf2d218d5d0fee2a821b14ffbcd68fec64d74c",
+          "Emissive": null,
+          "Normal": "e2b5cdd93e2fdb9c5133328d5a5fa30b7b9cc2630c7df2d824b60bda21466baa",
+          "MetallicRoughness": "3978f6b859d089a87faeedec23d2b8fd1549d01f00f3f62719e178c2380b6af2",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "cupbords solo",
+        "textures": {
+          "BaseColor": "824f6e0e16f72329aa04c796b35e15a54ba1dcbd6de8384df3f668307d108e34",
+          "Emissive": null,
+          "Normal": "6725e31918b02c074f8b87e7f12e9b97b71cbf29d82f7c873aacdd5da98f4547",
+          "MetallicRoughness": "e011744cefa8012390b951670e13a855e39aae6da19164f0f537a1d83a76e197",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "base",
+        "textures": {
+          "BaseColor": null,
+          "Emissive": "fb893f80d3787e0052595da5a9f842d3d2ac37257942d1e60c20e3badef5194a",
+          "Normal": null,
+          "MetallicRoughness": null,
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "dividing wall N",
+        "textures": {
+          "BaseColor": "9eb7202c945e1fb858d10619cf87d086a2d6e68f936d817225756e8eb0e7a243",
+          "Emissive": "34603432966e4835f5faa3fc1d182db4cfa4e756d4b8c1ed901ef121bf6b2d61",
+          "Normal": "6531534160370b60ecefcaf0e9c5aace7eba0bf84a2ad69e66fae72f23b66ad7",
+          "MetallicRoughness": "31be3d0ade68d314640c2aaf470a59432ac5e4c6de739d96b4c6305be51800a4",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Cupboard",
+        "textures": {
+          "BaseColor": "1dc85fa3f77aa9d33a994cac6fcb6ae086a990567f17cb884cef3b991131ebfa",
+          "Emissive": null,
+          "Normal": "4a2dd5c9cbda1c0bc8eacde5d469498b2eb95fed0f255a20de58094b0fdc2169",
+          "MetallicRoughness": "7b54e9c5c0432f7f7793ca0d1acbc196056be315364c8312e6cbd1585b8f5df6",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "additional",
+        "textures": {
+          "BaseColor": "794ce5f81c93787f5daeddd2ef625cc4fb8d7ab9a4326f7bccf511250ee419c2",
+          "Emissive": "b48c54f2749b9921d17478b0f630d362278429c0378d6d397b3163d4e682105e",
+          "Normal": "cfd0f9ba768737d8a29a2471e26d00405512d60689b62cdac618a5b11109e72d",
+          "MetallicRoughness": "cccd28c32792a23c93315cf1ad2b8d329c9e0d1f0eab5ea6175d636c744f101a",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "book rack small",
+        "textures": {
+          "BaseColor": "b28cb7479a72707cbd0b22a21a7529da53cf0582f6b2df6f87b7db9318b5b282",
+          "Emissive": null,
+          "Normal": "ca5ad1a2b21437932177f3928686b0c642fbd23ef38d31be3dee825cdc37c4b4",
+          "MetallicRoughness": "618c9c1ca9e10dd800f1f227f3bde14a0c58f57f0c94bf43bf5fe0754c5a2013",
+          "Occlusion": null
+        }
+      },
+      {
+        "name": "Solo items",
+        "textures": {
+          "BaseColor": "4f6ced4f452cec79759877a32ec69a9a6f1d2002187369d293fa6b79af622e1e",
+          "Emissive": "c1b22d4dd7cd6484db52cc541b809f0cd385fd569988bddbd4d4fbe0fbabe5d9",
+          "Normal": "72a110d796e9d7d3228eaa60d94e676f862856d831d2ba718e7e69d3d1bc0c61",
+          "MetallicRoughness": "8e8bb84fc5806ef8acf77d9086247c47be73075182ce08b628c000d5c0e73455",
+          "Occlusion": null
+        }
+      }
+    ],
+    "chairs": [
+      {
+        "name": "chair_0",
+        "materials": [
+          "Chair"
+        ],
+        "bounds": {
+          "min": [
+            1.3354,
+            0.0003,
+            3.9147
+          ],
+          "max": [
+            2.0287,
+            1.0426,
+            4.5715
+          ]
+        }
+      },
+      {
+        "name": "chair_1",
+        "materials": [
+          "Chair"
+        ],
+        "bounds": {
+          "min": [
+            4.8103,
+            0.0003,
+            2.4525
+          ],
+          "max": [
+            5.5037,
+            1.0426,
+            3.1093
+          ]
+        }
+      },
+      {
+        "name": "chair_2",
+        "materials": [
+          "Chair"
+        ],
+        "bounds": {
+          "min": [
+            -2.3543,
+            0.0003,
+            1.8287
+          ],
+          "max": [
+            -1.661,
+            1.0426,
+            2.4856
+          ]
+        }
+      },
+      {
+        "name": "chair_3",
+        "materials": [
+          "Chair"
+        ],
+        "bounds": {
+          "min": [
+            2.9242,
+            0.0003,
+            0.1931
+          ],
+          "max": [
+            3.5807,
+            1.0426,
+            0.8866
+          ]
+        }
+      },
+      {
+        "name": "chair_4",
+        "materials": [
+          "Chair"
+        ],
+        "bounds": {
+          "min": [
+            1.4218,
+            0.0003,
+            0.1735
+          ],
+          "max": [
+            2.0787,
+            1.0426,
+            0.8669
+          ]
+        }
+      },
+      {
+        "name": "chair_5",
+        "materials": [
+          "Office_Chair_Leather.001",
+          "Office_Chair_Plastic.001"
+        ],
+        "bounds": {
+          "min": [
+            -6.3472,
+            0.0494,
+            -1.012
+          ],
+          "max": [
+            -5.6904,
+            1.1043,
+            -0.3185
+          ]
+        },
+        "cushion": {
+          "upwardTriangles": 32,
+          "area": 0.265,
+          "centroid": [
+            -5.987021130943016,
+            0.5749210856405981,
+            -0.6635642029239617
+          ]
+        }
+      },
+      {
+        "name": "chair_6",
+        "materials": [
+          "Chair"
+        ],
+        "bounds": {
+          "min": [
+            -1.2003,
+            0.0003,
+            -1.403
+          ],
+          "max": [
+            -0.5069,
+            1.0426,
+            -0.7462
+          ]
+        }
+      },
+      {
+        "name": "chair_7",
+        "materials": [
+          "Chair"
+        ],
+        "bounds": {
+          "min": [
+            4.8162,
+            0.0003,
+            -1.7739
+          ],
+          "max": [
+            5.5095,
+            1.0426,
+            -1.117
+          ]
+        }
+      },
+      {
+        "name": "chair_8",
+        "materials": [
+          "Chair"
+        ],
+        "bounds": {
+          "min": [
+            1.8112,
+            0.0003,
+            -3.5183
+          ],
+          "max": [
+            2.5046,
+            1.0426,
+            -2.8614
+          ]
+        }
+      }
+    ],
+    "floorArea": 184.8409,
+    "floorBorderNativeXZ": [
+      [
+        [
+          -7.4296,
+          -0.1398
+        ],
+        [
+          -7.4296,
+          6.4726
+        ]
+      ],
+      [
+        [
+          -7.4296,
+          6.4726
+        ],
+        [
+          0.0004,
+          6.4726
+        ]
+      ],
+      [
+        [
+          -7.4296,
+          -6.4726
+        ],
+        [
+          0.0004,
+          -6.4726
+        ]
+      ],
+      [
+        [
+          -7.4296,
+          -0.1398
+        ],
+        [
+          -7.4296,
+          -6.4726
+        ]
+      ],
+      [
+        [
+          6.1579,
+          -5.0421
+        ],
+        [
+          7.3676,
+          -0.1398
+        ]
+      ],
+      [
+        [
+          5.2896,
+          -5.9104
+        ],
+        [
+          6.1579,
+          -5.0421
+        ]
+      ],
+      [
+        [
+          0.0004,
+          6.4726
+        ],
+        [
+          7.0676,
+          6.4726
+        ]
+      ],
+      [
+        [
+          7.0676,
+          6.4726
+        ],
+        [
+          7.3676,
+          -0.1398
+        ]
+      ],
+      [
+        [
+          4.7274,
+          -6.4726
+        ],
+        [
+          5.2896,
+          -5.9104
+        ]
+      ],
+      [
+        [
+          0.0004,
+          -6.4726
+        ],
+        [
+          4.7274,
+          -6.4726
+        ]
+      ]
+    ],
+    "diagonalExtremes": [
+      {
+        "name": "Desktop perimeter inlay",
+        "materials": [
+          "Desktop rim"
+        ],
+        "maxNativeXMinusZ": 11.2163
+      },
+      {
+        "name": "Desktop plinth",
+        "materials": [
+          "Desktop plinth"
+        ],
+        "maxNativeXMinusZ": 11.2
+      },
+      {
+        "name": "Plane.005",
+        "materials": [
+          "base"
+        ],
+        "maxNativeXMinusZ": 11.2
+      },
+      {
+        "name": "instance_3.005",
+        "materials": [
+          "Material.002"
+        ],
+        "maxNativeXMinusZ": 8.3494
+      },
+      {
+        "name": "instance_3.004",
+        "materials": [
+          "Material.003"
+        ],
+        "maxNativeXMinusZ": 8.0457
+      },
+      {
+        "name": "Cube.003",
+        "materials": [
+          "Table"
+        ],
+        "maxNativeXMinusZ": 7.2419
+      },
+      {
+        "name": "chair_7",
+        "materials": [
+          "Chair"
+        ],
+        "maxNativeXMinusZ": 7.1579
+      },
+      {
+        "name": "instance_2.005",
+        "materials": [
+          "Material.002"
+        ],
+        "maxNativeXMinusZ": 6.9873
+      },
+      {
+        "name": "Cube.016",
+        "materials": [
+          "plant pot N"
+        ],
+        "maxNativeXMinusZ": 6.9056
+      },
+      {
+        "name": "instance_3.006",
+        "materials": [
+          "Material.002"
+        ],
+        "maxNativeXMinusZ": 6.8429
+      },
+      {
+        "name": "Cube.054",
+        "materials": [
+          "phone"
+        ],
+        "maxNativeXMinusZ": 6.8224
+      },
+      {
+        "name": "instance_2.004",
+        "materials": [
+          "Material.003"
+        ],
+        "maxNativeXMinusZ": 6.6836
+      }
+    ]
+  },
+  "cameraComparisons": [
+    {
+      "name": "Existing desktop",
+      "mode": "baseline",
+      "viewport": [
+        1063,
+        469
+      ],
+      "aspect": 2.2665,
+      "elevationDegrees": 25.2702,
+      "azimuthDegrees": 27.9003,
+      "silhouettePixels": [
+        842.8033,
+        440.86
+      ],
+      "sideMarginPixels": 110.0983,
+      "topMarginPixels": 14.07,
+      "widthFill": 0.7929,
+      "heightFill": 0.94,
+      "fitDistance": 29.2567
+    },
+    {
+      "name": "Current desktop",
+      "mode": "current",
+      "viewport": [
+        1063,
+        491
+      ],
+      "aspect": 2.165,
+      "elevationDegrees": 21.2175,
+      "azimuthDegrees": 27.9003,
+      "silhouettePixels": [
+        1022.8349,
+        476.27
+      ],
+      "sideMarginPixels": 20.0826,
+      "topMarginPixels": 7.365,
+      "widthFill": 0.9622,
+      "heightFill": 0.97,
+      "fitDistance": 27.5015
+    },
+    {
+      "name": "Existing desktop with chat",
+      "mode": "baseline",
+      "viewport": [
+        653,
+        469
+      ],
+      "aspect": 1.3923,
+      "elevationDegrees": 25.2702,
+      "azimuthDegrees": 27.9003,
+      "silhouettePixels": [
+        613.82,
+        319.3043
+      ],
+      "sideMarginPixels": 19.59,
+      "topMarginPixels": 74.8478,
+      "widthFill": 0.94,
+      "heightFill": 0.6808,
+      "fitDistance": 31.3919
+    },
+    {
+      "name": "Current desktop with chat",
+      "mode": "current",
+      "viewport": [
+        653,
+        491
+      ],
+      "aspect": 1.3299,
+      "elevationDegrees": 25.2702,
+      "azimuthDegrees": 27.9003,
+      "silhouettePixels": [
+        633.41,
+        324.1089
+      ],
+      "sideMarginPixels": 9.795,
+      "topMarginPixels": 83.4456,
+      "widthFill": 0.97,
+      "heightFill": 0.6601,
+      "fitDistance": 33.1212
+    }
+  ],
+  "assetChecks": {
+    "textureBytesPreserved": true,
+    "originalMaterialTextureBindingChanges": [],
+    "nineNamedChairs": true,
+    "chair5CushionTargetDeltaMeters": 0.000004085640598061602,
+    "nonFinitePositionCount": 0,
+    "triangleCountChange": 314,
+    "degenerateTriangleCountChange": -4
+  }
+}

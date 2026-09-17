@@ -14,6 +14,7 @@ class DetailBrowser final : public QObject {
     Q_PROPERTY(QString heading READ heading NOTIFY changed)
     Q_PROPERTY(bool canGoBack READ canGoBack NOTIFY changed)
     Q_PROPERTY(bool available READ available NOTIFY changed)
+    Q_PROPERTY(QVariantList deliverables READ deliverables NOTIFY changed)
 public:
     explicit DetailBrowser(QObject* parent=nullptr);
     QAbstractListModel* rows() { return &rows_; }
@@ -21,6 +22,7 @@ public:
     QString heading() const;
     bool canGoBack() const { return !path_.isEmpty(); }
     bool available() const { return !document_.isEmpty(); }
+    QVariantList deliverables() const;
     void setDocument(QVariantMap document, QString context, QString label, QString sourcePage, QString collectionHint={});
     Q_INVOKABLE void enter(const QString& rowId);
     Q_INVOKABLE void goBack();

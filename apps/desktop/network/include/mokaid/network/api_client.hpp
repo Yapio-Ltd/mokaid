@@ -18,6 +18,9 @@ struct ApiResponse {
     QByteArray bytes;
     QString error;
     bool networkError{};
+    // Only failures that prove no HTTP request reached the server are safe to
+    // retry with a single-use rotating refresh credential.
+    bool requestNotSent{};
     [[nodiscard]] bool ok() const { return status >= 200 && status < 300 && error.isEmpty(); }
 };
 class ApiClient final : public QObject {

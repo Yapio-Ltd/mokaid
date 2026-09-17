@@ -1,0 +1,268 @@
+{
+  "avatar_corporate": {
+    "carrying_coffee@0": {
+      "handle_surface_gap_m": 0.0008476393311653004,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2631
+    },
+    "preparing_coffee@0.39": {
+      "handle_surface_gap_m": 0.0008866053915115146,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2631
+    },
+    "preparing_coffee@0.6": {
+      "handle_surface_gap_m": 0.0008890741169692369,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2631
+    },
+    "coffee_putdown@0.61": {
+      "handle_surface_gap_m": 0.0008866053915115146,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2631
+    },
+    "sitting_sofa_coffee@0": {
+      "handle_surface_gap_m": 0.0008312618216638171,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2631
+    },
+    "drinking_coffee@0.5": {
+      "handle_surface_gap_m": 0.0008337430864324459,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2631
+    }
+  },
+  "avatar_design": {
+    "carrying_coffee@0": {
+      "handle_surface_gap_m": 0.0019026559375959402,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 111
+    },
+    "preparing_coffee@0.39": {
+      "handle_surface_gap_m": 0.0031515546085962133,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 111
+    },
+    "preparing_coffee@0.6": {
+      "handle_surface_gap_m": 0.0027954678940132413,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 111
+    },
+    "coffee_putdown@0.61": {
+      "handle_surface_gap_m": 0.0031515546085962133,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 111
+    },
+    "sitting_sofa_coffee@0": {
+      "handle_surface_gap_m": 0.0034303228462903546,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 111
+    },
+    "drinking_coffee@0.5": {
+      "handle_surface_gap_m": 0.002999819851427608,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 111
+    }
+  },
+  "avatar_developer": {
+    "carrying_coffee@0": {
+      "handle_surface_gap_m": 0.0011375560701721219,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 4007
+    },
+    "preparing_coffee@0.39": {
+      "handle_surface_gap_m": 0.0011384381115000612,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 4007
+    },
+    "preparing_coffee@0.6": {
+      "handle_surface_gap_m": 0.0011374469363884887,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 4007
+    },
+    "coffee_putdown@0.61": {
+      "handle_surface_gap_m": 0.001190994994758453,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 4007
+    },
+    "sitting_sofa_coffee@0": {
+      "handle_surface_gap_m": 0.0011374075171758245,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 4007
+    },
+    "drinking_coffee@0.5": {
+      "handle_surface_gap_m": 0.0011375094046056973,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 4007
+    }
+  },
+  "avatar_finance": {
+    "carrying_coffee@0": {
+      "handle_surface_gap_m": 0.0016453595907986612,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 495
+    },
+    "preparing_coffee@0.39": {
+      "handle_surface_gap_m": 0.0015308221848188773,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 495
+    },
+    "preparing_coffee@0.6": {
+      "handle_surface_gap_m": 0.0014086833444014767,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 495
+    },
+    "coffee_putdown@0.61": {
+      "handle_surface_gap_m": 0.0015308221848188773,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 495
+    },
+    "sitting_sofa_coffee@0": {
+      "handle_surface_gap_m": 0.0017362061223001404,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 495
+    },
+    "drinking_coffee@0.5": {
+      "handle_surface_gap_m": 0.0006876650212237184,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 495
+    }
+  },
+  "avatar_legal": {
+    "carrying_coffee@0": {
+      "handle_surface_gap_m": 0.0010554047580487514,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 716
+    },
+    "preparing_coffee@0.39": {
+      "handle_surface_gap_m": 0.0010553568390343042,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 716
+    },
+    "preparing_coffee@0.6": {
+      "handle_surface_gap_m": 0.0010552872815301128,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 716
+    },
+    "coffee_putdown@0.61": {
+      "handle_surface_gap_m": 0.0010553568390343042,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 716
+    },
+    "sitting_sofa_coffee@0": {
+      "handle_surface_gap_m": 0.001055266977210003,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 716
+    },
+    "drinking_coffee@0.5": {
+      "handle_surface_gap_m": 0.001055275810716078,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 716
+    }
+  },
+  "avatar_male": {
+    "carrying_coffee@0": {
+      "handle_surface_gap_m": 0.001505999134945589,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2258
+    },
+    "preparing_coffee@0.39": {
+      "handle_surface_gap_m": 0.0014845441869857181,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2258
+    },
+    "preparing_coffee@0.6": {
+      "handle_surface_gap_m": 0.0015055839148028242,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2258
+    },
+    "coffee_putdown@0.61": {
+      "handle_surface_gap_m": 0.001244287236840028,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2258
+    },
+    "sitting_sofa_coffee@0": {
+      "handle_surface_gap_m": 0.0015058023919132673,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2258
+    },
+    "drinking_coffee@0.5": {
+      "handle_surface_gap_m": 0.001505193332547507,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 2258
+    }
+  },
+  "avatar_research": {
+    "carrying_coffee@0": {
+      "handle_surface_gap_m": 0.0016986652037830842,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 1614
+    },
+    "preparing_coffee@0.39": {
+      "handle_surface_gap_m": 0.0016961536410363567,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 1614
+    },
+    "preparing_coffee@0.6": {
+      "handle_surface_gap_m": 0.0016982652998398585,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 1614
+    },
+    "coffee_putdown@0.61": {
+      "handle_surface_gap_m": 0.0016678873406261866,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 1614
+    },
+    "sitting_sofa_coffee@0": {
+      "handle_surface_gap_m": 0.0016984665164598359,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 1614
+    },
+    "drinking_coffee@0.5": {
+      "handle_surface_gap_m": 0.001698488618683117,
+      "hand_vertices_inside_cup_interior": 0,
+      "max_cup_interior_penetration_m": 0.0,
+      "hand_vertices": 1614
+    }
+  }
+}

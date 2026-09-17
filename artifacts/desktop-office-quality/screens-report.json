@@ -1,0 +1,110 @@
+{
+  "sourceOfficePath": "assets/optimized/office.desktop.4fe5f78c1fb5.glb",
+  "sourceOfficeSha256": "4fe5f78c1fb54a3bb6815cab39c9457ed10a895b633c1dac032c5b4e8eb348a0",
+  "authoringFile": "artifacts/desktop-office-quality/office-desktop-screens.blend",
+  "materialPrefix": "Desktop screen ",
+  "surfaceKind": 1,
+  "screenCount": 9,
+  "geometryPreserved": true,
+  "displays": [
+    {
+      "node": "model_1",
+      "triangles": 4,
+      "width": 0.367483675479896,
+      "height": 0.24459904432297097,
+      "nativeCenter": [
+        -0.7739839553833008,
+        0.902904212474823,
+        -0.4475482404232025
+      ]
+    },
+    {
+      "node": "model_1",
+      "triangles": 4,
+      "width": 0.36748409271240945,
+      "height": 0.24459904432297108,
+      "nativeCenter": [
+        5.231177806854248,
+        0.9029032588005066,
+        -0.6422122716903687
+      ]
+    },
+    {
+      "node": "instance_0.001",
+      "triangles": 2,
+      "width": 0.6949024200439453,
+      "height": 0.39835333824157715,
+      "nativeCenter": [
+        5.1735944747924805,
+        1.1221802234649658,
+        1.933028221130371
+      ]
+    },
+    {
+      "node": "instance_1.001",
+      "triangles": 2,
+      "width": 0.6949028968811035,
+      "height": 0.39835333824157715,
+      "nativeCenter": [
+        1.6814336776733398,
+        1.122577428817749,
+        3.288177013397217
+      ]
+    },
+    {
+      "node": "instance_2.001",
+      "triangles": 2,
+      "width": 0.694902718067226,
+      "height": 0.39835333824157715,
+      "nativeCenter": [
+        2.6058239936828613,
+        1.122061014175415,
+        0.6590766906738281
+      ]
+    },
+    {
+      "node": "instance_3.001",
+      "triangles": 2,
+      "width": 0.6949028968811035,
+      "height": 0.39835333824157715,
+      "nativeCenter": [
+        -2.0248050689697266,
+        1.122175931930542,
+        2.7090086936950684
+      ]
+    },
+    {
+      "node": "instance_4.001",
+      "triangles": 2,
+      "width": 0.6949029117823784,
+      "height": 0.39835333824157715,
+      "nativeCenter": [
+        -0.28360867500305176,
+        1.1222336292266846,
+        -3.2512853145599365
+      ]
+    },
+    {
+      "node": "instance_5.001",
+      "triangles": 2,
+      "width": 0.6949028968811604,
+      "height": 0.39835333824157715,
+      "nativeCenter": [
+        2.128911018371582,
+        1.1221849918365479,
+        -2.3288235664367676
+      ]
+    },
+    {
+      "node": "Plane.009",
+      "triangles": 2,
+      "width": 0.9736883640290444,
+      "height": 0.47719305753707886,
+      "nativeCenter": [
+        -0.8358221054077148,
+        1.1692928075790405,
+        -0.25537729263305664
+      ]
+    }
+  ]
+}

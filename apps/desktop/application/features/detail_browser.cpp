@@ -59,6 +59,41 @@ QVariantList DetailBrowser::breadcrumbs() const {
     return result;
 }
 QString DetailBrowser::heading() const { return path_.isEmpty()?label_:label(path_.last()); }
+QVariantList DetailBrowser::deliverables() const {
+    // Only expose file metadata from known delivery branches. Inputs and
+    // arbitrary nested records are still available through the inspector.
+    QVariantList result;
+    QSet<QString> ids;
+    int visited=0;
+    const auto collect=[&](auto&& self,const QVariant& value,int depth)->void {
+        if (depth>8 || ++visited>4096 || result.size()>=200) return;
+        if (array(value)) {
+            for (const auto& item : value.toList()) self(self,item,depth+1);
+            return;
+        }
+        if (!object(value)) return;
+        const auto map=value.toMap();
+        const auto id=map.value("drive_item_id",map.value("id")).toString();
+        const auto name=map.value("name",map.value("filename")).toString();
+        if ((sourcePage_=="tasks" && map.value("source").toString()=="input") || map.value("kind").toString()=="folder") return;
+        if (idAllowed(id) && !name.isEmpty() && (map.contains("mime_type") || map.contains("drive_item_id")) && !ids.contains(id)) {
+            ids.insert(id);
+            QVariantMap file{{"id",id},{"name",name}};
+            for (const auto& key : {"mime_type","extension","size_bytes","source","version","inserted_at"})
+                if (map.contains(key)) file.insert(key,map.value(key));
+            result.append(file);
+        }
+        for (const auto& key : {"attachments","deliverables","artifacts","files","output","result","data","tool_calls"})
+            if (map.contains(key)) self(self,map.value(key),depth+1);
+    };
+    if (sourcePage_=="drive" && collectionHint_.isEmpty()) collect(collect,document_,0);
+    else if (sourcePage_=="tasks") {
+        collect(collect,document_.value("attachments"),0);
+        collect(collect,document_.value("latest_run").toMap().value("output"),0);
+        collect(collect,document_.value("output"),0);
+    }
+    return result;
+}
 QString DetailBrowser::referencePage(const QString& key,bool collection) const {
     auto target=key; if (target=="items") target=collectionHint_;
     if (sourcePage_.startsWith("admin-")) {
@@ -71,7 +106,6 @@ QString DetailBrowser::referencePage(const QString& key,bool collection) const {
     if (target=="task_id" || target=="linked_task_id" || target=="tasks") return "tasks";
     if (target=="project_id" || target=="projects") return "projects";
     if (target=="agent_id" || target=="assigned_agent_id" || target=="agent_ids" || target=="agents" || target=="agent") return "agents";
-    if (target=="knowledge_id" || target=="knowledge") return "knowledge";
     if (target=="drive_item_id" || target=="drive_folder_id" || target=="drive") return "drive";
     if (collection && target=="members") return "members";
     return {};

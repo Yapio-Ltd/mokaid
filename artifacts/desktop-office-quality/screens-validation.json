@@ -1,0 +1,131 @@
+{
+  "officeSource": "assets/optimized/office.desktop.fe4052470911.glb",
+  "temporaryCookedAssets": "artifacts/desktop-office-quality/screens-assets",
+  "gpu": "Apple M4 Pro",
+  "note": "Offscreen GPU measurements with Metal API Validation, 12 command buffers and in-flight resizes; mean of last6 frames. This is not a full app or targetM1 frame-rate guarantee.",
+  "cases": [
+    {
+      "layout": "desktop",
+      "agents": 0,
+      "viewport": [
+        1063,
+        491
+      ],
+      "cpuMeanMs": 0.52357,
+      "gpuMeanMs": 2.37114,
+      "drawCalls": 92,
+      "triangles": 220116,
+      "metalValidationPassed": true
+    },
+    {
+      "layout": "desktop",
+      "agents": 5,
+      "viewport": [
+        1063,
+        491
+      ],
+      "cpuMeanMs": 0.731104,
+      "gpuMeanMs": 3.82572,
+      "drawCalls": 121,
+      "triangles": 577088,
+      "metalValidationPassed": true
+    },
+    {
+      "layout": "desktop",
+      "agents": 9,
+      "viewport": [
+        1063,
+        491
+      ],
+      "cpuMeanMs": 0.867812,
+      "gpuMeanMs": 4.658,
+      "drawCalls": 133,
+      "triangles": 651795,
+      "metalValidationPassed": true
+    },
+    {
+      "layout": "chat",
+      "agents": 0,
+      "viewport": [
+        653,
+        491
+      ],
+      "cpuMeanMs": 0.514465,
+      "gpuMeanMs": 1.87833,
+      "drawCalls": 92,
+      "triangles": 220116,
+      "metalValidationPassed": true
+    },
+    {
+      "layout": "chat",
+      "agents": 5,
+      "viewport": [
+        653,
+        491
+      ],
+      "cpuMeanMs": 0.824139,
+      "gpuMeanMs": 2.3724,
+      "drawCalls": 121,
+      "triangles": 577088,
+      "metalValidationPassed": true
+    },
+    {
+      "layout": "chat",
+      "agents": 9,
+      "viewport": [
+        653,
+        491
+      ],
+      "cpuMeanMs": 0.887764,
+      "gpuMeanMs": 3.60109,
+      "drawCalls": 133,
+      "triangles": 651795,
+      "metalValidationPassed": true
+    }
+  ],
+  "animationDifference": {
+    "times": [
+      0,
+      8
+    ],
+    "pixelsOver4": 749,
+    "percent": 0.14350500926364113,
+    "bounds": [
+      222,
+      182,
+      595,
+      276
+    ],
+    "maximumChannelDelta": 188,
+    "meanMaxChannelDelta": 0.060392809038708035
+  },
+  "hlsl": {
+    "compiler": "DXC1.9, local Ubuntu24 linux/amd64 container, network disabled",
+    "strict": true,
+    "warningsAsErrors": true,
+    "entryPoints": [
+      "vsMain",
+      "psMain",
+      "postVertex",
+      "bloomDownsample",
+      "bloomBlur",
+      "officeComposite"
+    ],
+    "allPassed": true,
+    "log": "artifacts/desktop-office-quality/screens-dxc.log",
+    "runtimeWindowsInteropValidated": false
+  },
+  "formatTests": {
+    "versionsAccepted": [
+      3,
+      4
+    ],
+    "surfaceKindsAccepted": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "unknownKindRejected": true
+  }
+}

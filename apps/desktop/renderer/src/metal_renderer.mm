@@ -4,14 +4,15 @@
 #include <chrono>
 #include <mokaid/renderer/renderer.hpp>
 #include <unordered_map>
+#include "office_lighting.hpp"
 
 namespace mokaid::renderer {
 namespace {
 struct Uniforms {
   engine::Mat4 viewProjection, model;
-  engine::Vec4 color, emissive, camera, params;
+  engine::Vec4 color, emissive, camera, params, display;
 };
-static_assert(sizeof(Uniforms) == 192);
+static_assert(sizeof(Uniforms) == 208);
 struct GpuMesh {
   id<MTLBuffer> vertices;
   id<MTLBuffer> indices;
@@ -42,9 +43,10 @@ struct EncodingLease {
 class MetalRenderer final : public Renderer {
   id<MTLDevice> device_;
   id<MTLRenderPipelineState> opaque_, transparent_;
+  id<MTLComputePipelineState> downsample_, blur_, composite_;
   id<MTLDepthStencilState> depth_, noDepthWrite_;
   id<MTLSamplerState> sampler_;
-  id<MTLTexture> color_, depthTexture_, white_;
+  id<MTLTexture> color_, hdr_, emission_, bloomA_, bloomB_, depthTexture_, white_;
   id<MTLBuffer> identityBones_;
   std::unordered_map<const engine::Scene *, GpuScene> scenes_;
   Statistics stats_;
@@ -111,7 +113,8 @@ public:
     auto desc = [[MTLRenderPipelineDescriptor alloc] init];
     desc.vertexFunction = [library newFunctionWithName:@"officeVertex"];
     desc.fragmentFunction = [library newFunctionWithName:@"officeFragment"];
-    desc.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA8Unorm;
+    desc.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
+    desc.colorAttachments[1].pixelFormat = MTLPixelFormatRGBA16Float;
     desc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
     opaque_ = [device_ newRenderPipelineStateWithDescriptor:desc error:&error];
     desc.colorAttachments[0].blendingEnabled = YES;
@@ -121,10 +124,20 @@ public:
     desc.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorOne;
     desc.colorAttachments[0].destinationAlphaBlendFactor =
         MTLBlendFactorOneMinusSourceAlpha;
+    desc.colorAttachments[1].blendingEnabled = YES;
+    desc.colorAttachments[1].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+    desc.colorAttachments[1].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+    desc.colorAttachments[1].sourceAlphaBlendFactor = MTLBlendFactorOne;
+    desc.colorAttachments[1].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
     transparent_ = [device_ newRenderPipelineStateWithDescriptor:desc
                                                            error:&error];
     if (!opaque_ || !transparent_)
       throw std::runtime_error("Metal pipeline creation failed");
+    downsample_ = [device_ newComputePipelineStateWithFunction:[library newFunctionWithName:@"bloomDownsample"] error:&error];
+    blur_ = [device_ newComputePipelineStateWithFunction:[library newFunctionWithName:@"bloomBlur"] error:&error];
+    composite_ = [device_ newComputePipelineStateWithFunction:[library newFunctionWithName:@"officeComposite"] error:&error];
+    if (!downsample_ || !blur_ || !composite_)
+      throw std::runtime_error("Metal post-processing pipeline creation failed");
     auto d = [[MTLDepthStencilDescriptor alloc] init];
     d.depthCompareFunction = MTLCompareFunctionLess;
     d.depthWriteEnabled = YES;
@@ -164,14 +177,25 @@ public:
                                     height:h
                                  mipmapped:NO];
     desc.storageMode = MTLStorageModePrivate;
-    desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
     id<MTLTexture> nextColor = [device_ newTextureWithDescriptor:desc];
+    desc.pixelFormat = MTLPixelFormatRGBA16Float;
+    desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    id<MTLTexture> nextHdr = [device_ newTextureWithDescriptor:desc];
+    id<MTLTexture> nextEmission = [device_ newTextureWithDescriptor:desc];
+    desc.width = std::max(1U, (w + 1) / 2);
+    desc.height = std::max(1U, (h + 1) / 2);
+    desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
+    id<MTLTexture> nextBloomA = [device_ newTextureWithDescriptor:desc];
+    id<MTLTexture> nextBloomB = [device_ newTextureWithDescriptor:desc];
+    desc.width = w; desc.height = h;
     desc.pixelFormat = MTLPixelFormatDepth32Float;
     desc.usage = MTLTextureUsageRenderTarget;
     id<MTLTexture> nextDepth = [device_ newTextureWithDescriptor:desc];
-    if (!nextColor || !nextDepth)
+    if (!nextColor || !nextDepth || !nextHdr || !nextEmission || !nextBloomA || !nextBloomB)
       throw std::runtime_error("Metal render target allocation failed");
-    color_ = nextColor;
+    color_ = nextColor; hdr_ = nextHdr; emission_ = nextEmission;
+    bloomA_ = nextBloomA; bloomB_ = nextBloomB;
     depthTexture_ = nextDepth;
     width_ = w;
     height_ = h;
@@ -196,7 +220,8 @@ public:
     // Keep resources through completion even if Qt internally records an
     // unretained command buffer. This also protects resize and item deletion.
     NSMutableArray<id> *inFlight = [NSMutableArray
-        arrayWithObjects:color_, depthTexture_, opaque_, transparent_, depth_,
+        arrayWithObjects:color_, hdr_, emission_, bloomA_, bloomB_, downsample_, blur_, composite_,
+                         depthTexture_, opaque_, transparent_, depth_,
                          noDepthWrite_, sampler_, white_, identityBones_, nil];
     for (const auto &[key, gpu] : scenes_) {
       (void)key;
@@ -207,83 +232,120 @@ public:
       for (id<MTLTexture> texture : gpu.textures)
         [inFlight addObject:texture];
     }
-    auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
-    pass.colorAttachments[0].texture = color_;
-    pass.colorAttachments[0].loadAction = MTLLoadActionClear;
-    pass.colorAttachments[0].storeAction = MTLStoreActionStore;
-    pass.colorAttachments[0].clearColor =
-        MTLClearColorMake(.013, .018, .022, 1);
-    pass.depthAttachment.texture = depthTexture_;
-    pass.depthAttachment.loadAction = MTLLoadActionClear;
-    pass.depthAttachment.storeAction = MTLStoreActionDontCare;
-    pass.depthAttachment.clearDepth = 1;
-    id<MTLRenderCommandEncoder> encoder =
-        [commands renderCommandEncoderWithDescriptor:pass];
-    if (!encoder)
-      throw std::runtime_error("Metal render encoder creation failed");
-    const EncodingLease encoding{encoder, commands, inFlight, commandFailed_};
-    [encoder setCullMode:MTLCullModeNone];
-    [encoder setFragmentSamplerState:sampler_ atIndex:0];
-    stats_.drawCalls = 0;
-    stats_.triangles = 0;
-    for (int alphaPass = 0; alphaPass < 2; ++alphaPass) {
-      [encoder setRenderPipelineState:alphaPass ? transparent_ : opaque_];
-      [encoder setDepthStencilState:alphaPass ? noDepthWrite_ : depth_];
-      for (std::size_t instanceIndex = 0; instanceIndex < frame.instances.size(); ++instanceIndex) {
-        const auto &i = frame.instances[instanceIndex];
-        const auto &s = *i.scene;
-        const auto &pose = poses[instanceIndex];
-        const auto &gpu = scenes_.at(i.scene.get());
-        for (std::size_t j = 0; j < s.meshes.size(); ++j) {
-          const auto &m = s.meshes[j];
-          const auto &mat = s.materials[m.material];
-          if ((mat.alphaMode == 2) != (alphaPass == 1))
-            continue;
-          const Uniforms u{frame.viewProjection,
-                           i.transform * pose.world[m.node],
-                           mat.color,
-                           {mat.emissive.x, mat.emissive.y, mat.emissive.z, mat.metallic},
-                           {frame.camera.x, frame.camera.y, frame.camera.z, 1},
-                           {m.skin >= 0 ? 1.F : 0.F,
-                            static_cast<float>(mat.alphaMode), mat.alphaCutoff,
-                            mat.roughness}};
-          id<MTLBuffer> boneBuffer = identityBones_;
-          if (m.skin >= 0) {
-            const auto bones = engine::skinMatrices(s, m, pose);
-            boneBuffer =
-                [device_ newBufferWithBytes:bones.data()
-                                     length:sizeof(bones)
-                                    options:MTLResourceStorageModeShared];
+    {
+      auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
+      pass.colorAttachments[0].texture = hdr_;
+      pass.colorAttachments[1].texture = emission_;
+      pass.colorAttachments[1].loadAction = MTLLoadActionClear;
+      pass.colorAttachments[1].storeAction = MTLStoreActionStore;
+      pass.colorAttachments[1].clearColor = MTLClearColorMake(0, 0, 0, 1);
+      pass.colorAttachments[0].loadAction = MTLLoadActionClear;
+      pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+      pass.colorAttachments[0].clearColor =
+          // Inverse display transform of Theme.background (#0b0b10).
+          MTLClearColorMake(.008505, .008505, .011558, 1);
+      pass.depthAttachment.texture = depthTexture_;
+      pass.depthAttachment.loadAction = MTLLoadActionClear;
+      pass.depthAttachment.storeAction = MTLStoreActionDontCare;
+      pass.depthAttachment.clearDepth = 1;
+      id<MTLRenderCommandEncoder> encoder =
+          [commands renderCommandEncoderWithDescriptor:pass];
+      if (!encoder)
+        throw std::runtime_error("Metal render encoder creation failed");
+      const EncodingLease encoding{encoder, commands, inFlight, commandFailed_};
+      [encoder setCullMode:MTLCullModeNone];
+      [encoder setFragmentSamplerState:sampler_ atIndex:0];
+      const auto lighting = lightingFor(frame);
+      [encoder setFragmentBytes:&lighting length:sizeof(lighting) atIndex:3];
+      stats_.drawCalls = 0;
+      stats_.triangles = 0;
+      for (int alphaPass = 0; alphaPass < 2; ++alphaPass) {
+        [encoder setRenderPipelineState:alphaPass ? transparent_ : opaque_];
+        [encoder setDepthStencilState:alphaPass ? noDepthWrite_ : depth_];
+        for (std::size_t instanceIndex = 0; instanceIndex < frame.instances.size(); ++instanceIndex) {
+          const auto &i = frame.instances[instanceIndex];
+          const auto &s = *i.scene;
+          const auto &pose = poses[instanceIndex];
+          const auto &gpu = scenes_.at(i.scene.get());
+          for (std::size_t j = 0; j < s.meshes.size(); ++j) {
+            const auto &m = s.meshes[j];
+            const auto &mat = s.materials[m.material];
+            if ((i.surfaceMask & (1U << mat.surfaceKind)) == 0) continue;
+            if ((mat.alphaMode == 2) != (alphaPass == 1))
+              continue;
+            const Uniforms u{frame.viewProjection,
+                             i.transform * pose.world[m.node],
+                             mat.color,
+                             {mat.emissive.x, mat.emissive.y, mat.emissive.z, mat.metallic},
+                             {frame.camera.x, frame.camera.y, frame.camera.z, 1},
+                             {m.skin >= 0 ? 1.F : 0.F,
+                              static_cast<float>(mat.alphaMode), mat.alphaCutoff,
+                              mat.roughness},
+                             {static_cast<float>(mat.surfaceKind), frame.sceneSeconds,
+                              static_cast<float>(m.material + m.node * 3), 0}};
+            id<MTLBuffer> boneBuffer = identityBones_;
+            if (m.skin >= 0) {
+              const auto bones = engine::skinMatrices(s, m, pose);
+              boneBuffer =
+                  [device_ newBufferWithBytes:bones.data()
+                                       length:sizeof(bones)
+                                      options:MTLResourceStorageModeShared];
+            }
+            if (!boneBuffer)
+              throw std::runtime_error("Metal skin palette allocation failed");
+            [encoder setVertexBuffer:gpu.meshes[j].vertices offset:0 atIndex:0];
+            [encoder setVertexBytes:&u length:sizeof(u) atIndex:1];
+            [inFlight addObject:boneBuffer];
+            [encoder setVertexBuffer:boneBuffer offset:0 atIndex:2];
+            [encoder setFragmentBytes:&u length:sizeof(u) atIndex:1];
+            [encoder
+                setFragmentTexture:mat.texture >= 0
+                                       ? gpu.textures[static_cast<std::size_t>(
+                                             mat.texture)]
+                                       : white_
+                           atIndex:0];
+            [encoder setFragmentTexture:mat.emissiveTexture >= 0
+                   ? gpu.textures[static_cast<std::size_t>(mat.emissiveTexture)]
+                   : white_ atIndex:1];
+            [encoder setFragmentTexture:mat.metallicRoughnessTexture >= 0
+                   ? gpu.textures[static_cast<std::size_t>(mat.metallicRoughnessTexture)]
+                   : white_ atIndex:2];
+            [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                                indexCount:m.indices.size()
+                                 indexType:MTLIndexTypeUInt32
+                               indexBuffer:gpu.meshes[j].indices
+                         indexBufferOffset:0];
+            ++stats_.drawCalls;
+            stats_.triangles += m.indices.size() / 3;
           }
-          if (!boneBuffer)
-            throw std::runtime_error("Metal skin palette allocation failed");
-          [encoder setVertexBuffer:gpu.meshes[j].vertices offset:0 atIndex:0];
-          [encoder setVertexBytes:&u length:sizeof(u) atIndex:1];
-          [inFlight addObject:boneBuffer];
-          [encoder setVertexBuffer:boneBuffer offset:0 atIndex:2];
-          [encoder setFragmentBytes:&u length:sizeof(u) atIndex:1];
-          [encoder
-              setFragmentTexture:mat.texture >= 0
-                                     ? gpu.textures[static_cast<std::size_t>(
-                                           mat.texture)]
-                                     : white_
-                         atIndex:0];
-          [encoder setFragmentTexture:mat.emissiveTexture >= 0
-                 ? gpu.textures[static_cast<std::size_t>(mat.emissiveTexture)]
-                 : white_ atIndex:1];
-          [encoder setFragmentTexture:mat.metallicRoughnessTexture >= 0
-                 ? gpu.textures[static_cast<std::size_t>(mat.metallicRoughnessTexture)]
-                 : white_ atIndex:2];
-          [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                              indexCount:m.indices.size()
-                               indexType:MTLIndexTypeUInt32
-                             indexBuffer:gpu.meshes[j].indices
-                       indexBufferOffset:0];
-          ++stats_.drawCalls;
-          stats_.triangles += m.indices.size() / 3;
         }
       }
-    }
+    } // Finish the geometry encoder before dispatching post processing.
+    auto compute = [&](id<MTLComputePipelineState> pipeline,
+                       id<MTLTexture> source, id<MTLTexture> target,
+                       const std::array<float, 2> direction) {
+      id<MTLComputeCommandEncoder> encoder = [commands computeCommandEncoder];
+      if (!encoder) throw std::runtime_error("Metal bloom encoder creation failed");
+      [encoder setComputePipelineState:pipeline];
+      [encoder setTexture:source atIndex:0];
+      [encoder setTexture:target atIndex:1];
+      [encoder setBytes:direction.data() length:sizeof(direction) atIndex:0];
+      [encoder dispatchThreads:MTLSizeMake(target.width, target.height, 1)
+          threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+      [encoder endEncoding];
+    };
+    compute(downsample_, emission_, bloomA_, {0, 0});
+    compute(blur_, bloomA_, bloomB_, {2, 0});
+    compute(blur_, bloomB_, bloomA_, {0, 2});
+    id<MTLComputeCommandEncoder> composite = [commands computeCommandEncoder];
+    if (!composite) throw std::runtime_error("Metal composition encoder creation failed");
+    [composite setComputePipelineState:composite_];
+    [composite setTexture:hdr_ atIndex:0];
+    [composite setTexture:bloomA_ atIndex:1];
+    [composite setTexture:color_ atIndex:2];
+    [composite dispatchThreads:MTLSizeMake(width_, height_, 1)
+        threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
+    [composite endEncoding];
     stats_.cpuMilliseconds = std::chrono::duration<double, std::milli>(
                                  std::chrono::steady_clock::now() - start)
                                  .count();

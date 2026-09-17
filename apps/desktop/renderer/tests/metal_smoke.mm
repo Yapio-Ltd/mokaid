@@ -5,7 +5,9 @@
 #import <ImageIO/ImageIO.h>
 #import <CoreGraphics/CoreGraphics.h>
 #include <chrono>
+#include <cstdlib>
 #include <iostream>
+#include <optional>
 #include <thread>
 
 void benchmarkPoses(const mokaid::engine::Frame &frame) {
@@ -40,23 +42,35 @@ void benchmarkPoses(const mokaid::engine::Frame &frame) {
 int main(int argc, char **argv) {
   @autoreleasepool {
     try {
-      if (argc < 4 || argc > 5) throw std::runtime_error("usage: metal_smoke <asset-dir> <shader-dir> <png-output> [agent-count]");
-      const int agentCount=argc==5?std::clamp(std::stoi(argv[4]),0,9):9;
+      if (argc < 4 || argc > 9 || argc == 6) throw std::runtime_error("usage: metal_smoke <asset-dir> <shader-dir> <png-output> [agent-count [width height [simulation-seconds [idle|working]]]]");
+      const int agentCount=argc>=5?std::clamp(std::stoi(argv[4]),0,9):9;
+      const NSUInteger width=argc>=7?std::clamp(std::stoi(argv[5]),480,3840):1440;
+      const NSUInteger height=argc>=7?std::clamp(std::stoi(argv[6]),320,2160):960;
+      const bool tour=argc>=8;
+      const float tourSeconds=tour?std::clamp(std::stof(argv[7]),0.F,1800.F):0;
+      const std::string actorStatus=argc==9?argv[8]:tour?"idle":"working";
+      if(actorStatus!="idle"&&actorStatus!="working")throw std::runtime_error("Activity fixture must use idle or working actors");
+      if(!std::isfinite(tourSeconds))throw std::runtime_error("Invalid simulation fixture time");
+      const char *screenTimeSetting=std::getenv("MOKAID_SCREEN_TIME");
+      const std::optional<float> screenTime=screenTimeSetting?std::optional<float>(std::stof(screenTimeSetting)):std::nullopt;
+      if(screenTime && (!std::isfinite(*screenTime)||*screenTime<0))throw std::runtime_error("Invalid screen fixture time");
       id<MTLDevice> device = MTLCreateSystemDefaultDevice();
       if (!device) throw std::runtime_error("No Metal GPU is available");
       id<MTLCommandQueue> queue = [device newCommandQueue];
       mokaid::renderer::Context context{(__bridge void *)device, (__bridge void *)queue};
       auto renderer = mokaid::renderer::createRenderer(context, argv[2]);
-      auto office = std::make_unique<mokaid::engine::Office>();
+      auto office = std::make_unique<mokaid::engine::Office>(false);
       office->load(argv[1]);
       std::vector<mokaid::engine::Agent> agents;
-      const char *types[] = {"male", "female", "corporate", "developer", "design", "finance", "research", "legal", "female"};
-      for (int i=0;i<agentCount;++i) agents.push_back({std::to_string(i), types[i], "working", types[i], i});
+      const char *types[] = {"byte", "nyx", "moss", "developer", "design", "finance", "research", "legal", "male"};
+      for (int i=0;i<agentCount;++i) agents.push_back({std::to_string(i), types[i], actorStatus, types[i], i});
       office->setAgents(std::move(agents));
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      office->advance(1.F / 60);
+      for(int step=0;step<static_cast<int>(std::ceil(tourSeconds*60));++step)
+        office->advance(1.F / 60);
       benchmarkPoses(*office->snapshot(1.5F));
-      constexpr NSUInteger width=1440, height=960;
       std::vector<id<MTLCommandBuffer>> submitted;
+      std::vector<double> cpuTimes;
       for (int i=0;i<12;++i) {
         // Stress resources Qt may record with unretained command buffers.
         // Resize while preceding frames remain in flight, including odd sizes.
@@ -69,13 +83,21 @@ int main(int argc, char **argv) {
         if(!commands)throw std::runtime_error("Command buffer allocation failed");
         context.commands=(__bridge void*)commands;
         const auto frame=office->snapshot(static_cast<float>(frameWidth)/frameHeight);
-        if(frame->instances.size()!=static_cast<std::size_t>(agentCount+1))throw std::runtime_error("Office scene snapshot is incomplete");
+        const auto actors=std::count_if(frame->instances.begin(),frame->instances.end(),[](const auto &instance){return !instance.agentId.empty();});
+        if(frame->instances.empty() || !frame->instances.front().agentId.empty() || actors!=agentCount)
+          throw std::runtime_error("Office scene snapshot is incomplete");
         if(i==0)for(const auto&instance:frame->instances){
           const auto&scene=*instance.scene;
           const auto [min,max]=mokaid::engine::poseBounds(scene,mokaid::engine::evaluatePose(scene,instance.animation,instance.animationTime));
-          std::cout<<"asset "<<instance.agentId<<" posed Y="<<min.y<<".."<<max.y<<"; seated pelvis="<<scene.sittingPelvisHeight<<'\n';
+          std::cout<<"asset "<<instance.agentId<<" clip="<<instance.animation<<" clipSeconds="<<instance.animationTime
+                   <<" position="<<instance.transform.m[12]<<","<<instance.transform.m[13]<<","<<instance.transform.m[14]
+                   <<" posed Y="<<min.y<<".."<<max.y<<"; seated pelvis="<<scene.sittingPelvisHeight<<'\n';
         }
-        renderer->render(context,*frame);
+        if(screenTime) {
+          auto timedFrame=*frame;timedFrame.sceneSeconds=*screenTime;
+          renderer->render(context,timedFrame);
+        } else renderer->render(context,*frame);
+        cpuTimes.push_back(renderer->statistics().cpuMilliseconds);
         [commands commit];
         submitted.push_back(commands);
       }
@@ -88,6 +110,15 @@ int main(int argc, char **argv) {
         if(commands.status==MTLCommandBufferStatusError)
           throw std::runtime_error(commands.error.localizedDescription.UTF8String);
       }
+      double gpuSum=0,cpuSum=0;std::size_t gpuSamples=0;
+      for(std::size_t i=submitted.size()-6;i<submitted.size();++i) {
+        cpuSum+=cpuTimes[i];
+        const double duration=(submitted[i].GPUEndTime-submitted[i].GPUStartTime)*1000;
+        if(duration>0){gpuSum+=duration;++gpuSamples;}
+      }
+      std::cout<<"Last 6 frames: CPU encode mean "<<cpuSum/6<<" ms; GPU ";
+      if(gpuSamples)std::cout<<gpuSum/gpuSamples<<" ms mean ("<<gpuSamples<<" samples)\n";
+      else std::cout<<"timestamps unavailable\n";
       const NSUInteger rowBytes=((width*4+255)/256)*256;
       id<MTLBuffer> readback=[device newBufferWithLength:rowBytes*height options:MTLResourceStorageModeShared];
       id<MTLCommandBuffer> commands=[queue commandBuffer];

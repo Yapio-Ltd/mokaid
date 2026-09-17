@@ -3,5 +3,8 @@ defmodule Mokaid.Auth.PruneDesktopSessionsWorker do
   use Oban.Worker, queue: :default, max_attempts: 3, unique: [period: 3600]
 
   @impl Oban.Worker
-  def perform(_job), do: Mokaid.Auth.Desktop.prune_expired()
+  def perform(_job) do
+    Mokaid.Auth.Desktop.prune_expired()
+    Mokaid.Auth.Token.prune_expired()
+  end
 end

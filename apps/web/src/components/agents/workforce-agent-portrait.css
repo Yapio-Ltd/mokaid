@@ -1,0 +1,35 @@
+.workforce-agent-portrait {
+  --workforce-portrait-size: 60px;
+  --workforce-portrait-fallback-scale: 0.9375;
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: var(--workforce-portrait-size);
+  height: var(--workforce-portrait-size);
+  overflow: hidden;
+  border: 1px solid rgb(139 112 239 / 42%);
+  border-radius: 50%;
+  corner-shape: round;
+  background: #252044;
+  vertical-align: middle;
+}
+
+.workforce-agent-portrait--detail {
+  --workforce-portrait-size: 74px;
+  --workforce-portrait-fallback-scale: 0.7708333333;
+}
+
+.workforce-agent-portrait__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.workforce-agent-portrait__fallback {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  transform: translate(-50%, -50%) scale(var(--workforce-portrait-fallback-scale));
+}

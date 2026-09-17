@@ -4,6 +4,7 @@
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
 #include <mokaid/engine/office.hpp>
+#include "agent_indicator_model.hpp"
 
 namespace mokaid {
 class NativeViewport : public QQuickItem {
@@ -19,6 +20,7 @@ class NativeViewport : public QQuickItem {
   Q_PROPERTY(QString error READ error NOTIFY errorChanged)
   Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
   Q_PROPERTY(QVariantMap diagnostics READ diagnostics NOTIFY diagnosticsChanged)
+  Q_PROPERTY(QAbstractItemModel *actorIndicators READ actorIndicators CONSTANT)
 public:
   explicit NativeViewport(QQuickItem *parent = nullptr);
   ~NativeViewport() override;
@@ -33,6 +35,7 @@ public:
   QString error() const { return error_; }
   bool loading() const { return loading_; }
   QVariantMap diagnostics() const { return diagnostics_; }
+  QAbstractItemModel *actorIndicators() { return &indicators_; }
   void reportError(QString);
   void reportDiagnostics(QVariantMap);
   Q_INVOKABLE void retryRenderer();
@@ -52,11 +55,14 @@ protected:
 
 private:
   std::shared_ptr<engine::Office> office_;
+  AgentIndicatorModel indicators_{this};
+  void updateIndicators();
   std::jthread loader_;
   QString assetRoot_, quality_{"auto"}, error_;
   QVariantList agents_;
   QVariantMap diagnostics_;
   QTimer timer_;
+  int indicatorTick_{};
   bool paused_{}, loading_{};
   std::uint64_t generation_{};
   std::uint64_t rendererGeneration_{};

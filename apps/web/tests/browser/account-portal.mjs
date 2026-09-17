@@ -120,8 +120,8 @@ async function probe(name, signedIn, run, viewport = { width: 1440, height: 1000
         localStorage.setItem(
           "mokaid-auth",
           JSON.stringify({
-            state: { token: "fixture-session", user, workspaces, workspaceId: "one" },
-            version: 0,
+            state: { token: "browser:fixture-csrf", user, workspaces, workspaceId: "one" },
+            version: 1,
           }),
         );
     },
@@ -137,11 +137,14 @@ async function probe(name, signedIn, run, viewport = { width: 1440, height: 1000
         method: request.method(),
         body: request.postDataJSON(),
         workspace: request.headers()["x-workspace-id"],
+        csrf: request.headers()["x-csrf-token"],
+        authorization: request.headers()["authorization"],
       });
       let json;
       if (url.pathname === "/api/me")
         json = { user, workspaces, client_policy: { desktop_only_business: false } };
-      else if (url.pathname === "/api/auth/login") json = { token: "fixture-login-session", user };
+      else if (url.pathname === "/api/auth/login") json = { token: "browser:fixture-login-csrf", user };
+      else if (url.pathname === "/api/auth/logout") json = { ok: true };
       else if (url.pathname === "/api/billing/overview") json = { data: overview };
       else if (url.pathname === "/api/billing/plans")
         json = { data: [plan, { ...plan, key: "team", name: "Team", price_cents_monthly: 8900 }] };
@@ -250,6 +253,8 @@ try {
         calls.find((call) => call.path === "/api/billing/checkout")?.body.return_path,
         "/account/billing",
       );
+      assert.equal(calls.find((call) => call.path === "/api/billing/checkout")?.csrf, "fixture-csrf");
+      assert.equal(calls.some((call) => call.authorization), false);
       await portal.section("Usage", "Usage");
       await page.getByText("Usage this billing period", { exact: true }).waitFor();
       await portal.section("Spending & credits", "Spending & credits");
@@ -269,13 +274,16 @@ try {
       await switchedOverview;
       await page.getByRole("button", { name: "Sign out", exact: true }).click();
       await page.waitForURL((url) => url.pathname === "/login");
+      assert.equal(calls.find((call) => call.path === "/api/auth/logout")?.method, "POST");
     }),
-    probe("login-direct-link", false, async ({ page, portal }) => {
+    probe("login-direct-link", false, async ({ page, portal, calls }) => {
       await portal.open("/account/invoices");
       await page.getByRole("heading", { name: "Welcome back" }).waitFor();
       assert.equal(new URL(page.url()).searchParams.get("returnTo"), "/account/invoices");
       await portal.login();
       await page.getByRole("heading", { name: "Invoices", exact: true, level: 1 }).waitFor();
+      assert.equal(calls.find((call) => call.path === "/api/auth/login")?.body.session_transport, "cookie");
+      assert.equal(calls.find((call) => call.path === "/api/me")?.csrf, "fixture-login-csrf");
       assert.equal(new URL(page.url()).pathname, "/account/invoices");
       await portal.open("/billing?checkout=success&token=private");
       await page.getByRole("heading", { name: "Billing", exact: true, level: 1 }).waitFor();

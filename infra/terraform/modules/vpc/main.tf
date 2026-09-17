@@ -133,3 +133,8 @@ output "private_subnet_ids" {
 output "vpc_cidr" {
   value = aws_vpc.this.cidr_block
 }
+
+# Restrict trusted forwarded-header peers to the actual ALB public subnets.
+output "public_subnet_cidrs" {
+  value = aws_subnet.public[*].cidr_block
+}

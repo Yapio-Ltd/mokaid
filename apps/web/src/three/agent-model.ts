@@ -28,7 +28,20 @@ import {
 
 export { AGENT_GLB_URL, DEFAULT_AVATAR_CDN_PATH, resolveAgentGlbUrl };
 
-const VISUAL_STATES: AgentVisualState[] = [
+export const OFFICE_LIFE_CLIPS = [
+  "walking_brisk", "walking_relaxed", "typing_focused", "typing_relaxed",
+  "phone_pickup", "phone_call", "phone_putdown", "greeting", "laughing",
+  "laughing_coffee", "talking_standing", "sitting_sofa_coffee", "talking_sofa_coffee",
+  "drinking_sofa_coffee", "laughing_sofa_coffee", "sit_down_sofa_coffee",
+  "stand_up_sofa_coffee", "talking_sofa_coffee_left", "talking_sofa_coffee_right",
+  "coffee_putdown",
+] as const;
+
+export type AgentClipState = AgentVisualState | "sitting_sofa"
+  | "sit_down" | "stand_up" | "sit_down_sofa" | "stand_up_sofa" | "walking_coffee" | "carrying_coffee" | "drinking_coffee" | "talking_coffee" | "chair_pullback" | "chair_pushin"
+  | typeof OFFICE_LIFE_CLIPS[number];
+
+const VISUAL_STATES: AgentClipState[] = [
   "idle",
   "walking",
   "working",
@@ -44,12 +57,24 @@ const VISUAL_STATES: AgentVisualState[] = [
   "learning",
   "requesting_approval",
   "sitting",
+  "sitting_sofa",
   "preparing_coffee",
   "playing_foosball",
+  "sit_down",
+  "stand_up",
+  "sit_down_sofa",
+  "stand_up_sofa",
+  "walking_coffee",
+  "carrying_coffee",
+  "drinking_coffee",
+  "talking_coffee",
+  "chair_pullback",
+  "chair_pushin",
+  ...OFFICE_LIFE_CLIPS,
 ];
 
 /** Clip name aliases → AgentVisualState (GLB + Mixamo + legacy). */
-const CLIP_ALIASES: Record<string, AgentVisualState> = {
+const CLIP_ALIASES: Record<string, AgentClipState> = {
   idle: "idle",
   walk: "walking",
   walking: "walking",
@@ -67,16 +92,29 @@ const CLIP_ALIASES: Record<string, AgentVisualState> = {
   learning: "learning",
   requesting_approval: "requesting_approval",
   sitting: "sitting",
-  sitting_sofa: "sitting",
+  sitting_sofa: "sitting_sofa",
   sit: "sitting",
   preparing_coffee: "preparing_coffee",
   coffee: "preparing_coffee",
   playing_foosball: "playing_foosball",
   foosball: "playing_foosball",
+  sit_down: "sit_down",
+  stand_up: "stand_up",
+  sit_down_sofa: "sit_down_sofa",
+  stand_up_sofa: "stand_up_sofa",
+  walking_coffee: "walking_coffee",
+  carrying_coffee: "carrying_coffee",
+  drinking_coffee: "drinking_coffee",
+  talking_coffee: "talking_coffee",
+  chair_pullback: "chair_pullback",
+  chair_pushin: "chair_pushin",
+
 };
+for (const state of OFFICE_LIFE_CLIPS) CLIP_ALIASES[state] = state;
+const ORDERED_CLIP_ALIASES = Object.keys(CLIP_ALIASES).sort((a, b) => b.length - a.length);
 
 export type AgentAnimName =
-  | AgentVisualState
+  | AgentClipState
   | "walk"
   | "sitting"
   | "preparing_coffee"
@@ -84,7 +122,7 @@ export type AgentAnimName =
 
 const TARGET_HEIGHT = 1.75;
 
-export type AgentAnimMap = Partial<Record<AgentVisualState, AnimationGroup | null>>;
+export type AgentAnimMap = Partial<Record<AgentClipState, AnimationGroup | null>>;
 
 export interface AgentModelTemplate {
   container: AssetContainer;
@@ -101,6 +139,7 @@ export interface AgentModelTemplate {
    * cushion: `root.y = seatY - sitPelvisHeight`.
    */
   sitPelvisHeight: number;
+  sofaPelvisHeight: number;
   url: string;
 }
 
@@ -152,6 +191,7 @@ export function loadAgentModelTemplate(
     let scale = 1;
     let footOffset = 0;
     let sitPelvisHeight = 0.58;
+    let sofaPelvisHeight = 0.70;
 
     if (root) {
       // Mixamo exports often put 0.01 on Armature (cm→m). Measure against a
@@ -163,6 +203,7 @@ export function loadAgentModelTemplate(
       scale = height > 0 ? TARGET_HEIGHT / height : 1;
       footOffset = -bounds.min.y * scale;
       sitPelvisHeight = measureSitPelvisHeight(root, probe.animationGroups, scale, footOffset);
+      sofaPelvisHeight = measureSitPelvisHeight(root, probe.animationGroups, scale, footOffset, "sitting_sofa", sitPelvisHeight);
     }
 
     probe.rootNodes.forEach((n) => n.dispose());
@@ -178,6 +219,7 @@ export function loadAgentModelTemplate(
       scale,
       footOffset,
       sitPelvisHeight,
+      sofaPelvisHeight,
       url,
     };
   }).catch((error) => {
@@ -240,10 +282,10 @@ export function spawnAgentModel(
   };
 }
 
-export function normalizeAnimName(name: string): AgentVisualState | null {
+export function normalizeAnimName(name: string): AgentClipState | null {
   const lower = name.toLowerCase().trim();
   // Longest aliases first: "sitting_sofa" must not resolve as a suffix token.
-  for (const alias of Object.keys(CLIP_ALIASES).sort((a, b) => b.length - a.length)) {
+  for (const alias of ORDERED_CLIP_ALIASES) {
     if (lower === alias || lower.endsWith(`/${alias}`) || lower.endsWith(`-${alias}`)) {
       return CLIP_ALIASES[alias];
     }
@@ -279,14 +321,16 @@ function measureSitPelvisHeight(
   animationGroups: AnimationGroup[],
   scale: number,
   footOffset: number,
+  clip: AgentClipState = "sitting",
+  fallback = 0.58,
 ): number {
-  const FALLBACK = 0.58;
+  const FALLBACK = fallback;
   root.scaling.setAll(scale);
   root.position.set(0, footOffset, 0);
   root.rotationQuaternion = null;
   root.rotation.set(0, 0, 0);
 
-  const sit = animationGroups.find((g) => normalizeAnimName(g.name) === "sitting");
+  const sit = animationGroups.find((g) => normalizeAnimName(g.name) === clip);
   if (!sit) return FALLBACK;
 
   for (const ag of animationGroups) ag.stop();
@@ -352,10 +396,11 @@ function indexAnims(groups: AnimationGroup[]): AgentAnimMap {
 function resolveClip(
   avatar: AgentAnimPlayer,
   next: AgentAnimName,
-): { state: AgentVisualState; group: AnimationGroup | null } {
-  const state = (next === "walk" ? "walking" : next) as AgentVisualState;
+): { state: AgentClipState; group: AnimationGroup | null } {
+  const state = (next === "walk" ? "walking" : next) as AgentClipState;
   const group =
     avatar.anims[state] ??
+    (state === "sitting_sofa" ? avatar.anims.sitting : null) ??
     (state === "walking" ? avatar.walkAnim : null) ??
     (state === "idle" ? avatar.idleAnim : null) ??
     avatar.anims.idle ??
@@ -371,6 +416,11 @@ interface AnimationBlend {
 }
 const blends = new WeakMap<AgentAnimPlayer, AnimationBlend>();
 const BLEND_SECONDS = 0.28;
+const ONE_SHOT_CLIPS = new Set<AgentClipState>([
+  "celebrating", "sit_down", "stand_up", "sit_down_sofa", "stand_up_sofa", "preparing_coffee",
+  "phone_pickup", "phone_putdown", "greeting", "laughing", "laughing_coffee",
+  "laughing_sofa_coffee", "sit_down_sofa_coffee", "stand_up_sofa_coffee", "coffee_putdown",
+]);
 
 /** Advance only active crossfades; completed poses need no per-frame allocations. */
 export function advanceAgentAnimation(avatar: AgentAnimPlayer, dt: number) {
@@ -399,7 +449,7 @@ export function playAgentAnimation(avatar: AgentAnimPlayer, next: AgentAnimName)
   if (weights.size === 1 && weights.has(group)) return;
   if (!group.isPlaying) {
     group.weight = weights.size ? 0 : 1;
-    group.start(state !== "celebrating", 1, group.from, group.to, false);
+    group.start(!ONE_SHOT_CLIPS.has(state), 1, group.from, group.to, false);
   }
   weights.set(group, group.weight < 0 ? 1 : group.weight);
   if (weights.size === 1) {
@@ -411,9 +461,14 @@ export function playAgentAnimation(avatar: AgentAnimPlayer, next: AgentAnimName)
 }
 
 /** Match the authored in-place stride to real travel, including avoidance braking. */
+export const AUTHORED_WALK_METERS_PER_SECOND = 1;
 export function setAgentWalkSpeed(avatar: AgentAnimPlayer, metersPerSecond: number) {
-  const walk = avatar.anims.walking ?? avatar.walkAnim;
-  if (walk) walk.speedRatio = Math.max(0.05, Math.min(1.6, metersPerSecond / 1.5));
+  const speed = Number.isFinite(metersPerSecond) ? metersPerSecond : 0;
+  const references = [["walking", 1], ["walking_coffee", 1], ["walking_brisk", 1.35], ["walking_relaxed", .7]] as const;
+  for (const [clip, reference] of references) {
+    const walk = avatar.anims[clip] ?? (clip === "walking" ? avatar.walkAnim : null);
+    if (walk) walk.speedRatio = Math.max(0, Math.min(3, speed / reference));
+  }
 }
 
 export function disposeAgentAnims(avatar: { anims?: AgentAnimMap; idleAnim?: AnimationGroup | null; walkAnim?: AnimationGroup | null }) {

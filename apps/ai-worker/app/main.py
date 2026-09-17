@@ -11,7 +11,7 @@ import app.tools.web  # noqa: F401 — registers web_search
 import app.tools.webapp  # noqa: F401 — registers Next/React webapp scaffold tool
 import app.tools.website  # noqa: F401 — registers the website generator tool
 from app.agents import converse as converse_agent
-from app.agents import direct_chat, dispatcher, runner, schedule_parser
+from app.agents import direct_chat, dispatcher, orchestrator_chat, runner, schedule_parser
 from app.config import get_settings
 from app.memory.ingestion import ingest_document
 from app.queue.consumer import consume_forever
@@ -130,6 +130,19 @@ async def agent_chat(
     _background_runs.add(task)
     task.add_done_callback(_background_runs.discard)
     return {"accepted": True}
+
+
+@app.post("/orchestrator/chat")
+async def orchestrator_chat_endpoint(
+    payload: dict,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    _check_auth(authorization)
+    try:
+        return await asyncio.wait_for(orchestrator_chat.respond(payload), timeout=22)
+    except Exception as exc:  # noqa: BLE001 — never pretend a model replied
+        log.warning("orchestrator_chat_failed", error=type(exc).__name__)
+        raise HTTPException(status_code=503, detail="orchestrator model unavailable") from exc
 
 
 @app.post("/dispatch/analyze")

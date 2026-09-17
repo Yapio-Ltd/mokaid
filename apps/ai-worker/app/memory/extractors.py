@@ -9,7 +9,9 @@ with vision or fail cleanly.
 """
 
 import io
+import zipfile
 from dataclasses import dataclass, field
+from pathlib import PurePosixPath
 
 import structlog
 
@@ -36,6 +38,10 @@ EXTRACTABLE_EXTENSIONS = (
     ".xml",
     ".yaml",
     ".yml",
+    ".zip",
+    ".py", ".js", ".jsx", ".ts", ".tsx", ".css", ".scss",
+    ".sql", ".sh", ".toml", ".ini", ".log", ".ipynb", ".rs",
+    ".go", ".java", ".kt", ".swift", ".cpp", ".c", ".h", ".vue",
 )
 
 _TEXT_EXTENSIONS = (
@@ -56,6 +62,9 @@ _TEXT_EXTENSIONS = (
 # budget. Ingestion chunks downstream, so generous but bounded.
 _MAX_CHARS = 800_000
 _MAX_SHEET_ROWS = 2_000
+_MAX_ARCHIVE_MEMBERS = 200
+_MAX_ARCHIVE_BYTES = 8_000_000
+_MAX_MEMBER_BYTES = 1_000_000
 
 
 @dataclass
@@ -125,12 +134,65 @@ def extract_bytes(
         return _extract_pptx(data)
     if ext == ".rtf" or mime == "application/rtf":
         return _extract_rtf(data)
+    if ext == ".zip" or mime in ("application/zip", "application/x-zip-compressed"):
+        return _extract_zip(data)
 
     if ext in _TEXT_EXTENSIONS or mime.startswith("text/") or mime == "application/json":
         return _extract_plain_text(data)
 
     # Unknown extension: try plain text decode as a last cheap attempt.
     return _extract_plain_text(data)
+
+
+def _extract_zip(data: bytes) -> ExtractResult | None:
+    """Read a bounded project archive in memory, without extracting or running files.
+
+    Binary and skipped entries stay visible in the inventory. Nested archives,
+    encrypted entries, symlinks and suspicious paths are never opened.
+    """
+    try:
+        archive = zipfile.ZipFile(io.BytesIO(data))
+    except zipfile.BadZipFile:
+        return None
+    parts: list[str] = []
+    omitted: list[str] = []
+    consumed = 0
+    with archive:
+        members = archive.infolist()
+        for member in members[:_MAX_ARCHIVE_MEMBERS]:
+            if member.is_dir():
+                continue
+            path = PurePosixPath(member.filename.replace("\\", "/"))
+            unsafe = (
+                path.is_absolute() or ".." in path.parts or ":" in member.filename
+                or ((member.external_attr >> 16) & 0o170000) == 0o120000
+                or bool(member.flag_bits & 1)
+            )
+            ignored = any(p in {"node_modules", ".git", ".next", "__pycache__"} for p in path.parts)
+            large = member.file_size > _MAX_MEMBER_BYTES or consumed + member.file_size > _MAX_ARCHIVE_BYTES
+            if unsafe or ignored or large:
+                omitted.append(member.filename)
+                continue
+            consumed += member.file_size
+            try:
+                payload = archive.read(member)
+            except (RuntimeError, OSError, ValueError, zipfile.BadZipFile, NotImplementedError):
+                omitted.append(member.filename)
+                continue
+            # Do not recurse into containers or parse arbitrary binary formats.
+            extracted = _extract_plain_text(payload)
+            body = extracted.text if extracted else "[Binary file preserved in the original archive; content not parsed.]"
+            parts.append(f"## File: {member.filename}\n\n{body}")
+            if sum(map(len, parts)) >= _MAX_CHARS:
+                break
+    if not parts and not omitted:
+        return None
+    truncated = len(members) > _MAX_ARCHIVE_MEMBERS or bool(omitted) or sum(map(len, parts)) > _MAX_CHARS
+    if omitted:
+        parts.append("## Entries not read\n" + "\n".join(f"- {name}" for name in omitted))
+    return ExtractResult("\n\n".join(parts)[:_MAX_CHARS], "zip", {
+        "entry_count": len(members), "omitted_entries": omitted, "truncated": truncated,
+    })
 
 
 # ---------- PDF ----------
@@ -444,7 +506,9 @@ def _extract_rtf(data: bytes) -> ExtractResult | None:
 
 
 def _extract_plain_text(data: bytes) -> ExtractResult | None:
-    decoded = data.decode("utf-8", errors="replace").strip()
+    # BOMs are common in Excel CSV exports and Windows source files.
+    encoding = "utf-16" if data.startswith((b"\xff\xfe", b"\xfe\xff")) else "utf-8-sig"
+    decoded = data.decode(encoding, errors="replace").strip()
     if not decoded or not looks_like_text(decoded):
         return None
-    return ExtractResult(decoded[:_MAX_CHARS], "text", {})
+    return ExtractResult(decoded.replace("\x00", "")[:_MAX_CHARS], "text", {})

@@ -19,10 +19,15 @@ QByteArray randomUrlToken() {
     }
     return bytes.toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
 }
+bool validCredential(const QByteArray& value, qsizetype limit) {
+    return !value.isEmpty() && value.size() <= limit
+        && std::all_of(value.cbegin(), value.cend(), [](unsigned char c) { return c >= 0x21 && c <= 0x7e; });
 }
-SessionController::SessionController(ApiClient& api, PhoenixClient& realtime, QObject* parent, QUrl trustedWebOrigin)
+}
+SessionController::SessionController(ApiClient& api, PhoenixClient& realtime, QObject* parent, QUrl trustedWebOrigin,
+                                     CredentialStorage* credentials)
     : QObject(parent), api_(api), realtime_(realtime), browserOrigin_(trustedWebOrigin.isEmpty() ? api.origin() : std::move(trustedWebOrigin)),
-      vault_(QCoreApplication::organizationDomain() + ".session") {
+      vault_(QCoreApplication::organizationDomain() + ".session"), credentials_(credentials ? *credentials : vault_) {
     if (!validBrowserOrigin(browserOrigin_)) qFatal("Invalid trusted Mokaid browser origin");
     expiration_.setSingleShot(true); loginTimeout_.setSingleShot(true);
     connectivity_.setInterval(15000);
@@ -49,7 +54,9 @@ QString SessionController::identityKey() const {
     return QString::fromLatin1(QCryptographicHash::hash(api_.origin().toEncoded(), QCryptographicHash::Sha256).toHex());
 }
 void SessionController::restore() {
-    const auto saved = vault_.read(identityKey());
+    // A failed keychain erase must never restore a session the user signed out.
+    if (busy() || authenticated_ || settings_.value(identityKey() + "/signedOut", false).toBool()) return;
+    const auto saved = credentials_.read(identityKey());
     if (!saved || saved->isEmpty()) return;
     refreshToken_ = *saved;
     const auto stored = QJsonDocument::fromJson(settings_.value(identityKey() + "/identity").toByteArray()).object();
@@ -60,17 +67,18 @@ void SessionController::restore() {
 }
 void SessionController::fail(const QString& message) { busy_ = false; error_ = message; emit changed(); }
 void SessionController::signIn() {
+    if (refreshing_ || identityLoading_) return;
     cancelSignIn(); error_.clear();
     if (!callback_.listen(QHostAddress::LocalHost, 0)) { fail("Unable to open the local sign-in callback."); return; }
     verifier_ = randomUrlToken(); state_ = QString::fromLatin1(randomUrlToken());
     redirect_ = QString("http://127.0.0.1:%1/callback").arg(callback_.serverPort());
     const auto challenge = QCryptographicHash::hash(verifier_, QCryptographicHash::Sha256).toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
-    busy_ = true; emit changed(); loginTimeout_.start(5 * 60 * 1000);
+    signingIn_ = true; busy_ = true; emit changed(); loginTimeout_.start(5 * 60 * 1000);
     const auto transaction = state_;
     api_.request("POST", "/api/desktop/auth/requests", {{"code_challenge", QString::fromLatin1(challenge)}, {"redirect_uri", redirect_}, {"state", state_}}, core::Scope::public_api, this, [this, transaction](ApiResponse r) {
         if (state_ != transaction || !callback_.isListening()) return;
         if (!r.ok()) {
-            callback_.close(); loginTimeout_.stop();
+            cancelSignIn();
             fail(r.status == 404 ? "Desktop sign-in is not enabled on this server yet. Deploy the desktop authentication endpoints, then try again." : r.error);
             return;
         }
@@ -83,7 +91,7 @@ void SessionController::signIn() {
 }
 void SessionController::cancelSignIn() {
     ++loginGeneration_;
-    callback_.close(); loginTimeout_.stop(); verifier_.fill('\0'); verifier_.clear(); state_.clear(); busy_ = false; emit changed();
+    callback_.close(); loginTimeout_.stop(); verifier_.fill('\0'); verifier_.clear(); state_.clear(); redirect_.clear(); signingIn_ = false; busy_ = false; emit changed();
 }
 void SessionController::receiveCallback() {
     while (callback_.hasPendingConnections()) {
@@ -99,11 +107,11 @@ void SessionController::receiveCallback() {
             const auto parts = buffer.left(buffer.indexOf("\r\n")).split(' ');
             const QUrl url(parts.size() > 1 ? QString::fromLatin1(parts[1]) : QString{});
             const QUrlQuery query(url);
-            const auto code = query.queryItemValue("code");
+            const auto code = query.queryItemValue("code", QUrl::FullyDecoded);
             const bool valid = allowedLoopbackRequest(buffer, QUrl(redirect_), state_) && !verifier_.isEmpty();
             const QByteArray body = valid ? "Authorization received. Return to Mokaid to finish signing in." : "Invalid sign-in callback.";
             socket->write((valid ? QByteArray("HTTP/1.1 200 OK\r\n") : QByteArray("HTTP/1.1 400 Bad Request\r\n"))
-                + "Content-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: "
+                + "Content-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\nContent-Length: "
                 + QByteArray::number(body.size()) + "\r\n\r\n" + body);
             socket->disconnectFromHost();
             if (!valid) return;
@@ -114,8 +122,7 @@ void SessionController::receiveCallback() {
                 {"code_verifier", QString::fromLatin1(verifier)}, {"redirect_uri", redirect_}}, core::Scope::public_api, this,
                 [this, login](ApiResponse r) {
                     if (login != loginGeneration_) {
-                        const auto discarded = r.json.value("data").toObject().value("refresh_token").toString();
-                        if (!discarded.isEmpty()) api_.request("POST", "/api/desktop/auth/revoke", {{"refresh_token", discarded}}, core::Scope::public_api, this, [](ApiResponse) {});
+                        revoke(r.json.value("data").toObject().value("refresh_token").toString().toUtf8());
                         return;
                     }
                     acceptTokens(r);
@@ -123,32 +130,54 @@ void SessionController::receiveCallback() {
         });
     }
 }
-void SessionController::acceptTokens(const ApiResponse& response) {
+void SessionController::acceptTokens(const ApiResponse& response, bool renewal) {
     refreshing_ = false;
+    if (!renewal) signingIn_ = false;
     if (!response.ok()) {
         if (!response.networkError && (response.status == 400 || response.status == 401 || response.status == 403)) {
             signOut(); fail("Your session has expired. Sign in again.");
-        } else fail(response.error);
+        } else if (renewal && !response.requestNotSent && response.status != 429) {
+            // A timeout, interrupted response or server failure may occur after
+            // rotation committed. Replaying that credential revokes the family.
+            signOut(); fail("Your session could not be renewed safely. Sign in again.");
+        } else {
+            if (renewal) expiration_.start(30000);
+            fail(response.error);
+        }
         return;
     }
     const auto payload = response.json.value("data").toObject();
     const auto token = payload.value("access_token").toString().toUtf8();
     const auto refresh = payload.value("refresh_token").toString().toUtf8();
     const auto user = payload.value("user").toObject();
-    if (token.isEmpty() || refresh.isEmpty() || user.value("id").toString().isEmpty()) { fail("Invalid session response."); return; }
+    const auto expires = payload.value("expires_in").toInt(-1);
+    if (!validCredential(token, 8192) || !validCredential(refresh, 512) || user.value("id").toString().isEmpty()
+        || payload.value("token_type").toString().compare("Bearer", Qt::CaseInsensitive) != 0 || expires < 1 || expires > 86400) {
+        signOut(); revoke(refresh); fail("Invalid session response. Sign in again."); return;
+    }
+    if (!credentials_.write(identityKey(), refresh)) {
+        signOut(); revoke(refresh);
+        fail("Your operating system could not securely save this session. Please try again."); return;
+    }
     refreshToken_ = refresh;
-    if (!vault_.write(identityKey(), refresh)) { fail("Your operating system could not securely save this session. Please try again."); return; }
+    settings_.remove(identityKey() + "/signedOut");
     user_ = user;
     api_.setSession(token, user.value("id").toString(), user.value("is_platform_admin").toBool());
     authenticated_ = true; error_.clear();
-    expiration_.start(std::max(30, payload.value("expires_in").toInt(600) - 60) * 1000);
+    const auto lifetimeMs = expires * 1000;
+    expiration_.start(lifetimeMs - std::min(60000, lifetimeMs / 10));
     reloadIdentity();
 }
 void SessionController::renew() {
     if (refreshing_ || refreshToken_.isEmpty()) { if (refreshToken_.isEmpty()) signOut(); return; }
+    if (signingIn_) return;
     refreshing_ = true; busy_ = true; emit changed();
+    const auto generation = sessionGeneration_;
     api_.request("POST", "/api/desktop/auth/token", {{"grant_type", "refresh_token"}, {"refresh_token", QString::fromUtf8(refreshToken_)}}, core::Scope::public_api, this,
-        [this](ApiResponse r) { acceptTokens(r); });
+        [this, generation](ApiResponse r) {
+            if (generation != sessionGeneration_) { revoke(r.json.value("data").toObject().value("refresh_token").toString().toUtf8()); return; }
+            acceptTokens(r, true);
+        });
 }
 void SessionController::reloadIdentity() {
     if (identityLoading_ || refreshing_) return;
@@ -187,12 +216,19 @@ void SessionController::selectWorkspace(const QString& id) {
 }
 void SessionController::retry() { if (!refreshToken_.isEmpty()) renew(); else signIn(); }
 void SessionController::signOut() {
+    ++sessionGeneration_;
     expiration_.stop(); cancelSignIn(); realtime_.stop();
     const auto oldRefresh = refreshToken_;
     api_.reset(); refreshToken_.fill('\0'); refreshToken_.clear();
-    static_cast<void>(vault_.erase(identityKey())); settings_.remove(identityKey() + "/identity");
+    settings_.setValue(identityKey() + "/signedOut", true); settings_.sync();
+    const bool erased = credentials_.erase(identityKey()); settings_.remove(identityKey() + "/identity");
     user_ = {}; workspaces_ = {}; workspace_.clear(); authenticated_ = false; refreshing_ = false; busy_ = false; identityLoading_ = false;
     emit cleared(); emit changed();
-    if (!oldRefresh.isEmpty()) api_.request("POST", "/api/desktop/auth/revoke", {{"refresh_token", QString::fromUtf8(oldRefresh)}}, core::Scope::public_api, this, [](ApiResponse) {});
+    revoke(oldRefresh);
+    if (!erased) fail("Signed out. Your operating system could not remove the saved credential; automatic sign-in is disabled.");
+}
+void SessionController::revoke(const QByteArray& refresh) {
+    if (!validCredential(refresh, 512)) return;
+    api_.request("POST", "/api/desktop/auth/revoke", {{"refresh_token", QString::fromUtf8(refresh)}}, core::Scope::public_api, this, [](ApiResponse) {});
 }
 }

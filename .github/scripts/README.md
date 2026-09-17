@@ -109,6 +109,13 @@ signed desktop installers, release manifest and downloads are ready.** These ECS
 scripts validate the configuration literals, not installer readiness. The backend
 default remains off; preparing a task does not activate it.
 
+The API revision may also receive `AI_WORKER_URL`, restricted to exactly
+`http://ai-worker.mokaid-prod.internal:8100`. This private synchronous chat endpoint
+does not replace SQS mission dispatch. Provision the Cloud Map service, its ECS
+registry and API-security-group-only port 8100 ingress as described in
+`infra/terraform/WORKER_HTTP.md` before deploying the new coordinator. Existing
+queue configuration and shared-token secret references are preserved.
+
 ## Success, failure and cancellation
 
 ### Circuit breaker is part of the authorized rollout

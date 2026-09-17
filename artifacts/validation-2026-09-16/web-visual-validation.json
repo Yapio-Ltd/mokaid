@@ -1,0 +1,846 @@
+[
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "avatars": [
+      {
+        "id": "avatar_male",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          1.863154197001632,
+          0.12734193722097176,
+          -4.011301799343004
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_design",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          5.338154197001632,
+          0.1418728567905737,
+          -2.5493017993430036
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_finance",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          -1.8268458029983679,
+          0.14187240970171466,
+          -1.9253017993430035
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_corporate",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          3.433154197001632,
+          0.1418730595893002,
+          -0.3083017993430035
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_legal",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          1.9311541970016322,
+          0.14187257573932988,
+          -0.2883017993430035
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_research",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          -5.837845802998368,
+          0.141873372530821,
+          0.8966982006569966
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_developer",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          -0.6728458029983678,
+          0.14183933940682303,
+          1.3066982006569965
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    ],
+    "errors": []
+  },
+  {
+    "viewport": {
+      "width": 1024,
+      "height": 768
+    },
+    "avatars": [
+      {
+        "id": "avatar_design",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          5.338154197001632,
+          0.1418728567905737,
+          -2.5493017993430036
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_male",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          1.863154197001632,
+          0.12734193722097176,
+          -4.011301799343004
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "metallic": 0,
+            "roughness": 0.6499999761581421,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_finance",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          -1.8268458029983679,
+          0.14187240970171466,
+          -1.9253017993430035
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_research",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          -5.837845802998368,
+          0.141873372530821,
+          0.8966982006569966
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_legal",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          1.9311541970016322,
+          0.14187257573932988,
+          -0.2883017993430035
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_corporate",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          3.433154197001632,
+          0.1418730595893002,
+          -0.3083017993430035
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": "avatar_developer",
+        "clip": "working",
+        "clips": [
+          "away",
+          "blocked",
+          "celebrating",
+          "idle",
+          "learning",
+          "offline",
+          "playing_foosball",
+          "preparing_coffee",
+          "requesting_approval",
+          "reviewing",
+          "sitting",
+          "sitting_sofa",
+          "talking",
+          "thinking",
+          "typing",
+          "waiting",
+          "walking",
+          "working"
+        ],
+        "position": [
+          -0.6728458029983678,
+          0.14183933940682303,
+          1.3066982006569965
+        ],
+        "skinned": true,
+        "materials": [
+          {
+            "metallic": 0,
+            "roughness": 1,
+            "emission": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    ],
+    "errors": []
+  }
+]

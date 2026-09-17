@@ -158,13 +158,14 @@ def fetch_sdk(target: str, output: Path) -> None:
 
 def validate_assets(assets: Path) -> None:
     required = {"office", "avatar_male", "avatar_female", "avatar_corporate", "avatar_developer",
-                "avatar_design", "avatar_finance", "avatar_research", "avatar_legal"}
+                "avatar_design", "avatar_finance", "avatar_research", "avatar_legal",
+                "avatar_byte", "avatar_nyx", "avatar_moss"}
     require(assets.is_dir(), "Cooked asset directory does not exist")
     manifest = json.loads((assets / "manifest.json").read_text())
-    require(manifest.get("format") == 3, "Unsupported cooked asset format: recook with the current v3 cooker")
+    require(manifest.get("format") == 4, "Unsupported cooked asset format: recook with the current v4 cooker")
     records = manifest.get("assets", [])
     require({item.get("id") for item in records} == required and len(records) == len(required),
-            "Cooked assets must include the office and all eight avatars")
+            "Cooked assets must include the office and every catalog avatar")
     for item in records:
         require(item.get("file") == f"{item['id']}.mokaidasset", "Unexpected cooked asset path")
         require(sha256(assets / item["file"]) == item.get("sha256"), f"Cooked asset checksum mismatch: {item['id']}")
@@ -210,6 +211,8 @@ def deploy_macos_runtime(app: Path, qt_bin: Path, qml: Path) -> None:
         "imageformats/libqico.dylib", "imageformats/libqsvg.dylib",
         "iconengines/libqsvgicon.dylib", "tls/libqsecuretransportbackend.dylib",
         "networkinformation/libqapplenetworkinformation.dylib",
+        "multimedia/libdarwinmediaplugin.dylib",
+        "texttospeech/libqtexttospeech_speechdarwin.dylib",
     )
     executables = []
     for relative in plugins:
@@ -260,7 +263,9 @@ def stage_runtime(args: argparse.Namespace) -> None:
             require(len(dlls) == 1, "Verified WinSparkle x64 DLL missing")
             shutil.copy2(dlls[0], stage / "WinSparkle.dll")
         require(any(stage.rglob("QtWebEngineProcess.exe")), "QtWebEngine helper missing from package")
-        require((stage / "shaders/office.vs.dxil").is_file() and (stage / "shaders/office.ps.dxil").is_file(),
+        require(all((stage / "shaders" / name).is_file() for name in (
+                    "office.vs.dxil", "office.ps.dxil", "office.post.vs.dxil",
+                    "bloomDownsample.ps.dxil", "bloomBlur.ps.dxil", "officeComposite.ps.dxil")),
                 "Compiled DirectX shaders are missing")
         require(not any(stage.rglob("vc_redist*.exe")), "Per-user packages must use app-local CRT DLLs")
         copy_windows_crt(stage, Path(required_env("VCToolsRedistDir")))

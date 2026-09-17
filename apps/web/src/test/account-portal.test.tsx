@@ -6,6 +6,7 @@ import { AccountShell } from "@/components/account/account-shell";
 import { AccountBillingPage, invoiceDocument } from "@/pages/account-billing";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { useAuthStore } from "@/stores/auth-store";
+import { rememberGoogleIdentity } from "@/lib/google-identity";
 import { ACCOUNT_LINKS } from "@/lib/desktop-rollout";
 import { LoginPage } from "@/pages/login";
 import { SignupPage } from "@/pages/signup";
@@ -15,6 +16,10 @@ const mock = vi.hoisted(() => ({ apiFetch: vi.fn(), navigate: vi.fn(), pathname:
 vi.mock("@/api/client", async (original) => ({
   ...(await original<typeof import("@/api/client")>()),
   apiFetch: mock.apiFetch,
+  signOut: async () => {
+    await mock.apiFetch("/api/auth/logout", { method: "POST", body: {}, skipWorkspace: true });
+    useAuthStore.getState().logout();
+  },
 }));
 vi.mock("@tanstack/react-router", () => ({
   Link: ({
@@ -114,6 +119,7 @@ beforeEach(() => {
   mock.pathname = "/account";
   mock.navigate.mockReset();
   mock.apiFetch.mockReset().mockImplementation(async (path: string) => {
+    if (path === "/api/auth/logout") return { ok: true };
     if (path === "/api/me") return { user, workspaces };
     if (path === "/api/billing/overview") return { data: overview };
     if (path === "/api/billing/plans")
@@ -150,7 +156,10 @@ describe("account-only shell", () => {
     await waitFor(() => expect(useAuthStore.getState().workspaceId).toBe("two"));
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     await waitFor(() => expect(useAuthStore.getState().token).toBeNull());
-    expect(mock.apiFetch.mock.calls.every(([path]) => path === "/api/me")).toBe(true);
+    expect(
+      mock.apiFetch.mock.calls.every(([path]) => path === "/api/me" || path === "/api/auth/logout"),
+    ).toBe(true);
+    expect(mock.apiFetch).toHaveBeenCalledWith("/api/auth/logout", expect.anything());
     expect(mock.navigate).toHaveBeenCalledWith(expect.objectContaining({ to: "/login" }));
   });
 
@@ -275,7 +284,11 @@ describe("authenticated form continuations", () => {
 
   it("consumes Google continuation after establishing the actual returned session", async () => {
     window.history.replaceState({}, "", "/auth/google/callback?code=test-code&state=test-state");
-    sessionStorage.setItem("google_auth_return", "/account/billing?checkout=success&token=private");
+    rememberGoogleIdentity(
+      "https://accounts.google.com/o/oauth2/v2/auth?state=test-state",
+      "v".repeat(43),
+      "/account/billing?checkout=success&token=private",
+    );
     mock.apiFetch.mockResolvedValue({
       token: "google-session",
       user,

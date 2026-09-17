@@ -98,7 +98,7 @@ void OfficeController::refresh() {
         auto agents = json.value("data").toArray().toVariantList();
         for (auto& value : agents) {
             auto record = value.toMap(); record["name"] = record.value("display_name");
-            const auto match = QRegularExpression("avatar_(male|female|corporate|developer|design|finance|research|legal)(?:[._/]|$)")
+            const auto match = QRegularExpression("avatar_(male|female|corporate|developer|design|finance|research|legal|byte|nyx|moss)(?:[._/]|$)")
                 .match(record.value("avatar_cdn_path").toString());
             record["asset_type"] = match.hasMatch() ? match.captured(1) : "male";
             if (record.value("id") == selected_.value("id")) selected_ = record;

@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonParseError>
 #include <QRegularExpression>
+#include <QSet>
 #include <QUrlQuery>
 #include <QUuid>
 #include <limits>
@@ -108,6 +109,52 @@ QVariantList FeatureController::pages() const {
     return list;
 }
 QString FeatureController::title() const { const auto* feature=findFeature(currentPage_); return feature ? feature->title : QString{}; }
+namespace {
+QVariant displayValue(const QVariant& value,int depth,int& remaining) {
+    if (depth>8 || --remaining<0) return {};
+    if (value.metaType().id()==QMetaType::QVariantMap) {
+        QVariantMap result;
+        const auto map=value.toMap();
+        for (auto it=map.begin();it!=map.end() && remaining>0;++it)
+            if (!isSensitiveDisplayField(it.key())) result.insert(it.key(),displayValue(it.value(),depth+1,remaining));
+        return result;
+    }
+    if (value.metaType().id()==QMetaType::QVariantList || value.metaType().id()==QMetaType::QStringList) {
+        QVariantList result;
+        for (const auto& item : value.toList()) {
+            if (remaining<=0) break;
+            result.append(displayValue(item,depth+1,remaining));
+        }
+        return result;
+    }
+    return value;
+}
+QVariantMap presentationRecord(const QVariantMap& source) {
+    // Rich views receive bounded nested display data, filtered at every level.
+    // Raw responses and credential-bearing branches stay in the controller.
+    int remaining=4096;
+    return displayValue(source,0,remaining).toMap();
+}
+QVariantList presentationRecords(const QVariantList& source) {
+    QVariantList result;
+    result.reserve(source.size());
+    QSet<QString> seen;
+    for (const auto& item : source) {
+        const auto record=item.toMap();
+        const auto id=featureRecordId(record);
+        if (seen.contains(id)) continue;
+        seen.insert(id);
+        auto display=presentationRecord(record);
+        display.insert("_rowId",id);
+        result.append(display);
+    }
+    return result;
+}
+}
+QVariantList FeatureController::visibleRecords() const { return presentationRecords(records_.visibleRecords()); }
+QVariantList FeatureController::allRecords() const { return presentationRecords(records_.allRecords()); }
+QVariantMap FeatureController::overview() const { return presentationRecord(overview_); }
+QVariantMap FeatureController::selectedRecord() const { return selectedId_.isEmpty() ? QVariantMap{} : presentationRecord(editDetails_); }
 QVariantList FeatureController::fields() const { return fieldsForAction("edit"); }
 QVariantList FeatureController::fieldsForAction(const QString& id) const {
     const auto* action=findAction(id); if (!action) return {};
@@ -351,6 +398,7 @@ void FeatureController::search(const QString& query) {
     search_=query.left(256); const auto* feature=findFeature(currentPage_);
     if (feature && feature->paginated && api_.context().online) { records_.setQuery({}); searchTimer_.start(); }
     else records_.setQuery(search_);
+    emit changed();
 }
 QString FeatureController::cacheKey(const QString& path) const {
     return QString::fromStdString(core::cacheKey(api_.origin().toString().toStdString(),

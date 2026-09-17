@@ -1,0 +1,51 @@
+{
+  "avatar_male": {
+    "file": "/Users/olimservice/mokaid/artifacts/avatar-life/avatar_male.blend",
+    "sha256": "fc619b839394a193f1d027e5c4a34f09b774e380b44fc99c7f516eddc2872aab",
+    "actions": 48,
+    "linked_actions": 0,
+    "reload_verified": true
+  },
+  "avatar_design": {
+    "file": "/Users/olimservice/mokaid/artifacts/avatar-life/avatar_design.blend",
+    "sha256": "3987a39716487bacdbf8d539335d3172c80217e52bf7d8095f6a62debe4705ad",
+    "actions": 48,
+    "linked_actions": 0,
+    "reload_verified": true
+  },
+  "avatar_finance": {
+    "file": "/Users/olimservice/mokaid/artifacts/avatar-life/avatar_finance.blend",
+    "sha256": "134cc22f7dd3b7e691ed2b4917406769fb9892ab5331571b7b8947d43fd1e53e",
+    "actions": 48,
+    "linked_actions": 0,
+    "reload_verified": true
+  },
+  "avatar_corporate": {
+    "file": "/Users/olimservice/mokaid/artifacts/avatar-life/avatar_corporate.blend",
+    "sha256": "65c942e3baf2eece4c0826ab09bfa75c9de0da291895e9d70ee1916410b1293f",
+    "actions": 48,
+    "linked_actions": 0,
+    "reload_verified": true
+  },
+  "avatar_legal": {
+    "file": "/Users/olimservice/mokaid/artifacts/avatar-life/avatar_legal.blend",
+    "sha256": "ff4f47fc643eda22ef91f49ded89cf51c4c10d014c2d71fe70bfdca357e71c86",
+    "actions": 48,
+    "linked_actions": 0,
+    "reload_verified": true
+  },
+  "avatar_research": {
+    "file": "/Users/olimservice/mokaid/artifacts/avatar-life/avatar_research.blend",
+    "sha256": "9b6f81ccb5309e45fc6bb85771aee6c42082140cbf134a2626ef6586b86dd1e6",
+    "actions": 48,
+    "linked_actions": 0,
+    "reload_verified": true
+  },
+  "avatar_developer": {
+    "file": "/Users/olimservice/mokaid/artifacts/avatar-life/avatar_developer.blend",
+    "sha256": "780f50da19d0dfbec3e5b496530b24941f6a1be0e0352f6b88fc53b27a2f9d41",
+    "actions": 48,
+    "linked_actions": 0,
+    "reload_verified": true
+  }
+}
