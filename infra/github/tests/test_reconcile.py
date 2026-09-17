@@ -252,6 +252,9 @@ def test_real_reviewed_configuration_preserves_all_resolved_public_values() -> N
     actual = json.loads(Path(policy.__file__).with_name("desired.json").read_text())
     actual_config = policy.Configuration.parse(actual)
     assert actual["repository_variables"]["MOKAID_DESKTOP_ONLY"] == "false"
+    assert actual["repository_variables"]["MOKAID_TRUSTED_ALB_CIDRS"] == (
+        "10.10.0.0/24,10.10.1.0/24"
+    )
     assert actual["environments"]["prod"]["variables"]["MOKAID_DESKTOP_ONLY"] == "false"
     assert policy.refs(actual["environments"][SIGNING]["refs"], SIGNING) == (
         ("branch", "main"),
@@ -293,6 +296,33 @@ def test_real_reviewed_configuration_preserves_all_resolved_public_values() -> N
     assert not policy.build_plan(
         actual_config, snapshot(converged_api, actual_config)
     ).operations
+
+
+def test_missing_trusted_alb_variable_is_the_only_mutation() -> None:
+    actual = json.loads(Path(policy.__file__).with_name("desired.json").read_text())
+    config = policy.Configuration.parse(actual)
+    api = converged(config)
+    variable = "MOKAID_TRUSTED_ALB_CIDRS"
+    endpoint = f"{ROOT}/actions/variables"
+    expected_variables = copy.deepcopy(api.variables)
+    expected_environments = copy.deepcopy(api.environments)
+    expected_branches = copy.deepcopy(api.branches)
+    del api.variables[f"{endpoint}/{variable}"]
+    api.calls.clear()
+
+    plan = policy.build_plan(config, snapshot(api, config))
+    assert plan.operations == (
+        policy.Operation(
+            "POST", endpoint, {"name": variable, "value": config.variables[variable]}
+        ),
+    )
+    assert not asyncio.run(policy.execute(api, config, plan, plan.digest())).operations
+    assert api.variables == expected_variables
+    assert api.environments == expected_environments
+    assert api.branches == expected_branches
+    assert [call for call in api.calls if call[0] != "GET"] == [
+        ("POST", endpoint, {"name": variable, "value": config.variables[variable]})
+    ]
 
 
 def test_idempotent_apply_then_noop(config: policy.Configuration) -> None:
@@ -742,6 +772,13 @@ def test_configuration_rejects_unsafe_changes(
             "arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid/desktop/stable/signing-abc123",
         ),
         ("MOKAID_DESKTOP_ONLY", "false"),
+        ("MOKAID_TRUSTED_ALB_CIDRS", "10.10.0.0/24,10.10.1.0/24"),
+        ("MOKAID_TRUSTED_ALB_CIDRS", "10.10.2.0/25,10.10.2.128/25"),
+        ("MOKAID_TRUSTED_ALB_CIDRS", "10.10.3.1/32"),
+        (
+            "MOKAID_TRUSTED_ALB_CIDRS",
+            ",".join(f"10.10.{index}.0/24" for index in range(16)),
+        ),
         ("MOKAID_PUBLISH_AWS_ROLE_ARN", None),
     ],
 )
@@ -768,6 +805,50 @@ def test_private_or_unsafe_values_rejected_without_echo(name: str, value: Any) -
     with pytest.raises(policy.PolicyError) as caught:
         policy.validate_variable(name, value)
     if isinstance(value, str) and len(value) > 5:
+        assert value not in str(caught.value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "",
+        " ",
+        "0.0.0.0/0",
+        "10.0.0.0/8",
+        "10.10.0.0/16",
+        "10.10.0.0/23",
+        "10.11.0.0/24",
+        "172.16.0.0/24",
+        "192.168.1.0/24",
+        "127.0.0.0/24",
+        "169.254.0.0/24",
+        "8.8.8.0/24",
+        "224.0.0.0/24",
+        "::1/128",
+        "fd00::/64",
+        "::ffff:10.10.0.0/120",
+        "10.10.0.1/24",
+        "10.10.0.0",
+        "10.10.0.0/255.255.255.0",
+        "10.10.0.0/024",
+        "10.10.0.0/33",
+        "10.10.0.0/24,10.10.0.0/24",
+        "10.10.0.0/24,10.10.0.0/25",
+        "10.10.0.0/25,10.10.0.0/24",
+        "10.10.0.0/24,",
+        ",10.10.0.0/24",
+        "10.10.0.0/24,,10.10.1.0/24",
+        "10.10.0.0/24, 10.10.1.0/24",
+        "10.10.0.0/24\n",
+        "do-not-echo-untrusted-value",
+        "x" * 513,
+        ",".join(f"10.10.{index}.0/24" for index in range(17)),
+    ],
+)
+def test_trusted_alb_rejects_unsafe_networks_without_echo(value: str) -> None:
+    with pytest.raises(policy.PolicyError) as caught:
+        policy.validate_variable("MOKAID_TRUSTED_ALB_CIDRS", value)
+    if len(value) > 5:
         assert value not in str(caught.value)
 
 

@@ -5,7 +5,8 @@
   "reviewer": {"login": "Tomyshh", "id": 113070134},
   "repository_variables": {
     "AWS_DEPLOY_ROLE_ARN": "arn:aws:iam::660601648321:role/mokaid-github-deploy",
-    "MOKAID_DESKTOP_ONLY": "false"
+    "MOKAID_DESKTOP_ONLY": "false",
+    "MOKAID_TRUSTED_ALB_CIDRS": "10.10.0.0/24,10.10.1.0/24"
   },
   "environments": {
     "prod": {

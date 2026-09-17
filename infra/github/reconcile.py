@@ -10,6 +10,7 @@ import argparse
 import asyncio
 import base64
 import hashlib
+import ipaddress
 import json
 import re
 import sys
@@ -25,6 +26,7 @@ Method: TypeAlias = Literal["GET", "PUT", "POST", "PATCH"]
 REPOSITORY = "Yapio-Ltd/mokaid"
 API_ROOT = f"repos/{REPOSITORY}"
 VERSION = "1.1.0"
+PRODUCTION_VPC = ipaddress.IPv4Network("10.10.0.0/16")
 STABLE_SIGNING = "desktop-signing-stable"
 SIGNING_TAG_REFS = (("tag", "desktop-v*"),)
 STABLE_SIGNING_REFS = (("branch", "main"), *SIGNING_TAG_REFS)
@@ -53,6 +55,7 @@ ALLOWED_VARIABLES = (
         "MOKAID_DOWNLOADS_DISTRIBUTION_ID",
         "MOKAID_UPDATE_PUBLIC_KEY",
         "MOKAID_DESKTOP_ONLY",
+        "MOKAID_TRUSTED_ALB_CIDRS",
     }
 )
 
@@ -78,6 +81,28 @@ def array_value(value: Json, label: str) -> list[Json]:
 def canonical(value: Json) -> str:
     """Stable representation for reviewed plan fingerprints."""
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def valid_trusted_alb_cidrs(value: str) -> bool:
+    """Match the ECS preflight's bounded, canonical production-network format."""
+    entries = value.split(",")
+    if len(value) > 512 or not 1 <= len(entries) <= 16:
+        return False
+    networks: list[ipaddress.IPv4Network] = []
+    for entry in entries:
+        try:
+            network = ipaddress.IPv4Network(entry, strict=True)
+        except ValueError:
+            return False
+        if (
+            str(network) != entry
+            or network.prefixlen < 24
+            or not network.subnet_of(PRODUCTION_VPC)
+            or any(network.overlaps(previous) for previous in networks)
+        ):
+            return False
+        networks.append(network)
+    return True
 
 
 def validate_variable(name: str, value: Json) -> str | None:
@@ -110,6 +135,8 @@ def validate_variable(name: str, value: Json) -> str | None:
         valid = bool(re.fullmatch(r"[A-Z0-9]{8,32}", value))
     elif name == "MOKAID_DESKTOP_ONLY":
         valid = value == "false"  # Enabling rollout is a different reviewed workflow.
+    elif name == "MOKAID_TRUSTED_ALB_CIDRS":
+        valid = valid_trusted_alb_cidrs(value)
     elif name == "MOKAID_UPDATE_PUBLIC_KEY":
         try:
             valid = len(base64.b64decode(value, validate=True)) == 32

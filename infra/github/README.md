@@ -191,7 +191,7 @@ controls through a separately reviewed policy; do not confuse the two features.
 
 | Scope | Managed public values |
 | --- | --- |
-| Repository | Existing AWS deploy role ARN; desktop-only flag kept false |
+| Repository | Existing AWS deploy role ARN; desktop-only flag kept false; verified production ALB subnet CIDRs |
 | `prod` | Desktop-only flag kept false |
 | Signing stable/beta | AWS region; signing role ARN; macOS/Windows signing-secret **ARN references**; Ed25519 **public** update key |
 | Public stable/beta | AWS region; publishing role ARN; downloads bucket; CloudFront distribution ID; Ed25519 **public** update key |
@@ -201,6 +201,15 @@ Unknown variable names and malformed values are rejected without echoing their
 contents. AWS role and secret ARNs are identifiers, not private credentials.
 Leave unresolved values `null` until verified from the infrastructure outputs.
 For a new public value, edit `desired.json`, review the plan and apply it again.
+
+`MOKAID_TRUSTED_ALB_CIDRS` records the verified `mokaid-prod` ALB subnets as
+`10.10.0.0/24,10.10.1.0/24`. Its validation matches the production deployment
+preflight in `.github/scripts/ecs_deploy.py`: 1–16 distinct, non-overlapping,
+canonical IPv4 CIDRs within `10.10.0.0/16`, each `/24` or narrower, separated
+by commas without spaces (maximum 512 characters). Broad private ranges,
+host-bit CIDRs, duplicates, IPv6 and empty entries are rejected. This public
+network configuration does not modify reviewer rules, roles or rollout flags.
+The usual reviewed plan/apply and existing-value conflict checks still apply.
 
 The independent [stable signing IAM module](../terraform/modules/desktop-signing/README.md)
 can provision only `mokaid-desktop-signing-stable` with read access to the exact
