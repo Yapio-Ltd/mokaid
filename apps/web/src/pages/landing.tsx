@@ -14,8 +14,7 @@ import { ORGANIZATION_JSONLD, SITE, SOFTWARE_JSONLD } from "@/lib/seo";
 import { useSeo } from "@/lib/use-seo";
 import { useSmoothScroll } from "@/lib/use-smooth-scroll";
 import { useAuthStore } from "@/stores/auth-store";
-import { Button } from "@/components/ui/button";
-import { accountEntryPath, DESKTOP_ONLY_WEB } from "@/lib/desktop-rollout";
+import { accountEntryPath } from "@/lib/desktop-rollout";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -38,7 +37,7 @@ const navLinks = [
   { href: "#product", label: "Product" },
   { href: "#agents", label: "Agents" },
   { href: "#connectors", label: "Connectors" },
-  { href: "#why", label: "Why mokaid" },
+  { href: "/pricing", label: "Pricing" },
 ] as const;
 
 function LandingLogo() {
@@ -57,7 +56,7 @@ function LandingLogo() {
           />
         </picture>
       </span>
-      <span className="mk-brand-wordmark text-[15px] tracking-tight text-text sm:text-[17px]">
+      <span className="mk-brand-wordmark hidden min-[400px]:inline text-[15px] tracking-tight text-text sm:text-[17px]">
         mokaid
       </span>
     </span>
@@ -85,10 +84,7 @@ function NavLink({
     <a
       href={href}
       onClick={onClick}
-      className={cn(
-        "mk-focus-ring rounded-md transition-colors",
-        className,
-      )}
+      className={cn("mk-focus-ring rounded-md transition-colors", className)}
     >
       {letterSwap ? (
         <RandomLetterSwap
@@ -126,7 +122,6 @@ export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null);
   const introRef = useRef<HTMLElement>(null);
   const [headerScrolled, setHeaderScrolled] = useState(false);
-  const [headerVisible, setHeaderVisible] = useState(false);
   const [hireVisible, setHireVisible] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const token = useAuthStore((s) => s.token);
@@ -140,10 +135,6 @@ export function LandingPage() {
       document.documentElement.style.overflowX = "";
     };
   }, []);
-
-  useEffect(() => {
-    if (!headerVisible) setMenuOpen(false);
-  }, [headerVisible]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -189,15 +180,11 @@ export function LandingPage() {
   useLayoutEffect(() => {
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const ctx = gsap.context(() => {
-      const header = "[data-landing-header]";
       const heroScene = "[data-hero-scene]";
 
       if (prefersReduced) {
-        gsap.set(header, { opacity: 1, y: 0 });
-        gsap.set(heroScene, { opacity: 0 });
-        setHeaderVisible(true);
+        gsap.set(heroScene, { opacity: 1 });
       } else {
-        gsap.set(header, { opacity: 0, y: -12 });
         gsap.set(heroScene, { opacity: 1, scale: 1, yPercent: 0 });
 
         gsap
@@ -208,13 +195,8 @@ export function LandingPage() {
               start: "top top",
               end: "bottom bottom",
               scrub: 0.65,
-              onUpdate: (self) => {
-                const next = self.progress > 0.2;
-                setHeaderVisible((prev) => (prev === next ? prev : next));
-              },
             },
           })
-          .to(header, { opacity: 1, y: 0, duration: 0.25 }, 0.18)
           .to(
             heroScene,
             {
@@ -265,21 +247,17 @@ export function LandingPage() {
         data-landing-header
         className={cn(
           "fixed inset-x-0 top-0 z-50 border-b pt-[env(safe-area-inset-top)] transition-[background-color,backdrop-filter,box-shadow,border-color] duration-300",
-          headerVisible ? "pointer-events-auto" : "pointer-events-none",
           headerScrolled || menuOpen
             ? "mk-header-scrolled border-primary/15 shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
             : "border-transparent bg-transparent backdrop-blur-none",
         )}
       >
-        <div className="mx-auto grid h-14 max-w-7xl grid-cols-[1fr_auto] items-center gap-3 px-4 sm:h-16 sm:grid-cols-[1fr_auto_1fr] sm:px-6 lg:px-10">
+        <div className="mx-auto grid h-14 max-w-7xl grid-cols-[1fr_auto] items-center gap-3 px-4 sm:h-16 md:grid-cols-[1fr_auto_1fr] sm:px-6 lg:px-10">
           <Link to="/" className="mk-focus-ring w-fit rounded-xl">
             <LandingLogo />
           </Link>
 
-          <nav
-            className="hidden items-center justify-center gap-1 md:flex"
-            aria-label="Primary"
-          >
+          <nav className="hidden items-center justify-center gap-1 md:flex" aria-label="Primary">
             {navLinks.map((link) => (
               <NavLink
                 key={link.href}
@@ -292,32 +270,18 @@ export function LandingPage() {
           </nav>
 
           <div className="flex items-center justify-end gap-1.5 sm:gap-2.5">
-            {token ? (
-              <Link to={accountEntryPath()}>
-                <Button size="sm" className="min-h-9 px-3.5 sm:min-h-9">
-                  {DESKTOP_ONLY_WEB ? "My account" : "Open app"} <ArrowRight size={14} />
-                </Button>
-              </Link>
-            ) : (
-              <>
-                <Link to="/login" className="hidden min-[400px]:block">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-9 text-text-secondary hover:text-text sm:min-h-9"
-                  >
-                    Sign in
-                  </Button>
-                </Link>
-                <Link to="/signup">
-                  <Button size="sm" className="min-h-9 px-3.5 shadow-glow sm:min-h-9 sm:px-4">
-                    <span className="sm:hidden">Start</span>
-                    <span className="hidden sm:inline">Get started</span>
-                    <ArrowRight size={14} />
-                  </Button>
-                </Link>
-              </>
-            )}
+            <Link
+              to={token ? accountEntryPath() : "/login"}
+              className="mk-focus-ring inline-flex min-h-10 items-center whitespace-nowrap rounded-md px-3 text-sm font-medium text-text-secondary hover:text-text"
+            >
+              {token ? "My account" : "Sign in"}
+            </Link>
+            <Link
+              to="/download"
+              className="mk-focus-ring inline-flex min-h-10 items-center gap-2 rounded-md bg-primary px-3.5 text-sm font-semibold text-white hover:bg-primary-dark"
+            >
+              Download <ArrowRight size={14} aria-hidden />
+            </Link>
 
             <button
               type="button"
@@ -339,7 +303,10 @@ export function LandingPage() {
             menuOpen ? "block" : "hidden",
           )}
         >
-          <nav className="mx-auto flex max-w-7xl flex-col gap-0.5 px-4 py-3 sm:px-6" aria-label="Mobile">
+          <nav
+            className="mx-auto flex max-w-7xl flex-col gap-0.5 px-4 py-3 sm:px-6"
+            aria-label="Mobile"
+          >
             {navLinks.map((link) => (
               <NavLink
                 key={link.href}
@@ -349,15 +316,6 @@ export function LandingPage() {
                 onClick={() => setMenuOpen(false)}
               />
             ))}
-            {!token && (
-              <Link
-                to="/login"
-                className="rounded-lg px-3 py-3 text-[15px] font-medium text-text-secondary transition-colors hover:bg-surface/40 hover:text-text min-[400px]:hidden"
-                onClick={() => setMenuOpen(false)}
-              >
-                Sign in
-              </Link>
-            )}
           </nav>
         </div>
       </header>

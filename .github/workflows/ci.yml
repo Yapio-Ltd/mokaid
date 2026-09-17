@@ -63,8 +63,6 @@ jobs:
 
       - name: Verify compiled account-only portal in Chromium
         working-directory: apps/web
-        env:
-          VITE_DESKTOP_ONLY_WEB: 'true'
         run: |
           npm run build -- --outDir "$RUNNER_TEMP/account-web"
           node ../../node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 5189 --strictPort --outDir "$RUNNER_TEMP/account-web" > "$RUNNER_TEMP/account-preview.log" 2>&1 &

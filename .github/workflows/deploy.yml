@@ -78,7 +78,7 @@ jobs:
           gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$IMAGE_TAG" --branch prod --event push --json conclusion,status \
             | jq -e 'any(.[]; .status == "completed" and .conclusion == "success")'
 
-      - name: Verify signed desktop availability before disabling the web experience
+      - name: Verify signed desktop availability before restricting business API clients
         if: env.DESKTOP_ONLY == 'true'
         run: node .github/scripts/check-desktop-ready.mjs
 
@@ -139,7 +139,6 @@ jobs:
           build-args: |
             VITE_API_URL=
             VITE_WS_URL=/socket
-            VITE_DESKTOP_ONLY_WEB=${{ env.DESKTOP_ONLY }}
           tags: ${{ steps.registry.outputs.registry }}/mokaid-web:${{ env.IMAGE_TAG }}
           cache-from: type=gha,scope=web-deploy
           cache-to: type=gha,scope=web-deploy,mode=max

@@ -1,4 +1,0 @@
-infra/github/README.md
-infra/github/desired.json
-infra/github/reconcile.py
-infra/github/tests/test_reconcile.py

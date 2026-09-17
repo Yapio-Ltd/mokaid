@@ -1,7 +1,10 @@
 import { useLayoutEffect, useRef, type CSSProperties } from "react";
 import gsap from "gsap";
+import { Link } from "@tanstack/react-router";
 import {
   ArrowDown,
+  Download,
+  ArrowRight,
   BarChart3,
   ClipboardCheck,
   ShieldCheck,
@@ -56,11 +59,7 @@ export function HeroScene() {
   }, []);
 
   return (
-    <div
-      ref={rootRef}
-      data-hero-scene
-      className="mk-hero absolute inset-0"
-    >
+    <div ref={rootRef} data-hero-scene className="mk-hero absolute inset-0">
       <div className="mk-hero-bg" aria-hidden />
       <div data-hero-bloom className="mk-hero-bloom" aria-hidden />
 
@@ -78,7 +77,26 @@ export function HeroScene() {
         </p>
 
         <p data-hero-sub className="mk-hero-sub">
-          Hire AI agents. Assign tasks. Get work done.
+          Your AI team, together in one desktop app. Assign tasks, follow their work and make the
+          decisions that matter.
+        </p>
+
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            to="/download"
+            className="mk-focus-ring inline-flex min-h-12 items-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-primary-dark"
+          >
+            <Download size={18} aria-hidden /> Download Mokaid
+          </Link>
+          <Link
+            to="/account"
+            className="mk-focus-ring inline-flex min-h-12 items-center gap-2 rounded-lg border border-white/20 px-6 text-sm font-medium text-text transition-colors hover:bg-white/5"
+          >
+            My account <ArrowRight size={16} aria-hidden />
+          </Link>
+        </div>
+        <p className="mt-3 max-w-md text-xs leading-relaxed text-text-secondary">
+          macOS &amp; Windows · Usage, plans and billing on the web.
         </p>
 
         <div data-hero-features className="mk-hero-features-wrap">

@@ -86,9 +86,19 @@ describe("account-only route integration", () => {
     expect(router.state.location.pathname).toBe(path.split("?")[0]);
   });
 
-  it("retains legacy dashboard routing with rollout OFF", async () => {
+  it("cannot restore the Office with the old rollout flag disabled", async () => {
     const router = await loadRoute("/dashboard", { signedIn: true, desktopOnly: false });
-    expect(router.state.location.pathname).toBe("/dashboard");
+    expect(router.state.location.pathname).toBe("/download");
+  });
+
+  it("keeps signed-in visitors on the landing with the old rollout flag disabled", async () => {
+    const router = await loadRoute("/", { signedIn: true, desktopOnly: false });
+    expect(router.state.location.pathname).toBe("/");
+  });
+
+  it("sends an ordinary signed-in login to the account", async () => {
+    const router = await loadRoute("/login", { signedIn: true, desktopOnly: false });
+    expect(router.state.location.pathname).toBe("/account");
   });
 
   it("honors server policy before mounting business in an older build", async () => {

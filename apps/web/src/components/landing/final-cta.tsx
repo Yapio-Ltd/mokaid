@@ -63,30 +63,27 @@ export function FinalCta() {
             </picture>
 
             <h2 className="max-w-xl text-[1.65rem] font-bold leading-[1.12] tracking-tight text-text sm:text-3xl md:text-[2.4rem] md:leading-[1.1]">
-              Ready to meet your{" "}
-              <span className="text-primary-light">new teammates</span>?
+              Ready to meet your <span className="text-primary-light">new teammates</span>?
             </h2>
 
             <p className="mt-3.5 max-w-md text-sm leading-relaxed text-text-secondary md:text-[15px]">
-              Spin up your workspace, invite your team and hire your first AI agent today.
+              Bring your AI team together in Mokaid Desktop. Manage your usage, subscription and
+              payments from your account on the web.
             </p>
           </div>
 
           <div className="flex flex-col items-stretch gap-3 md:col-span-5 md:items-end lg:col-span-4">
-            <p className="text-[12px] text-text-muted md:text-right">
-              First agent in about{" "}
-              <span className="font-medium text-primary-light">3 min</span>
+            <p className="text-[12px] text-text-secondary md:text-right">
+              Your office lives in the desktop app.
             </p>
 
-            <Link to="/signup" className="block w-full md:inline-block md:w-auto">
+            <Link to="/download" className="block w-full md:inline-block md:w-auto">
               <Button size="lg" className="w-full px-8 shadow-glow md:w-auto">
-                Get started now <ArrowRight size={16} />
+                Download Mokaid <ArrowRight size={16} />
               </Button>
             </Link>
 
-            <p className="text-center text-[11px] text-text-muted md:text-right">
-              Free workspace · No card required
-            </p>
+            <p className="text-center text-[11px] text-text-secondary md:text-right">macOS · Windows</p>
           </div>
         </div>
       </div>
