@@ -14945,13 +14945,13 @@
     "semantic_hash": ""
   },
   "infra/github/reconcile.py": {
-    "mtime": 1789405636.6311903,
-    "ast_hash": "345781115dce113c5461277eaf7c04ae",
+    "mtime": 1789654111.0242846,
+    "ast_hash": "919df8534105c8fbaa870f328c634180",
     "semantic_hash": ""
   },
   "infra/github/tests/test_reconcile.py": {
-    "mtime": 1789405636.7298515,
-    "ast_hash": "93c2c2358f091549fed4ab0040f23daa",
+    "mtime": 1789654167.916439,
+    "ast_hash": "ad2fd79b7d3d05db218b276eac2ab906",
     "semantic_hash": ""
   },
   ".github/scripts/README.md": {
@@ -15130,8 +15130,8 @@
     "semantic_hash": ""
   },
   "infra/github/README.md": {
-    "mtime": 1789405636.1022174,
-    "ast_hash": "8228277aad17decfbf9e520f50c1c932",
+    "mtime": 1789654111.2184043,
+    "ast_hash": "8d8a56cc8eec79410e2c0f71a7befe91",
     "semantic_hash": ""
   },
   "infra/github/SECURITY_REVIEW.md": {
@@ -15326,7 +15326,7 @@
   },
   "infra/github/desired.json": {
     "mtime": 1789405511.7514331,
-    "ast_hash": "6767ee173fcee866ad21ffa1540c1267",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "infra/terraform/environments/prod/desktop.auto.tfvars": {
@@ -17217,6 +17217,61 @@
   "artifacts/desktop-orchestrator/moked-voice-setup-1000.png": {
     "mtime": 1789641998.204143,
     "ast_hash": "2be464b45cfbc747043a62b9b39333cc",
+    "semantic_hash": ""
+  },
+  "apps/desktop/presentation/assets/provenance.json": {
+    "mtime": 1789651332.465782,
+    "ast_hash": "999870a2cb5f28c42d0e282ed376a6b3",
+    "semantic_hash": ""
+  },
+  "apps/desktop/scripts/tests/test_generate_lighting.py": {
+    "mtime": 1789653089.9559648,
+    "ast_hash": "a5a3892668a66ee5acd85e6fd07d7967",
+    "semantic_hash": ""
+  },
+  "apps/web/public/branding/agent-portraits/provenance.json": {
+    "mtime": 1789651332.4660099,
+    "ast_hash": "993bbfa533dfcfa63aae6887cb60cf2b",
+    "semantic_hash": ""
+  },
+  "artifacts/avatar-atypical/archive-fantasy/report.json": {
+    "mtime": 1789637817.9432344,
+    "ast_hash": "bf406b24a5c28dd379a26270af296b10",
+    "semantic_hash": ""
+  },
+  "artifacts/avatar-atypical/archive-fantasy/validation.json": {
+    "mtime": 1789637188.9795275,
+    "ast_hash": "2f549fd06129f17cac268420aaced6bd",
+    "semantic_hash": ""
+  },
+  "artifacts/avatar-atypical/archive-rejected-procedural/report.json": {
+    "mtime": 1789642252.9681904,
+    "ast_hash": "55856e2999f0573cc391625a0c194c28",
+    "semantic_hash": ""
+  },
+  "artifacts/avatar-atypical/archive-rejected-procedural/validation.json": {
+    "mtime": 1789642356.373757,
+    "ast_hash": "ef6df4f6a2802d2968d20087dbc05841",
+    "semantic_hash": ""
+  },
+  "artifacts/avatar-atypical/gallery-measurements.json": {
+    "mtime": 1789651220.740728,
+    "ast_hash": "bac46d4bda0b58d356f485778aaec8fc",
+    "semantic_hash": ""
+  },
+  "artifacts/avatar-atypical/report.json": {
+    "mtime": 1789651107.419272,
+    "ast_hash": "ef36de41836185ab6e6abf0b847c760c",
+    "semantic_hash": ""
+  },
+  "artifacts/avatar-atypical/validation.json": {
+    "mtime": 1789651210.0997648,
+    "ast_hash": "1a69308352a266f6e7fd662fc5169eaa",
+    "semantic_hash": ""
+  },
+  "assets/avatar-atypical.json": {
+    "mtime": 1789651332.4661176,
+    "ast_hash": "6d93a094aa64283be003f411b3ef3d22",
     "semantic_hash": ""
   }
 }

@@ -1911,7 +1911,7 @@
   },
   "infra/terraform/modules/ecs-service/main.tf": {
     "mtime": 1789337799.1359768,
-    "ast_hash": "43a037eb2e131aa95a714b09ac516fa1",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "infra/terraform/modules/monitoring/main.tf": {
@@ -1936,7 +1936,7 @@
   },
   "infra/terraform/modules/stack/main.tf": {
     "mtime": 1789506594.6718805,
-    "ast_hash": "bfec7a97d1983ccee8b6534df989147e",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "infra/terraform/modules/vpc/main.tf": {
@@ -2150,8 +2150,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/deploy.yml": {
-    "mtime": 1789640109.3065686,
-    "ast_hash": "77cfb195dea9263880de2c60b594e81d",
+    "mtime": 1789657129.6305704,
+    "ast_hash": "125b7f53184b66710023dda8993dc377",
     "semantic_hash": ""
   },
   "README.md": {
@@ -2245,8 +2245,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/README.md": {
-    "mtime": 1784299887.4939682,
-    "ast_hash": "7b013fe8b1f9cf3c9b625c515f774ed6",
+    "mtime": 1789656601.2038774,
+    "ast_hash": "e1a880a383610212147034ac1cbe5ea2",
     "semantic_hash": ""
   },
   "apps/api/priv/integration-logos/adobe_express.svg": {
@@ -3291,7 +3291,7 @@
   },
   "infra/terraform/environments/prod/main.tf": {
     "mtime": 1789378863.5082572,
-    "ast_hash": "813d87c738581648ec5573e79c5504d7",
+    "ast_hash": "",
     "semantic_hash": ""
   },
   "scripts/copy-stack-secrets.sh": {
@@ -14340,8 +14340,8 @@
     "semantic_hash": ""
   },
   ".github/scripts/ecs_deploy.py": {
-    "mtime": 1789640109.1297712,
-    "ast_hash": "7e5bd440fa5111cbdf26b36171329d81",
+    "mtime": 1789657129.494533,
+    "ast_hash": "c3793ca1d8816948fb458fdc46b1821c",
     "semantic_hash": ""
   },
   ".github/scripts/prepare-ecs-task.sh": {
@@ -14360,8 +14360,8 @@
     "semantic_hash": ""
   },
   ".github/scripts/tests/test_ecs_deploy.py": {
-    "mtime": 1789640190.4506104,
-    "ast_hash": "891c9c8d54154b6046620e56a09292d8",
+    "mtime": 1789657129.7912745,
+    "ast_hash": "fe717e7194f211dcc0d8ee6d345375c9",
     "semantic_hash": ""
   },
   ".github/scripts/verify-production.mjs": {
@@ -14955,8 +14955,8 @@
     "semantic_hash": ""
   },
   ".github/scripts/README.md": {
-    "mtime": 1789387675.492428,
-    "ast_hash": "6c7461416f778a4d9b0eb823b0067241",
+    "mtime": 1789659560.7625816,
+    "ast_hash": "0d65a9d8f8232e28355dbb2e7ed66bdb",
     "semantic_hash": ""
   },
   ".github/workflows/desktop-ci.yml": {
@@ -15080,8 +15080,8 @@
     "semantic_hash": ""
   },
   "apps/desktop/presentation/CMakeLists.txt": {
-    "mtime": 1789641166.6442037,
-    "ast_hash": "5ee33e23574b0cbcb2acf023e8211173",
+    "mtime": 1789655530.4035552,
+    "ast_hash": "37062e75fb786c82128d9bfcd2b992a0",
     "semantic_hash": ""
   },
   "apps/desktop/preview/CMakeLists.txt": {
@@ -15270,8 +15270,8 @@
     "semantic_hash": ""
   },
   "infra/github/tests/test_deploy_workflow.py": {
-    "mtime": 1789382950.6569371,
-    "ast_hash": "1b723ae5528efd0f60f79790d8b8e88e",
+    "mtime": 1789657129.924125,
+    "ast_hash": "79f4c26066ed9e97429af52da7279f82",
     "semantic_hash": ""
   },
   "infra/terraform/bootstrap/.terraform.lock.hcl": {
@@ -15325,8 +15325,8 @@
     "semantic_hash": ""
   },
   "infra/github/desired.json": {
-    "mtime": 1789405511.7514331,
-    "ast_hash": "",
+    "mtime": 1789654111.1226695,
+    "ast_hash": "a2ac9b1cbffc48b706561e19a8e7458e",
     "semantic_hash": ""
   },
   "infra/terraform/environments/prod/desktop.auto.tfvars": {
@@ -16785,8 +16785,8 @@
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid/ai/coordinator.ex": {
-    "mtime": 1789641561.2193334,
-    "ast_hash": "0c9f425addf49d87a1cad76ffd4178bc",
+    "mtime": 1789656122.7473562,
+    "ast_hash": "84277e5fe33b17e05b820084db67d96e",
     "semantic_hash": ""
   },
   "apps/api/lib/mokaid_web/controllers/orchestrator_controller.ex": {
@@ -16795,8 +16795,8 @@
     "semantic_hash": ""
   },
   "apps/api/test/mokaid_web/orchestrator_controller_test.exs": {
-    "mtime": 1789641562.2175834,
-    "ast_hash": "b21419c9e113f5e0cb377a15f33fba20",
+    "mtime": 1789656212.6846762,
+    "ast_hash": "ee6f991a7d1e446083a49d8c7600cb8b",
     "semantic_hash": ""
   },
   "apps/desktop/application/include/mokaid/application/orchestrator_controller.hpp": {
@@ -16820,13 +16820,13 @@
     "semantic_hash": ""
   },
   "apps/desktop/tests/orchestrator_qml_tests.cpp": {
-    "mtime": 1789641992.3827279,
-    "ast_hash": "d48c6d2322cb8d4c8c767c33535beb04",
+    "mtime": 1789655595.3550045,
+    "ast_hash": "bbb15c7e40c725ef921935602a137504",
     "semantic_hash": ""
   },
   "apps/desktop/voice/audio_utils.cpp": {
-    "mtime": 1789641415.1940706,
-    "ast_hash": "405764aeab3c8af7d348a1b293122475",
+    "mtime": 1789655527.2220945,
+    "ast_hash": "e3d750ce2134b39b345e62e6636e6f23",
     "semantic_hash": ""
   },
   "apps/desktop/voice/include/mokaid/voice/audio_utils.hpp": {
@@ -16855,8 +16855,8 @@
     "semantic_hash": ""
   },
   "apps/desktop/voice/tests/voice_tests.cpp": {
-    "mtime": 1789641940.174971,
-    "ast_hash": "90c33f934fa0ab73cb7e736ac3f058c1",
+    "mtime": 1789655527.400422,
+    "ast_hash": "b5caf9c6cc75c5feab2b0e2c020399e7",
     "semantic_hash": ""
   },
   "apps/desktop/voice/voice_controller.cpp": {
@@ -17090,8 +17090,8 @@
     "semantic_hash": ""
   },
   "apps/desktop/voice/CMakeLists.txt": {
-    "mtime": 1789641706.4899158,
-    "ast_hash": "16f5fbda0f35b57cc9b48c81e1a10962",
+    "mtime": 1789655530.5184474,
+    "ast_hash": "6477ff15d5e94b42b5003db580ab5588",
     "semantic_hash": ""
   },
   "apps/desktop/voice/README.md": {
@@ -17115,8 +17115,8 @@
     "semantic_hash": ""
   },
   "docs/desktop-orchestrator-contract.md": {
-    "mtime": 1789642571.9163039,
-    "ast_hash": "e3e49150aaa0ba36e4821decb26ef2a3",
+    "mtime": 1789659560.6437259,
+    "ast_hash": "bd1bcdec9f4dabf60b814ff7f7b46dde",
     "semantic_hash": ""
   },
   "docs/web/SITE_ACCOUNT_BOUNDARY.md": {
@@ -17272,6 +17272,11 @@
   "assets/avatar-atypical.json": {
     "mtime": 1789651332.4661176,
     "ast_hash": "6d93a094aa64283be003f411b3ef3d22",
+    "semantic_hash": ""
+  },
+  "infra/terraform/WORKER_HTTP.md": {
+    "mtime": 1789656601.0718918,
+    "ast_hash": "c44a8f3376ea42e83900935d7c201c87",
     "semantic_hash": ""
   }
 }
