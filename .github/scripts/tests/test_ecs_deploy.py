@@ -19,6 +19,7 @@ TASK = "arn:aws:ecs:eu-west-1:123456789012:task/mokaid-prod/abcdef123456"
 IMAGE = "123456789012.dkr.ecr.eu-west-1.amazonaws.com/mokaid-api@sha256:" + "a" * 64
 SERVICE, CONTAINER = "service-api", "mokaid-prod-api"
 SENSITIVE = "FIXTURE_LEGACY_ENV_MUST_NOT_APPEAR_IN_LOGS"
+TRUSTED_ALB_CIDRS = "10.10.0.0/24,10.10.1.0/24"
 
 
 def service(arn=OLD, rollout="COMPLETED", running=1, protected=True):
@@ -274,6 +275,112 @@ class EcsTests(unittest.TestCase):
         with self.assertRaises(ecs.Failure):
             ecs.prepare(dict(self.env, MOKAID_DESKTOP_ONLY_BUSINESS="true"), aws)
         self.assertIsNone(aws.registered)
+
+    def test_trusted_alb_override_preserves_unrelated_environment_secrets_and_containers(self):
+        aws = MockAws()
+        original = aws.definitions[OLD]
+        target = original["containerDefinitions"][1]
+        target["environment"].extend([
+            {"name": "MOKAID_TRUSTED_ALB_CIDRS", "value": "10.10.9.0/24"},
+            {"name": "FEATURE_FLAG", "value": "keep-exactly"}])
+        original["containerDefinitions"][0]["environment"] = [
+            {"name": "MOKAID_TRUSTED_ALB_CIDRS", "value": "unrelated-sidecar-value"}]
+        before = copy.deepcopy(original)
+        ecs.prepare(dict(self.env, MOKAID_TRUSTED_ALB_CIDRS=TRUSTED_ALB_CIDRS), aws)
+        actual = aws.registered["containerDefinitions"][1]
+        self.assertEqual(actual["environment"], [
+            {"name": "LEGACY", "value": SENSITIVE},
+            {"name": "FEATURE_FLAG", "value": "keep-exactly"},
+            {"name": "MOKAID_TRUSTED_ALB_CIDRS", "value": TRUSTED_ALB_CIDRS}])
+        self.assertEqual(actual["secrets"], before["containerDefinitions"][1]["secrets"])
+        self.assertEqual(aws.registered["containerDefinitions"][0], before["containerDefinitions"][0])
+        self.assertEqual(aws.definitions[OLD], before)
+        self.assertEqual(self.updates(aws), [])
+        self.assertNotIn(SENSITIVE, self.stdout.getvalue() + self.stderr.getvalue() + self.output.read_text())
+
+    def test_trusted_alb_override_is_not_invented_when_absent(self):
+        aws = MockAws()
+        ecs.prepare(self.env, aws)
+        self.assertEqual(aws.registered["containerDefinitions"][1]["environment"],
+                         definition()["containerDefinitions"][1]["environment"])
+
+    def test_trusted_alb_preflight_requires_explicit_configuration_without_aws(self):
+        aws = MockAws()
+        for env in ({}, {"MOKAID_TRUSTED_ALB_CIDRS": ""}, {"MOKAID_TRUSTED_ALB_CIDRS": "10.0.0.0/8"}):
+            with self.subTest(env=env), self.assertRaises(ecs.Failure):
+                ecs.validate_trusted_alb(env, aws)
+        ecs.validate_trusted_alb({"MOKAID_TRUSTED_ALB_CIDRS": TRUSTED_ALB_CIDRS}, aws)
+        self.assertEqual(aws.calls, [])
+
+    def test_trusted_alb_rejects_broad_nonproduction_duplicate_and_malformed_networks_before_aws(self):
+        invalid = ("", " ", "0.0.0.0/0", "10.0.0.0/8", "10.10.0.0/16", "10.10.0.0/23",
+                   "172.16.0.0/24", "192.168.1.0/24", "10.11.0.0/24", "127.0.0.0/24",
+                   "169.254.0.0/24", "192.0.2.0/24", "8.8.8.0/24", "224.0.0.0/24", "::1/128",
+                   "fd00::/64", "::ffff:10.10.0.0/120", "10.10.0.1/24", "10.10.0.0",
+                   "10.10.0.0/255.255.255.0", "10.10.0.0/024", "10.10.0.0/33",
+                   "10.10.0.0/24,10.10.0.0/24", "10.10.0.0/24,10.10.0.0/25",
+                   "10.10.0.0/24,", ",10.10.0.0/24", "10.10.0.0/24,,10.10.1.0/24",
+                   "10.10.0.0/24, 10.10.1.0/24", "10.10.0.0/24\n", SENSITIVE,
+                   ",".join(f"10.10.{index}.0/24" for index in range(17)))
+        for value in invalid:
+            with self.subTest(value=value):
+                aws = MockAws()
+                with self.assertRaises(ecs.Failure) as failure:
+                    ecs.prepare(dict(self.env, MOKAID_TRUSTED_ALB_CIDRS=value), aws)
+                self.assertEqual(aws.calls, [])
+                self.assertNotIn(SENSITIVE, str(failure.exception))
+
+    def test_trusted_alb_accepts_canonical_narrower_networks(self):
+        for value in (TRUSTED_ALB_CIDRS, "10.10.2.0/25,10.10.2.128/25", "10.10.3.1/32"):
+            with self.subTest(value=value):
+                self.assertEqual(ecs.trusted_alb_cidrs(value), value)
+
+    def test_trusted_alb_override_refuses_non_api_containers_before_aws(self):
+        for container in ("mokaid-prod-web", "mokaid-prod-ai-worker", "mokaid-prod-crm", "sidecar-first", "mokaid-staging-api"):
+            with self.subTest(container=container):
+                aws = MockAws()
+                with self.assertRaises(ecs.Failure):
+                    ecs.prepare(dict(self.env, CONTAINER=container, MOKAID_TRUSTED_ALB_CIDRS=TRUSTED_ALB_CIDRS), aws)
+                self.assertEqual(aws.calls, [])
+
+    def test_trusted_alb_secret_collision_or_duplicate_existing_environment_prevents_registration(self):
+        for duplicate in (False, True):
+            with self.subTest(duplicate=duplicate):
+                aws = MockAws()
+                target = aws.definitions[OLD]["containerDefinitions"][1]
+                if duplicate:
+                    target["environment"].extend([
+                        {"name": "MOKAID_TRUSTED_ALB_CIDRS", "value": "10.10.0.0/24"},
+                        {"name": "MOKAID_TRUSTED_ALB_CIDRS", "value": "10.10.1.0/24"}])
+                else:
+                    target["secrets"].append({"name": "MOKAID_TRUSTED_ALB_CIDRS", "valueFrom": SENSITIVE})
+                with self.assertRaises(ecs.Failure) as failure:
+                    ecs.prepare(dict(self.env, MOKAID_TRUSTED_ALB_CIDRS=TRUSTED_ALB_CIDRS), aws)
+                self.assertIsNone(aws.registered)
+                self.assertEqual(self.updates(aws), [])
+                self.assertNotIn(SENSITIVE, str(failure.exception))
+
+    def test_trusted_alb_registered_revision_must_preserve_the_exact_override(self):
+        for response_value in (None, "0.0.0.0/0", "duplicate"):
+            with self.subTest(response_value=response_value):
+                aws = MockAws()
+                original_call = aws.call
+
+                def call(operation, *arguments, payload=None):
+                    result = original_call(operation, *arguments, payload=payload)
+                    if operation == "register-task-definition":
+                        target = result["taskDefinition"]["containerDefinitions"][1]
+                        target["environment"] = [item for item in target["environment"] if item["name"] != "MOKAID_TRUSTED_ALB_CIDRS"]
+                        if response_value is not None:
+                            target["environment"].append({"name": "MOKAID_TRUSTED_ALB_CIDRS", "value": response_value})
+                        if response_value == "duplicate":
+                            target["environment"].append({"name": "MOKAID_TRUSTED_ALB_CIDRS", "value": TRUSTED_ALB_CIDRS})
+                    return result
+
+                with patch.object(aws, "call", side_effect=call), self.assertRaisesRegex(ecs.Failure, "did not preserve"):
+                    ecs.prepare(dict(self.env, MOKAID_TRUSTED_ALB_CIDRS=TRUSTED_ALB_CIDRS), aws)
+                self.assertEqual(self.output.read_text(), "")
+                self.assertEqual(self.updates(aws), [])
 
     def test_deploy_requires_prepared_exact_arns_and_refuses_stale_baseline(self):
         for change in ({"TASK_DEFINITION": "mokaid-prod-api"}, {"TASK_DEFINITION": ""}, {"PREVIOUS_TASK_DEFINITION": ""}):

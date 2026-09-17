@@ -69,6 +69,11 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
 
+      - name: Validate trusted production ALB networks
+        env:
+          MOKAID_TRUSTED_ALB_CIDRS: ${{ vars.MOKAID_TRUSTED_ALB_CIDRS }}
+        run: python3 .github/scripts/ecs_deploy.py validate-trusted-alb
+
       - name: Require successful CI on this exact production commit
         env:
           GH_TOKEN: ${{ github.token }}
@@ -222,6 +227,7 @@ jobs:
           IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-api@${{ steps.api_image.outputs.digest }}
           MOKAID_DESKTOP_ONLY_BUSINESS: ${{ env.DESKTOP_ONLY }}
           DESKTOP_AUTH_WEB_BASE_URL: https://mokaid.com
+          MOKAID_TRUSTED_ALB_CIDRS: ${{ vars.MOKAID_TRUSTED_ALB_CIDRS }}
         run: bash .github/scripts/prepare-ecs-task.sh
 
       - name: Run database migrations
