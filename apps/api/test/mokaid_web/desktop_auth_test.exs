@@ -8,7 +8,9 @@ defmodule MokaidWeb.DesktopAuthTest do
 
   setup %{conn: conn} do
     # Auth limiter state is intentionally outside the SQL sandbox.
-    ip = {127, 10, rem(System.unique_integer([:positive]), 254), 1}
+    # Spread across two octets so parallel tests cannot share a Hammer bucket.
+    n = System.unique_integer([:positive])
+    ip = {127, 10, rem(div(n, 256), 256), rem(n, 256)}
     {:ok, conn: %{conn | remote_ip: ip}, user: user_fixture()}
   end
 
