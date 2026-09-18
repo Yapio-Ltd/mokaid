@@ -300,7 +300,7 @@
     "semantic_hash": "5cbfa1a17dc9fe33fe238a94cf26e196"
   },
   "apps/api/lib/mokaid/agents.ex": {
-    "mtime": 1788640583.9288013,
+    "mtime": 1789729235.1587458,
     "ast_hash": "0f90b82856cebf60c66b863d7f626a7d",
     "semantic_hash": ""
   },
@@ -1100,7 +1100,7 @@
     "semantic_hash": ""
   },
   "apps/api/test/mokaid/agents_test.exs": {
-    "mtime": 1788640583.9184332,
+    "mtime": 1789729235.1488967,
     "ast_hash": "89c252518a9221232a2e2174ecca87a4",
     "semantic_hash": ""
   },
@@ -1275,7 +1275,7 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/chat/floating-chat-dock.tsx": {
-    "mtime": 1789590613.684678,
+    "mtime": 1789729235.1444845,
     "ast_hash": "82920075cd6984799cd4a0bcdb789897",
     "semantic_hash": ""
   },
@@ -1830,7 +1830,7 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-navdata.ts": {
-    "mtime": 1788640583.918268,
+    "mtime": 1789729235.127809,
     "ast_hash": "91002756a78949028690e31bbc6bf78a",
     "semantic_hash": ""
   },
@@ -1910,8 +1910,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/modules/ecs-service/main.tf": {
-    "mtime": 1789337799.1359768,
-    "ast_hash": "",
+    "mtime": 1789656306.0869532,
+    "ast_hash": "8c038242b8bef2a9bff680c2074536b8",
     "semantic_hash": ""
   },
   "infra/terraform/modules/monitoring/main.tf": {
@@ -1935,8 +1935,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/modules/stack/main.tf": {
-    "mtime": 1789506594.6718805,
-    "ast_hash": "",
+    "mtime": 1789656306.2037904,
+    "ast_hash": "0f808b1a0f69a91249ebe1248ce905bc",
     "semantic_hash": ""
   },
   "infra/terraform/modules/vpc/main.tf": {
@@ -3290,8 +3290,8 @@
     "semantic_hash": ""
   },
   "infra/terraform/environments/prod/main.tf": {
-    "mtime": 1789378863.5082572,
-    "ast_hash": "",
+    "mtime": 1789656306.3387704,
+    "ast_hash": "e6f1123d259adc71e1e1272aeaaaadf6",
     "semantic_hash": ""
   },
   "scripts/copy-stack-secrets.sh": {
@@ -13130,8 +13130,8 @@
     "semantic_hash": ""
   },
   "apps/web/src/components/landing/agent-tour.tsx": {
-    "mtime": 1789587936.9276867,
-    "ast_hash": "98f5656dfde498ec54819fc752e4b8c9",
+    "mtime": 1789732456.541951,
+    "ast_hash": "fbee463965dd64fcb8c0d55e0bc8b75e",
     "semantic_hash": ""
   },
   "scripts/bake-avatar-developer.py": {
@@ -13310,22 +13310,22 @@
     "semantic_hash": ""
   },
   "apps/web/src/three/office-collisions.ts": {
-    "mtime": 1788640583.9182742,
+    "mtime": 1789729235.1278145,
     "ast_hash": "c2a02069a137ae8a12fd4647efea13b9",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-crowd.test.ts": {
-    "mtime": 1788640583.9182518,
+    "mtime": 1789729235.1275575,
     "ast_hash": "9210ca06d30f8a08400b07084d35bb20",
     "semantic_hash": ""
   },
   "apps/web/src/three/office-crowd.ts": {
-    "mtime": 1788640583.918261,
+    "mtime": 1789729235.1275208,
     "ast_hash": "b386db053b438615ccdb9eebfe474c6a",
     "semantic_hash": ""
   },
   "apps/web/scripts/verify-office-loco.mjs": {
-    "mtime": 1788640583.9182994,
+    "mtime": 1789729235.1444824,
     "ast_hash": "c20febb55af53cd929a0dcc150c0783d",
     "semantic_hash": ""
   },
@@ -17277,6 +17277,31 @@
   "infra/terraform/WORKER_HTTP.md": {
     "mtime": 1789656601.0718918,
     "ast_hash": "c44a8f3376ea42e83900935d7c201c87",
+    "semantic_hash": ""
+  },
+  "apps/web/src/test/agent-tour.test.ts": {
+    "mtime": 1789732456.5421994,
+    "ast_hash": "fa8cb7165db75f7970585a66067777c6",
+    "semantic_hash": ""
+  },
+  "infra/terraform/modules/ecs-service/tests/service_discovery.tftest.hcl": {
+    "mtime": 1789656409.9543452,
+    "ast_hash": "988b405b26facf888137bca12069bbac",
+    "semantic_hash": ""
+  },
+  "infra/terraform/modules/ecs-service/versions.tf": {
+    "mtime": 1789656377.9368453,
+    "ast_hash": "9a57c5a43d07a5b2873c63f52f72efda",
+    "semantic_hash": ""
+  },
+  "infra/terraform/modules/stack/tests/worker_http.tftest.hcl": {
+    "mtime": 1789656540.460613,
+    "ast_hash": "acfc5a3157bbec4c1d0aefccadae4f35",
+    "semantic_hash": ""
+  },
+  "infra/terraform/modules/stack/versions.tf": {
+    "mtime": 1789656600.944078,
+    "ast_hash": "b5de7ab26da647d82138729177a476c2",
     "semantic_hash": ""
   }
 }

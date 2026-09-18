@@ -1,38 +1,14 @@
 import { lazy, Suspense, useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { DESKTOP_ONLY_WEB } from "@/lib/desktop-rollout";
-import { Avatar } from "@/components/ui/avatar";
 
 gsap.registerPlugin(ScrollTrigger);
 
-function StaticAgentPreview({
-  name,
-  color,
-  width,
-  height,
-  className,
-}: {
-  name: string;
-  color: string;
-  width: number;
-  height: number;
-  className?: string;
-}) {
-  return (
-    <div
-      className={className}
-      style={{ width, height, display: "flex", alignItems: "center", justifyContent: "center" }}
-    >
-      <Avatar name={name} color={color} size="xl" isAi />
-    </div>
-  );
-}
-
-// Same fallback as the original renderer; account-only builds do not ship WebGL.
-const AgentPreview3D = DESKTOP_ONLY_WEB
-  ? StaticAgentPreview
-  : lazy(() => import("@/three/agent-preview").then((m) => ({ default: m.AgentPreview3D })));
+// Marketing still ships the 3D roster even when the rest of the web app is
+// account-only. Babylon stays in a lazy chunk, not in the landing entry.
+const AgentPreview3D = lazy(() =>
+  import("@/three/agent-preview").then((m) => ({ default: m.AgentPreview3D })),
+);
 
 const agents = [
   {
