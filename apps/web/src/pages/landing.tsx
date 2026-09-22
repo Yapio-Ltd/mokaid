@@ -332,7 +332,11 @@ export function LandingPage() {
         </div>
       </section>
 
-      <LazyWhenVisible placeholderClassName="mk-landing-ph-office" rootMargin="400px 0px">
+      <LazyWhenVisible
+        placeholderClassName="mk-landing-ph-office"
+        rootMargin="400px 0px"
+        eagerHash="#product"
+      >
         <Suspense fallback={<SectionFallback className="mk-landing-ph-office" />}>
           <OfficeTour />
         </Suspense>
@@ -352,19 +356,23 @@ export function LandingPage() {
 
       <WhyMokaid />
 
-      <LazyWhenVisible placeholderClassName="mk-landing-ph-agent" rootMargin="320px 0px">
+      <LazyWhenVisible
+        placeholderClassName="mk-landing-ph-agent"
+        rootMargin="320px 0px"
+        eagerHash="#agents"
+      >
         <Suspense fallback={<SectionFallback className="mk-landing-ph-agent" />}>
           <AgentTour />
         </Suspense>
       </LazyWhenVisible>
 
-      <LazyWhenVisible minHeight="70vh" rootMargin="280px 0px">
+      <LazyWhenVisible minHeight="70vh" rootMargin="280px 0px" eagerHash="#marketplace">
         <Suspense fallback={<SectionFallback className="min-h-[70vh]" />}>
           <MarketplaceShowcase />
         </Suspense>
       </LazyWhenVisible>
 
-      <LazyWhenVisible minHeight="80vh" rootMargin="200px 0px">
+      <LazyWhenVisible minHeight="80vh" rootMargin="200px 0px" eagerHash="#connectors">
         <Suspense fallback={<SectionFallback className="min-h-[80vh]" />}>
           <McpConnectors />
         </Suspense>
