@@ -30,12 +30,18 @@ const AgentTour = lazy(() =>
 const McpConnectors = lazy(() =>
   import("@/components/landing/mcp-connectors").then((m) => ({ default: m.McpConnectors })),
 );
+const MarketplaceShowcase = lazy(() =>
+  import("@/components/landing/marketplace-showcase").then((m) => ({
+    default: m.MarketplaceShowcase,
+  })),
+);
 
-const marqueeItems = ["Agents", "Office", "Connectors", "Knowledge", "Tasks"];
+const marqueeItems = ["Agents", "Office", "Marketplace", "Connectors", "Knowledge", "Tasks"];
 
 const navLinks = [
   { href: "#product", label: "Product" },
   { href: "#agents", label: "Agents" },
+  { href: "#marketplace", label: "Marketplace" },
   { href: "#connectors", label: "Connectors" },
   { href: "/pricing", label: "Pricing" },
 ] as const;
@@ -349,6 +355,12 @@ export function LandingPage() {
       <LazyWhenVisible placeholderClassName="mk-landing-ph-agent" rootMargin="320px 0px">
         <Suspense fallback={<SectionFallback className="mk-landing-ph-agent" />}>
           <AgentTour />
+        </Suspense>
+      </LazyWhenVisible>
+
+      <LazyWhenVisible minHeight="70vh" rootMargin="280px 0px">
+        <Suspense fallback={<SectionFallback className="min-h-[70vh]" />}>
+          <MarketplaceShowcase />
         </Suspense>
       </LazyWhenVisible>
 

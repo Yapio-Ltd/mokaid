@@ -145,6 +145,99 @@ defmodule Mokaid.Billing.Stripe do
     )
   end
 
+  ## ---------- Marketplace Connect ----------
+
+  def create_express_account(attrs) do
+    request(
+      :post,
+      "/accounts",
+      reject_nils(%{
+        "type" => "express",
+        "country" => attrs[:country],
+        "capabilities[card_payments][requested]" => true,
+        "capabilities[transfers][requested]" => true,
+        "business_type" => "individual",
+        "metadata[workspace_id]" => attrs[:workspace_id],
+        "metadata[kind]" => "marketplace"
+      })
+    )
+  end
+
+  def create_account_link(attrs) do
+    base = web_base_url()
+    refresh = sanitize_return_path(attrs[:refresh_path] || "/marketplace/return")
+    return = sanitize_return_path(attrs[:return_path] || "/marketplace/return")
+
+    request(:post, "/account_links", %{
+      "account" => attrs[:account_id],
+      "refresh_url" => "#{base}#{refresh}",
+      "return_url" => "#{base}#{return}",
+      "type" => "account_onboarding"
+    })
+  end
+
+  def create_marketplace_payment_checkout(attrs) do
+    request(:post, "/checkout/sessions", marketplace_payment_form(attrs))
+  end
+
+  def create_marketplace_subscription_checkout(attrs) do
+    request(:post, "/checkout/sessions", marketplace_subscription_form(attrs))
+  end
+
+  @doc "Public for tests — one-time marketplace Checkout form body."
+  def marketplace_payment_form(attrs) do
+    {success_url, cancel_url} = return_urls(attrs[:return_path] || "/marketplace/return")
+
+    %{
+      "mode" => "payment",
+      "success_url" => success_url,
+      "cancel_url" => cancel_url,
+      "client_reference_id" => attrs[:order_id],
+      "metadata[kind]" => "marketplace",
+      "metadata[order_id]" => attrs[:order_id],
+      "metadata[listing_id]" => attrs[:listing_id],
+      "metadata[buyer_workspace_id]" => attrs[:buyer_workspace_id],
+      "metadata[seller_workspace_id]" => attrs[:seller_workspace_id],
+      "line_items[0][quantity]" => 1,
+      "line_items[0][price_data][currency]" => currency(),
+      "line_items[0][price_data][unit_amount]" => attrs[:amount_cents],
+      "line_items[0][price_data][product_data][name]" => attrs[:description],
+      "payment_intent_data[application_fee_amount]" => attrs[:application_fee_cents],
+      "payment_intent_data[transfer_data][destination]" => attrs[:destination]
+    }
+    |> maybe_put("customer_email", attrs[:buyer_email])
+    |> reject_nils()
+  end
+
+  @doc "Public for tests — recurring marketplace Checkout form body."
+  def marketplace_subscription_form(attrs) do
+    {success_url, cancel_url} = return_urls(attrs[:return_path] || "/marketplace/return")
+
+    %{
+      "mode" => "subscription",
+      "success_url" => success_url,
+      "cancel_url" => cancel_url,
+      "client_reference_id" => attrs[:order_id],
+      "metadata[kind]" => "marketplace",
+      "metadata[order_id]" => attrs[:order_id],
+      "metadata[listing_id]" => attrs[:listing_id],
+      "metadata[buyer_workspace_id]" => attrs[:buyer_workspace_id],
+      "metadata[seller_workspace_id]" => attrs[:seller_workspace_id],
+      "line_items[0][quantity]" => 1,
+      "line_items[0][price_data][currency]" => currency(),
+      "line_items[0][price_data][unit_amount]" => attrs[:amount_cents],
+      "line_items[0][price_data][product_data][name]" => attrs[:description],
+      "line_items[0][price_data][recurring][interval]" => "month",
+      "subscription_data[application_fee_percent]" => attrs[:application_fee_percent] || 15,
+      "subscription_data[transfer_data][destination]" => attrs[:destination],
+      "subscription_data[metadata][kind]" => "marketplace",
+      "subscription_data[metadata][order_id]" => attrs[:order_id],
+      "subscription_data[metadata][listing_id]" => attrs[:listing_id]
+    }
+    |> maybe_put("customer_email", attrs[:buyer_email])
+    |> reject_nils()
+  end
+
   @doc """
   Verifies `Stripe-Signature` and decodes the event JSON.
 

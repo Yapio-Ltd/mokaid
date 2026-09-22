@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" fill="none" role="img" aria-labelledby="t1">
+  <title id="t1">Agent listing card at level 10</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#16122a"/>
+      <stop offset="100%" stop-color="#0c0d18"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#241c3c"/>
+      <stop offset="100%" stop-color="#12131f"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#8b5ded" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#8b5ded" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#bg)"/>
+  <circle cx="520" cy="80" r="120" fill="url(#glow)"/>
+  <rect x="120" y="70" width="400" height="280" rx="24" fill="url(#card)" stroke="#5b4d82" stroke-width="1.5"/>
+  <circle cx="190" cy="145" r="36" fill="#2a2448" stroke="#8b5ded" stroke-width="2"/>
+  <text x="190" y="152" text-anchor="middle" fill="#e4d9ff" font-family="system-ui,sans-serif" font-size="22" font-weight="700">A</text>
+  <text x="245" y="138" fill="#f3eefc" font-family="system-ui,sans-serif" font-size="22" font-weight="700">Ava · Research</text>
+  <text x="245" y="164" fill="#adb6d4" font-family="system-ui,sans-serif" font-size="14">Level 10 · 48 knowledge items</text>
+  <rect x="160" y="200" width="320" height="8" rx="4" fill="#1c1d2c"/>
+  <rect x="160" y="200" width="320" height="8" rx="4" fill="#8b5ded"/>
+  <rect x="160" y="230" width="90" height="28" rx="9" fill="#1d3a2e" stroke="#3d8f6a"/>
+  <text x="205" y="249" text-anchor="middle" fill="#9dffc9" font-family="system-ui,sans-serif" font-size="12" font-weight="600">Sale</text>
+  <text x="480" y="250" text-anchor="end" fill="#dbc3ff" font-family="system-ui,sans-serif" font-size="24" font-weight="700">$49</text>
+  <rect x="160" y="280" width="320" height="44" rx="12" fill="#8b5ded"/>
+  <text x="320" y="308" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="15" font-weight="600">Buy a copy</text>
+</svg>

@@ -64,6 +64,85 @@ defmodule Mokaid.Agents.Transfer do
     end
   end
 
+  @doc """
+  Clones an agent into a buyer's workspace for a marketplace purchase or rental.
+  Same knowledge copy as `copy_agent/4`, without charging destination credits.
+  """
+  def clone_for_marketplace(
+        source_workspace_id,
+        agent_id,
+        target_workspace_id,
+        target_member,
+        marketplace_meta \\ %{}
+      ) do
+    with :ok <- ensure_distinct(source_workspace_id, target_workspace_id),
+         {:ok, agent} <- fetch_source_agent(source_workspace_id, agent_id),
+         :ok <- ensure_transferable(agent),
+         true <- is_map(target_member) || {:error, :forbidden},
+         {:ok, clone} <-
+           insert_marketplace_clone(agent, target_workspace_id, target_member, marketplace_meta) do
+      after_marketplace_commit(agent, clone)
+      {:ok, clone}
+    end
+  end
+
+  defp insert_marketplace_clone(agent, target_workspace_id, target_member, marketplace_meta) do
+    result =
+      Repo.transaction(fn ->
+        Repo.query!("SELECT pg_advisory_xact_lock(hashtext($1::text))", [
+          to_string(target_workspace_id)
+        ])
+
+        if Agents.active_agent_count(target_workspace_id) >=
+             Billing.agent_limit(target_workspace_id) do
+          Repo.rollback(:agent_limit_reached)
+        end
+
+        seat =
+          case Agents.next_free_seat(target_workspace_id) do
+            {:ok, seat} -> seat
+            {:error, :office_full} -> Repo.rollback(:office_full)
+          end
+
+        attrs =
+          agent
+          |> clone_attrs(target_workspace_id, target_member, seat)
+          |> put_marketplace_capabilities(marketplace_meta)
+
+        case %Agent{}
+             |> Agent.internal_changeset(attrs)
+             |> Repo.insert() do
+          {:ok, clone} -> clone
+          {:error, changeset} -> Repo.rollback(changeset)
+        end
+      end)
+
+    case result do
+      {:ok, clone} -> {:ok, clone}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp put_marketplace_capabilities(attrs, meta) when is_map(meta) do
+    caps = Map.get(attrs, "capabilities") || %{}
+    Map.put(attrs, "capabilities", Map.put(caps, "marketplace", meta))
+  end
+
+  defp put_marketplace_capabilities(attrs, _), do: attrs
+
+  defp after_marketplace_commit(agent, clone) do
+    Realtime.broadcast_workspace(clone.workspace_id, "agent.created", %{agent_id: clone.id})
+
+    %{
+      "source_workspace_id" => agent.workspace_id,
+      "source_agent_id" => agent.id,
+      "target_workspace_id" => clone.workspace_id,
+      "target_agent_id" => clone.id
+    }
+    |> AgentKnowledgeCopyWorker.new()
+    |> Oban.insert()
+  end
+
   defp ensure_distinct(ws, ws), do: {:error, :same_workspace}
   defp ensure_distinct(_source, _target), do: :ok
 

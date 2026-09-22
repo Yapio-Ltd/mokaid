@@ -225,6 +225,14 @@ config :mokaid, :stripe,
   api_base_url: System.get_env("API_BASE_URL", "https://api.mokaid.com"),
   web_base_url: System.get_env("WEB_BASE_URL", "https://mokaid.com")
 
+marketplace_fee =
+  case Integer.parse(System.get_env("MARKETPLACE_FEE_PERCENT") || "15") do
+    {n, _} when n >= 0 and n <= 100 -> n
+    _ -> 15
+  end
+
+config :mokaid, :marketplace, fee_percent: marketplace_fee
+
 # Provider Admin keys for cost/usage sync (platform CRM). Distinct from
 # worker inference keys — never use sk-admin / sk-ant-admin for chat.
 config :mokaid, :provider_costs,

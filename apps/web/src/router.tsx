@@ -119,6 +119,9 @@ const DesktopAuthorizePage = lazyPage(() =>
 const DownloadPage = lazyPage(() =>
   import("@/pages/download").then((m) => ({ default: m.DownloadPage })),
 );
+const MarketplaceReturnPage = lazyPage(() =>
+  import("@/pages/marketplace-return").then((m) => ({ default: m.MarketplaceReturnPage })),
+);
 const GithubCallbackPage = lazyPage(() =>
   import("@/pages/github-callback").then((m) => ({ default: m.GithubCallbackPage })),
 );
@@ -445,6 +448,12 @@ const downloadRoute = createRoute({
   component: DownloadPage,
 });
 
+const marketplaceReturnRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/marketplace/return",
+  component: MarketplaceReturnPage,
+});
+
 const termsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/terms",
@@ -495,6 +504,7 @@ const routeTree = rootRoute.addChildren([
   googleAuthCallbackRoute,
   desktopAuthorizeRoute,
   downloadRoute,
+  marketplaceReturnRoute,
   githubCallbackRoute,
   linearCallbackRoute,
   slackCallbackRoute,

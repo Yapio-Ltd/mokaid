@@ -14,6 +14,7 @@ defmodule MokaidWeb.StripeWebhookController do
 
   alias Mokaid.Billing
   alias Mokaid.Billing.Stripe
+  alias Mokaid.Marketplace
 
   def notify(conn, _params) do
     raw = conn.assigns[:raw_body] || ""
@@ -44,6 +45,7 @@ defmodule MokaidWeb.StripeWebhookController do
     Logger.info("stripe_webhook type=#{type} id=#{object["id"]}")
 
     case type do
+      "account.updated" -> Marketplace.sync_connect_account(object)
       "checkout.session.completed" -> handle_checkout(object)
       "invoice.paid" -> handle_invoice_paid(object)
       "invoice.payment_failed" -> handle_invoice_failed(object)
@@ -56,6 +58,16 @@ defmodule MokaidWeb.StripeWebhookController do
   defp handle_event(_), do: :ok
 
   defp handle_checkout(session) do
+    meta = session["metadata"] || %{}
+
+    if meta["kind"] == "marketplace" do
+      Marketplace.handle_checkout_completed(session)
+    else
+      handle_billing_checkout(session)
+    end
+  end
+
+  defp handle_billing_checkout(session) do
     if session["payment_status"] in ["paid", "no_payment_required"] do
       invoice_id = session["metadata"]["invoice_id"] || session["client_reference_id"]
 
@@ -84,6 +96,7 @@ defmodule MokaidWeb.StripeWebhookController do
 
     # First invoice is settled by checkout.session.completed.
     if reason in ["subscription_cycle", "subscription_update"] do
+      Marketplace.handle_subscription_invoice_paid(stripe_invoice)
       Billing.apply_stripe_renewal(stripe_invoice)
     else
       :ok
@@ -107,6 +120,7 @@ defmodule MokaidWeb.StripeWebhookController do
   end
 
   defp handle_subscription_deleted(object) do
+    Marketplace.handle_subscription_deleted(object)
     Billing.cancel_stripe_subscription(object)
   end
 end

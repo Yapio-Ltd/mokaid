@@ -390,7 +390,7 @@ private slots:
         QTRY_COMPARE(QDir(f.directory.path()).entryList({".mokaid-download-*"},QDir::Files|QDir::Hidden).size(),0);
     }
     void catalogSecurityBoundaries() {
-        QCOMPARE(featureCatalog().size(),31);
+        QCOMPARE(featureCatalog().size(),32);
         QVERIFY(findFeature("knowledge")==nullptr);
         QSet<QString> pages;
         int admin=0;

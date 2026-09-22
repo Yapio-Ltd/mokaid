@@ -65,6 +65,11 @@ export function SiteFooter() {
                 href: "/#agents",
               },
               {
+                name: "Marketplace",
+                Icon: BadgeDollarSign,
+                href: "/#marketplace",
+              },
+              {
                 name: "Connectors",
                 Icon: Webhook,
                 href: "/#connectors",
