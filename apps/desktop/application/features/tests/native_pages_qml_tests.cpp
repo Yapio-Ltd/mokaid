@@ -119,7 +119,19 @@ public:
     }
     QQuickItem* find(const QString& name) const { for (auto* child:children()) if (child->objectName()==name) return child; return nullptr; }
     bool click(const QString& name) {
-        auto* control=find(name); if (!control || !control->isVisible()) return false;
+        // Prefer an on-screen, sized match. GridView reuseItems can leave
+        // recycled delegates in the tree that still carry the objectName.
+        QQuickItem* control=nullptr;
+        for (auto* child:children()) {
+            if (child->objectName()!=name || !child->isVisible()) continue;
+            if (child->width()<=1 || child->height()<=1) continue;
+            const auto origin=child->mapToScene(QPointF(0,0));
+            if (origin.x()+child->width()<0 || origin.y()+child->height()<0) continue;
+            if (origin.x()>window.width() || origin.y()>window.height()) continue;
+            control=child;
+            break;
+        }
+        if (!control) return false;
         QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,control->mapToScene(QPointF(control->width()/2,control->height()/2)).toPoint());
         return true;
     }
@@ -212,7 +224,8 @@ private slots:
         QVERIFY(view.click("agentRow_fixture-software")); QTRY_COMPARE(fixture.features.selectedId(),QString("fixture-software"));
         QVERIFY(view.click("testSelectedAgent")); QCOMPARE(fixture.context.testedAgent,QString("fixture-software"));
         QVERIFY(view.click("agentFilter_all")); QVERIFY(view.click("agentGridMode"));
-        QTRY_VERIFY(view.page->property("gridMode").toBool()); QTest::qWait(50); QVERIFY(view.capture("agents-grid"));
+        QTRY_VERIFY(view.page->property("gridMode").toBool()); QTest::qWait(120); QVERIFY(view.capture("agents-grid"));
+        QTRY_VERIFY(view.inside("agentTile_fixture-legal"));
         QVERIFY(view.click("agentTile_fixture-legal")); QTRY_COMPARE(fixture.features.selectedId(),QString("fixture-legal"));
         QVERIFY(view.click("agentListMode"));
         for (int tab=0;tab<4;++tab) { QVERIFY(view.click("agentTab_"+QString::number(tab))); QCOMPARE(view.page->property("inspectorTab").toInt(),tab); }
