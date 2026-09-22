@@ -127,7 +127,8 @@ defmodule Mokaid.Marketplace do
     from(l in Listing,
       join: a in Agent,
       on: a.id == l.agent_id,
-      where: l.status == "active" and l.workspace_id != ^buyer_workspace_id and is_nil(a.archived_at),
+      where:
+        l.status == "active" and l.workspace_id != ^buyer_workspace_id and is_nil(a.archived_at),
       preload: [agent: a],
       order_by: [desc: l.inserted_at]
     )
@@ -143,7 +144,12 @@ defmodule Mokaid.Marketplace do
 
   defp maybe_search(query, q) when is_binary(q) and byte_size(q) > 0 do
     like = "%#{String.replace(q, "%", "\\%")}%"
-    where(query, [l, a], ilike(a.display_name, ^like) or ilike(a.role_title, ^like) or ilike(l.title, ^like))
+
+    where(
+      query,
+      [l, a],
+      ilike(a.display_name, ^like) or ilike(a.role_title, ^like) or ilike(l.title, ^like)
+    )
   end
 
   defp maybe_search(query, _), do: query
@@ -163,7 +169,8 @@ defmodule Mokaid.Marketplace do
         listing: listing,
         knowledge_item_count: knowledge,
         level: level,
-        eligible: level >= @min_level and agent.status != "training" and is_nil(agent.archived_at),
+        eligible:
+          level >= @min_level and agent.status != "training" and is_nil(agent.archived_at),
         levels_remaining: max(@min_level - level, 0)
       }
     end)
@@ -279,7 +286,7 @@ defmodule Mokaid.Marketplace do
     price = parse_int(attrs["price_cents"])
 
     with true <- mode in Listing.modes() || {:error, :invalid_mode},
-         true <- is_integer(price) and price >= @min_price_cents || {:error, :price_too_low},
+         true <- (is_integer(price) and price >= @min_price_cents) || {:error, :price_too_low},
          {:ok, rent_fields} <- rent_fields(mode, attrs) do
       knowledge = Map.get(knowledge_counts(workspace_id, [agent.id]), agent.id, 0)
 
@@ -356,8 +363,10 @@ defmodule Mokaid.Marketplace do
          %ConnectAccount{} = connect <- get_connect_account(listing.workspace_id),
          :ok <- ensure_buyer_capacity(buyer_workspace_id),
          %Agent{} = source <- Agents.get_agent(listing.workspace_id, listing.agent_id),
-         true <- source.kind == "ai" and is_nil(source.archived_at) || {:error, :agent_unavailable},
-         {:ok, order} <- insert_pending_order(listing, buyer_workspace_id, buyer_member, buyer_user, source) do
+         true <-
+           (source.kind == "ai" and is_nil(source.archived_at)) || {:error, :agent_unavailable},
+         {:ok, order} <-
+           insert_pending_order(listing, buyer_workspace_id, buyer_member, buyer_user, source) do
       if Stripe.enabled?() do
         open_stripe_checkout(order, listing, connect, buyer_user)
       else
@@ -491,7 +500,8 @@ defmodule Mokaid.Marketplace do
 
       with {:ok, _} <- Ecto.UUID.cast(order_id),
            %Order{} = order <- Repo.get(Order, order_id) |> Repo.preload([:listing]),
-           true <- session["payment_status"] in ["paid", "no_payment_required"] || {:ignored, :unpaid} do
+           true <-
+             session["payment_status"] in ["paid", "no_payment_required"] || {:ignored, :unpaid} do
         attrs = %{
           status: "paid",
           paid_at: DateTime.utc_now(),
@@ -513,7 +523,12 @@ defmodule Mokaid.Marketplace do
 
   def handle_checkout_completed(_), do: {:ignored, :invalid}
 
-  def fulfill_paid_order(%Order{status: status} = order, listing, buyer_workspace_id, buyer_member)
+  def fulfill_paid_order(
+        %Order{status: status} = order,
+        listing,
+        buyer_workspace_id,
+        buyer_member
+      )
       when status in ["paid", "fulfilled"] do
     if order.cloned_agent_id do
       {:ok, order}
@@ -535,7 +550,11 @@ defmodule Mokaid.Marketplace do
              |> Repo.update(),
            {:ok, _lease} <- maybe_create_lease(order, listing, clone) do
         Realtime.broadcast_workspace(buyer_workspace_id, "agent.created", %{agent_id: clone.id})
-        Realtime.broadcast_workspace(buyer_workspace_id, "marketplace.purchase", %{order_id: order.id})
+
+        Realtime.broadcast_workspace(buyer_workspace_id, "marketplace.purchase", %{
+          order_id: order.id
+        })
+
         {:ok, order}
       end
     end
