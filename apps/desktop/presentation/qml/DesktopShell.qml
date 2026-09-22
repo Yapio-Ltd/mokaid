@@ -306,9 +306,15 @@ Item {
                     visible: active
                     sourceComponent: AgentsPage { onActionRequested: function(action) { root.actionRequested(action) } }
                 }
+                Loader {
+                    id: marketplaceLoader; anchors.fill: parent
+                    active: features.currentPage === "marketplace" && !!session.workspaceId
+                    visible: active
+                    sourceComponent: MarketplacePage { onActionRequested: function(action) { root.actionRequested(action) } }
+                }
                 FeaturePage {
                     anchors.fill: parent
-                    visible: features.currentPage !== "office" && features.currentPage !== "agents"
+                    visible: features.currentPage !== "office" && features.currentPage !== "agents" && features.currentPage !== "marketplace"
                     onActionRequested: function(action) { root.actionRequested(action) }
                 }
                 ColumnLayout {

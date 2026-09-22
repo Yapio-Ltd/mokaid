@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" fill="none" role="img" aria-labelledby="t3">
+  <title id="t3">Knowledge travels with the agent</title>
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#15122a"/>
+      <stop offset="100%" stop-color="#0c0e18"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#8b5ded"/>
+    </marker>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#bg3)"/>
+  <rect x="70" y="120" width="160" height="180" rx="20" fill="#1a1730" stroke="#5b4d82"/>
+  <circle cx="150" cy="175" r="28" fill="#2a2448" stroke="#8b5ded"/>
+  <text x="150" y="230" text-anchor="middle" fill="#f3eefc" font-family="system-ui,sans-serif" font-size="14" font-weight="600">Agent</text>
+  <text x="150" y="255" text-anchor="middle" fill="#adb6d4" font-family="system-ui,sans-serif" font-size="12">+ knowledge</text>
+  <path d="M250 210 H390" stroke="#8b5ded" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="410" y="120" width="160" height="180" rx="20" fill="#12131f" stroke="#3d8f6a"/>
+  <circle cx="490" cy="175" r="28" fill="#1d3a2e" stroke="#3d8f6a"/>
+  <text x="490" y="230" text-anchor="middle" fill="#f3eefc" font-family="system-ui,sans-serif" font-size="14" font-weight="600">Clone</text>
+  <text x="490" y="255" text-anchor="middle" fill="#9dffc9" font-family="system-ui,sans-serif" font-size="12">Same memory</text>
+  <text x="320" y="80" text-anchor="middle" fill="#dbc3ff" font-family="system-ui,sans-serif" font-size="16" font-weight="600">Linked knowledge ships with every copy</text>
+</svg>

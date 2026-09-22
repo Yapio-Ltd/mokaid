@@ -82,6 +82,25 @@ defmodule MokaidWeb.FallbackController do
 
   defp humanize(:agent_in_training), do: "Wait for the agent to finish training before copying it"
 
+  defp humanize(:level_too_low),
+    do: "Agents must reach level 10 before they can be listed on the marketplace"
+
+  defp humanize(:connect_incomplete),
+    do: "Finish Stripe Connect onboarding before publishing a listing"
+
+  defp humanize(:seller_connect_incomplete),
+    do: "This seller cannot receive payments yet"
+
+  defp humanize(:listing_already_open), do: "This agent already has an open marketplace listing"
+  defp humanize(:own_listing), do: "You cannot purchase your own listing"
+  defp humanize(:price_too_low), do: "Price must be at least 1.00 in the listing currency"
+  defp humanize(:invalid_country), do: "Provide a valid two-letter country code"
+  defp humanize(:stripe_disabled), do: "Stripe payments are not configured"
+  defp humanize(:only_ai_agents), do: "Only AI agents can be listed on the marketplace"
+  defp humanize(:invalid_mode), do: "Choose sale or rent"
+  defp humanize(:invalid_rent_billing), do: "Choose a monthly subscription or a fixed rental term"
+  defp humanize(:invalid_fixed_days), do: "Fixed rentals must be 7, 30, or 90 days"
+
   defp humanize(:not_a_member_of_target_workspace),
     do: "You are not a member of the destination workspace"
 

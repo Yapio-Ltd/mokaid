@@ -199,6 +199,15 @@ defmodule MokaidWeb.Router do
     get "/billing/config", BillingController, :config
     post "/billing/portal", BillingController, :portal
 
+    get "/marketplace/listings", MarketplaceController, :listings
+    get "/marketplace/mine", MarketplaceController, :mine
+    get "/marketplace/earnings", MarketplaceController, :earnings
+    post "/marketplace/listings", MarketplaceController, :create_listing
+    post "/marketplace/listings/:id/pause", MarketplaceController, :pause_listing
+    post "/marketplace/listings/:id/resume", MarketplaceController, :resume_listing
+    post "/marketplace/connect/onboard", MarketplaceController, :connect_onboard
+    post "/marketplace/checkout", MarketplaceController, :checkout
+
     get "/analytics/overview", AnalyticsController, :overview
     get "/analytics/agents", AnalyticsController, :agents
     get "/analytics/tasks", AnalyticsController, :tasks

@@ -39,10 +39,13 @@ config :mokaid, Oban,
        {"*/5 * * * *", Mokaid.Tasks.Workers.StaleRunWorker},
        {"* * * * *", Mokaid.Office.Workers.ActivitySchedulerWorker},
        {"* * * * *", Mokaid.AI.Workers.ScheduleWorker},
-       {"*/2 * * * *", Mokaid.Mail.Workers.PollWorker},
-       {"30 * * * *", Mokaid.Mail.Workers.WatchRenewalWorker}
+      {"*/2 * * * *", Mokaid.Mail.Workers.PollWorker},
+      {"30 * * * *", Mokaid.Mail.Workers.WatchRenewalWorker},
+      {"*/30 * * * *", Mokaid.Marketplace.Workers.LeaseExpiryWorker}
      ]}
   ]
+
+config :mokaid, :marketplace, fee_percent: 15
 
 # Empty = serve relative /assets3d/* from the web origin (public folder / future CF).
 config :mokaid, :assets_cdn_url, ""

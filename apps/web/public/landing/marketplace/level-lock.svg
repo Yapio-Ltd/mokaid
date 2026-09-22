@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" fill="none" role="img" aria-labelledby="t4">
+  <title id="t4">Locked until level 10</title>
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1218"/>
+      <stop offset="100%" stop-color="#0c0d14"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#bg4)"/>
+  <rect x="140" y="80" width="360" height="260" rx="24" fill="#18141f" stroke="#8a4a5c" stroke-width="1.5"/>
+  <circle cx="320" cy="160" r="40" fill="#2a1c24" stroke="#ff91a9" stroke-width="2"/>
+  <path d="M308 155 v-12 c0-8 24-8 24 0 v12" stroke="#ffb4c4" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <rect x="302" y="155" width="36" height="28" rx="6" fill="#ff91a9" fill-opacity="0.35" stroke="#ffb4c4"/>
+  <text x="320" y="230" text-anchor="middle" fill="#ffb4c4" font-family="system-ui,sans-serif" font-size="18" font-weight="700">Level 7 / 10</text>
+  <rect x="190" y="255" width="260" height="10" rx="5" fill="#2a1c24"/>
+  <rect x="190" y="255" width="182" height="10" rx="5" fill="#8a4a5c"/>
+  <text x="320" y="300" text-anchor="middle" fill="#adb6d4" font-family="system-ui,sans-serif" font-size="13">Cannot go live until level 10</text>
+</svg>

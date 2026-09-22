@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" fill="none" role="img" aria-labelledby="t2">
+  <title id="t2">Choose sell or rent</title>
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#141228"/>
+      <stop offset="100%" stop-color="#0b0c16"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#bg2)"/>
+  <rect x="70" y="90" width="230" height="240" rx="22" fill="#1a1730" stroke="#8b5ded" stroke-width="2"/>
+  <text x="185" y="150" text-anchor="middle" fill="#dbc3ff" font-family="system-ui,sans-serif" font-size="18" font-weight="700">Sell</text>
+  <text x="185" y="190" text-anchor="middle" fill="#adb6d4" font-family="system-ui,sans-serif" font-size="13">Unlimited copies</text>
+  <text x="185" y="215" text-anchor="middle" fill="#adb6d4" font-family="system-ui,sans-serif" font-size="13">You keep the original</text>
+  <circle cx="150" cy="270" r="18" fill="#2a2448" stroke="#8b5ded"/>
+  <circle cx="185" cy="270" r="18" fill="#2a2448" stroke="#8b5ded"/>
+  <circle cx="220" cy="270" r="18" fill="#2a2448" stroke="#8b5ded"/>
+  <rect x="340" y="90" width="230" height="240" rx="22" fill="#12131f" stroke="#453a66" stroke-width="1.5"/>
+  <text x="455" y="150" text-anchor="middle" fill="#e2d4ff" font-family="system-ui,sans-serif" font-size="18" font-weight="700">Rent</text>
+  <text x="455" y="190" text-anchor="middle" fill="#adb6d4" font-family="system-ui,sans-serif" font-size="13">Monthly or 7 / 30 / 90 days</text>
+  <text x="455" y="215" text-anchor="middle" fill="#adb6d4" font-family="system-ui,sans-serif" font-size="13">Access ends with the term</text>
+  <rect x="390" y="255" width="130" height="10" rx="5" fill="#1c1d2c"/>
+  <rect x="390" y="255" width="70" height="10" rx="5" fill="#55beff"/>
+</svg>
