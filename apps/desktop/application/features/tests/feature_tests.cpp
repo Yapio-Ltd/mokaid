@@ -139,6 +139,48 @@ private slots:
         QVERIFY(!changes.isEmpty());
         QVERIFY(controller.selectedRecord().isEmpty());
     }
+    void agentSelectionLoadsOnlyThatAgentsTasks() {
+        LocalApi remote;
+        remote.handler=[](QTcpSocket* socket,const QString& path) {
+            if (path.startsWith("/api/tasks?")) {
+                LocalApi::reply(socket,R"({"data":[{"id":"task-a","assigned_agent_id":"agent-a","status":"in_progress","progress_percent":40},{"id":"task-b","assigned_agent_id":"agent-b","status":"completed","progress_percent":100},{"id":"task-c","assigned_agent_id":"agent-a","status":"completed","progress_percent":100}]})");
+                return;
+            }
+            if (path.startsWith("/api/agents/")) {
+                const auto id=path.section('/',3,3);
+                LocalApi::reply(socket,QByteArray("{\"data\":{\"id\":\"")+id.toUtf8()+"\",\"display_name\":\"Avery\",\"status\":\"idle\"}}");
+                return;
+            }
+            LocalApi::reply(socket,R"({"data":[{"id":"agent-a","display_name":"Avery","status":"idle"},{"id":"agent-b","display_name":"Orion","status":"active"}]})");
+        };
+        ApiClient api(remote.origin()); api.setSession("test-alice","alice",false); api.setWorkspace("workspace-a");
+        PhoenixClient realtime; SessionController session(api,realtime); QTemporaryDir directory;
+        CacheStore cache(directory.path()); FeatureController controller(api,session,cache);
+        controller.navigate("agents"); QTRY_COMPARE(controller.allRecords().size(),2);
+        QCOMPARE(controller.selectedAgentTasksState(),QString("idle"));
+        controller.select("agent-a");
+        QTRY_COMPARE(controller.selectedAgentTasksState(),QString("ready"));
+        QCOMPARE(controller.selectedAgentTasks().size(),2);
+        QVERIFY(remote.paths.contains("/api/tasks?agent_id=agent-a"));
+        controller.select("agent-b");
+        QTRY_COMPARE(controller.selectedAgentTasks().size(),1);
+        QCOMPARE(controller.selectedAgentTasks().first().toMap().value("id").toString(),QString("task-b"));
+        controller.clearSelection();
+        QCOMPARE(controller.selectedAgentTasksState(),QString("idle"));
+        QVERIFY(controller.selectedAgentTasks().isEmpty());
+        controller.openRecord("agent-performance","agent-a");
+        QTRY_COMPARE(controller.currentPage(),QString("agent-performance"));
+        QTRY_COMPARE(controller.selectedAgentTasksState(),QString("ready"));
+        QCOMPARE(controller.selectedAgentTasks().size(),2);
+        controller.openMarketplaceOffer("agent-a","lease");
+        QCOMPARE(controller.currentPage(),QString("agent-performance"));
+        QVERIFY(controller.error().contains("rent"));
+        QVERIFY(controller.pendingOfferAgentId().isEmpty());
+        controller.openMarketplaceOffer("agent-a","sale");
+        QTRY_COMPARE(controller.currentPage(),QString("marketplace"));
+        QCOMPARE(controller.pendingOfferMode(),QString("sale"));
+        QCOMPARE(controller.pendingOfferAgentId(),QString("agent-a"));
+    }
     void actionFormContextCannotCrossFolderSelectionOrAccount() {
         DriveFixture f; auto& c=*f.controller;
         c.navigate("drive"); QTRY_VERIFY(!c.busy()); const auto rootContext=c.actionContext("create");
@@ -390,7 +432,7 @@ private slots:
         QTRY_COMPARE(QDir(f.directory.path()).entryList({".mokaid-download-*"},QDir::Files|QDir::Hidden).size(),0);
     }
     void catalogSecurityBoundaries() {
-        QCOMPARE(featureCatalog().size(),32);
+        QCOMPARE(featureCatalog().size(),33);
         QVERIFY(findFeature("knowledge")==nullptr);
         QSet<QString> pages;
         int admin=0;

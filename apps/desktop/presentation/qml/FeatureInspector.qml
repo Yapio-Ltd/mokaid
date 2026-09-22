@@ -19,11 +19,30 @@ Rectangle {
     readonly property var selectionActions: features.actions.filter(function(a){return a.selection;})
     readonly property string taskRunState: page==="tasks" ? Logic.taskRunState(currentRecord) : ""
     readonly property var taskQuickActions: page!=="tasks" ? [] : selectionActions.filter(function(action){
+        if(root.taskRunState==="report") return false;
         if(action.id==="comment" || action.id==="runs") return true;
-        if(action.id==="stop") return root.taskRunState==="running";
+        if(action.id==="stop") return root.taskRunState==="running" || root.taskRunState==="approval";
+        if(action.id==="approve") return root.taskRunState==="approval";
         if(action.id==="run") return root.taskRunState!=="running" && root.taskRunState!=="approval" && !!root.currentRecord.assigned_agent_id && root.currentRecord.assigned_agent_kind!=="human_linked" && ["completed","canceled"].indexOf(root.currentRecord.status)<0;
         return false;
     })
+    property bool restartReport: false
+    function writeSeoReport() {
+        if(features.busy || root.taskRunState!=="report") return;
+        restartReport=true;
+        features.submit("stop", {"_confirmed": true, "_context": features.actionContext("stop")});
+    }
+    Connections {
+        target: features
+        function onActionSucceeded(context) {
+            if(!root.restartReport) return;
+            root.restartReport=false;
+            features.submit("run", {"_context": features.actionContext("run")});
+        }
+        function onChanged() {
+            if(root.restartReport && features.error.length) root.restartReport=false;
+        }
+    }
     onCurrentRecordChanged: taskMetadataExpanded=false
     readonly property var primarySelectedAction: {
         const preferred = page==="drive" ? (currentRecord.kind==="folder" ? "children" : "open") : page==="integrations" ? (currentRecord.installation_id ? "uninstall" : "install") : "edit";
@@ -80,7 +99,7 @@ Rectangle {
                         MokaidLabel { Layout.fillWidth: true; text: root.currentRecord.project_name || ""; color: Theme.secondary; font.pixelSize: 12; wrapMode: Text.Wrap }
                     }
                     ColumnLayout {
-                        visible: Logic.progress(root.currentRecord)!==null
+                        visible: Logic.progress(root.currentRecord)!==null && !(root.taskRunState==="report" && Logic.progress(root.currentRecord)===0)
                         Layout.fillWidth: true; spacing: 7
                         RowLayout {
                             Layout.fillWidth: true
@@ -93,6 +112,16 @@ Rectangle {
                         }
                     }
                     MokaidLabel { Layout.fillWidth: true; text: Logic.taskHint(root.currentRecord); color: root.taskRunState==="failed" ? Theme.danger : root.taskRunState==="approval" ? Theme.warning : Theme.secondary; font.pixelSize: 12; wrapMode: Text.Wrap }
+                    MokaidButton {
+                        visible: root.taskRunState==="report"
+                        Layout.fillWidth: true
+                        objectName: "writeSeoReport"
+                        text: root.restartReport || features.busy ? "Écriture du compte rendu…" : "Écrire le compte rendu"
+                        iconName: "play"
+                        highlighted: true
+                        enabled: !features.busy
+                        onClicked: root.writeSeoReport()
+                    }
                     Flow {
                         Layout.fillWidth: true; spacing: 6
                         Repeater {

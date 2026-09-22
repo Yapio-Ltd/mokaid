@@ -515,6 +515,39 @@ export const OFFICE_POIS: OfficePoi[] = [
     ],
   },
   {
+    id: "sofa_left",
+    kind: "sofa",
+    capacity: 3,
+    // Screen-left lounge (Cube.012). The isometric camera puts this cushion
+    // on the far left and sofa_main on the right. Sitters face +Z into the
+    // room, on the front of a cushion whose top measures ~0.60 m — lower
+    // than Cube.002, so they must not reuse that seat height.
+    approach: [{ x: 5.65, z: -5.15 }],
+    slots: [
+      {
+        id: "sofa_d",
+        position: { x: 5.15, z: -5.88 },
+        facing: 0,
+        animation: "sitting_sofa",
+        seatHeight: 0.6,
+      },
+      {
+        id: "sofa_e",
+        position: { x: 5.65, z: -5.88 },
+        facing: 0,
+        animation: "sitting_sofa",
+        seatHeight: 0.6,
+      },
+      {
+        id: "sofa_f",
+        position: { x: 6.15, z: -5.88 },
+        facing: 0,
+        animation: "sitting_sofa",
+        seatHeight: 0.6,
+      },
+    ],
+  },
+  {
     id: "coffee",
     kind: "coffee",
     capacity: 1,

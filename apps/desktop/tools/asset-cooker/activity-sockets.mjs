@@ -25,11 +25,16 @@ export function activitySockets(source) {
   for (const m of deskBlock.matchAll(/\{\s*x:\s*([-\d.]+),\s*z:\s*([-\d.]+),\s*facing:\s*([-\d.]+),\s*seatHeight:\s*DESK_SEAT_HEIGHT\s*\}/g))
     add(`desk_${sockets.length}`,0,Number(m[1]),Number(m[2]),Number(m[3]),constant('DESK_SEAT_HEIGHT'),12);
   if (sockets.length !== 9) throw Error('Expected nine authored desk sockets');
-  for (const m of poiBlock.matchAll(/id:\s*"(sofa_[abc]|coffee_active|foosball_[ab])",[\s\S]*?position:\s*\{\s*x:\s*([-\d.]+),\s*z:\s*([-\d.]+)\s*\},\s*facing:\s*([^,]+),/g)) {
+  const sofaHeight = new Map();
+  for (const m of poiBlock.matchAll(/id:\s*"(sofa_[a-z])",[\s\S]*?seatHeight:\s*(SOFA_SEAT_HEIGHT|\d+(?:\.\d+)?)/g))
+    sofaHeight.set(m[1], m[2] === 'SOFA_SEAT_HEIGHT' ? constant('SOFA_SEAT_HEIGHT') : Number(m[2]));
+  for (const m of poiBlock.matchAll(/id:\s*"(sofa_[a-z]|coffee_active|foosball_[ab])",[\s\S]*?position:\s*\{\s*x:\s*([-\d.]+),\s*z:\s*([-\d.]+)\s*\},\s*facing:\s*([^,]+),/g)) {
     const kind = m[1].startsWith('sofa_') ? 1 : m[1].startsWith('coffee_') ? 2 : 3;
-    add(m[1],kind,Number(m[2]),Number(m[3]),number(m[4]),kind===1?constant('SOFA_SEAT_HEIGHT'):0,kind===2?4:9);
+    const height = kind === 1 ? sofaHeight.get(m[1]) : 0;
+    if (kind === 1 && !Number.isFinite(height)) throw Error(`Missing sofa seat height ${m[1]}`);
+    add(m[1],kind,Number(m[2]),Number(m[3]),number(m[4]),height,kind===2?4:9);
   }
-  if (sockets.length !== 15) throw Error('Expected six authored leisure sockets');
+  if (sockets.length !== 18) throw Error('Expected nine authored leisure sockets');
   const queue = poiBlock.match(/id:\s*"coffee",[\s\S]*?queueSlots:\s*\[([\s\S]*?)\]/)?.[1];
   const chat = [...(queue ?? '').matchAll(/x:\s*([-\d.]+),\s*z:\s*([-\d.]+)/g)].map(m=>({x:Number(m[1]),z:-Number(m[2])}));
   if (chat.length !== 2) throw Error('Expected two coffee conversation places');

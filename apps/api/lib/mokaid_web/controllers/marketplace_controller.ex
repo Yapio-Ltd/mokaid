@@ -1,6 +1,7 @@
 defmodule MokaidWeb.MarketplaceController do
   use MokaidWeb, :controller
 
+  alias Mokaid.Assets3d
   alias Mokaid.Marketplace
   alias Mokaid.Marketplace.{ConnectAccount, Lease, Listing, Order}
   alias MokaidWeb.JSON, as: Serializer
@@ -149,11 +150,13 @@ defmodule MokaidWeb.MarketplaceController do
         if(agent,
           do: %{
             id: agent.id,
+            kind: agent.kind,
             display_name: agent.display_name,
             role_title: agent.role_title,
             department: agent.department,
             level: agent.level,
             avatar_asset_id: agent.avatar_asset_id,
+            avatar_cdn_path: avatar_cdn_path(agent.avatar_asset_id),
             avatar_config: agent.avatar_config,
             skills: agent.skills
           }
@@ -192,6 +195,16 @@ defmodule MokaidWeb.MarketplaceController do
       cloned_agent_id: lease.cloned_agent_id,
       source_agent_id: lease.source_agent_id
     }
+  end
+
+  defp avatar_cdn_path(nil), do: nil
+  defp avatar_cdn_path(""), do: nil
+
+  defp avatar_cdn_path(asset_id) when is_binary(asset_id) do
+    case Assets3d.get_asset(asset_id) do
+      %{cdn_path: path} when is_binary(path) and path != "" -> path
+      _ -> nil
+    end
   end
 
   defp connect_json(nil), do: nil

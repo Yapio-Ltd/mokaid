@@ -91,10 +91,12 @@ QVariantList MissionController::grants() const {
     return result;
 }
 void MissionController::fail(const QString& message) { error_ = message; emit changed(); }
-void MissionController::begin(const QString& instruction) {
+void MissionController::begin(const QString& instruction) { openDraft(instruction, true); }
+void MissionController::beginInline(const QString& instruction) { openDraft(instruction, false); }
+void MissionController::openDraft(const QString& instruction, bool openSheet) {
     contextChanged();
     if (step_ == "done") reset();
-    opened_ = true;
+    opened_ = openSheet;
     if (!instruction.isEmpty() && instruction_.isEmpty() && !busy()) setInstruction(instruction);
     loadAgents(); emit changed();
 }

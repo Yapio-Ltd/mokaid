@@ -73,7 +73,7 @@ Item {
                 Rectangle {
                     implicitWidth: taskStatus.implicitWidth+12; implicitHeight: 21; radius: 6
                     color: Logic.alpha(root.colorFor(taskCard.dataRecord.status),0.10)
-                    MokaidLabel { id: taskStatus; anchors.centerIn: parent; text: Logic.status(taskCard.dataRecord,"tasks"); font.pixelSize: 10; color: root.colorFor(taskCard.dataRecord.status) }
+                    MokaidLabel { id: taskStatus; anchors.centerIn: parent; text: Logic.status(taskCard.dataRecord,"tasks"); font.pixelSize: 10; color: root.colorFor(Logic.status(taskCard.dataRecord,"tasks")) }
                 }
                 MokaidLabel {
                     visible: !!taskCard.dataRecord.priority; text: Logic.human(taskCard.dataRecord.priority); color: root.colorFor(taskCard.dataRecord.priority); font.pixelSize: 10

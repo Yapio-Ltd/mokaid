@@ -77,6 +77,31 @@ describe("sofa seating", () => {
   });
 });
 
+describe("left lounge seating", () => {
+  const sofa = OFFICE_POIS.find((p) => p.id === "sofa_left")!;
+  /** Cube.012, the screen-left cushion. Distinct from Cube.002 (sofa_main). */
+  const LEFT_CUSHION = { minX: 4.46, maxX: 6.49, minZ: -6.38, maxZ: -5.74 };
+
+  it("sits on the left cushion, facing into the room", () => {
+    expect(sofa.slots).toHaveLength(3);
+    for (const slot of sofa.slots) {
+      expect(inAabb(slot.position, LEFT_CUSHION), `${slot.id} misses the left sofa`).toBe(true);
+      expect(pointHitsObstacle(slot.position), `${slot.id} should be on the cushion`).toBe(true);
+      expect(slot.facing, `${slot.id} facing`).toBeCloseTo(0, 5);
+      expect(slot.seatHeight, `${slot.id} seatHeight`).toBeCloseTo(0.6, 2);
+      expect(slot.position.z, `${slot.id} too deep`).toBeGreaterThan(-6.05);
+      expect(slot.position.z, `${slot.id} off the seat`).toBeLessThan(-5.74);
+    }
+  });
+
+  it("keeps the two lounges apart so a body cannot occupy both", () => {
+    const right = OFFICE_POIS.find((p) => p.id === "sofa_main")!;
+    const rightMax = Math.max(...right.slots.map((s) => s.position.x));
+    const leftMin = Math.min(...sofa.slots.map((s) => s.position.x));
+    expect(leftMin - rightMax).toBeGreaterThan(2);
+  });
+});
+
 describe("foosball players", () => {
   const foos = OFFICE_POIS.find((p) => p.id === "foosball")!;
   const midX = (FOOSBALL_TABLE_AABB.minX + FOOSBALL_TABLE_AABB.maxX) / 2;

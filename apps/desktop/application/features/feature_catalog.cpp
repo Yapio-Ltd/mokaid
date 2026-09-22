@@ -112,6 +112,7 @@ const QList<FeatureDescriptor>& featureCatalog() {
                     {field("country","Country code (ISO)","text",true)})}),
             page("agent-new","Create agent","add","/api/agents/catalog","",{agentActions().front()},"archetypes",false,true),
             page("agent-detail","Agent profile","agents","/api/agents","/api/agents/{id}",agentActions(),"",false,true),
+            page("agent-performance","Agent performance","analytics","/api/agents","/api/agents/{id}",{},"",false,true),
             page("agent-training","Agent training","training","/api/agents","/api/agents/{id}/training",{},"",false,true),
             page("tasks","Tasks","tasks","/api/tasks","/api/tasks/{id}",{
                 action("create","Create task","POST","/api/tasks",false,false,taskFields),

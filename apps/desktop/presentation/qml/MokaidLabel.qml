@@ -7,4 +7,6 @@ Basic.Label {
     color: Theme.text
     font.family: Theme.fontFamily
     font.pixelSize: 13
+    // Controls size the label to the button. Keep the glyphs in the middle of that box.
+    verticalAlignment: Text.AlignVCenter
 }

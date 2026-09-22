@@ -26,8 +26,12 @@ class FeatureController final : public QObject {
     Q_PROPERTY(QVariantList fields READ fields NOTIFY changed)
     Q_PROPERTY(QVariantList actions READ actions NOTIFY changed)
     Q_PROPERTY(QVariantMap details READ details NOTIFY changed)
+    Q_PROPERTY(QVariantList selectedAgentTasks READ selectedAgentTasks NOTIFY changed)
+    Q_PROPERTY(QString selectedAgentTasksState READ selectedAgentTasksState NOTIFY changed)
     Q_PROPERTY(QObject* detailView READ detailView CONSTANT)
     Q_PROPERTY(QString selectedId READ selectedId NOTIFY changed)
+    Q_PROPERTY(QString pendingOfferAgentId READ pendingOfferAgentId NOTIFY changed)
+    Q_PROPERTY(QString pendingOfferMode READ pendingOfferMode NOTIFY changed)
     Q_PROPERTY(bool hasMore READ hasMore NOTIFY changed)
     Q_PROPERTY(QVariantList driveBreadcrumbs READ driveBreadcrumbs NOTIFY changed)
     Q_PROPERTY(QString driveFolderId READ driveFolderId NOTIFY changed)
@@ -52,8 +56,12 @@ public:
     QVariantList fields() const;
     QVariantList actions() const;
     QVariantMap details() const { return details_; }
+    QVariantList selectedAgentTasks() const { return selectedAgentTasks_; }
+    QString selectedAgentTasksState() const { return selectedAgentTasksState_; }
     QObject* detailView() { return &detailView_; }
     QString selectedId() const { return selectedId_; }
+    QString pendingOfferAgentId() const { return pendingOfferAgentId_; }
+    QString pendingOfferMode() const { return pendingOfferMode_; }
     bool hasMore() const { return nextPage_ > 0; }
     QVariantList driveBreadcrumbs() const { return driveBreadcrumbs_; }
     QString driveFolderId() const { return driveBreadcrumbs_.last().toMap().value("id").toString(); }
@@ -67,6 +75,8 @@ public:
     Q_INVOKABLE void setDriveTrash(bool trash);
     Q_INVOKABLE void requestDriveDownload();
     Q_INVOKABLE void navigate(const QString& page);
+    Q_INVOKABLE void openMarketplaceOffer(const QString& agentId, const QString& mode);
+    Q_INVOKABLE void consumeMarketplaceOffer();
     Q_INVOKABLE void openRecord(const QString& page, const QString& id);
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void select(const QString& id);
@@ -98,6 +108,9 @@ private:
     QString driveListPath() const;
     void changeDriveLocation(QVariantList breadcrumbs, bool trash);
     void invalidateDriveCache(const QString& id, const QString& oldParent, const QString& newParent);
+    void loadSelectedAgentTasks(const QString& agentId);
+    void resetSelectedAgentTasks();
+    bool agentTasksPage() const;
     ApiClient& api_;
     SessionController& session_;
     CacheStore& cache_;
@@ -106,9 +119,14 @@ private:
     DriveDownload driveDownload_;
     QTimer searchTimer_;
     QString currentPage_{"office"}, selectedId_, error_, search_, contextTag_;
+    QString pendingOfferAgentId_, pendingOfferMode_;
     QString pendingSelection_, detailHeading_, detailCollection_;
     // Secondary reports may replace displayed details, but never edit defaults.
     QVariantMap details_, editDetails_, overview_;
+    QVariantList selectedAgentTasks_;
+    QString selectedAgentTasksState_{QStringLiteral("idle")};
+    QString selectedAgentTasksAgent_;
+    quint64 agentTasksEpoch_{};
     QVariantList driveBreadcrumbs_{{QVariantMap{{"id",QString{}},{"name","Drive"}}}};
     bool driveTrash_{};
     QHash<QByteArray, QString> retryKeys_;

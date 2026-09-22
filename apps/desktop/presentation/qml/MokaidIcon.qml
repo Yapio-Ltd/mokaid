@@ -56,7 +56,8 @@ Item {
         "send": "M3 3L22 12L3 21L6 12L3 3M6 12H15",
         "pulse": "M2 12H6L9 4L14 20L17 12H22",
         "bolt": "M14 2L5 14H11L10 22L20 9H13L14 2",
-        "shield": "M12 2L21 6V12C21 17 17 21 12 23C7 21 3 17 3 12V6L12 2M8 12L11 15L17 9"
+        "shield": "M12 2L21 6V12C21 17 17 21 12 23C7 21 3 17 3 12V6L12 2M8 12L11 15L17 9",
+        "lock": "M8 11V8C8 4 16 4 16 8V11M6 11H18V20H6V11M12 14V17"
     })
     Shape {
         anchors.centerIn: parent

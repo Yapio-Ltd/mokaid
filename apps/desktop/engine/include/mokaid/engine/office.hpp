@@ -112,7 +112,8 @@ private:
   const Scene &avatar(const Agent &) const;
   std::vector<Navigation::Disc> chairDiscs() const;
   std::vector<Vec3> sofaRoute(const Navigation::ActivitySocket &,std::span<const Navigation::Disc>) const;
-  bool sofaReserved() const;
+  bool loungeReserved(bool screenLeft) const;
+  bool loungeOpen(bool screenLeft) const;
   void startSocial(const Agent &,Motion &,Motion &);
   void updateSocial(const Agent &,Motion &);
   bool continueAtSofa(const Agent &,Motion &);

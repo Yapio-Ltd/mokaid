@@ -44,8 +44,25 @@ _WEBAPP_RECOMMEND_RE = re.compile(
 )
 
 
+# Reviewing an existing site (SEO, audit) is not a request to build one.
+_SITE_REVIEW_RE = re.compile(
+    r"\b(seo|référenc\w*|referenc\w*|audit|backlink|keyword|mots?[- ]cl[ée]s?|crawl|indexation)\b",
+    re.IGNORECASE,
+)
+_SITE_BUILD_RE = re.compile(
+    r"\b(crée\w*|créé\w*|creer|create|build|génér\w*|generate|landing|vitrine|"
+    r"codebase|refais|refaire|rebuild)\b",
+    re.IGNORECASE,
+)
+
+
 def is_site_request(text: str) -> bool:
     return bool(text and _SITE_SIGNAL_RE.search(text))
+
+
+def is_existing_site_review(text: str) -> bool:
+    """SEO or audit of a site that is already online, not a build request."""
+    return bool(text and _SITE_REVIEW_RE.search(text) and not _SITE_BUILD_RE.search(text))
 
 
 def explicit_delivery(text: str) -> str | None:
@@ -115,6 +132,8 @@ def needs_delivery_choice(request: RunRequest) -> bool:
             ],
         )
     )
+    if is_existing_site_review(text):
+        return False
     return is_site_request(text)
 
 

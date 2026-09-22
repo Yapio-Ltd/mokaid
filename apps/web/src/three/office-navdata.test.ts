@@ -135,9 +135,10 @@ describe("office-navdata", () => {
     }
     const coffee = OFFICE_POIS.find((p) => p.kind === "coffee")!;
     expect(isWalkable(coffee.slots[0].position)).toBe(true);
-    const sofa = OFFICE_POIS.find((p) => p.kind === "sofa")!;
-    for (const slot of sofa.slots) {
-      expect(pointHitsObstacle(slot.position), `${slot.id} should be on cushion`).toBe(true);
+    for (const sofa of OFFICE_POIS.filter((p) => p.kind === "sofa")) {
+      for (const slot of sofa.slots) {
+        expect(pointHitsObstacle(slot.position), `${slot.id} should be on cushion`).toBe(true);
+      }
     }
     for (const poi of OFFICE_POIS) {
       for (const a of poi.approach) {
@@ -232,7 +233,7 @@ describe("office-navdata", () => {
 
   it("defines foosball, sofa and coffee POIs with capacity", () => {
     expect(OFFICE_POIS.find((p) => p.kind === "foosball")?.capacity).toBe(2);
-    expect(OFFICE_POIS.find((p) => p.kind === "sofa")?.capacity).toBe(3);
+    expect(OFFICE_POIS.filter((p) => p.kind === "sofa").map((p) => p.capacity)).toEqual([3, 3]);
     expect(OFFICE_POIS.find((p) => p.kind === "coffee")?.capacity).toBe(1);
   });
 

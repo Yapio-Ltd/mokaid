@@ -137,9 +137,20 @@ std::vector<Navigation::Disc> Office::chairDiscs() const {
 std::vector<Vec3> Office::sofaRoute(const Navigation::ActivitySocket &s,std::span<const Navigation::Disc> blocked) const {
   return navigation_.socketRoute(s.position,s.approach,avatarForward(s.yaw),Traffic::radius,std::nullopt,blocked);
 }
-bool Office::sofaReserved() const {
+// The isometric view places +X on the left. That cushion is a second sofa;
+// the original seats stay on the screen-right lounge below this split.
+static bool screenLeftLounge(const Navigation::ActivitySocket &s) { return s.position.x >= 4.F; }
+bool Office::loungeReserved(bool screenLeft) const {
   return std::any_of(claims_.begin(),claims_.end(),[&](const auto &claim){
-    const auto *place=socket(claim.first);return place&&place->kind==1;
+    const auto *place=socket(claim.first);return place&&place->kind==1&&screenLeftLounge(*place)==screenLeft;
+  });
+}
+bool Office::loungeOpen(bool screenLeft) const {
+  if(loungeReserved(screenLeft))return false;
+  return std::any_of(sockets_.begin(),sockets_.end(),[&](const auto &s){
+    if(s.kind!=1||screenLeftLounge(s)!=screenLeft||claims_.contains(s.id))return false;
+    const auto route=socketRoutes_.find(s.id);
+    return route!=socketRoutes_.end()&&!route->second.empty();
   });
 }
 void Office::startSocial(const Agent &a,Motion &m,Motion &other) {
@@ -189,18 +200,20 @@ void Office::updateSocial(const Agent &a,Motion &m) {
   if(other.activity!=otherPrevious){other.phaseStarted=seconds_;other.socialOffset=oneShotAnimation(other.activity)?-.12F:other.activity.starts_with("drinking")?0.F:1.1F;}
 }
 bool Office::continueAtSofa(const Agent &a,Motion &m) {
-  // The sofa shares a narrow entrance/exit aisle. Admit one party (one person
-  // or a coordinated coffee pair) until its last member has physically left.
-  // Otherwise a new entrant can park in an occupied seat's standing corridor.
-  if(sofaReserved())return false;
+  // Each sofa has its own narrow entrance. Admit one party per cushion until
+  // its last member has left, and never split a coffee pair across both sofas.
   const auto peer=std::find_if(agents_.begin(),agents_.end(),[&](const auto &p){return p.id==m.partnerId;});
   if(peer==agents_.end()||!freeAgent(*peer)||!freeAgent(a)||!m.carrying||!hasClip(avatar(a),"sitting_sofa_coffee"))return false;
   auto &other=motion_.at(peer->id);const auto *otherPlace=socket(other.socketId);
   if(other.returning||!other.carrying||!otherPlace||otherPlace->kind!=4)return false;
   const auto furniture=chairDiscs();
+  const bool wantLeft=((m.personality.seed+static_cast<std::uint64_t>(a.seat))%2)==1;
+  for(int pass=0;pass<2;++pass) {
+    const bool left=pass==0?wantLeft:!wantLeft;
+    if(loungeReserved(left))continue;
   for(const auto &first:sockets_)for(auto secondIt=sockets_.rbegin();secondIt!=sockets_.rend();++secondIt) {
     const auto &second=*secondIt;
-    if(first.kind!=1||second.kind!=1||first.id==second.id||claims_.contains(first.id)||claims_.contains(second.id))continue;
+    if(first.kind!=1||second.kind!=1||screenLeftLounge(first)!=left||screenLeftLounge(second)!=left||first.id==second.id||claims_.contains(first.id)||claims_.contains(second.id))continue;
     auto firstBlocked=furniture;firstBlocked.push_back({traffic_.state(peer->id).position,Traffic::clearance-Traffic::radius});
     auto firstRoute=sofaRoute(first,firstBlocked);
     auto secondBlocked=furniture;secondBlocked.push_back({first.position,Traffic::clearance-Traffic::radius});
@@ -213,6 +226,7 @@ bool Office::continueAtSofa(const Agent &a,Motion &m) {
     // Reserve the second place while its colleague enters the tighter one.
     other.awaitSofaEntry=true;other.activity="carrying_coffee";other.holdUntil=seconds_+120;
     requestTravel(a,m);return true;
+  }
   }
   return false;
 }
@@ -306,10 +320,16 @@ bool Office::chooseMission(const Agent &a, Motion &m) {
     // Coffee conversations and foosball reserve two colleagues as one social
     // outing. Never let that reservation silently exceed the office-wide cap.
     if((kind==2||kind==3)&&agents_.size()>1&&available<2)continue;
-    if(kind==1&&sofaReserved())continue;
+    const bool wantLeftLounge=kind==1&&((cycle+static_cast<std::size_t>(a.seat))%2)==1;
     for (const auto &s : sockets_) {
       if (s.kind != kind || claims_.contains(s.id)) continue;
-      if (kind == 1 && (socketRoutes_.find(s.id) == socketRoutes_.end() || socketRoutes_.at(s.id).empty())) continue;
+      if (kind == 1) {
+        if (socketRoutes_.find(s.id) == socketRoutes_.end() || socketRoutes_.at(s.id).empty()) continue;
+        const bool left=screenLeftLounge(s);
+        if (loungeReserved(left)) continue;
+        // Keep both lounges in the rotation. Fall back only when the preferred cushion is full.
+        if (left != wantLeftLounge && loungeOpen(wantLeftLounge)) continue;
+      }
       if (kind == 2) {
         if(cupReturnsPending)continue;
         const auto chat = std::find_if(sockets_.begin(), sockets_.end(), [&](const auto &slot) { return slot.kind == 4 && !claims_.contains(slot.id); });
@@ -452,7 +472,7 @@ void Office::tick(float dt) {
       // Recruitment can change while another colleague is travelling or working.
       auto partner=std::find_if(motion_.begin(),motion_.end(),[&](const auto &entry){
         const auto *other=socket(entry.second.socketId);
-        return entry.first!=a.id && ownSlot && other && ownSlot->kind==other->kind && (ownSlot->kind!=1||(m.sofaCoffee&&entry.second.sofaCoffee)) &&
+        return entry.first!=a.id && ownSlot && other && ownSlot->kind==other->kind && (ownSlot->kind!=1||(m.sofaCoffee&&entry.second.sofaCoffee&&screenLeftLounge(*ownSlot)==screenLeftLounge(*other))) &&
           (entry.second.phase==Motion::Phase::WaitPartner||entry.second.phase==Motion::Phase::Activity)&&!entry.second.returning;
       });
       const auto *peerSlot=partner==motion_.end()?nullptr:socket(partner->second.socketId);

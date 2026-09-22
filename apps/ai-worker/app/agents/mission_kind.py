@@ -201,11 +201,7 @@ def resolve_web_research(
 
 
 def detect_mission_kind(request: RunRequest) -> str:
-    """Prefer explicit metadata from Phoenix; fall back to instruction heuristics."""
-    meta_kind = (request.input or {}).get("mission_kind")
-    if isinstance(meta_kind, str) and meta_kind.strip():
-        return meta_kind.strip().lower()
-
+    """An SEO review of an existing site stays research, even if metadata says website."""
     text = " ".join(
         filter(
             None,
@@ -216,6 +212,15 @@ def detect_mission_kind(request: RunRequest) -> str:
             ],
         )
     ).lower()
+
+    from app.tools.site_delivery import is_existing_site_review
+
+    if is_existing_site_review(text):
+        return "research"
+
+    meta_kind = (request.input or {}).get("mission_kind")
+    if isinstance(meta_kind, str) and meta_kind.strip():
+        return meta_kind.strip().lower()
 
     # Explicit delivery from the site-format choice gate.
     delivery = (request.input or {}).get("delivery") or (request.input or {}).get(
