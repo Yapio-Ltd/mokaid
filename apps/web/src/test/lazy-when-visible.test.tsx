@@ -11,16 +11,15 @@ afterEach(() => {
 describe("LazyWhenVisible", () => {
   it("keeps children unmounted until near the viewport", () => {
     const observe = vi.fn();
-    class MockIntersectionObserver implements IntersectionObserver {
-      readonly root: Element | Document | null = null;
-      readonly rootMargin = "";
-      readonly thresholds: ReadonlyArray<number> = [];
-      observe = observe;
-      unobserve = vi.fn();
-      disconnect = vi.fn();
-      takeRecords = vi.fn(() => []);
-    }
-    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        observe = observe;
+        unobserve = vi.fn();
+        disconnect = vi.fn();
+        takeRecords = () => [];
+      },
+    );
 
     render(
       <LazyWhenVisible>
