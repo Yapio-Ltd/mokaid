@@ -50,7 +50,10 @@ inline OfficeCamera fitOfficeGeometry(OfficeCamera camera, std::span<const Vec3>
     minY = std::min(minY, p.y / p.w); maxY = std::max(maxY, p.y / p.w);
   }
   const float wide = std::clamp((aspect - 1.45F) / .65F, 0.F, 1.F);
-  const float span = 2.16F + .30F * wide;
+  // Narrow and square panes need a slightly gentler crop so a standing person
+  // at the screen-left lounge stays inside the frame. The wide office view
+  // keeps the same tightness as before.
+  const float span = 2.135F + .325F * wide;
   const float scale = span / std::max({maxX - minX, maxY - minY, .01F});
   const float cx = (minX + maxX) * .5F, cy = (minY + maxY) * .5F;
   // Aim left of the room's silhouette center to keep the lounge sofa whole
