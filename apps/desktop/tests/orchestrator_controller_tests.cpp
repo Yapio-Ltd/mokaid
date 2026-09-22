@@ -13,7 +13,7 @@ class Remote final : public QObject {
 public:
     QTcpServer server;
     QList<Request> requests;
-    bool failChat{}, holdChat{};
+    bool failChat{}, holdChat{}, askInstead{};
     QPointer<QTcpSocket> held;
     Remote() {
         server.listen(QHostAddress::LocalHost, 0);
@@ -36,6 +36,10 @@ public:
                     if (request.path == "/api/orchestrator/chat") {
                         if (holdChat) { held = socket; return; }
                         if (failChat) { reply(socket, {{"error", "Model unavailable"}}, 503); return; }
+                        if (askInstead) {
+                            reply(socket, {{"data", QJsonObject{{"reply", "Je peux préparer une mission de recherche SEO. Veux-tu que je prépare cette mission d'audit SEO ?"}, {"language", "fr"}}}});
+                            return;
+                        }
                         reply(socket, {{"data", QJsonObject{{"reply", "Voici la mission à préparer."}, {"language", "fr"},
                             {"mission_instruction", "Étudier le marché et livrer un rapport sourcé."}, {"task_id", "foreign-task"}}}});
                     } else if (request.path == "/api/orchestrator/missions") {
@@ -87,8 +91,16 @@ private slots:
         QVERIFY(request.headers.toLower().contains("authorization: bearer fixture-token"));
         QVERIFY(request.headers.toLower().contains("x-workspace-id: workspace-a"));
         QCOMPARE(f.remote.count("/api/dispatch/confirm"), 0);
-        f.controller.prepareMission(); QTRY_COMPARE(f.remote.count("/api/dispatch/analyze"), 1);
+        QTRY_COMPARE(f.remote.count("/api/dispatch/analyze"), 1);
+        QVERIFY(!f.mission.opened());
         QCOMPARE(f.mission.instruction(), f.controller.pendingInstruction());
+    }
+    void englishMessageOverridesStaleFrenchHint() {
+        Fixture f;
+        f.controller.setLanguage("fr");
+        f.controller.sendMessage("Can you check if the website has a good SEO", "fr");
+        QTRY_VERIFY(!f.controller.busy());
+        QCOMPARE(f.remote.last("/api/orchestrator/chat").body.value("language").toString(), QString("en"));
     }
     void failedReplyPreservesDraftAndRetryDoesNotDuplicateUser() {
         Fixture f; f.remote.failChat = true;
@@ -127,6 +139,40 @@ private slots:
         QTRY_COMPARE(f.controller.messages().size(), 2); QCOMPARE(f.controller.draft(), QString("Unsent draft"));
         f.api.setSession("different-token", "other-user", false); emit f.session.changed();
         QVERIFY(f.controller.messages().isEmpty()); QVERIFY(f.controller.draft().isEmpty());
+    }
+    void newConversationArchivesTheThreadAndStartsEmptyContext() {
+        Fixture f;
+        f.controller.sendMessage("Saved message", "en"); QTRY_VERIFY(!f.controller.busy());
+        QCOMPARE(f.controller.conversations().size(), 1);
+        const auto id = f.controller.activeConversationId();
+        QVERIFY(!id.isEmpty());
+        f.controller.setDraft("Unsent draft");
+        f.controller.newConversation();
+        QVERIFY(f.controller.messages().isEmpty());
+        QVERIFY(f.controller.draft().isEmpty());
+        QVERIFY(f.controller.activeConversationId().isEmpty());
+        QCOMPARE(f.controller.conversations().size(), 1);
+        f.controller.sendMessage("Second topic", "en"); QTRY_VERIFY(!f.controller.busy());
+        QVERIFY(f.remote.last("/api/orchestrator/chat").body.value("conversation").toArray().isEmpty());
+        QCOMPARE(f.controller.conversations().size(), 2);
+        f.controller.openConversation(id);
+        QCOMPARE(f.controller.messages().size(), 2);
+        QCOMPARE(f.controller.draft(), QString("Unsent draft"));
+        QCOMPARE(f.controller.activeConversationId(), id);
+    }
+    void workRequestAssignsWithoutAskingPermission() {
+        Fixture f; f.remote.askInstead = true;
+        const auto message = QString("Regarde le SEO de monpetitparfait.fr et dis moi si il est bien référencé");
+        f.controller.sendMessage(message, "fr");
+        QTRY_VERIFY(!f.controller.busy());
+        const auto reply = f.controller.messages().last().toMap().value("body").toString();
+        QVERIFY(reply.contains("mission de recherche SEO"));
+        QVERIFY(!reply.contains("Veux-tu"));
+        QCOMPARE(f.controller.pendingInstruction(), message);
+        QTRY_COMPARE(f.remote.count("/api/dispatch/analyze"), 1);
+        f.controller.sendMessage("oui", "fr");
+        QTRY_VERIFY(!f.controller.busy());
+        QCOMPARE(f.remote.count("/api/dispatch/analyze"), 1);
     }
     void offlineDoesNotPretendToRespond() {
         Fixture f; f.api.setOnline(false); f.controller.sendMessage("Bonjour", "fr");

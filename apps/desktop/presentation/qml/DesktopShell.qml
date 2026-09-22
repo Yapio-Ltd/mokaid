@@ -8,6 +8,7 @@ Item {
     property bool protectedWork: false
     property bool minimized: false
     readonly property var diagnostics: officeLoader.item ? officeLoader.item.diagnostics : ({})
+    readonly property alias mokedOfficeSlot: mokedSidebarSlot
     readonly property var secondaryPages: ["profile", "members", "integrations", "billing"]
     readonly property var primaryPages: features.pages.filter(function(page) {
         return !page.hidden && page.id !== "knowledge"
@@ -37,7 +38,24 @@ Item {
                 GradientStop { position: .52; color: "#0c0e17" }
                 GradientStop { position: 1; color: "#111120" }
             }
+            Canvas {
+                z: 0
+                anchors.fill: parent
+                onPaint: {
+                    const ctx = getContext("2d")
+                    ctx.clearRect(0, 0, width, height)
+                    const top = ctx.createRadialGradient(width * 0.35, -8, 0, width * 0.35, -8, width * 0.9)
+                    top.addColorStop(0, "rgba(168, 120, 255, 0.14)")
+                    top.addColorStop(0.4, "rgba(120, 72, 210, 0.04)")
+                    top.addColorStop(1, "rgba(120, 72, 210, 0)")
+                    ctx.fillStyle = top
+                    ctx.fillRect(0, 0, width, height)
+                }
+                onWidthChanged: requestPaint()
+                onHeightChanged: requestPaint()
+            }
             ColumnLayout {
+                z: 1
                 anchors.fill: parent
                 anchors.margins: 15
                 spacing: 12
@@ -180,6 +198,13 @@ Item {
                         }
                     }
                 }
+                Item {
+                    id: mokedSidebarSlot
+                    objectName: "mokedSidebarSlot"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 132
+                    Layout.maximumHeight: 132
+                }
                 Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.divider }
                 RowLayout {
                     Layout.fillWidth: true; Layout.preferredHeight: 58; Layout.maximumHeight: 58
@@ -312,9 +337,16 @@ Item {
                     visible: active
                     sourceComponent: MarketplacePage { onActionRequested: function(action) { root.actionRequested(action) } }
                 }
+                Loader {
+                    id: performanceLoader
+                    anchors.fill: parent
+                    active: features.currentPage === "agent-performance" && !!session.workspaceId
+                    visible: active
+                    sourceComponent: AgentPerformancePage {}
+                }
                 FeaturePage {
                     anchors.fill: parent
-                    visible: features.currentPage !== "office" && features.currentPage !== "agents" && features.currentPage !== "marketplace"
+                    visible: features.currentPage !== "office" && features.currentPage !== "agents" && features.currentPage !== "marketplace" && features.currentPage !== "agent-performance"
                     onActionRequested: function(action) { root.actionRequested(action) }
                 }
                 ColumnLayout {

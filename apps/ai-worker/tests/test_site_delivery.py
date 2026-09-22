@@ -45,6 +45,20 @@ def test_delivery_input_overrides_kind():
     assert delivery_from_request(req) == "html"
 
 
+def test_seo_audit_of_an_existing_site_does_not_ask_for_a_build_format():
+    req = _req(task_title="Fais un SEO rapide du site monpetitparfait.fr")
+    assert needs_delivery_choice(req) is False
+    assert detect_mission_kind(req) == "research"
+    portuguese = _req(task_title="Realizar um audit completo de SEO do site monpetitparfait.fr")
+    assert needs_delivery_choice(portuguese) is False
+    assert detect_mission_kind(portuguese) == "research"
+    stamped = _req(
+        task_title="Fais un SEO rapide du site monpetitparfait.fr",
+        input={"mission_kind": "website"},
+    )
+    assert detect_mission_kind(stamped) == "research"
+
+
 def test_ambiguous_site_needs_choice():
     req = _req(task_description="Fais-moi un site pour ma boutique de tables")
     assert needs_delivery_choice(req) is True

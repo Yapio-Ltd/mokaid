@@ -61,8 +61,23 @@ public:
 class NativePageContext final : public QObject {
     Q_OBJECT
     Q_PROPERTY(int thumbnailRevision READ thumbnailRevision CONSTANT)
+    Q_PROPERTY(QVariantMap selectedAgent MEMBER selectedAgent NOTIFY chatChanged)
+    Q_PROPERTY(QVariantList conversations MEMBER conversations NOTIFY chatChanged)
+    Q_PROPERTY(QVariantList messages MEMBER messages NOTIFY chatChanged)
+    Q_PROPERTY(QString conversationId MEMBER conversationId NOTIFY chatChanged)
+    Q_PROPERTY(QString draft MEMBER draft NOTIFY chatChanged)
+    Q_PROPERTY(QString stream MEMBER stream NOTIFY chatChanged)
+    Q_PROPERTY(QString error MEMBER error NOTIFY chatChanged)
+    Q_PROPERTY(bool loading MEMBER loading NOTIFY chatChanged)
+    Q_PROPERTY(bool sending MEMBER sending NOTIFY chatChanged)
 public:
     QString testedAgent;
+    QVariantMap selectedAgent;
+    QVariantList conversations;
+    QVariantList messages;
+    QString conversationId, draft, stream, error;
+    bool loading = false;
+    bool sending = false;
     int thumbnailRevision() const { return 1; }
     Q_INVOKABLE QVariantMap describe(const QVariantMap&) const { return {{"kind","pdf"},{"label","PDF document"},{"extension","PDF"},{"sizeLabel","24 KB"}}; }
     Q_INVOKABLE QString thumbnailUrl(const QVariantMap&) const { return {}; }
@@ -70,6 +85,19 @@ public:
     Q_INVOKABLE void openFile(const QVariantMap&) {}
     Q_INVOKABLE void selectAgent(const QString&) {}
     Q_INVOKABLE void beginForAgent(const QString& id) { testedAgent=id; }
+    Q_INVOKABLE void closeChat() { selectedAgent.clear(); emit chatChanged(); }
+    Q_INVOKABLE void selectConversation(const QString&) {}
+    Q_INVOKABLE void newConversation() {}
+    Q_INVOKABLE void send(const QVariantList&) {}
+signals:
+    void chatChanged();
+};
+
+class NativeSessionStub final : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(bool online READ online CONSTANT)
+public:
+    bool online() const { return true; }
 };
 
 struct NativePageFixture {
@@ -81,6 +109,7 @@ struct NativePageFixture {
     CacheStore cache{cacheDirectory.path()};
     FeatureController features{api,session,cache};
     NativePageContext context;
+    NativeSessionStub account;
     NativePageFixture() { api.setSession("test-only-session","fixture-user",false); api.setWorkspace("fixture-workspace"); }
 };
 
@@ -101,6 +130,7 @@ public:
         qmldir.write("singleton Theme 1.0 Theme.qml\n"); qmldir.close();
         QObject::connect(&engine,&QQmlEngine::warnings,&engine,[this](const QList<QQmlError>& errors) { for (const auto& error:errors) warnings.append(error.toString()); });
         engine.rootContext()->setContextProperty("features",&fixture.features);
+        engine.rootContext()->setContextProperty("session",&fixture.account);
         for (const auto* name:{"preview","office","missions"}) engine.rootContext()->setContextProperty(name,&fixture.context);
         QQmlComponent component(&engine);
         if (source.isEmpty()) component.loadUrl(QUrl::fromLocalFile(directory.path()+"/"+filename));
@@ -237,6 +267,49 @@ private slots:
         QVERIFY(view.inside("agentRosterPanel")); QVERIFY(view.inside("agentInspector")); QVERIFY(view.capture("agents-minimum"));
         QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
     }
+    void agentKpisFollowAssignedTasks() {
+        NativePageFixture fixture;
+        fixture.remote.collection("/api/agents",agents());
+        fixture.remote.collection("/api/tasks",{
+            QJsonObject{{"id","legal-active"},{"assigned_agent_id","fixture-legal"},{"status","in_progress"},{"progress_percent",40}},
+            QJsonObject{{"id","legal-second"},{"assigned_agent_id","fixture-legal"},{"status","waiting"},{"progress_percent",80}},
+            QJsonObject{{"id","legal-canceled"},{"assigned_agent_id","fixture-legal"},{"status","canceled"},{"progress_percent",10}},
+            QJsonObject{{"id","legal-today"},{"assigned_agent_id","fixture-legal"},{"status","completed"},{"progress_percent",100},{"completed_at","2026-09-22T10:00:00Z"}},
+            QJsonObject{{"id","legal-earlier"},{"assigned_agent_id","fixture-legal"},{"status","completed"},{"progress_percent",100},{"completed_at","2026-09-20T08:00:00Z"}},
+            QJsonObject{{"id","legal-old"},{"assigned_agent_id","fixture-legal"},{"status","completed"},{"progress_percent",100},{"completed_at","2026-08-01T08:00:00Z"}},
+            QJsonObject{{"id","software-active"},{"assigned_agent_id","fixture-software"},{"status","in_progress"},{"progress_percent",90}},
+            QJsonObject{{"id","orphan"},{"status","in_progress"},{"progress_percent",50}}
+        });
+        fixture.features.navigate("agents"); QTRY_COMPARE(fixture.features.allRecords().size(),5);
+        NativePageView view(fixture,"AgentsPage.qml"); QVERIFY2(view.item,qPrintable(view.failure));
+        view.page->setProperty("now",QDateTime::fromString("2026-09-22T12:00:00Z",Qt::ISODate).toMSecsSinceEpoch());
+        QTRY_COMPARE(fixture.features.selectedId(),QString("fixture-legal"));
+        QTRY_COMPARE(fixture.features.selectedAgentTasksState(),QString("ready"));
+        const auto numbers=[](const QVariant& value) {
+            QList<double> result; for (const auto& item:value.toList()) result.append(item.toDouble()); return result;
+        };
+        const auto same=[](const QList<double>& actual,std::initializer_list<double> expected) {
+            if (actual.size()!=qsizetype(expected.size())) return false;
+            int index=0; for (const auto value:expected) if (!qFuzzyCompare(actual[index++]+1.0,value+1.0)) return false; return true;
+        };
+        QCOMPARE(property(view.page.get(),"inspectorCurrentTask").toString(),QString("2"));
+        QVERIFY(same(numbers(property(view.page.get(),"inspectorTaskBars")),{0.4,0.8}));
+        QVERIFY(same(numbers(property(view.page.get(),"inspectorMissionBars")),{0,0,0,0,0,1,0,1}));
+        QCOMPARE(property(view.page.get(),"inspectorMissionNote").toString(),QString("Last 8 days"));
+        QVERIFY(qFuzzyCompare(property(view.page.get(),"inspectorPerformanceMeter").toDouble()+1.0,1.62));
+        QVERIFY(view.click("agentRow_fixture-software"));
+        QTRY_COMPARE(fixture.features.selectedId(),QString("fixture-software"));
+        QTRY_COMPARE(fixture.features.selectedAgentTasksState(),QString("ready"));
+        QTRY_COMPARE(property(view.page.get(),"inspectorCurrentTask").toString(),QString("1"));
+        QVERIFY(same(numbers(property(view.page.get(),"inspectorTaskBars")),{0.9}));
+        QVERIFY(numbers(property(view.page.get(),"inspectorMissionBars")).isEmpty());
+        QVERIFY(view.click("agentRow_fixture-new"));
+        QTRY_COMPARE(fixture.features.selectedId(),QString("fixture-new"));
+        QTRY_COMPARE(property(view.page.get(),"inspectorCurrentTask").toString(),QString::fromUtf8("—"));
+        QCOMPARE(property(view.page.get(),"inspectorPerformanceMeter").toDouble(),-1.0);
+        QVERIFY(numbers(property(view.page.get(),"inspectorTaskBars")).isEmpty());
+        QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
+    }
     void emptyWorkforceHasNoInventedMetricsOrSelection() {
         NativePageFixture fixture; fixture.remote.collection("/api/agents",{}); fixture.features.navigate("agents"); QTRY_VERIFY(!fixture.features.busy());
         NativePageView view(fixture,"AgentsPage.qml"); QVERIFY2(view.item,qPrintable(view.failure)); view.resize(750,580); QTest::qWait(50);
@@ -359,6 +432,92 @@ private slots:
         // A search changes the catalog view, not the user's chosen specialty.
         QVERIFY(view.find("agentCreationContinue")->isEnabled());
         QVERIFY(view.capture("agent-creation-search-empty"));
+        QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
+    }
+    void officeChatOffersRentSaleAndPerformance() {
+        NativePageFixture fixture;
+        fixture.context.selectedAgent=QVariantMap{{"id","fixture-legal"},{"display_name","Devio"},{"role_title","Software Engineer"},{"kind","ai"}};
+        NativePageView view(fixture,"ChatPanel.qml");
+        QVERIFY2(view.item,qPrintable(view.failure));
+        QVERIFY(view.inside("rentOutAgent"));
+        QVERIFY(view.inside("sellAgent"));
+        QVERIFY(view.inside("agentPerformance"));
+        QVERIFY(view.click("rentOutAgent"));
+        QTRY_COMPARE(fixture.features.currentPage(),QString("marketplace"));
+        QCOMPARE(fixture.features.pendingOfferAgentId(),QString("fixture-legal"));
+        QCOMPARE(fixture.features.pendingOfferMode(),QString("rent"));
+        fixture.features.navigate("office");
+        QTRY_COMPARE(fixture.features.currentPage(),QString("office"));
+        QVERIFY(fixture.features.pendingOfferAgentId().isEmpty());
+        QVERIFY(view.click("sellAgent"));
+        QTRY_COMPARE(fixture.features.pendingOfferMode(),QString("sale"));
+        QVERIFY(view.click("agentPerformance"));
+        QTRY_COMPARE(fixture.features.currentPage(),QString("agent-performance"));
+        QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
+    }
+    void agentPerformanceUsesAssignedTaskHistory() {
+        NativePageFixture fixture;
+        fixture.remote.collection("/api/agents",agents());
+        fixture.remote.collection("/api/tasks",{
+            QJsonObject{{"id","legal-active"},{"title","Review the clause"},{"assigned_agent_id","fixture-legal"},{"status","in_progress"},{"priority","high"},{"progress_percent",40},{"inserted_at","2026-09-21T09:00:00Z"}},
+            QJsonObject{{"id","legal-second"},{"title","Wait for signature"},{"assigned_agent_id","fixture-legal"},{"status","waiting"},{"priority","low"},{"progress_percent",80}},
+            QJsonObject{{"id","legal-canceled"},{"title","Dropped request"},{"assigned_agent_id","fixture-legal"},{"status","canceled"},{"progress_percent",10}},
+            QJsonObject{{"id","legal-today"},{"title","File the brief"},{"assigned_agent_id","fixture-legal"},{"status","completed"},{"progress_percent",100},{"completed_at","2026-09-22T10:00:00Z"},{"latest_run",QJsonObject{{"status","completed"},{"credits_charged",4},{"token_usage",QJsonObject{{"total_tokens",1200}}},{"completed_at","2026-09-22T10:05:00Z"}}},{"comments",QJsonArray{QJsonObject{{"body","Ready to send"},{"author_name","Devio"},{"inserted_at","2026-09-22T10:06:00Z"}}}}},
+            QJsonObject{{"id","legal-earlier"},{"title","Earlier brief"},{"assigned_agent_id","fixture-legal"},{"status","completed"},{"progress_percent",100},{"completed_at","2026-09-20T08:00:00Z"}},
+            QJsonObject{{"id","legal-old"},{"title","Old brief"},{"assigned_agent_id","fixture-legal"},{"status","completed"},{"progress_percent",100},{"completed_at","2026-08-01T08:00:00Z"}},
+            QJsonObject{{"id","software-active"},{"assigned_agent_id","fixture-software"},{"status","in_progress"},{"progress_percent",90}}
+        });
+        fixture.features.openRecord("agent-performance","fixture-legal");
+        QTRY_COMPARE(fixture.features.selectedId(),QString("fixture-legal"));
+        QTRY_COMPARE(fixture.features.selectedAgentTasksState(),QString("ready"));
+        NativePageView view(fixture,"AgentPerformancePage.qml");
+        QVERIFY2(view.item,qPrintable(view.failure));
+        view.page->setProperty("now",QDateTime::fromString("2026-09-22T12:00:00Z",Qt::ISODate).toMSecsSinceEpoch());
+        QCOMPARE(property(view.page.get(),"performanceLabel").toString(),QString("62"));
+        QVERIFY(qFuzzyCompare(property(view.page.get(),"performanceMeter").toDouble()+1.0,1.62));
+        QCOMPARE(property(view.page.get(),"openTaskCount").toInt(),2);
+        QCOMPARE(property(view.page.get(),"completedTaskCount").toInt(),3);
+        QCOMPARE(property(view.page.get(),"taskCompletionPercent").toInt(),50);
+        const auto totals=property(view.page.get(),"latestRunTotals").toMap();
+        QCOMPARE(totals.value("credits").toInt(),4);
+        QCOMPARE(totals.value("tokens").toInt(),1200);
+        const auto progress=property(view.page.get(),"progressHistogram").toList();
+        QCOMPARE(progress.size(),4);
+        QCOMPARE(progress.at(0).toInt(),1);
+        QCOMPARE(progress.at(1).toInt(),1);
+        QCOMPARE(progress.at(2).toInt(),0);
+        QCOMPARE(progress.at(3).toInt(),4);
+        const auto completions=property(view.page.get(),"completionSeries").toList();
+        QCOMPARE(completions.size(),14);
+        QCOMPARE(completions.at(11).toInt(),1);
+        QCOMPARE(completions.at(13).toInt(),1);
+        const auto log=property(view.page.get(),"activityLog").toList();
+        QVERIFY(!log.isEmpty());
+        QCOMPARE(log.first().toMap().value("title").toString(),QString("Devio"));
+        QCOMPARE(log.first().toMap().value("detail").toString(),QString("Ready to send"));
+        QVERIFY(view.inside("performanceBack"));
+        QVERIFY(view.find("performanceStatusChart"));
+        QVERIFY(view.find("performanceLog"));
+        QVERIFY(view.click("performanceBack"));
+        QTRY_COMPARE(fixture.features.currentPage(),QString("office"));
+        QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
+    }
+    void marketplaceOfferOpensRentForThatAgent() {
+        NativePageFixture fixture;
+        fixture.remote.responses.insert("/api/marketplace/listings",{{"data",QJsonArray{}}});
+        fixture.remote.responses.insert("/api/marketplace/mine",{{"data",QJsonArray{QJsonObject{
+            {"agent",QJsonObject{{"id","fixture-legal"},{"display_name","Fixture legal"},{"kind","ai"},{"role_title","Legal Specialist"},{"status","active"}}},
+            {"eligible",true},{"level",12},{"knowledge_item_count",3}
+        }}},{"meta",QJsonObject{{"min_level",10},{"fee_percent",15},{"connect_ready",true}}}});
+        fixture.features.openMarketplaceOffer("fixture-legal","rent");
+        QTRY_COMPARE(fixture.features.currentPage(),QString("marketplace"));
+        QCOMPARE(fixture.features.pendingOfferAgentId(),QString("fixture-legal"));
+        NativePageView view(fixture,"MarketplacePage.qml");
+        QVERIFY2(view.item,qPrintable(view.failure));
+        QTRY_COMPARE(view.page->property("screen").toString(),QString("publish"));
+        QCOMPARE(view.page->property("publishMode").toString(),QString("rent"));
+        QCOMPARE(view.page->property("publishAgentId").toString(),QString("fixture-legal"));
+        QVERIFY(fixture.features.pendingOfferAgentId().isEmpty());
         QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
     }
 };

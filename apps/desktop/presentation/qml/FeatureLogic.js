@@ -45,7 +45,23 @@ function title(r, page) {
     return first(r, ["display_name", "full_name", "name", "title", "subject", "number", "server_name", "provider", "action", "event_type", "email", "key"], "Untitled record");
 }
 function human(value) { var s = text(value).replace(/_/g, " ").replace(/-/g, " "); return s ? s.charAt(0).toUpperCase() + s.slice(1) : ""; }
+function briefOf(r) { return [r.title, r.description, r.instruction, r.body].filter(Boolean).join("\n"); }
+function seoReport(r) {
+    var text=briefOf(r);
+    if(!text) return false;
+    if(!/\b(seo|r[ée]f[ée]renc\w*|referenc\w*|audit|backlink|mots?[- ]cl[ée]s?)\b/i.test(text)) return false;
+    if(/\b(cr[ée]e\w*|creer|create|build|g[ée]n[ée]r\w*|generate|landing|vitrine|codebase|refais|refaire|rebuild)\b/i.test(text)) return false;
+    return true;
+}
+function seoChoicePause(r) {
+    if(!seoReport(r)) return false;
+    var approval=r.pending_approval||{};
+    var payload=approval.input_payload||{};
+    if(payload.kind==="site_delivery_choice") return true;
+    return /deliver the website|choose how to deliver|site delivery/i.test(String(approval.proposed_action||""));
+}
 function status(r, page) {
+    if (page === "tasks" && seoChoicePause(r)) return "Compte rendu";
     if (page === "mail") return human(r.ai_category || r.folder || "");
     if (page === "integrations") return human(r.status || (r.installation_id ? "connected" : "available"));
     return human(r.status || r.kind || r.level || "");
@@ -80,6 +96,7 @@ function subtitle(r, page) {
 function progress(r) { return typeof r.progress_percent === "number" && isFinite(r.progress_percent) ? Math.max(0, Math.min(100,r.progress_percent)) : null; }
 function initials(r, page) { var words = title(r, page).trim().split(/\s+/); return words.slice(0,2).map(function(w) { return w.slice(0,1).toUpperCase(); }).join(""); }
 function boardGroup(r) {
+    if (seoChoicePause(r)) return "doing";
     var state=text(r.status).toLowerCase().replace(/[ -]/g,"_");
     if (["completed","canceled","cancelled"].indexOf(state)>=0) return "done";
     if (["in_review","waiting","blocked","overdue","failed"].indexOf(state)>=0) return "review";
@@ -96,6 +113,7 @@ function taskSubtasks(r) {
     return {total:total,completed:completed};
 }
 function taskRunState(r) {
+    if(seoChoicePause(r)) return "report";
     if(r.pending_approval || (r.latest_run || {}).status==="waiting_for_approval") return "approval";
     var state=(r.latest_run || {}).status;
     if(state==="queued" || state==="running") return "running";
@@ -104,7 +122,12 @@ function taskRunState(r) {
 }
 function taskHint(r) {
     var run=taskRunState(r);
-    if(run==="approval") return "Your agent is waiting for a decision. Review the requested action to continue.";
+    if(run==="report") return (r.assigned_agent_name || "L'agent")+" écrit le compte rendu SEO de ce site.";
+    if(run==="approval") {
+        var approval=r.pending_approval||{};
+        if(approval.proposed_action) return approval.proposed_action;
+        return "Your agent is waiting for a decision. Review the requested action to continue.";
+    }
     if(run==="running") return "Your agent is working. Open execution history to follow its activity.";
     if(run==="failed") return "The last run could not finish. Review its history before trying again.";
     if(r.status==="completed") return "This task is complete. Its deliverables and conversation stay available here.";
@@ -116,7 +139,7 @@ function taskHint(r) {
 }
 function stats(page, rows) {
     var count = function(predicate) { return rows.filter(predicate).length; };
-    if (page === "tasks") return [{label:"Loaded tasks", value:rows.length}, {label:"In progress", value:count(function(r){return r.status==="in_progress";})}, {label:"Needs attention", value:count(function(r){return ["blocked","overdue","in_review","waiting"].indexOf(r.status)>=0;})}, {label:"Completed", value:count(function(r){return r.status==="completed";})}];
+    if (page === "tasks") return [{label:"Loaded tasks", value:rows.length}, {label:"In progress", value:count(function(r){return r.status==="in_progress" || seoChoicePause(r);})}, {label:"Needs attention", value:count(function(r){return ["blocked","overdue","in_review","waiting"].indexOf(r.status)>=0 && !seoChoicePause(r);})}, {label:"Completed", value:count(function(r){return r.status==="completed";})}];
     if (page === "projects") return [{label:"Loaded projects",value:rows.length}, {label:"Active",value:count(function(r){return r.status==="active";})}, {label:"In review",value:count(function(r){return r.status==="in_review";})}, {label:"Completed",value:count(function(r){return r.status==="completed";})}];
     if (page === "drive") return [{label:"Items in this view",value:rows.length}, {label:"Folders",value:count(function(r){return r.kind==="folder";})}, {label:"Files",value:count(function(r){return r.kind!=="folder";})}];
     if (page === "members") return [{label:"Loaded members",value:rows.length}, {label:"Active",value:count(function(r){return r.status==="active";})}, {label:"Invited",value:count(function(r){return r.status==="invited";})}];

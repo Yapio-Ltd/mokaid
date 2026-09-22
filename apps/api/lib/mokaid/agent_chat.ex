@@ -615,6 +615,16 @@ defmodule Mokaid.AgentChat do
     t = String.downcase(text)
 
     cond do
+      Regex.match?(
+        ~r/\b(seo|référenc\w*|referenc\w*|audit|backlink|mots?[- ]cl[ée]s?)\b/iu,
+        t
+      ) and
+          not Regex.match?(
+            ~r/\b(crée\w*|créé\w*|creer|create|build|génér\w*|generate|landing|vitrine|codebase|refais|refaire|rebuild)\b/iu,
+            t
+          ) ->
+        "research"
+
       Regex.match?(~r/\b(site|website|landing|page web|html|vitrine)\b/iu, t) ->
         "website"
 

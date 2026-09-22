@@ -5,7 +5,10 @@ import { activitySockets, overrideActivitySockets, chairDelta, removeVerifiedObs
 const source=await readFile(new URL('../../../web/src/three/office-navdata.ts',import.meta.url),'utf8');
 test('cooks nine desks, real leisure sockets, and two facing coffee places',()=>{
   const sockets=activitySockets(source);
-  assert.equal(sockets.length,17);
+  assert.equal(sockets.length,20);
+  const leftLounge=sockets.filter(s=>s.id.startsWith('sofa_')&&s.x>4);
+  assert.equal(leftLounge.length,3);
+  assert(leftLounge.every(s=>Math.abs(s.seatHeight-.6)<1e-8));
   for(const socket of sockets.filter(s=>s.kind<=1)) {
     const expected=socket.kind===0?.4025:.245;
     assert(Math.abs(Math.hypot(socket.approachX-socket.x,socket.approachZ-socket.z)-expected)<1e-8);

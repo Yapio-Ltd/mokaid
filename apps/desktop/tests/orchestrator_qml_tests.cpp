@@ -23,12 +23,19 @@ class FakeOrchestrator final : public QObject {
     Q_PROPERTY(QString language MEMBER language NOTIFY changed)
     Q_PROPERTY(QString error MEMBER error NOTIFY changed)
     Q_PROPERTY(QString pendingInstruction MEMBER pendingInstruction NOTIFY changed)
+    Q_PROPERTY(QString assignmentPhase MEMBER assignmentPhase NOTIFY changed)
+    Q_PROPERTY(QString assignmentAgentId MEMBER assignmentAgentId NOTIFY changed)
+    Q_PROPERTY(QString assignmentTaskId MEMBER assignmentTaskId NOTIFY changed)
+    Q_PROPERTY(QVariantList assignmentAgents MEMBER assignmentAgents NOTIFY changed)
     Q_PROPERTY(QVariantList messages MEMBER messages NOTIFY changed)
+    Q_PROPERTY(QVariantList conversations MEMBER conversations NOTIFY changed)
+    Q_PROPERTY(QString activeConversationId MEMBER activeConversationId NOTIFY changed)
     Q_PROPERTY(QVariantList missions MEMBER missions NOTIFY changed)
 public:
     bool ready = true, busy = false, refreshing = false;
-    QString draft, language = "fr", error, pendingInstruction;
-    QVariantList messages, missions;
+    QString draft, language = "fr", error, pendingInstruction, assignmentPhase, assignmentAgentId, assignmentTaskId;
+    QVariantList messages, conversations, missions, assignmentAgents;
+    QString activeConversationId;
     int refreshCount = 0, sendCount = 0, prepareCount = 0;
     QString sentText, sentLanguage, reviewedId, canceledId;
     Q_INVOKABLE void refresh() { ++refreshCount; }
@@ -36,8 +43,13 @@ public:
         ++sendCount; sentText = text; sentLanguage = locale; draft.clear(); emit changed();
     }
     Q_INVOKABLE void prepareMission() { ++prepareCount; }
+    Q_INVOKABLE void confirmAssignment() {}
     Q_INVOKABLE void reviewMission(const QString& id) { reviewedId = id; }
     Q_INVOKABLE void cancelMission(const QString& id) { canceledId = id; }
+    Q_INVOKABLE void newConversation() {
+        messages.clear(); draft.clear(); pendingInstruction.clear(); activeConversationId.clear(); emit changed();
+    }
+    Q_INVOKABLE void openConversation(const QString& id) { activeConversationId = id; emit changed(); }
     void reply(const QString& text, const QString& locale) { emit assistantReplied(text, locale); }
 signals:
     void changed();
@@ -293,7 +305,7 @@ private slots:
         QTRY_COMPARE(view.object("mokedDock")->property("currentTab").toInt(), 1);
         QTest::qWait(60);
         QVERIFY(view.capture("moked-missions-1440"));
-        QVERIFY(view.click(view.byProperty("text", "Voir le livrable")));
+        QVERIFY(view.click(view.byProperty("text", "View deliverable")));
         QCOMPARE(view.controller.reviewedId, QString("synthetic-delivered"));
         QVERIFY(!view.expanded());
         view.resize({1000, 680}); QVERIFY(view.open());
@@ -317,12 +329,12 @@ private slots:
         QVERIFY(!view.item("mokedComposer")->isEnabled());
         QVERIFY(!view.item("mokedSend")->isEnabled());
         QVERIFY(view.capture("moked-listening-1000"));
-        const auto* finish = view.byProperty("text", "Terminer et transcrire");
+        const auto* finish = view.byProperty("text", "Finish and transcribe");
         QVERIFY(finish);
         const auto finishBottom = finish->mapToItem(view.item("mokedPanel"), QPointF{0, finish->height()}).y();
         if (view.item("mokedComposer")->isVisible())
             QVERIFY(finishBottom <= view.item("mokedComposer")->mapToItem(view.item("mokedPanel"), QPointF{}).y());
-        QVERIFY(view.click(view.byProperty("text", "Terminer et transcrire")));
+        QVERIFY(view.click(view.byProperty("text", "Finish and transcribe")));
         QCOMPARE(view.voice.stopCount, 1);
         QCOMPARE(view.voice.state, QString("transcribing"));
         QVERIFY(view.capture("moked-transcribing-1000"));
@@ -352,10 +364,27 @@ private slots:
         emit view.controller.changed();
         QVERIFY(view.open());
         QVERIFY(view.click("mokedMissionsTab"));
-        QTRY_VERIFY(view.byProperty("text", "Terminée"));
-        QVERIFY(!view.byProperty("text", "Voir le livrable"));
-        QVERIFY(view.click(view.byProperty("text", "Voir la mission")));
+        QTRY_VERIFY(view.byProperty("text", "Completed"));
+        QVERIFY(!view.byProperty("text", "View deliverable"));
+        QVERIFY(view.click(view.byProperty("text", "View mission")));
         QCOMPARE(view.controller.reviewedId, QString("synthetic-completed-no-output"));
+        QVERIFY2(view.warnings.isEmpty(), qPrintable(view.warnings.join('\n')));
+    }
+
+    void assignmentHighlightsChosenAgent() {
+        OrchestratorView view;
+        QVERIFY2(view.root, qPrintable(view.failure));
+        view.controller.assignmentPhase = "chosen";
+        view.controller.assignmentAgentId = "agent-mia";
+        view.controller.assignmentAgents = {
+            QVariantMap{{"id", "agent-leo"}, {"display_name", "Leo"}, {"role_title", "Writer"}},
+            QVariantMap{{"id", "agent-mia"}, {"display_name", "Mia"}, {"role_title", "Researcher"}}
+        };
+        emit view.controller.changed();
+        QVERIFY(view.open());
+        QTRY_VERIFY(view.item("mokedAssignment")->isVisible());
+        QTRY_VERIFY(view.byProperty("text", "Mia · Researcher"));
+        QVERIFY(!view.item("mokedPrepareMission")->isVisible());
         QVERIFY2(view.warnings.isEmpty(), qPrintable(view.warnings.join('\n')));
     }
 
@@ -363,19 +392,15 @@ private slots:
         OrchestratorView view;
         QVERIFY2(view.root, qPrintable(view.failure));
         QVERIFY(view.open()); QTest::qWait(50);
-        QVERIFY(view.click(view.byProperty("hint", "Lire les réponses à voix haute")));
-        QVERIFY(view.object("mokedDock")->property("voiceEnabled").toBool());
+        QVERIFY(!view.byProperty("hint", "Read replies aloud"));
+        QVERIFY(!view.byProperty("hint", "Voice and local models"));
         view.controller.reply("Your mission is ready to review.", "en");
-        QCOMPARE(view.voice.speakCount, 1);
-        QCOMPARE(view.voice.spokenLanguage, QString("en"));
+        QCOMPARE(view.voice.speakCount, 0);
+        QVERIFY(!view.byProperty("text", "Preparing speech…"));
+        QVERIFY(!view.byProperty("text", "Stop"));
         QVERIFY(view.capture("moked-speaking-1440"));
-        QVERIFY(view.click(view.byProperty("text", "Arrêter")));
-        QTest::qWait(30);
-        QVERIFY(view.click(view.byProperty("hint", "Désactiver les réponses vocales")));
-        QVERIFY(!view.object("mokedDock")->property("voiceEnabled").toBool());
-        QCOMPARE(view.voice.state, QString("ready"));
         view.controller.reply("Une deuxième réponse.", "fr");
-        QCOMPARE(view.voice.speakCount, 1);
+        QCOMPARE(view.voice.speakCount, 0);
         QVERIFY(view.click("mokedClose"));
         view.controller.reply("Le livrable est disponible.", "fr");
         QCOMPARE(view.object("mokedDock")->property("unread").toInt(), 1);
@@ -394,7 +419,7 @@ private slots:
         QTRY_VERIFY(view.object("mokedVoiceSettings")->property("visible").toBool());
         QCOMPARE(view.voice.startCount, 0);
         QVERIFY(view.capture("moked-voice-setup-1000"));
-        QVERIFY(view.click(view.byProperty("text", "Vérifier les modèles locaux")));
+        QVERIFY(view.click(view.byProperty("text", "Check local models")));
         QCOMPARE(view.voice.setupCount, 1);
         QVERIFY(QMetaObject::invokeMethod(view.object("mokedVoiceSettings"), "close"));
         view.object("mokedDock")->setProperty("signedIn", false);

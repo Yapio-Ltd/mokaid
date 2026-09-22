@@ -16,6 +16,15 @@ defmodule Mokaid.AgentChatTest do
       assert AgentChat.detect_mission_kind("Build a landing page") == "website"
     end
 
+    test "classifies an SEO review of an existing site as research" do
+      assert AgentChat.detect_mission_kind("Fais un SEO rapide du site monpetitparfait.fr") ==
+               "research"
+
+      assert AgentChat.detect_mission_kind(
+               "Realizar um audit completo de SEO do site monpetitparfait.fr"
+             ) == "research"
+    end
+
     test "classifies document and analysis requests" do
       assert AgentChat.detect_mission_kind("Rédige un rapport markdown") == "document"
       assert AgentChat.detect_mission_kind("Analyse ce fichier PDF") == "analysis"

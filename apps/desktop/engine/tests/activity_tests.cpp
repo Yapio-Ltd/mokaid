@@ -50,7 +50,9 @@ void livingCases(Office &office) {
   office.setAgents({{"living_cafe_0","Alice","idle","male",0,3},{"living_cafe_1","Bob","idle","design",1,8}});
   std::set<std::string> cafeClips,sofaDrinkers;bool completed=false;constexpr float dt=1.F/30.F;
   std::unordered_map<std::string,float> sipStarted;
-  for(float t=0;t<360;t+=dt) {
+  // The screen-left lounge is across the room from the coffee machine, so a
+  // pair that sits there needs longer than a meeting on the nearer sofa.
+  for(float t=0;t<540;t+=dt) {
     const auto before=office.debugMotion();office.advance(dt);const auto after=office.debugMotion();checkStep(before,after,dt);
     const auto frame=office.snapshot(1.6F);
     int drinkingTogether=0;

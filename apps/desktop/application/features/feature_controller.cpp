@@ -81,12 +81,14 @@ FeatureController::FeatureController(ApiClient& api, SessionController& session,
     connect(&session_,&SessionController::changed,this,&FeatureController::sessionChanged);
     connect(&session_,&SessionController::established,this,[this] { sessionChanged(); if (!busy_) refresh(); });
     connect(&session_,&SessionController::workspaceChanged,this,&FeatureController::sessionChanged);
-    connect(&session_,&SessionController::cleared,this,[this]{clear();contextTag_.clear();currentPage_="office";emit changed();});
+    connect(&session_,&SessionController::cleared,this,[this]{
+        clear(); pendingOfferAgentId_.clear(); pendingOfferMode_.clear(); contextTag_.clear(); currentPage_="office"; emit changed();
+    });
     connect(&api_,&ApiClient::onlineChanged,this,[this](bool online) {
         if (!online) driveDownload_.cancelForConnectionLoss();
         const auto* feature=findFeature(currentPage_);
         if (!online && feature && feature->scope==core::Scope::administration) {
-            clear(); currentPage_="office"; fail("Administration requires a verified online session.");
+            clear(); pendingOfferAgentId_.clear(); pendingOfferMode_.clear(); currentPage_="office"; fail("Administration requires a verified online session.");
         } else {
             offline_=!online; emit changed();
             if (!online && session_.authenticated() && !busy_ && records_.allRecords().isEmpty()) refresh();
@@ -94,7 +96,7 @@ FeatureController::FeatureController(ApiClient& api, SessionController& session,
     });
     connect(&api_,&ApiClient::administratorDenied,this,[this] {
         if (const auto* feature=findFeature(currentPage_); feature && feature->scope==core::Scope::administration) {
-            clear(); currentPage_="office"; fail("Administrator access is no longer available.");
+            clear(); pendingOfferAgentId_.clear(); pendingOfferMode_.clear(); currentPage_="office"; fail("Administrator access is no longer available.");
         }
         emit changed();
     });
@@ -201,6 +203,7 @@ QString FeatureController::actionContext(const QString& id) const {
 }
 void FeatureController::clear() {
     ++epoch_; ++detailEpoch_; ++viewGeneration_; busy_=false; offline_=false; nextPage_=0; loadingMore_=false;
+    resetSelectedAgentTasks();
     api_.cancelRequests(this); pendingSelection_.clear(); detailHeading_.clear(); detailCollection_.clear(); overview_.clear();
     error_.clear(); selectedId_.clear(); details_.clear(); editDetails_.clear(); records_.setRecords({}); retryKeys_.clear(); searchTimer_.stop();
     driveBreadcrumbs_={QVariantMap{{"id",QString{}},{"name","Drive"}}}; driveTrash_=false; driveDownload_.reset();
@@ -293,11 +296,36 @@ bool FeatureController::permitted(const FeatureDescriptor& feature,bool mutation
     return core::mayRequest(api_.context(),feature.scope,mutation);
 }
 void FeatureController::navigate(const QString& page) {
+    if (page != QStringLiteral("marketplace")) {
+        pendingOfferAgentId_.clear();
+        pendingOfferMode_.clear();
+    }
     pendingSelection_.clear();
     const auto* feature=findFeature(page);
     if (!feature) { fail("This page is not available."); return; }
     if (feature->scope==core::Scope::administration && !session_.administrator()) { fail("Administrator access requires an online, authorized session."); return; }
     clear(); currentPage_=page; search_.clear(); records_.setQuery({}); emit changed(); refresh();
+}
+void FeatureController::openMarketplaceOffer(const QString& agentId, const QString& mode) {
+    static const QRegularExpression safeId(QStringLiteral("^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"));
+    if ((mode != QLatin1String("rent") && mode != QLatin1String("sale")) || !safeId.match(agentId).hasMatch()) {
+        fail(QStringLiteral("Choose an agent to rent out or sell."));
+        return;
+    }
+    pendingOfferAgentId_ = agentId;
+    pendingOfferMode_ = mode;
+    navigate(QStringLiteral("marketplace"));
+    if (currentPage_ != QLatin1String("marketplace")) {
+        pendingOfferAgentId_.clear();
+        pendingOfferMode_.clear();
+        emit changed();
+    }
+}
+void FeatureController::consumeMarketplaceOffer() {
+    if (pendingOfferAgentId_.isEmpty() && pendingOfferMode_.isEmpty()) return;
+    pendingOfferAgentId_.clear();
+    pendingOfferMode_.clear();
+    emit changed();
 }
 void FeatureController::refresh() { if (!busy_) load(1,false); }
 void FeatureController::loadMore() { if (nextPage_>0 && !busy_ && !loadingMore_) load(nextPage_,true); }
@@ -359,7 +387,10 @@ void FeatureController::select(const QString& id) {
     if (record.isEmpty() && target && !target->detailPath.isEmpty() && permitted(*target, false)
         && QRegularExpression("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$").match(id).hasMatch()) record.insert("id", id);
     if (record.isEmpty()) { clearSelection(); return; }
-    pendingSelection_.clear(); selectedId_=id; details_=record; editDetails_=record; detailHeading_="Record details"; detailCollection_.clear(); error_.clear(); const auto epoch=++detailEpoch_; emit changed();
+    pendingSelection_.clear(); selectedId_=id; details_=record; editDetails_=record; detailHeading_="Record details"; detailCollection_.clear(); error_.clear(); const auto epoch=++detailEpoch_;
+    if (agentTasksPage()) loadSelectedAgentTasks(id);
+    else resetSelectedAgentTasks();
+    emit changed();
     const auto* feature=findFeature(currentPage_); if (!feature || feature->detailPath.isEmpty() || !permitted(*feature,false)) return;
     const auto path=resolvePath(feature->detailPath,id,record);
     const auto generation=api_.context().generation;
@@ -384,7 +415,55 @@ void FeatureController::select(const QString& id) {
         apply(response.json);
     });
 }
-void FeatureController::clearSelection() { ++detailEpoch_; pendingSelection_.clear(); selectedId_.clear(); details_.clear(); editDetails_.clear(); emit changed(); }
+void FeatureController::clearSelection() {
+    ++detailEpoch_; pendingSelection_.clear(); selectedId_.clear(); details_.clear(); editDetails_.clear();
+    resetSelectedAgentTasks(); emit changed();
+}
+bool FeatureController::agentTasksPage() const {
+    return currentPage_ == QStringLiteral("agents") || currentPage_ == QStringLiteral("agent-performance");
+}
+void FeatureController::resetSelectedAgentTasks() {
+    ++agentTasksEpoch_; selectedAgentTasks_.clear(); selectedAgentTasksAgent_.clear(); selectedAgentTasksState_=QStringLiteral("idle");
+}
+void FeatureController::loadSelectedAgentTasks(const QString& agentId) {
+    const bool keepVisible=selectedAgentTasksAgent_==agentId && selectedAgentTasksState_==QStringLiteral("ready");
+    ++agentTasksEpoch_;
+    if (!keepVisible) selectedAgentTasks_.clear();
+    static const QRegularExpression safeId(QStringLiteral("^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"));
+    const auto* feature=findFeature(currentPage_);
+    if (!agentTasksPage() || !feature || !permitted(*feature,false) || !safeId.match(agentId).hasMatch()) {
+        selectedAgentTasks_.clear(); selectedAgentTasksAgent_.clear(); selectedAgentTasksState_=QStringLiteral("unavailable"); return;
+    }
+    selectedAgentTasksAgent_=agentId;
+    if (!keepVisible) selectedAgentTasksState_=QStringLiteral("loading");
+    const auto epoch=agentTasksEpoch_, generation=api_.context().generation;
+    const auto path=QStringLiteral("/api/tasks?agent_id=")+QString::fromLatin1(QUrl::toPercentEncoding(agentId));
+    const auto scope=feature->scope;
+    const auto apply=[this,epoch,generation,agentId](const QJsonObject& response) {
+        if (epoch!=agentTasksEpoch_ || generation!=api_.context().generation || selectedId_!=agentId || !agentTasksPage()) return;
+        QVariantList owned;
+        for (const auto& row : extractFeatureRecords(response)) {
+            const auto task=row.toMap();
+            if (task.value(QStringLiteral("assigned_agent_id")).toString()==agentId) owned.append(task);
+        }
+        selectedAgentTasks_=std::move(owned); selectedAgentTasksState_=QStringLiteral("ready"); emit changed();
+    };
+    if (!api_.context().online) {
+        cache_.read(cacheKey(path),this,[this,epoch,generation,apply](QByteArray bytes) {
+            if (epoch!=agentTasksEpoch_ || generation!=api_.context().generation) return;
+            const auto document=QJsonDocument::fromJson(bytes);
+            if (!document.isObject()) { selectedAgentTasks_.clear(); selectedAgentTasksState_=QStringLiteral("unavailable"); emit changed(); return; }
+            apply(document.object());
+        });
+        return;
+    }
+    api_.request("GET",path,{},scope,this,[this,path,epoch,generation,scope,apply](ApiResponse response) {
+        if (epoch!=agentTasksEpoch_ || generation!=api_.context().generation) return;
+        if (!response.ok()) { selectedAgentTasks_.clear(); selectedAgentTasksState_=QStringLiteral("unavailable"); emit changed(); return; }
+        if (scope!=core::Scope::administration) cache_.write(cacheKey(path),response.bytes);
+        apply(response.json);
+    });
+}
 void FeatureController::showOverview() { clearSelection(); details_=overview_; if (currentPage_=="profile" || currentPage_=="settings") editDetails_=overview_; detailHeading_="Overview"; detailCollection_.clear(); emit changed(); }
 void FeatureController::showRecordDetails() { if (selectedId_.isEmpty()) return; ++detailEpoch_; details_=editDetails_; detailHeading_="Record details"; detailCollection_.clear(); emit changed(); }
 void FeatureController::openRecord(const QString& page, const QString& id) {

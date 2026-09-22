@@ -16,6 +16,37 @@ Rectangle {
             }
             MokaidButton { iconName: "close"; quiet: true; Accessible.name: "Close conversation"; onClicked: office.closeChat() }
         }
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+            visible: office.selectedAgent.kind === "ai"
+            MokaidButton {
+                objectName: "rentOutAgent"
+                Layout.fillWidth: true
+                implicitHeight: 40
+                iconName: "marketplace"
+                text: "Rent out"
+                enabled: session.online
+                onClicked: features.openMarketplaceOffer(office.selectedAgent.id, "rent")
+            }
+            MokaidButton {
+                objectName: "sellAgent"
+                Layout.fillWidth: true
+                implicitHeight: 40
+                iconName: "billing"
+                text: "Sell"
+                enabled: session.online
+                onClicked: features.openMarketplaceOffer(office.selectedAgent.id, "sale")
+            }
+        }
+        MokaidButton {
+            objectName: "agentPerformance"
+            Layout.fillWidth: true
+            implicitHeight: 40
+            iconName: "analytics"
+            text: "View performance"
+            onClicked: features.openRecord("agent-performance", office.selectedAgent.id)
+        }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.divider }
         MokaidButton { Layout.fillWidth: true; iconName: "plus"; text: "Assign a mission with files"; enabled: !!office.selectedAgent.id; onClicked: missions.beginForAgent(office.selectedAgent.id, office.draft) }
         RowLayout {

@@ -10,11 +10,15 @@ Item {
     readonly property var team: office.agents.filter(function(agent) { return agent.status !== "archived" })
     readonly property int workingCount: team.filter(function(agent) { return agent.status === "working" || agent.status === "busy" }).length
     readonly property int attentionCount: team.filter(function(agent) { return agent.status === "waiting" || agent.status === "blocked" }).length
-    RowLayout {
-        anchors.fill: parent; spacing: 16
+    readonly property int chatMotion: system.reducedMotion ? 0 : 320
+    Row {
+        id: officeRow
+        anchors.fill: parent
+        spacing: 0
         Item {
             id: officeArea
-            Layout.fillWidth: true; Layout.fillHeight: true
+            width: Math.max(0, officeRow.width - chatGap.width - chatDrawer.width)
+            height: officeRow.height
             readonly property bool showStats: width >= 1050 && height >= 620
             ColumnLayout {
                 id: officeHeading
@@ -62,8 +66,11 @@ Item {
                 onAgentSelected: function(agentId) { office.selectAgent(agentId) }
             }
             Column {
+                id: statsColumn
                 visible: officeArea.showStats
-                anchors.right: parent.right; anchors.verticalCenter: viewport.verticalCenter
+                width: 128
+                anchors.right: parent.right
+                anchors.verticalCenter: viewport.verticalCenter
                 spacing: 12
                 OfficeStat { iconName: "members"; value: String(root.team.length); label: "Team members" }
                 OfficeStat { iconName: "bolt"; value: String(root.workingCount); label: "Working now"; accent: Theme.success }
@@ -146,7 +153,28 @@ Item {
                 }
             }
         }
-        ChatPanel { Layout.preferredWidth: Math.min(410, Math.max(320, root.width * .34)); Layout.fillHeight: true; visible: !!office.selectedAgent.id }
+        Item {
+            id: chatGap
+            width: chatDrawer.open ? 16 : 0
+            height: officeRow.height
+            Behavior on width { NumberAnimation { duration: root.chatMotion; easing.type: Easing.OutCubic } }
+        }
+        Item {
+            id: chatDrawer
+            objectName: "officeChatDrawer"
+            readonly property bool open: !!office.selectedAgent.id
+            readonly property real panelWidth: Math.min(410, Math.max(320, root.width * .34))
+            width: open ? panelWidth : 0
+            height: officeRow.height
+            clip: true
+            Behavior on width { NumberAnimation { duration: root.chatMotion; easing.type: Easing.OutCubic } }
+            ChatPanel {
+                width: chatDrawer.panelWidth
+                height: parent.height
+                x: chatDrawer.width - width
+                enabled: chatDrawer.open
+            }
+        }
     }
     DropArea {
         id: officeDrop; anchors.fill: parent; enabled: !missions.opened && !!session.workspaceId

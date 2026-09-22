@@ -120,6 +120,7 @@ ApplicationWindow {
     ProjectPanel { id: projects }
     MokedDock {
         id: moked; anchors.fill: parent; z: 20
+        officeSlot: desktopShell.mokedOfficeSlot
         controller: orchestrator; voiceController: voice
         signedIn: session.authenticated
         reducedMotion: system.reducedMotion
@@ -128,7 +129,7 @@ ApplicationWindow {
     Rectangle {
         id: completionToast; property var notification: ({})
         visible: false; z: 30; width: Math.min(460, window.width - 40); height: toastBody.implicitHeight + 32
-        anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.rightMargin: moked.expanded ? 496 : 230; anchors.bottomMargin: 24
+        anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.rightMargin: moked.fullscreen ? 24 : (moked.expanded ? 496 : 230); anchors.bottomMargin: 24
         radius: 16; color: Theme.surface; border.color: Theme.selectedBorder
         ColumnLayout {
             id: toastBody; anchors.fill: parent; anchors.margins: 16; spacing: 10

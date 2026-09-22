@@ -50,7 +50,9 @@ public:
     QString capabilityWarning() const;
     qint64 maximumFileBytes() const { return 49'000'000; }
     Q_INVOKABLE void begin(const QString& instruction = {});
+    Q_INVOKABLE void beginInline(const QString& instruction = {});
     Q_INVOKABLE void beginForAgent(const QString& agentId, const QString& instruction = {});
+    QVariantList roster() const { return agents_; }
     Q_INVOKABLE void close();
     Q_INVOKABLE void reset();
     Q_INVOKABLE void addFiles(const QVariantList& urls);
@@ -77,6 +79,7 @@ private:
         QJsonObject uploaded;
     };
     void contextChanged();
+    void openDraft(const QString& instruction, bool openSheet);
     QString contextKey() const;
     bool ready() const;
     bool current(quint64 epoch, quint64 generation, const QString& context) const;

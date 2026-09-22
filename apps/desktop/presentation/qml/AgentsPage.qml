@@ -8,6 +8,7 @@ import QtQuick.Shapes
 Item {
     id: root
     objectName: "agentsPage"
+    clip: true
     signal actionRequested(var action)
     property string statusFilter: "all"
     property bool gridMode: false
@@ -33,6 +34,11 @@ Item {
         return record
     }
     readonly property bool hasSelection: Boolean(selectedAgent.id)
+    readonly property var inspectorTaskBars: activityBars(selectedAgent)
+    readonly property var inspectorMissionBars: missionBars(selectedAgent)
+    readonly property string inspectorCurrentTask: currentTaskText(selectedAgent)
+    readonly property string inspectorMissionNote: missionNote(selectedAgent)
+    readonly property real inspectorPerformanceMeter: performanceMeter(selectedAgent)
     readonly property var summary: {
         let active = 0, idle = 0, training = 0, completed = 0, scoreTotal = 0, rated = 0
         let added = 0
@@ -73,6 +79,72 @@ Item {
     function hasScore(agent) {
         return agent.performance_score !== undefined && agent.performance_score !== null
             && agent.performance_score !== "" && isFinite(Number(agent.performance_score))
+    }
+    function tasksReady(agent) {
+        return Boolean(agent && agent.id) && features.selectedId === agent.id && features.selectedAgentTasksState === "ready"
+    }
+    function assignedTasks(agent) {
+        if (!tasksReady(agent)) return []
+        return (features.selectedAgentTasks || []).filter(function(task) {
+            return task && task.assigned_agent_id === agent.id
+        })
+    }
+    function activeTasks(agent) {
+        return assignedTasks(agent).filter(function(task) {
+            return task.status !== "completed" && task.status !== "canceled"
+        })
+    }
+    function performanceMeter(agent) {
+        return hasScore(agent) ? Math.max(0, Math.min(1, Number(agent.performance_score) / 100)) : -1
+    }
+    function activityBars(agent) {
+        if (!tasksReady(agent)) return []
+        return activeTasks(agent).slice(0, 8).map(function(task) {
+            const progress = Number(task.progress_percent)
+            return isFinite(progress) ? Math.max(0, Math.min(1, progress / 100)) : 0
+        })
+    }
+    function missionBars(agent) {
+        if (!tasksReady(agent)) return []
+        const days = 8
+        const today = new Date(now)
+        const end = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+        const start = end - (days - 1) * 86400000
+        const buckets = []
+        for (let i = 0; i < days; ++i) buckets.push(0)
+        for (const task of assignedTasks(agent)) {
+            if (task.status !== "completed" || !task.completed_at) continue
+            const completedAt = Date.parse(task.completed_at)
+            if (!isFinite(completedAt) || completedAt < start || completedAt > end + 86400000 - 1) continue
+            const index = Math.floor((completedAt - start) / 86400000)
+            if (index >= 0 && index < days) buckets[index]++
+        }
+        const peak = Math.max.apply(null, buckets)
+        if (peak <= 0) return []
+        return buckets.map(function(count) { return count / peak })
+    }
+    function currentTaskText(agent) {
+        if (!agent || !agent.id) return "—"
+        if (features.selectedId === agent.id && features.selectedAgentTasksState === "loading") return "—"
+        if (tasksReady(agent)) {
+            const count = activeTasks(agent).length
+            return count > 0 ? String(count) : "—"
+        }
+        return agent.current_task_id ? "1" : "—"
+    }
+    function currentTaskNote(agent) {
+        if (!agent || !agent.id) return "No current task"
+        if (features.selectedId === agent.id && features.selectedAgentTasksState === "loading") return "Loading tasks"
+        if (features.selectedId === agent.id && features.selectedAgentTasksState === "unavailable") return "Task progress unavailable"
+        if (tasksReady(agent)) {
+            const count = activeTasks(agent).length
+            if (count === 0) return "No current task"
+            return count === 1 ? "Assigned task" : count + " active tasks"
+        }
+        return agent.current_task_id ? "Assigned task" : "No current task"
+    }
+    function missionNote(agent) {
+        return tasksReady(agent) ? "Last 8 days" : "All time"
     }
     function scoreText(agent) { return hasScore(agent) ? Math.round(Number(agent.performance_score)) + "%" : "—" }
     function skillNames(agent) {
@@ -140,6 +212,23 @@ Item {
     }
     Timer { interval: 60000; running: root.visible; repeat: true; onTriggered: root.now = Date.now() }
 
+    Canvas {
+        z: 0
+        anchors.fill: parent
+        onPaint: {
+            const ctx = getContext("2d")
+            ctx.clearRect(0, 0, width, height)
+            const top = ctx.createRadialGradient(width - 36, 8, 0, width - 36, 8, 260)
+            top.addColorStop(0, "rgba(168, 114, 255, 0.16)")
+            top.addColorStop(0.42, "rgba(120, 74, 220, 0.05)")
+            top.addColorStop(1, "rgba(120, 74, 220, 0)")
+            ctx.fillStyle = top
+            ctx.fillRect(0, 0, width, height)
+        }
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+    }
+
     component StatusBadge: Rectangle {
         id: badge
         property var agent: ({})
@@ -184,6 +273,152 @@ Item {
         MokaidLabel { text: line.label; color: root.supportingText; font.pixelSize: 11; Layout.preferredWidth: 100 }
         MokaidLabel { text: line.value; color: Theme.text; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
+    component TrendChart: Canvas {
+        id: chart
+        property var samples: []
+        property color ink: "#7eb6ff"
+        property string mode: "line"
+        property real meter: -1
+        antialiasing: true
+        onSamplesChanged: requestPaint()
+        onInkChanged: requestPaint()
+        onModeChanged: requestPaint()
+        onMeterChanged: requestPaint()
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        onPaint: {
+            const ctx = chart.getContext("2d")
+            ctx.clearRect(0, 0, chart.width, chart.height)
+            ctx.globalAlpha = 1
+            ctx.setLineDash([])
+            if (chart.width < 2 || chart.height < 2) return
+            const values = chart.samples || []
+            if (chart.mode === "meter") {
+                if (!(chart.meter >= 0)) {
+                    ctx.strokeStyle = chart.ink
+                    ctx.globalAlpha = 0.35
+                    ctx.lineWidth = 1
+                    ctx.setLineDash([2, 3])
+                    ctx.beginPath()
+                    ctx.moveTo(1, chart.height - 2)
+                    ctx.lineTo(chart.width - 1, chart.height - 2)
+                    ctx.stroke()
+                    return
+                }
+                const segments = 8
+                const score = Math.max(0, Math.min(1, chart.meter))
+                const gap = Math.max(2, chart.width * 0.04)
+                const barWidth = Math.max(2, (chart.width - gap * (segments - 1)) / segments)
+                for (let i = 0; i < segments; ++i) {
+                    const barHeight = 4 + (i / (segments - 1)) * (chart.height - 6)
+                    const x = i * (barWidth + gap)
+                    const y = chart.height - barHeight
+                    const radius = Math.min(1.5, barWidth / 2, barHeight / 2)
+                    ctx.beginPath()
+                    ctx.moveTo(x, chart.height)
+                    ctx.lineTo(x, y + radius)
+                    ctx.arcTo(x, y, x + radius, y, radius)
+                    ctx.lineTo(x + barWidth - radius, y)
+                    ctx.arcTo(x + barWidth, y, x + barWidth, y + radius, radius)
+                    ctx.lineTo(x + barWidth, chart.height)
+                    ctx.closePath()
+                    ctx.fillStyle = chart.ink
+                    ctx.globalAlpha = 0.16
+                    ctx.fill()
+                    const filled = Math.max(0, Math.min(1, score * segments - i))
+                    if (filled <= 0) continue
+                    ctx.globalAlpha = 0.9
+                    ctx.fillRect(x, y, Math.max(1, barWidth * filled), barHeight)
+                }
+                return
+            }
+            if (chart.mode === "bars") {
+                if (values.length === 0) {
+                    ctx.strokeStyle = chart.ink
+                    ctx.globalAlpha = 0.35
+                    ctx.lineWidth = 1
+                    ctx.setLineDash([2, 3])
+                    ctx.beginPath()
+                    ctx.moveTo(1, chart.height - 2)
+                    ctx.lineTo(chart.width - 1, chart.height - 2)
+                    ctx.stroke()
+                    return
+                }
+                const gap = Math.max(2, chart.width * 0.08)
+                const barWidth = Math.min(10, Math.max(3, (chart.width - gap * (values.length - 1)) / values.length))
+                const used = values.length * barWidth + gap * (values.length - 1)
+                const origin = Math.max(0, chart.width - used)
+                for (let i = 0; i < values.length; ++i) {
+                    const sample = Math.max(0, Math.min(1, Number(values[i]) || 0))
+                    const x = origin + i * (barWidth + gap)
+                    const radius = Math.min(1.5, barWidth / 2)
+                    ctx.beginPath()
+                    ctx.moveTo(x, chart.height)
+                    ctx.lineTo(x, 1 + radius)
+                    ctx.arcTo(x, 1, x + radius, 1, radius)
+                    ctx.lineTo(x + barWidth - radius, 1)
+                    ctx.arcTo(x + barWidth, 1, x + barWidth, 1 + radius, radius)
+                    ctx.lineTo(x + barWidth, chart.height)
+                    ctx.closePath()
+                    ctx.fillStyle = chart.ink
+                    ctx.globalAlpha = 0.14
+                    ctx.fill()
+                    const barHeight = sample * (chart.height - 2)
+                    if (barHeight <= 0.5) continue
+                    const y = chart.height - barHeight
+                    ctx.beginPath()
+                    ctx.moveTo(x, chart.height)
+                    ctx.lineTo(x, y + radius)
+                    ctx.arcTo(x, y, x + radius, y, radius)
+                    ctx.lineTo(x + barWidth - radius, y)
+                    ctx.arcTo(x + barWidth, y, x + barWidth, y + radius, radius)
+                    ctx.lineTo(x + barWidth, chart.height)
+                    ctx.closePath()
+                    ctx.globalAlpha = 0.9
+                    ctx.fill()
+                }
+                return
+            }
+            if (values.length < 2) {
+                ctx.strokeStyle = chart.ink
+                ctx.globalAlpha = 0.35
+                ctx.lineWidth = 1
+                ctx.setLineDash([2, 3])
+                ctx.beginPath()
+                ctx.moveTo(1, chart.height - 2)
+                ctx.lineTo(chart.width - 1, chart.height - 2)
+                ctx.stroke()
+                return
+            }
+            const baseline = chart.height - 1
+            const points = values.map(function(sample, index) {
+                return {
+                    x: 1 + (index / (values.length - 1)) * (chart.width - 2),
+                    y: baseline - sample * (chart.height - 3)
+                }
+            })
+            ctx.beginPath()
+            ctx.moveTo(points[0].x, points[0].y)
+            for (let i = 1; i < points.length; ++i) {
+                const previous = points[i - 1]
+                const point = points[i]
+                const middle = (previous.x + point.x) / 2
+                ctx.bezierCurveTo(middle, previous.y, middle, point.y, point.x, point.y)
+            }
+            ctx.strokeStyle = chart.ink
+            ctx.lineWidth = 1.6
+            ctx.lineJoin = "round"
+            ctx.lineCap = "round"
+            ctx.globalAlpha = 1
+            ctx.stroke()
+            ctx.lineTo(points[points.length - 1].x, baseline)
+            ctx.lineTo(points[0].x, baseline)
+            ctx.closePath()
+            ctx.fillStyle = chart.ink
+            ctx.globalAlpha = 0.16
+            ctx.fill()
+        }
+    }
     component DetailMetric: Rectangle {
         id: metric
         property string value: ""
@@ -191,22 +426,32 @@ Item {
         property string note: ""
         property real percentage: -1
         property color accent: "#a385ff"
+        property string chart: "line"
+        property var series: []
+        property real meter: -1
         Layout.fillWidth: true
-        Layout.preferredHeight: 105
+        Layout.preferredHeight: 124
         radius: 12
-        border.color: "#26273e"
-        gradient: Gradient { GradientStop { position: 0; color: "#141624" } GradientStop { position: 1; color: "#131323" } }
+        border.color: "#343056"
+        gradient: Gradient {
+            GradientStop { position: 0; color: "#1a1830" }
+            GradientStop { position: 1; color: "#121422" }
+        }
         ColumnLayout {
-            anchors.fill: parent; anchors.margins: 12; spacing: 4
+            anchors.fill: parent; anchors.margins: 10; spacing: 2
             MokaidLabel { text: metric.value; font.pixelSize: 22; font.weight: Font.DemiBold; Layout.fillWidth: true; elide: Text.ElideRight }
-            MokaidLabel { text: metric.label; font.pixelSize: 10; color: root.supportingText; Layout.fillWidth: true; wrapMode: Text.Wrap }
-            Item { Layout.fillHeight: true }
-            Rectangle {
-                visible: metric.percentage >= 0
-                Layout.fillWidth: true; Layout.preferredHeight: 4; radius: 2; color: "#28243d"
-                Rectangle { width: parent.width * Math.max(0, Math.min(100, metric.percentage)) / 100; height: parent.height; radius: 2; color: metric.accent }
+            MokaidLabel { text: metric.label; font.pixelSize: 10; color: root.supportingText; Layout.fillWidth: true; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight }
+            Item { Layout.preferredHeight: 4 }
+            TrendChart {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 32
+                samples: metric.series
+                ink: metric.accent
+                mode: metric.chart
+                meter: metric.meter
+                Accessible.name: metric.label
             }
-            MokaidLabel { visible: metric.percentage < 0; text: metric.note; font.pixelSize: 9; color: "#a5afcd"; Layout.fillWidth: true; elide: Text.ElideRight }
+            MokaidLabel { text: metric.note; font.pixelSize: 9; color: "#a5afcd"; Layout.fillWidth: true; elide: Text.ElideRight }
         }
     }
     component SummaryMetric: Rectangle {
@@ -239,6 +484,7 @@ Item {
     }
 
     ColumnLayout {
+        z: 1
         anchors.fill: parent
         anchors.leftMargin: 0; anchors.rightMargin: 0
         anchors.topMargin: 8; anchors.bottomMargin: 12
@@ -359,7 +605,7 @@ Item {
                             MokaidLabel { text: "AGENT"; color: root.supportingText; font.pixelSize: 9; font.weight: Font.Medium; Layout.fillWidth: true }
                             MokaidLabel { text: "STATUS"; color: root.supportingText; font.pixelSize: 9; Layout.preferredWidth: 74; Layout.minimumWidth: 74; Layout.maximumWidth: 74 }
                             MokaidLabel { visible: roster.showCurrentTask; text: "CURRENT"; color: root.supportingText; font.pixelSize: 9; Layout.preferredWidth: 55; Layout.minimumWidth: 55; Layout.maximumWidth: 55 }
-                            MokaidLabel { visible: roster.showPerformance; text: "PERFORMANCE"; color: root.supportingText; font.pixelSize: 9; Layout.preferredWidth: 90; Layout.minimumWidth: 90; Layout.maximumWidth: 90 }
+                            MokaidLabel { visible: roster.showPerformance; text: "PERFORMANCE"; color: root.supportingText; font.pixelSize: 9; Layout.preferredWidth: 108; Layout.minimumWidth: 108; Layout.maximumWidth: 108 }
                             MokaidLabel { visible: roster.showActivity; text: "LAST ACTIVITY"; color: root.supportingText; font.pixelSize: 9; Layout.preferredWidth: 110; Layout.minimumWidth: 110; Layout.maximumWidth: 110 }
                             Item { Layout.preferredWidth: 24 }
                         }
@@ -407,13 +653,15 @@ Item {
                                         MokaidLabel { text: agentRow.modelData.current_task_id ? "1" : "—"; font.pixelSize: 15; font.weight: Font.DemiBold }
                                         MokaidLabel { text: agentRow.modelData.current_task_id ? "task" : "No task"; color: root.supportingText; font.pixelSize: 9 }
                                     }
-                                    ColumnLayout {
-                                        visible: roster.showPerformance; Layout.preferredWidth: 90; Layout.minimumWidth: 90; Layout.maximumWidth: 90; spacing: 7
-                                        MokaidLabel { text: root.scoreText(agentRow.modelData); color: root.hasScore(agentRow.modelData) ? "#bce8fa" : root.supportingText; font.pixelSize: 12; font.weight: Font.Medium }
-                                        Rectangle {
-                                            visible: root.hasScore(agentRow.modelData); implicitWidth: 62; implicitHeight: 3; radius: 2; color: "#27283c"
-                                            Rectangle { width: parent.width * Math.max(0, Math.min(100, Number(agentRow.modelData.performance_score || 0))) / 100; height: 3; radius: 2; color: "#7d8ffd" }
+                                    RowLayout {
+                                        visible: roster.showPerformance; Layout.preferredWidth: 108; Layout.minimumWidth: 108; Layout.maximumWidth: 108; spacing: 6
+                                        TrendChart {
+                                            visible: root.hasScore(agentRow.modelData)
+                                            Layout.preferredWidth: 36; Layout.preferredHeight: 16
+                                            mode: "meter"; meter: root.performanceMeter(agentRow.modelData)
+                                            ink: "#6ec8ff"
                                         }
+                                        MokaidLabel { text: root.scoreText(agentRow.modelData); color: root.hasScore(agentRow.modelData) ? "#bce8fa" : root.supportingText; font.pixelSize: 12; font.weight: Font.Medium; Layout.fillWidth: true; elide: Text.ElideRight }
                                     }
                                     ColumnLayout {
                                         visible: roster.showActivity; Layout.preferredWidth: 110; Layout.minimumWidth: 110; Layout.maximumWidth: 110; spacing: 5
@@ -499,8 +747,12 @@ Item {
                 visible: root.hasSelection
                 Layout.preferredWidth: Math.max(330, Math.min(430, root.width * .35))
                 Layout.fillHeight: true; Layout.minimumWidth: 320
-                radius: 15; border.color: root.panelBorder
-                gradient: Gradient { GradientStop { position: 0; color: "#151322" } GradientStop { position: 1; color: "#0f111a" } }
+                radius: 15; border.width: 1; border.color: "#4a3d72"
+                gradient: Gradient {
+                    GradientStop { position: 0; color: "#1c1733" }
+                    GradientStop { position: 0.42; color: "#141226" }
+                    GradientStop { position: 1; color: "#0e1018" }
+                }
                 ColumnLayout {
                     anchors.fill: parent; spacing: 0
                     RowLayout {
@@ -553,9 +805,9 @@ Item {
                                 Layout.fillWidth: true; Layout.margins: 15; spacing: 14
                                 RowLayout {
                                     Layout.fillWidth: true; spacing: 8
-                                    DetailMetric { value: root.scoreText(root.selectedAgent); label: "Performance"; percentage: root.hasScore(root.selectedAgent) ? Number(root.selectedAgent.performance_score) : -1; note: "Not rated yet" }
-                                    DetailMetric { value: root.selectedAgent.current_task_id ? "1" : "—"; label: "Current task"; note: root.selectedAgent.current_task_id ? "Assigned task" : "No current task"; accent: "#83adff" }
-                                    DetailMetric { value: String(root.selectedAgent.missions_completed || 0); label: "Missions completed"; note: "All time"; accent: "#b184ff" }
+                                    DetailMetric { value: root.scoreText(root.selectedAgent); label: "Performance"; chart: "meter"; meter: root.performanceMeter(root.selectedAgent); note: root.hasScore(root.selectedAgent) ? "Current score" : "Not rated yet"; accent: "#8eb7ff" }
+                                    DetailMetric { value: root.currentTaskText(root.selectedAgent); label: "Current task"; chart: "bars"; series: root.activityBars(root.selectedAgent); note: root.currentTaskNote(root.selectedAgent); accent: "#7ea6f2" }
+                                    DetailMetric { value: String(root.selectedAgent.missions_completed || 0); label: "Missions completed"; chart: "bars"; series: root.missionBars(root.selectedAgent); note: root.missionNote(root.selectedAgent); accent: "#b184ff" }
                                 }
                                 SmallHeading { text: "About" }
                                 MokaidLabel {
@@ -685,6 +937,9 @@ Item {
         id: agentActions
         objectName: "agentActionsMenu"
         MokaidMenu.Entry { objectName: "agentChatAction"; text: "Open agent chat"; enabled: root.hasSelection; onTriggered: { office.selectAgent(root.selectedAgent.id); features.navigate("office") } }
+        MokaidMenu.Entry { objectName: "agentPerformanceAction"; text: "View performance"; enabled: root.hasSelection; onTriggered: features.openRecord("agent-performance", root.selectedAgent.id) }
+        MokaidMenu.Entry { objectName: "agentRentAction"; text: "Rent out"; enabled: root.hasSelection && !features.offline && root.selectedAgent.kind === "ai"; onTriggered: features.openMarketplaceOffer(root.selectedAgent.id, "rent") }
+        MokaidMenu.Entry { objectName: "agentSellAction"; text: "Sell copies"; enabled: root.hasSelection && !features.offline && root.selectedAgent.kind === "ai"; onTriggered: features.openMarketplaceOffer(root.selectedAgent.id, "sale") }
         MokaidMenu.Entry { objectName: "agentTestAction"; text: "Test agent"; enabled: root.hasSelection && !features.offline && root.selectedAgent.kind !== "human_linked"; onTriggered: missions.beginForAgent(root.selectedAgent.id) }
         MokaidMenu.Separator { }
         Instantiator {

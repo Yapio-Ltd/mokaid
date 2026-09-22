@@ -36,6 +36,7 @@ set(MOKAID_QML_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/MokedMascot.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/AgentCreationPage.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/AgentsPage.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/AgentPerformancePage.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/MarketplacePage.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/WorkforcePortrait.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/FeatureLogic.js"

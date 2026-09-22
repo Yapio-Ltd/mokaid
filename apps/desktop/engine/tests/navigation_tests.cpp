@@ -353,7 +353,7 @@ void realAssets(const std::filesystem::path &root) {
       if (s.kind == 3) foosballYaw.push_back(s.yaw);
     }
   }
-  expect(desks == 9 && sofas == 3 && standing >= 5, "Real office contains nine desks, three sofa seats and five standing activities");
+  expect(desks == 9 && sofas == 6 && standing >= 5, "Real office contains nine desks, six sofa seats and five standing activities");
   for (std::size_t i = 0; i < coffeeGroup.size(); ++i)
     for (std::size_t j = 0; j < i; ++j)
       expect(length(coffeeGroup[i] - coffeeGroup[j]) >= .85F,
