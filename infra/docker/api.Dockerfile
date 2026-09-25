@@ -50,6 +50,7 @@ USER mokaid
 COPY --from=build --chown=mokaid:mokaid /app/_build/prod/rel/mokaid ./
 COPY --from=avatar-cooker /usr/local/bin/node /usr/local/bin/node
 COPY --from=avatar-cooker --chown=mokaid:mokaid /opt/avatar-cooker /opt/avatar-cooker
+RUN node --input-type=module -e "await import('/opt/avatar-cooker/cook-custom.mjs')"
 
 ENV MESHY_NATIVE_COOKER=/opt/avatar-cooker/cook-custom.mjs MESHY_NODE_BIN=/usr/local/bin/node
 
