@@ -20,14 +20,24 @@ export function validateEmbeddedGlb(bytes) {
   return json;
 }
 class Writer {
-  chunks=[];
-  raw(b){this.chunks.push(Buffer.from(b));}
-  u(n){const b=Buffer.alloc(4);b.writeUInt32LE(n);this.raw(b);}
-  i(n){const b=Buffer.alloc(4);b.writeInt32LE(n);this.raw(b);}
-  f(n){if(!Number.isFinite(n))throw Error('Nonfinite cooked number');const b=Buffer.alloc(4);b.writeFloatLE(n);this.raw(b);}
+  // Batch scalar writes to bound allocation overhead on the shared API host.
+  // Reject oversized output while writing, before allocating the final buffer.
+  chunks=[]; block=null; offset=0; length=0;
+  reserve(size){
+    if(this.length+size>128*1024*1024)throw Error('Cooked character exceeds 128 MiB');
+    if(!this.block||this.offset+size>this.block.length){
+      if(this.block)this.chunks.push(this.block.subarray(0,this.offset));
+      this.block=Buffer.allocUnsafe(Math.max(64*1024,size));this.offset=0;
+    }
+    const start=this.offset;this.offset+=size;this.length+=size;return start;
+  }
+  raw(b){const start=this.reserve(b.length);this.block.set(b,start);}
+  u(n){const start=this.reserve(4);this.block.writeUInt32LE(n,start);}
+  i(n){const start=this.reserve(4);this.block.writeInt32LE(n,start);}
+  f(n){if(!Number.isFinite(n))throw Error('Nonfinite cooked number');const start=this.reserve(4);this.block.writeFloatLE(n,start);}
   floats(values){for(const n of values)this.f(n);}
   string(s){const b=Buffer.from(s);this.u(b.length);this.raw(b);}
-  finish(){return Buffer.concat(this.chunks);}
+  finish(){return Buffer.concat([...this.chunks,...(this.block?[this.block.subarray(0,this.offset)]:[])],this.length);}
 }
 function element(a,i,fallback){return a?a.getElement(i,[]):fallback;}
 function transform(m,v){return [m[0]*v[0]+m[4]*v[1]+m[8]*v[2]+m[12],m[1]*v[0]+m[5]*v[1]+m[9]*v[2]+m[13],m[2]*v[0]+m[6]*v[1]+m[10]*v[2]+m[14]];}

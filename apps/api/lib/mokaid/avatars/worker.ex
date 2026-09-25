@@ -1,7 +1,7 @@
 defmodule Mokaid.Avatars.Worker do
   @moduledoc "Resumable Meshy preview → texture → rig → permanent assets pipeline."
   use Oban.Worker,
-    queue: :default,
+    queue: :avatars,
     max_attempts: 12,
     unique: [
       period: 30,

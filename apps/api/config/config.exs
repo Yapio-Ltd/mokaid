@@ -23,7 +23,7 @@ config :mokaid, MokaidWeb.Endpoint,
 config :mokaid, Oban,
   engine: Oban.Engines.Basic,
   repo: Mokaid.Repo,
-  queues: [default: 10, ingestion: 5, ai_dispatch: 10, notifications: 10, billing: 3],
+  queues: [default: 10, avatars: 1, ingestion: 5, ai_dispatch: 10, notifications: 10, billing: 3],
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
     {Oban.Plugins.Cron,
