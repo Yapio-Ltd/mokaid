@@ -1,5 +1,6 @@
 add_library(mokaid_features STATIC
   feature_catalog.cpp feature_controller.cpp record_list_model.cpp detail_browser.cpp drive_download.cpp
+  avatar_generation_controller.cpp include/mokaid/features/avatar_generation_controller.hpp
   prepared_download.cpp prepared_download.hpp
   include/mokaid/features/feature_catalog.hpp
   include/mokaid/features/feature_controller.hpp

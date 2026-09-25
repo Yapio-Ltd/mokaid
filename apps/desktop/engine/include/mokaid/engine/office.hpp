@@ -58,6 +58,7 @@ public:
   Office &operator=(const Office &) = delete;
   void load(const std::filesystem::path &);
   void setAgents(std::vector<Agent>);
+  void setCustomAvatar(std::string key, std::shared_ptr<const Scene> scene);
   void setPaused(bool);
   // Headless fixtures use Office(false) and the same fixed-step simulation.
   void advance(float seconds);

@@ -31,6 +31,13 @@ Office::Office(bool threaded) : frame_(std::make_shared<Frame>()) {
   if (threaded) worker_ = std::jthread([this](std::stop_token stop) { run(stop); });
 }
 Office::~Office() { if (worker_.joinable()) { worker_.request_stop(); worker_.join(); } }
+void Office::setCustomAvatar(std::string key, std::shared_ptr<const Scene> scene) {
+  if (!key.starts_with("custom:") || !scene || scene->meshes.empty()) return;
+  std::lock_guard lock(mutex_);
+  const auto found = std::find_if(avatars_.begin(), avatars_.end(), [&](const auto &item) { return item.first == key; });
+  if (found == avatars_.end()) avatars_.emplace_back(std::move(key), std::move(scene));
+  else found->second = std::move(scene);
+}
 void Office::load(const std::filesystem::path &root) {
   auto office = loadScene(root / "office.mokaidasset");
   std::vector<std::pair<std::string, std::shared_ptr<const Scene>>> avatars;
@@ -85,6 +92,9 @@ void Office::setAgents(std::vector<Agent> agents) {
     if(retained) ids.push_back(previous.id); else chairOffsets_[previous.seat]=0;
   }
   agents_ = std::move(agents);
+  std::erase_if(avatars_, [&](const auto &entry) {
+    return entry.first.starts_with("custom:") && std::none_of(agents_.begin(), agents_.end(), [&](const auto &agent) { return agent.assetType == entry.first; });
+  });
   traffic_.retain(ids);
   std::erase_if(motion_, [&](const auto &p) { return std::find(ids.begin(), ids.end(), p.first) == ids.end(); });
   std::erase_if(claims_, [&](const auto &p) { return std::find(ids.begin(), ids.end(), p.second) == ids.end(); });
@@ -581,6 +591,12 @@ void Office::publishFrame() {
       clipTime=seconds_-m.phaseStarted+((s&&s->kind!=2)?m.socialOffset:0);
       if(s&&s->kind==1) y=s->seatHeight-scene->sofaPelvisHeight;
     } else if(b.translating) animation=m.carrying?"walking_coffee":m.gait;
+    // Meshy rigs initially contain idle/walk only. Keep feet on the floor when
+    // an office activity has no matching seated animation in this character.
+    if (a.assetType.starts_with("custom:") && !hasClip(*scene, animation)) {
+      y = standingY;
+      if (b.translating && hasClip(*scene, "walking")) animation = "walking";
+    }
     m.animation.transition(*scene,animation,seconds_);
     auto samples=m.animation.sample(seconds_);
     // These authored one-shots start/end at the matching resting poses. Their

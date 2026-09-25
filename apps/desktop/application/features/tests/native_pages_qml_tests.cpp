@@ -238,6 +238,26 @@ private slots:
         }
         QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
     }
+    void officeCardsUseGeneratedPortraitsWithoutBorrowingCatalogFaces() {
+        NativePageFixture fixture;
+        NativePageView view(fixture,"AgentCard.qml"); QVERIFY2(view.item,qPrintable(view.failure));
+        view.resize(240,120);
+        const QVariantMap custom{{"kind","ai"},{"display_name","Alex Lane"},{"asset_type","custom:fixture"},{"avatar_asset_id","fixture-custom"}};
+        QVERIFY(view.page->setProperty("agent",custom));
+        QVERIFY(view.page->property("usesCustomPortrait").toBool());
+        auto* portrait=view.find("officeCustomPortrait"); QVERIFY(portrait);
+        QVERIFY(portrait->property("portraitSource").toString().isEmpty());
+        QCOMPARE(portrait->property("initials").toString(),QString("AL"));
+        QVERIFY(!view.find("officeCatalogPortrait"));
+        auto withThumbnail=custom; withThumbnail.insert("avatar_thumbnail_url","https://mokaid.com/api/avatar-assets/fixture/token/thumbnail.png");
+        QVERIFY(view.page->setProperty("agent",withThumbnail));
+        QCOMPARE(portrait->property("portraitSource").toString(),withThumbnail.value("avatar_thumbnail_url").toString());
+        QVERIFY(view.page->setProperty("agent",QVariantMap{{"kind","ai"},{"display_name","Catalog agent"},{"asset_type","legal"}}));
+        QVERIFY(!view.page->property("usesCustomPortrait").toBool());
+        auto* builtin=view.find("officeCatalogPortrait"); QVERIFY(builtin);
+        QCOMPARE(builtin->property("kind").toString(),QString("legal"));
+        QVERIFY(!view.find("officeCustomPortrait"));
+    }
     void agentsUsePersistedDataAndKeepInteractionsAtMinimumSize() {
         NativePageFixture fixture; QVERIFY(fixture.remote.server.isListening());
         fixture.remote.collection("/api/agents",agents()); fixture.features.navigate("agents");

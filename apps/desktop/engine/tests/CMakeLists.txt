@@ -1,4 +1,6 @@
 add_executable(mokaid_engine_tests engine_tests.cpp)
+add_executable(mokaid_custom_avatar_tests custom_avatar_tests.cpp)
+target_link_libraries(mokaid_custom_avatar_tests PRIVATE mokaid_engine)
 target_link_libraries(mokaid_engine_tests PRIVATE mokaid_engine)
 add_test(NAME desktop.engine COMMAND mokaid_engine_tests)
 set_tests_properties(desktop.engine PROPERTIES TIMEOUT 30)

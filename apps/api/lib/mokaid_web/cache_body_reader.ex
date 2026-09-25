@@ -5,8 +5,13 @@ defmodule MokaidWeb.CacheBodyReader do
   """
 
   def read_body(conn, opts) do
-    {:ok, body, conn} = Plug.Conn.read_body(conn, opts)
-    conn = Plug.Conn.assign(conn, :raw_body, (conn.assigns[:raw_body] || "") <> body)
-    {:ok, body, conn}
+    case Plug.Conn.read_body(conn, opts) do
+      {status, body, conn} when status in [:ok, :more] ->
+        conn = Plug.Conn.assign(conn, :raw_body, (conn.assigns[:raw_body] || "") <> body)
+        {status, body, conn}
+
+      error ->
+        error
+    end
   end
 end

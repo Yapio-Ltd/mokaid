@@ -229,6 +229,9 @@ jobs:
           DESKTOP_AUTH_WEB_BASE_URL: https://mokaid.com
           MOKAID_TRUSTED_ALB_CIDRS: ${{ vars.MOKAID_TRUSTED_ALB_CIDRS }}
           AI_WORKER_URL: http://ai-worker.mokaid-prod.internal:8100
+          MESHY_API_KEY_SECRET_ARN: ${{ vars.MESHY_API_KEY_SECRET_ARN }}
+          MESHY_WEBHOOK_SECRET_ARN: ${{ vars.MESHY_WEBHOOK_SECRET_ARN }}
+          S3_BUCKET_ASSETS_3D: mokaid-assets-3d-prod-660601648321
         run: bash .github/scripts/prepare-ecs-task.sh
 
       - name: Run database migrations

@@ -49,6 +49,13 @@ defmodule MokaidWeb.JSON do
     }
   end
 
+  defp resolve_avatar_metadata(id, key) do
+    case Mokaid.Assets3d.get_asset(id) do
+      %{metadata: metadata} -> metadata[key]
+      _ -> nil
+    end
+  end
+
   def asset_3d(asset) do
     %{
       id: asset.id,
@@ -60,7 +67,7 @@ defmodule MokaidWeb.JSON do
       sha256: asset.sha256,
       byte_size: asset.byte_size,
       animation_clips: asset.animation_clips,
-      metadata: asset.metadata,
+      metadata: Map.drop(asset.metadata, ["media_token"]),
       inserted_at: asset.inserted_at
     }
   end
@@ -79,6 +86,8 @@ defmodule MokaidWeb.JSON do
       avatar_config: agent.avatar_config,
       avatar_asset_id: agent.avatar_asset_id,
       avatar_cdn_path: avatar_cdn_path,
+      avatar_native_cdn_path: resolve_avatar_metadata(agent.avatar_asset_id, "native_cdn_path"),
+      avatar_thumbnail_url: resolve_avatar_metadata(agent.avatar_asset_id, "thumbnail_url"),
       role_title: agent.role_title,
       department: agent.department,
       status: agent.status,

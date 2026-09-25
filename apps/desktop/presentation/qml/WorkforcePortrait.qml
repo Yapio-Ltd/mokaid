@@ -16,6 +16,8 @@ Item {
     // Custom locations and unresolved assignments must not borrow another face.
     readonly property string portraitSource: {
         if (agent.kind !== "ai" && agent.kind !== "hybrid") return ""
+        const thumbnail = String(agent.avatar_thumbnail_url || "").trim()
+        if (/^https:\/\/[^/?#]+\//.test(thumbnail)) return thumbnail
         const path = String(agent.avatar_cdn_path || "").trim()
         if (!path) return agent.avatar_asset_id ? "" : "qrc:/ui/portrait-male.png"
         const match = /^(?:(?:https?:\/\/[^/?#]+)?\/?assets3d\/|assets\/optimized\/)avatar_(male|design|finance|corporate|developer|research|legal|byte|nyx|moss)(?:\.[a-f0-9]+)?\.glb(?:[?#].*)?$/.exec(path)

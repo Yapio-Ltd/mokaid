@@ -5,6 +5,7 @@
 #include <QtQml/qqmlregistration.h>
 #include <mokaid/engine/office.hpp>
 #include "agent_indicator_model.hpp"
+#include "custom_avatar_loader.hpp"
 
 namespace mokaid {
 class NativeViewport : public QQuickItem {
@@ -18,6 +19,7 @@ class NativeViewport : public QQuickItem {
   Q_PROPERTY(
       QString quality READ quality WRITE setQuality NOTIFY qualityChanged)
   Q_PROPERTY(QString error READ error NOTIFY errorChanged)
+  Q_PROPERTY(QString avatarError READ avatarError NOTIFY avatarErrorChanged)
   Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
   Q_PROPERTY(QVariantMap diagnostics READ diagnostics NOTIFY diagnosticsChanged)
   Q_PROPERTY(QAbstractItemModel *actorIndicators READ actorIndicators CONSTANT)
@@ -33,18 +35,21 @@ public:
   QString quality() const { return quality_; }
   void setQuality(const QString &);
   QString error() const { return error_; }
+  QString avatarError() const { return avatarError_; }
   bool loading() const { return loading_; }
   QVariantMap diagnostics() const { return diagnostics_; }
   QAbstractItemModel *actorIndicators() { return &indicators_; }
   void reportError(QString);
   void reportDiagnostics(QVariantMap);
   Q_INVOKABLE void retryRenderer();
+  Q_INVOKABLE void retryCustomAvatars();
 signals:
   void assetRootChanged();
   void agentsChanged();
   void pausedChanged();
   void qualityChanged();
   void errorChanged();
+  void avatarErrorChanged();
   void loadingChanged();
   void diagnosticsChanged();
   void agentSelected(QString id);
@@ -56,6 +61,10 @@ protected:
 private:
   std::shared_ptr<engine::Office> office_;
   AgentIndicatorModel indicators_{this};
+  CustomAvatarLoader customAvatars_{this};
+  QSet<QString> loadedCustomAvatars_;
+  QSet<QString> activeCustomAvatars_;
+  QString avatarError_;
   void updateIndicators();
   std::jthread loader_;
   QString assetRoot_, quality_{"auto"}, error_;

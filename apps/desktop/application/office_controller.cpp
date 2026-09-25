@@ -100,7 +100,9 @@ void OfficeController::refresh() {
             auto record = value.toMap(); record["name"] = record.value("display_name");
             const auto match = QRegularExpression("avatar_(male|female|corporate|developer|design|finance|research|legal|byte|nyx|moss)(?:[._/]|$)")
                 .match(record.value("avatar_cdn_path").toString());
-            record["asset_type"] = match.hasMatch() ? match.captured(1) : "male";
+            record["asset_type"] = !record.value("avatar_native_cdn_path").toString().isEmpty()
+                ? "custom:" + record.value("avatar_asset_id").toString()
+                : match.hasMatch() ? match.captured(1) : "male";
             if (record.value("id") == selected_.value("id")) selected_ = record;
             value = record;
         }

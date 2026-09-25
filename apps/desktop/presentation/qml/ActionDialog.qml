@@ -27,7 +27,8 @@ Dialog {
     property string contextError: ""
     property bool advancedExpanded: false
     readonly property bool agentCreation: action.id === "create" && fields.some(function(field) { return field.key === "archetype_key" })
-    readonly property bool creationReady: !agentCreation || (String(values.display_name || "").trim().length > 0 && String(values.archetype_key || "").trim().length > 0)
+    readonly property bool hasAvatar: fields.some(function(field) { return field.key === "avatar_asset_id" })
+    readonly property bool creationReady: (!hasAvatar || (avatarLoader.item && avatarLoader.item.readyForSubmit)) && (!agentCreation || (String(values.display_name || "").trim().length > 0 && String(values.archetype_key || "").trim().length > 0))
     function advancedField(field) {
         if (agentCreation) return ["display_name", "instructions", "autonomy_mode", "model_quality"].indexOf(field.key) < 0 && !(field.required && (values[field.key] === undefined || values[field.key] === null || values[field.key] === ""))
         const keys = ["avatar_asset_id", "archetype_key", "boost_key", "linked_user_id", "linked_member_id", "assigned_agent_id", "agent_id", "project_id", "parent_id", "role_id", "team_id", "settings", "feature_toggles", "usage_limits", "tool_preferences"]
@@ -97,6 +98,7 @@ Dialog {
             }
         }
         values = initial; confirmation.checked = false; pending = false; open()
+        if (hasAvatar && avatarLoader.item) avatarLoader.item.reset()
     }
     Connections {
         target: features
@@ -119,12 +121,24 @@ Dialog {
         ColumnLayout {
             id: content; width: parent.width; spacing: dialog.agentCreation ? 16 : 20
             MokaidLabel { Layout.fillWidth: true; visible: dialog.action.destructive || false; text: dialog.action.confirmation || ""; wrapMode: Text.Wrap; color: Theme.warning }
+            Loader {
+                id: avatarLoader
+                active: dialog.hasAvatar
+                visible: active
+                Layout.fillWidth: true
+                sourceComponent: AvatarCreator {
+                    controller: features.avatarCreator
+                    selectedAssetId: String(dialog.values.avatar_asset_id || "")
+                    agentName: String(dialog.values.display_name || "")
+                    onAssetSelected: function(assetId) { dialog.setValue("avatar_asset_id", assetId) }
+                }
+            }
             Repeater {
                 model: dialog.fields
                 ColumnLayout {
                     id: fieldRow
                     required property var modelData
-                    visible: dialog.advancedExpanded || !dialog.advancedField(modelData)
+                    visible: modelData.key !== "avatar_asset_id" && (dialog.advancedExpanded || !dialog.advancedField(modelData))
                     Layout.fillWidth: true; spacing: 8
                     MokaidLabel { Layout.fillWidth: true; text: dialog.fieldLabel(fieldRow.modelData) + (fieldRow.modelData.required ? " *" : ""); color: Theme.secondary; font.pixelSize: 12; font.weight: Font.Medium; wrapMode: Text.Wrap }
                     Loader {

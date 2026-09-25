@@ -53,6 +53,8 @@ defmodule MokaidWeb.Router do
     # hints only — they trigger idempotent syncs for known accounts.
     post "/webhooks/gmail", MailWebhookController, :gmail
     post "/webhooks/microsoft", MailWebhookController, :microsoft
+    post "/webhooks/meshy", MeshyWebhookController, :notify
+    get "/avatar-assets/:id/:token/:filename", AvatarAssetController, :show
   end
 
   scope "/api", MokaidWeb do
@@ -81,6 +83,10 @@ defmodule MokaidWeb.Router do
     patch "/workspaces/:id", WorkspaceController, :update
     post "/workspaces/:id/logo", WorkspaceController, :upload_logo
     delete "/workspaces/:id", WorkspaceController, :delete
+
+    get "/avatar-generations", AvatarGenerationController, :index
+    get "/avatar-generations/:id", AvatarGenerationController, :show
+    post "/avatar-generations", AvatarGenerationController, :create
 
     get "/agents/catalog", AgentController, :catalog
     resources "/agents", AgentController, only: [:index, :create, :show, :update, :delete]
