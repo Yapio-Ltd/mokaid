@@ -29,6 +29,11 @@ CLUSTER_ARN = re.compile(r"arn:(aws|aws-cn|aws-us-gov):ecs:[a-z0-9-]+:\d{12}:clu
 # Matches infra/terraform/environments/prod/main.tf. Never fall back to all
 # RFC1918 space (or is_private, which also includes reserved/loopback ranges).
 PRODUCTION_VPC = ipaddress.IPv4Network("10.10.0.0/16")
+PRODUCTION_ASSETS_BUCKET = "mokaid-assets-3d-prod-660601648321"
+MESHY_SECRET_NAMES = {
+    "MESHY_API_KEY_SECRET_ARN": ("MESHY_API_KEY", "meshy_api_key"),
+    "MESHY_WEBHOOK_SECRET_ARN": ("MESHY_WEBHOOK_SECRET", "meshy_webhook_secret"),
+}
 
 
 class AwsClient(Protocol):
@@ -226,6 +231,37 @@ def output_file(env: Mapping[str, str]) -> Path:
     return path
 
 
+def meshy_secret_overrides(env: Mapping[str, str], container: str) -> dict[str, str]:
+    """Only exact production Secrets Manager references, never credential values."""
+    overrides = {}
+    for setting, (name, secret_name) in MESHY_SECRET_NAMES.items():
+        value = env.get(setting, "")
+        # Unset GitHub repository variables evaluate to the empty string.
+        # Neither absence nor an empty value removes an existing reference.
+        if value == "":
+            continue
+        if container != "mokaid-prod-api":
+            raise Failure("Meshy secret overrides are restricted to mokaid-prod-api")
+        pattern = (r"arn:aws:secretsmanager:il-central-1:660601648321:secret:"
+                   + re.escape("mokaid-prod/" + secret_name) + r"-[A-Za-z0-9]{6}")
+        if not re.fullmatch(pattern, value):
+            raise Failure(f"{setting} must be the exact allowed production Secrets Manager ARN")
+        overrides[name] = value
+    return overrides
+
+
+def verify_container_bindings(actual: dict[str, Any], expected: dict[str, Any]) -> None:
+    """Check references and existing settings without exposing any secret values."""
+    for field, value_key in (("secrets", "valueFrom"), ("environment", "value")):
+        entries = actual.get(field, [])
+        if not isinstance(entries, list) or any(not isinstance(item, dict) for item in entries):
+            raise Failure("Registered task definition returned malformed API settings")
+        for requested in expected.get(field, []):
+            matches = [item for item in entries if item.get("name") == requested.get("name")]
+            if len(matches) != 1 or matches[0].get(value_key) != requested.get(value_key):
+                raise Failure("Registered task definition did not preserve the API secret references and environment")
+
+
 def outputs(path: Path, values: dict[str, str]) -> None:
     if any("\n" in value or "\r" in value for value in values.values()):
         raise Failure("Unsafe output value")
@@ -240,8 +276,9 @@ def prepare(env: Mapping[str, str], aws: AwsClient) -> None:
     destination = output_file(env)
     if not NAME.fullmatch(container) or not IMAGE_DIGEST.fullmatch(image):
         raise Failure("An exact container name and immutable repository@sha256 image digest are required")
+    secret_overrides = meshy_secret_overrides(env, container)
     overrides = {}
-    for key in ("MOKAID_DESKTOP_ONLY_BUSINESS", "DESKTOP_AUTH_WEB_BASE_URL", "MOKAID_TRUSTED_ALB_CIDRS", "AI_WORKER_URL"):
+    for key in ("MOKAID_DESKTOP_ONLY_BUSINESS", "DESKTOP_AUTH_WEB_BASE_URL", "MOKAID_TRUSTED_ALB_CIDRS", "AI_WORKER_URL", "S3_BUCKET_ASSETS_3D"):
         if key in env:
             if container != "mokaid-prod-api":
                 raise Failure("API environment overrides are restricted to mokaid-prod-api")
@@ -250,6 +287,8 @@ def prepare(env: Mapping[str, str], aws: AwsClient) -> None:
                 value = trusted_alb_cidrs(value)
             if key == "AI_WORKER_URL" and value != "http://ai-worker.mokaid-prod.internal:8100":
                 raise Failure("Worker HTTP override must use the private production discovery endpoint")
+            if key == "S3_BUCKET_ASSETS_3D" and value != PRODUCTION_ASSETS_BUCKET:
+                raise Failure("Generated assets must use the exact production 3D assets bucket")
             if (key == "MOKAID_DESKTOP_ONLY_BUSINESS" and value not in ("true", "false")) or (
                     key == "DESKTOP_AUTH_WEB_BASE_URL" and value != "https://mokaid.com"):
                 raise Failure("Invalid explicitly allowed desktop rollout setting")
@@ -261,6 +300,13 @@ def prepare(env: Mapping[str, str], aws: AwsClient) -> None:
     task, tags = definition(aws, previous)
     target = named_container(task, container)
     target["image"] = image
+    if secret_overrides:
+        if any(item.get("name") in secret_overrides for item in target.get("environment", [])):
+            raise Failure("A Meshy secret override conflicts with an existing plaintext environment entry")
+        if any(sum(item.get("name") == key for item in target.get("secrets", [])) > 1 for key in secret_overrides):
+            raise Failure("A Meshy secret override has duplicate existing references")
+        target["secrets"] = [item for item in target.get("secrets", []) if item.get("name") not in secret_overrides]
+        target["secrets"].extend({"name": key, "valueFrom": value} for key, value in secret_overrides.items())
     if overrides:
         if any(item.get("name") in overrides for item in target.get("secrets", [])):
             raise Failure("An environment override conflicts with a secret reference")
@@ -284,6 +330,10 @@ def prepare(env: Mapping[str, str], aws: AwsClient) -> None:
         entries = [item for item in registered_target.get("environment", []) if item.get("name") == key]
         if len(entries) != 1 or entries[0].get("value") != value:
             raise Failure("Registered task definition did not preserve the explicit API environment override")
+    if secret_overrides or "S3_BUCKET_ASSETS_3D" in overrides:
+        verify_container_bindings(registered_target, target)
+        if any(item.get("name") in secret_overrides for item in registered_target.get("environment", [])):
+            raise Failure("Registered Meshy secret reference collides with a plaintext environment entry")
     outputs(destination, {"task_definition": prepared, "previous_task_definition": previous,
                           "container": container, "image": image})
     print(f"Prepared exact ECS task revision {prepared}; live service unchanged")

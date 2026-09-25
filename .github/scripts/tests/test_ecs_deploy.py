@@ -20,6 +20,9 @@ IMAGE = "123456789012.dkr.ecr.eu-west-1.amazonaws.com/mokaid-api@sha256:" + "a" 
 SERVICE, CONTAINER = "service-api", "mokaid-prod-api"
 SENSITIVE = "FIXTURE_LEGACY_ENV_MUST_NOT_APPEAR_IN_LOGS"
 TRUSTED_ALB_CIDRS = "10.10.0.0/24,10.10.1.0/24"
+MESHY_API_ARN = "arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid-prod/meshy_api_key-Abc123"
+MESHY_WEBHOOK_ARN = "arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid-prod/meshy_webhook_secret-Xyz789"
+ASSETS_BUCKET = "mokaid-assets-3d-prod-660601648321"
 
 
 def service(arn=OLD, rollout="COMPLETED", running=1, protected=True):
@@ -275,6 +278,142 @@ class EcsTests(unittest.TestCase):
         with self.assertRaises(ecs.Failure):
             ecs.prepare(dict(self.env, MOKAID_DESKTOP_ONLY_BUSINESS="true"), aws)
         self.assertIsNone(aws.registered)
+
+    def test_meshy_prepare_adds_only_secret_references_and_preserves_existing_configuration(self):
+        aws = MockAws()
+        target = aws.definitions[OLD]["containerDefinitions"][1]
+        target["environment"].extend([
+            {"name": "FEATURE_FLAG", "value": "keep"},
+            {"name": "S3_BUCKET_ASSETS_3D", "value": "old-bucket"}])
+        target["secrets"].append({"name": "MESHY_API_KEY", "valueFrom": MESHY_API_ARN[:-6] + "Old123"})
+        before = copy.deepcopy(aws.definitions[OLD])
+        ecs.prepare(dict(self.env, MESHY_API_KEY_SECRET_ARN=MESHY_API_ARN,
+                         MESHY_WEBHOOK_SECRET_ARN=MESHY_WEBHOOK_ARN,
+                         S3_BUCKET_ASSETS_3D=ASSETS_BUCKET), aws)
+        actual = aws.registered["containerDefinitions"][1]
+        self.assertEqual(actual["secrets"], [before["containerDefinitions"][1]["secrets"][0],
+                         {"name": "MESHY_API_KEY", "valueFrom": MESHY_API_ARN},
+                         {"name": "MESHY_WEBHOOK_SECRET", "valueFrom": MESHY_WEBHOOK_ARN}])
+        self.assertEqual(actual["environment"], [
+            {"name": "LEGACY", "value": SENSITIVE},
+            {"name": "FEATURE_FLAG", "value": "keep"},
+            {"name": "S3_BUCKET_ASSETS_3D", "value": ASSETS_BUCKET}])
+        self.assertEqual(aws.registered["containerDefinitions"][0], before["containerDefinitions"][0])
+        self.assertEqual(aws.definitions[OLD], before)
+        self.assertEqual(self.updates(aws), [])
+        self.assertNotIn(SENSITIVE, self.stdout.getvalue() + self.stderr.getvalue() + self.output.read_text())
+
+    def test_meshy_absent_or_empty_optional_variables_preserve_existing_refs(self):
+        for supplied in ({}, {"MESHY_API_KEY_SECRET_ARN": "", "MESHY_WEBHOOK_SECRET_ARN": ""}):
+            with self.subTest(supplied=supplied):
+                aws = MockAws()
+                target = aws.definitions[OLD]["containerDefinitions"][1]
+                target["secrets"].append({"name": "MESHY_WEBHOOK_SECRET", "valueFrom": MESHY_WEBHOOK_ARN})
+                before = copy.deepcopy(target)
+                ecs.prepare(dict(self.env, **supplied), aws)
+                actual = aws.registered["containerDefinitions"][1]
+                self.assertEqual(actual["secrets"], before["secrets"])
+                self.assertEqual(actual["environment"], before["environment"])
+
+    def test_meshy_api_key_only_keeps_webhook_secret_unconfigured_until_supplied(self):
+        aws = MockAws()
+        ecs.prepare(dict(self.env, MESHY_API_KEY_SECRET_ARN=MESHY_API_ARN,
+                         MESHY_WEBHOOK_SECRET_ARN=""), aws)
+        secrets = aws.registered["containerDefinitions"][1]["secrets"]
+        self.assertIn({"name": "MESHY_API_KEY", "valueFrom": MESHY_API_ARN}, secrets)
+        self.assertFalse(any(item["name"] == "MESHY_WEBHOOK_SECRET" for item in secrets))
+
+    def test_meshy_rejects_plaintext_wrong_account_region_name_and_arn_selectors_before_aws(self):
+        invalid = (SENSITIVE, "msy_fixture_plaintext", " ", MESHY_API_ARN + "\n",
+                   MESHY_API_ARN.replace("660601648321", "123456789012"),
+                   MESHY_API_ARN.replace("il-central-1", "eu-west-1"),
+                   MESHY_API_ARN.replace("mokaid-prod/", "mokaid-dev/"),
+                   MESHY_API_ARN.replace("arn:aws:", "arn:aws-cn:"),
+                   MESHY_API_ARN + ":key::", MESHY_API_ARN[:-6], MESHY_WEBHOOK_ARN)
+        for value in invalid:
+            with self.subTest(value=value):
+                aws = MockAws()
+                with self.assertRaises(ecs.Failure) as failure:
+                    ecs.prepare(dict(self.env, MESHY_API_KEY_SECRET_ARN=value), aws)
+                self.assertEqual(aws.calls, [])
+                self.assertNotIn(SENSITIVE, str(failure.exception))
+        aws = MockAws()
+        with self.assertRaises(ecs.Failure):
+            ecs.prepare(dict(self.env, MESHY_WEBHOOK_SECRET_ARN=MESHY_API_ARN), aws)
+        self.assertEqual(aws.calls, [])
+
+    def test_meshy_rejects_non_api_targets_and_unapproved_assets_buckets_before_aws(self):
+        for supplied in (
+            {"CONTAINER": "mokaid-prod-web", "MESHY_API_KEY_SECRET_ARN": MESHY_API_ARN},
+            {"CONTAINER": "mokaid-dev-api", "MESHY_WEBHOOK_SECRET_ARN": MESHY_WEBHOOK_ARN},
+            {"CONTAINER": "mokaid-prod-ai-worker", "S3_BUCKET_ASSETS_3D": ASSETS_BUCKET},
+            {"S3_BUCKET_ASSETS_3D": ""},
+            {"S3_BUCKET_ASSETS_3D": "mokaid-assets-3d-dev-660601648321"},
+            {"S3_BUCKET_ASSETS_3D": "s3://" + ASSETS_BUCKET}):
+            with self.subTest(supplied=supplied):
+                aws = MockAws()
+                with self.assertRaises(ecs.Failure):
+                    ecs.prepare(dict(self.env, **supplied), aws)
+                self.assertEqual(aws.calls, [])
+
+    def test_meshy_refuses_plaintext_and_duplicate_secret_collisions_before_registration(self):
+        for kind in ("plaintext", "duplicate-secret", "bucket-secret", "duplicate-bucket"):
+            with self.subTest(kind=kind):
+                aws = MockAws()
+                target = aws.definitions[OLD]["containerDefinitions"][1]
+                if kind == "plaintext":
+                    target["environment"].append({"name": "MESHY_API_KEY", "value": SENSITIVE})
+                elif kind == "duplicate-secret":
+                    target["secrets"].extend([{"name": "MESHY_API_KEY", "valueFrom": MESHY_API_ARN}] * 2)
+                elif kind == "bucket-secret":
+                    target["secrets"].append({"name": "S3_BUCKET_ASSETS_3D", "valueFrom": SENSITIVE})
+                else:
+                    target["environment"].extend([{"name": "S3_BUCKET_ASSETS_3D", "value": ASSETS_BUCKET}] * 2)
+                with self.assertRaises(ecs.Failure) as failure:
+                    ecs.prepare(dict(self.env, MESHY_API_KEY_SECRET_ARN=MESHY_API_ARN,
+                                     S3_BUCKET_ASSETS_3D=ASSETS_BUCKET), aws)
+                self.assertIsNone(aws.registered)
+                self.assertEqual(self.updates(aws), [])
+                self.assertNotIn(SENSITIVE, str(failure.exception))
+
+    def test_meshy_registration_must_return_all_requested_and_preserved_refs(self):
+        for tamper in ("missing", "wrong", "duplicate", "plaintext", "drop-existing-secret", "drop-existing-env"):
+            with self.subTest(tamper=tamper):
+                aws = MockAws()
+                original_call = aws.call
+
+                def call(operation, *arguments, payload=None):
+                    result = original_call(operation, *arguments, payload=payload)
+                    if operation == "register-task-definition":
+                        target = result["taskDefinition"]["containerDefinitions"][1]
+                        if tamper == "missing":
+                            target["secrets"] = [item for item in target["secrets"] if item["name"] != "MESHY_API_KEY"]
+                        elif tamper == "wrong":
+                            next(item for item in target["secrets"] if item["name"] == "MESHY_API_KEY")["valueFrom"] = MESHY_WEBHOOK_ARN
+                        elif tamper == "duplicate":
+                            target["secrets"].append({"name": "MESHY_API_KEY", "valueFrom": MESHY_API_ARN})
+                        elif tamper == "plaintext":
+                            target["environment"].append({"name": "MESHY_API_KEY", "value": SENSITIVE})
+                        elif tamper == "drop-existing-secret":
+                            target["secrets"] = [item for item in target["secrets"] if item["name"] != "DATABASE_URL"]
+                        else:
+                            target["environment"] = []
+                    return result
+
+                self.output.write_text("")
+                with patch.object(aws, "call", side_effect=call), self.assertRaises(ecs.Failure):
+                    ecs.prepare(dict(self.env, MESHY_API_KEY_SECRET_ARN=MESHY_API_ARN), aws)
+                self.assertEqual(self.output.read_text(), "")
+                self.assertEqual(self.updates(aws), [])
+
+    def test_workflow_injects_meshy_references_only_into_api_prepare(self):
+        workflow = (Path(__file__).resolve().parents[2] / "workflows" / "deploy.yml").read_text()
+        api_step = workflow.split("- name: Prepare immutable API revision", 1)[1].split("- name: Run database migrations", 1)[0]
+        self.assertIn("MESHY_API_KEY_SECRET_ARN: ${{ vars.MESHY_API_KEY_SECRET_ARN }}", api_step)
+        self.assertIn("MESHY_WEBHOOK_SECRET_ARN: ${{ vars.MESHY_WEBHOOK_SECRET_ARN }}", api_step)
+        self.assertIn("S3_BUCKET_ASSETS_3D: " + ASSETS_BUCKET, api_step)
+        self.assertEqual(workflow.count("MESHY_API_KEY_SECRET_ARN:"), 1)
+        self.assertEqual(workflow.count("MESHY_WEBHOOK_SECRET_ARN:"), 1)
 
     def test_private_worker_url_preserves_queue_and_token_references(self):
         aws = MockAws()

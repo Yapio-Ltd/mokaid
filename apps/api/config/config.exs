@@ -1,6 +1,7 @@
 import Config
 
 config :mokaid,
+  env: config_env(),
   ecto_repos: [Mokaid.Repo],
   desktop_only_business: false,
   generators: [timestamp_type: :utc_datetime_usec, binary_id: true]

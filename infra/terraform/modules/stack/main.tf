@@ -412,6 +412,8 @@ module "secrets" {
     microsoft_client_id      = "CHANGE_ME"
     microsoft_client_secret  = "CHANGE_ME"
     resend_api_key           = "CHANGE_ME"
+    meshy_api_key            = "CHANGE_ME"
+    meshy_webhook_secret     = "CHANGE_ME"
   }
   parameters = {
     cognito_user_pool_id = module.cognito.user_pool_id
@@ -511,6 +513,12 @@ locals {
 
 data "aws_iam_policy_document" "api_task" {
   statement {
+    sid       = "GeneratedCharacterAssets"
+    actions   = ["s3:GetObject", "s3:PutObject"]
+    resources = ["${module.s3_assets.bucket_arn}/assets3d/generated-characters/*"]
+  }
+
+  statement {
     sid = "S3Files"
     actions = [
       "s3:GetObject",
@@ -599,6 +607,8 @@ module "api_service" {
     COGNITO_USER_POOL_ID     = module.cognito.user_pool_id
     COGNITO_CLIENT_ID        = module.cognito.web_client_id
     S3_BUCKET_UPLOADS        = module.s3_uploads.bucket_id
+    S3_BUCKET_ASSETS_3D      = module.s3_assets.bucket_id
+    ASSETS_CDN_URL           = var.enable_cloudfront ? "https://${module.cloudfront[0].distribution_domain_name}" : ""
     S3_BUCKET_PRIVATE        = module.s3_files.bucket_id
     S3_BUCKET_OUTPUTS        = module.s3_exports.bucket_id
     S3_BUCKET_EXPORTS        = module.s3_exports.bucket_id
@@ -650,6 +660,8 @@ module "api_service" {
     STRIPE_SECRET_KEY        = module.secrets.secret_arns["stripe_secret_key"]
     STRIPE_PUBLISHABLE_KEY   = module.secrets.secret_arns["stripe_publishable_key"]
     STRIPE_WEBHOOK_SECRET    = module.secrets.secret_arns["stripe_webhook_secret"]
+    MESHY_API_KEY            = module.secrets.secret_arns["meshy_api_key"]
+    MESHY_WEBHOOK_SECRET     = module.secrets.secret_arns["meshy_webhook_secret"]
   }
 
   task_policy_json   = data.aws_iam_policy_document.api_task.json

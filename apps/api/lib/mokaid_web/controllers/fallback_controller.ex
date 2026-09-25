@@ -62,6 +62,25 @@ defmodule MokaidWeb.FallbackController do
     call(conn, {:error, :not_found})
   end
 
+  defp humanize(:meshy_unavailable),
+    do: "Character generation is temporarily unavailable. Please try again later."
+
+  defp humanize(:invalid_avatar_input), do: "Choose a photo or enter a character description."
+  defp humanize(:invalid_avatar_prompt), do: "Describe your character in 3 to 600 characters."
+  defp humanize(:invalid_avatar_image), do: "Upload a JPEG, PNG or WebP image under 10 MB."
+  defp humanize(:invalid_avatar_name), do: "Use a character name between 1 and 80 characters."
+
+  defp humanize(:avatar_generation_in_progress),
+    do: "Two characters are already being created. Wait for one to finish."
+
+  defp humanize(:avatar_generation_daily_limit),
+    do: "You have reached today's limit of 10 characters. Try again tomorrow."
+
+  defp humanize(:invalid_avatar_asset), do: "Choose a character available in this workspace."
+
+  defp humanize(:storage_unavailable),
+    do: "Image storage is temporarily unavailable. Please try again."
+
   defp humanize(:office_full), do: "All 9 office desks are occupied"
   defp humanize(:agent_limit_reached), do: "Your plan's AI employee limit has been reached"
   defp humanize(:insufficient_credits), do: "Not enough AI credits for this action"

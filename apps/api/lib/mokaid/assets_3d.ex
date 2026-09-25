@@ -250,13 +250,14 @@ defmodule Mokaid.Assets3d do
 
   def list_assets(opts \\ []) do
     kind = Keyword.get(opts, :kind)
+    workspace_id = Keyword.get(opts, :workspace_id)
 
-    case load_assets(kind) do
+    case load_assets(kind, workspace_id) do
       [] ->
         if Application.get_env(:mokaid, :auto_seed_assets_3d, true) do
           # Prod self-heal: migrate() can fail to seed while still shipping schema updates.
           seed_catalog()
-          load_assets(kind)
+          load_assets(kind, workspace_id)
         else
           []
         end
@@ -266,14 +267,42 @@ defmodule Mokaid.Assets3d do
     end
   end
 
-  defp load_assets(kind) do
+  defp load_assets(kind, workspace_id) do
     Asset
+    |> visible_in(workspace_id)
     |> then(fn q -> if kind, do: where(q, [a], a.kind == ^kind), else: q end)
     |> order_by([a], asc: a.kind, asc: a.slug)
     |> Repo.all()
   end
 
-  def get_asset(id), do: Repo.get(Asset, id)
+  def get_asset(id) do
+    case Ecto.UUID.cast(id) do
+      {:ok, id} -> Repo.get(Asset, id)
+      _ -> nil
+    end
+  end
+
+  def get_visible_asset(id, workspace_id) do
+    case Ecto.UUID.cast(id) do
+      {:ok, id} -> Asset |> visible_in(workspace_id) |> where([a], a.id == ^id) |> Repo.one()
+      _ -> nil
+    end
+  end
+
+  def validate_avatar(_workspace_id, nil), do: :ok
+  def validate_avatar(_workspace_id, ""), do: :ok
+
+  def validate_avatar(workspace_id, id) do
+    case get_visible_asset(id, workspace_id) do
+      %Asset{kind: "character"} -> :ok
+      _ -> {:error, :invalid_avatar_asset}
+    end
+  end
+
+  defp visible_in(query, nil), do: where(query, [a], is_nil(a.workspace_id))
+
+  defp visible_in(query, workspace_id),
+    do: where(query, [a], is_nil(a.workspace_id) or a.workspace_id == ^workspace_id)
 
   def get_asset_by_slug(slug), do: Repo.get_by(Asset, slug: slug)
 

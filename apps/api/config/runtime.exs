@@ -250,3 +250,14 @@ config :mokaid, :provider_costs,
       ",",
       trim: true
     )
+
+# Meshy credentials are injected server-side from AWS Secrets Manager.
+meshy_secret = System.get_env("MESHY_WEBHOOK_SECRET")
+
+config :mokaid, :meshy,
+  api_key: System.get_env("MESHY_API_KEY"),
+  webhook_secret: if(meshy_secret in [nil, "", "CHANGE_ME"], do: nil, else: meshy_secret)
+
+if bucket = System.get_env("S3_BUCKET_ASSETS_3D") do
+  config :mokaid, :storage, bucket_assets_3d: bucket
+end
