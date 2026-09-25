@@ -10,6 +10,10 @@ import asyncio
 import base64
 import email
 import imaplib
+import ipaddress
+import re
+import socket
+import ssl
 from typing import Any
 
 import httpx
@@ -42,11 +46,50 @@ async def fetch_gmail(
     credentials: dict[str, Any], sync_state: dict[str, Any]
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     headers = _bearer(credentials)
+    new_state = dict(sync_state)
+    history_id = sync_state.get("history_id")
 
     async with httpx.AsyncClient(timeout=30) as client:
-        message_ids, next_history_id = await _gmail_new_message_ids(
-            client, headers, sync_state.get("history_id")
-        )
+        if history_id:
+            params = {
+                "startHistoryId": history_id,
+                "historyTypes": "messageAdded",
+                "labelId": "INBOX",
+                "maxResults": INCREMENTAL_LIMIT,
+            }
+            if sync_state.get("history_page_token"):
+                params["pageToken"] = sync_state["history_page_token"]
+            response = await client.get(f"{GMAIL_BASE}/history", headers=headers, params=params)
+            if response.status_code == 401:
+                raise AuthError("Gmail authorization expired. Reconnect this mailbox.")
+            if response.status_code == 404:
+                history_id = None
+            else:
+                response.raise_for_status()
+                body = response.json()
+                ids = [
+                    added["message"]["id"]
+                    for entry in body.get("history", [])
+                    for added in entry.get("messagesAdded", [])
+                    if added.get("message", {}).get("id")
+                ]
+                message_ids = list(dict.fromkeys(ids))
+                if body.get("nextPageToken"):
+                    # Keep the starting history cursor until every page is saved.
+                    new_state["history_page_token"] = body["nextPageToken"]
+                else:
+                    new_state.pop("history_page_token", None)
+                    if body.get("historyId"):
+                        new_state["history_id"] = str(body["historyId"])
+
+        if not history_id:
+            # Snapshot the cursor BEFORE listing messages: arrivals during the
+            # initial fetch must be replayed by the next incremental request.
+            snapshot_history = await _gmail_profile_history_id(client, headers)
+            message_ids = await _gmail_recent_ids(client, headers)
+            new_state.pop("history_page_token", None)
+            if snapshot_history:
+                new_state["history_id"] = snapshot_history
 
         messages = []
         for message_id in message_ids:
@@ -54,49 +97,7 @@ async def fetch_gmail(
             if message:
                 messages.append(message)
 
-        if next_history_id is None:
-            next_history_id = await _gmail_profile_history_id(client, headers)
-
-    new_state = dict(sync_state)
-    if next_history_id:
-        new_state["history_id"] = str(next_history_id)
     return messages, new_state
-
-
-async def _gmail_new_message_ids(
-    client: httpx.AsyncClient, headers: dict, history_id: str | None
-) -> tuple[list[str], str | None]:
-    if history_id:
-        response = await client.get(
-            f"{GMAIL_BASE}/history",
-            headers=headers,
-            params={
-                "startHistoryId": history_id,
-                "historyTypes": "messageAdded",
-                "maxResults": INCREMENTAL_LIMIT,
-            },
-        )
-        if response.status_code == 401:
-            raise AuthError("gmail token rejected")
-        if response.status_code == 404:
-            # historyId too old — fall back to a recent snapshot.
-            return await _gmail_recent_ids(client, headers), None
-        response.raise_for_status()
-        body = response.json()
-
-        ids: list[str] = []
-        for entry in body.get("history", []):
-            for added in entry.get("messagesAdded", []):
-                message = added.get("message", {})
-                labels = message.get("labelIds", [])
-                if "DRAFT" not in labels and "SENT" not in labels and message.get("id"):
-                    ids.append(message["id"])
-        # Dedupe, keep order.
-        seen: set[str] = set()
-        unique = [i for i in ids if not (i in seen or seen.add(i))]
-        return unique[:INCREMENTAL_LIMIT], body.get("historyId")
-
-    return await _gmail_recent_ids(client, headers), None
 
 
 async def _gmail_recent_ids(client: httpx.AsyncClient, headers: dict) -> list[str]:
@@ -113,8 +114,9 @@ async def _gmail_recent_ids(client: httpx.AsyncClient, headers: dict) -> list[st
 
 async def _gmail_profile_history_id(client: httpx.AsyncClient, headers: dict) -> str | None:
     response = await client.get(f"{GMAIL_BASE}/profile", headers=headers)
-    if response.status_code != 200:
-        return None
+    if response.status_code == 401:
+        raise AuthError("Gmail authorization expired. Reconnect this mailbox.")
+    response.raise_for_status()
     return str(response.json().get("historyId") or "") or None
 
 
@@ -126,9 +128,9 @@ async def _gmail_fetch_message(
     )
     if response.status_code == 401:
         raise AuthError("gmail token rejected")
-    if response.status_code != 200:
-        log.warning("gmail_message_fetch_failed", id=message_id, status=response.status_code)
-        return None
+    if response.status_code == 404:
+        return None  # Deleted between listing and fetch.
+    response.raise_for_status()  # Never advance the cursor past a transient failure.
 
     body = response.json()
     payload = body.get("payload", {})
@@ -199,43 +201,43 @@ async def fetch_graph(
     credentials: dict[str, Any], sync_state: dict[str, Any]
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     headers = {**_bearer(credentials), "Prefer": 'IdType="ImmutableId"'}
-    delta_link = sync_state.get("delta_link")
-    url = delta_link or (f"{GRAPH_BASE}/me/mailFolders/inbox/messages/delta?$top={INITIAL_LIMIT}")
-
+    new_state = dict(sync_state)
+    url = sync_state.get("next_link") or sync_state.get("delta_link") or (
+        f"{GRAPH_BASE}/me/mailFolders/inbox/messages/delta?$top={INITIAL_LIMIT}"
+    )
     messages: list[dict[str, Any]] = []
-    new_delta_link = None
 
     async with httpx.AsyncClient(timeout=30) as client:
         for _round in range(10):
+            if not url.startswith(GRAPH_BASE + "/"):
+                raise ValueError("Invalid Microsoft sync cursor")
             response = await client.get(url, headers=headers)
             if response.status_code == 401:
-                raise AuthError("graph token rejected")
+                raise AuthError("Microsoft authorization expired. Reconnect this mailbox.")
             if response.status_code == 410:
-                # Delta token expired — restart from scratch next sync.
-                state = dict(sync_state)
-                state.pop("delta_link", None)
-                return [], state
+                new_state.pop("delta_link", None)
+                new_state.pop("next_link", None)
+                return [], new_state
             response.raise_for_status()
             body = response.json()
-
+            # Finish the entire page before saving its continuation. Truncating
+            # a page would permanently skip the remaining messages.
             for item in body.get("value", []):
-                if item.get("@removed") or not item.get("id"):
-                    continue
-                messages.append(_graph_to_normalized(item))
-                if len(messages) >= INCREMENTAL_LIMIT:
-                    break
+                if not item.get("@removed") and item.get("id"):
+                    messages.append(_graph_to_normalized(item))
 
             if body.get("@odata.deltaLink"):
-                new_delta_link = body["@odata.deltaLink"]
+                new_state["delta_link"] = body["@odata.deltaLink"]
+                new_state.pop("next_link", None)
                 break
-            if body.get("@odata.nextLink") and len(messages) < INCREMENTAL_LIMIT:
+            if body.get("@odata.nextLink"):
                 url = body["@odata.nextLink"]
+                new_state["next_link"] = url
+                if len(messages) >= INCREMENTAL_LIMIT:
+                    break
             else:
-                break
+                raise ConnectionError("Microsoft returned no continuation cursor")
 
-    new_state = dict(sync_state)
-    if new_delta_link:
-        new_state["delta_link"] = new_delta_link
     return messages, new_state
 
 
@@ -281,59 +283,131 @@ async def fetch_imap(
     return await asyncio.to_thread(_fetch_imap_blocking, credentials, settings, sync_state)
 
 
+def _public_socket(host: str, port: int, timeout: float) -> socket.socket:
+    addresses = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    if not addresses or any(not ipaddress.ip_address(item[4][0]).is_global for item in addresses):
+        raise ConnectionError("IMAP server must have a public internet address")
+    last_error = None
+    for family, socktype, proto, _, address in addresses:
+        connection = socket.socket(family, socktype, proto)
+        connection.settimeout(timeout)
+        try:
+            connection.connect(address)
+            return connection
+        except OSError as exc:
+            connection.close()
+            last_error = exc
+    raise ConnectionError("Could not reach the IMAP server") from last_error
+
+
+class _VerifiedIMAP4(imaplib.IMAP4):
+    def _create_socket(self, timeout):
+        return _public_socket(self.host, self.port, timeout)
+
+
+class _VerifiedIMAP4SSL(imaplib.IMAP4_SSL):
+    def _create_socket(self, timeout):
+        connection = _public_socket(self.host, self.port, timeout)
+        try:
+            return self.ssl_context.wrap_socket(connection, server_hostname=self.host)
+        except Exception:
+            connection.close()
+            raise
+
+
+def _connect_imap(settings: dict[str, Any]):
+    host = settings.get("imap_host", "")
+    security = settings.get("imap_security")
+    if not security:
+        security = "starttls" if settings.get("imap_ssl") in (False, "false") else "tls"
+    port = int(settings.get("imap_port") or (143 if security == "starttls" else 993))
+    context = ssl.create_default_context()
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    if security == "tls":
+        return _VerifiedIMAP4SSL(host, port, ssl_context=context, timeout=30)
+    if security != "starttls":
+        raise ValueError("IMAP requires TLS or STARTTLS")
+    connection = _VerifiedIMAP4(host, port, timeout=30)
+    try:
+        connection.starttls(ssl_context=context)
+    except Exception:
+        connection.shutdown()
+        raise
+    return connection
+
+
 def _fetch_imap_blocking(
     credentials: dict[str, Any],
     settings: dict[str, Any],
     sync_state: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    host = settings.get("imap_host", "")
-    port = int(settings.get("imap_port") or 993)
-    username = credentials.get("username", "")
-    password = credentials.get("password", "")
-
     try:
-        connection = imaplib.IMAP4_SSL(host, port, timeout=30)
+        connection = _connect_imap(settings)
+    except ssl.SSLCertVerificationError as exc:
+        raise ConnectionError("The IMAP server certificate could not be verified") from exc
     except Exception as exc:
-        raise ConnectionError(f"imap connect failed: {exc}") from exc
+        raise ConnectionError("Could not establish a secure IMAP connection. Check host, port and TLS settings.") from exc
 
     try:
         try:
-            connection.login(username, password)
+            connection.login(credentials.get("username", ""), credentials.get("password", ""))
         except imaplib.IMAP4.error as exc:
-            raise AuthError(f"imap login failed: {exc}") from exc
+            # Server responses can echo login input: never persist them in UI/logs.
+            raise AuthError("IMAP login rejected. Reconnect using the correct username and app password.") from exc
 
-        status, data = connection.select("INBOX", readonly=True)
+        status, _ = connection.select("INBOX", readonly=True)
         if status != "OK":
-            raise ConnectionError("imap select INBOX failed")
+            raise ConnectionError("IMAP server did not allow read access to INBOX")
 
-        uid_next = _imap_uidnext(connection)
+        uid_next, uid_validity = _imap_status(connection)
         last_uid = int(sync_state.get("uid_next") or 0)
+        previous_validity = sync_state.get("uid_validity")
+        if previous_validity and str(previous_validity) != str(uid_validity):
+            last_uid = 0
 
         if last_uid <= 0:
-            # First sync: take the most recent messages only.
             uids = _imap_recent_uids(connection, INITIAL_LIMIT)
         else:
             status, search_data = connection.uid("SEARCH", None, f"UID {last_uid}:*")
-            uids = (search_data[0] or b"").split() if status == "OK" else []
-            # UID n:* always matches at least the last message — filter it.
-            uids = [u for u in uids if int(u) >= last_uid][:INCREMENTAL_LIMIT]
+            if status != "OK":
+                raise ConnectionError("IMAP message search failed")
+            uids = (search_data[0] or b"").split()
+            uids = sorted((u for u in uids if int(u) >= last_uid), key=int)[:INCREMENTAL_LIMIT]
 
         messages = []
+        next_cursor = last_uid
         for uid in uids:
-            status, fetch_data = connection.uid("FETCH", uid, "(RFC822)")
-            if status != "OK" or not fetch_data or fetch_data[0] is None:
-                continue
-            raw = fetch_data[0][1] if isinstance(fetch_data[0], tuple) else None
+            status, fetch_data = connection.uid("FETCH", uid, "(BODY.PEEK[])")
+            if status != "OK":
+                raise ConnectionError("IMAP message download failed")
+            raw = next((part[1] for part in fetch_data or [] if isinstance(part, tuple)), None)
+            next_cursor = int(uid) + 1
             if not raw:
-                continue
+                continue  # Message deleted since SEARCH; safely move past its UID.
             parsed = email.message_from_bytes(raw)
             uid_str = uid.decode() if isinstance(uid, bytes) else str(uid)
-            messages.append(normalize.mime_to_normalized(parsed, uid_str))
+            # UIDs are unique only within a UIDVALIDITY epoch. Preserve legacy
+            # IDs until a reset so existing accounts do not duplicate all mail.
+            epoch_ids = sync_state.get("uid_epoch_ids", not bool(sync_state.get("uid_next")))
+            if previous_validity and str(previous_validity) != str(uid_validity):
+                epoch_ids = True
+            provider_id = f"{uid_validity}:{uid_str}" if epoch_ids else uid_str
+            messages.append(normalize.mime_to_normalized(parsed, provider_id))
 
         new_state = dict(sync_state)
-        if uid_next:
-            new_state["uid_next"] = uid_next
+        # Advance only past the last fetched UID, never the server's UIDNEXT
+        # when a bounded batch has left newer messages waiting.
+        new_state["uid_next"] = next_cursor if uids else (uid_next or last_uid)
+        new_state["uid_validity"] = uid_validity
+        new_state["uid_epoch_ids"] = (
+            sync_state.get("uid_epoch_ids", not bool(sync_state.get("uid_next")))
+            or bool(previous_validity and str(previous_validity) != str(uid_validity))
+        )
         return messages, new_state
+    except imaplib.IMAP4.error as exc:
+        # Any server response may echo submitted credentials, even after login.
+        # Keep protocol details out of the persisted account error and logs.
+        raise ConnectionError("The IMAP server interrupted synchronization. Try again.") from exc
     finally:
         try:
             connection.logout()
@@ -341,22 +415,21 @@ def _fetch_imap_blocking(
             pass
 
 
-def _imap_uidnext(connection: imaplib.IMAP4_SSL) -> int | None:
-    status, data = connection.status("INBOX", "(UIDNEXT)")
-    if status != "OK" or not data:
-        return None
+def _imap_status(connection) -> tuple[int, int]:
+    status, data = connection.status("INBOX", "(UIDNEXT UIDVALIDITY)")
+    if status != "OK" or not data or not data[0]:
+        raise ConnectionError("IMAP mailbox status unavailable")
     text = data[0].decode() if isinstance(data[0], bytes) else str(data[0])
-    if "UIDNEXT" in text:
-        try:
-            return int(text.split("UIDNEXT")[1].strip(" ()").split()[0])
-        except (ValueError, IndexError):
-            return None
-    return None
+    uidnext = re.search(r"\bUIDNEXT\s+(\d+)", text, re.IGNORECASE)
+    validity = re.search(r"\bUIDVALIDITY\s+(\d+)", text, re.IGNORECASE)
+    if not uidnext or not validity:
+        raise ConnectionError("IMAP server did not provide stable message identifiers")
+    return int(uidnext[1]), int(validity[1])
 
 
-def _imap_recent_uids(connection: imaplib.IMAP4_SSL, limit: int) -> list[bytes]:
+def _imap_recent_uids(connection, limit: int) -> list[bytes]:
     status, data = connection.uid("SEARCH", None, "ALL")
     if status != "OK":
-        return []
+        raise ConnectionError("IMAP message search failed")
     uids = (data[0] or b"").split()
-    return uids[-limit:]
+    return sorted(uids, key=int)[-limit:]

@@ -11,7 +11,7 @@ defmodule Mokaid.Mail do
 
   alias Mokaid.Integrations
   alias Mokaid.Integrations.TokenRefresher
-  alias Mokaid.Mail.{Account, Message, Rule}
+  alias Mokaid.Mail.{Account, ConnectionSettings, Message, Rule}
   alias Mokaid.Notifications
   alias Mokaid.Realtime
   alias Mokaid.Repo
@@ -60,9 +60,20 @@ defmodule Mokaid.Mail do
 
   def find_gmail_account(_), do: nil
 
+  def find_gmail_accounts(email_address) when is_binary(email_address) do
+    email = String.downcase(String.trim(email_address))
+
+    Repo.all(
+      from a in Account,
+        where: a.provider == "gmail" and a.email_address == ^email and a.status == "active"
+    )
+  end
+
+  def find_gmail_accounts(_), do: []
+
   @doc "Accounts that rely on periodic polling (IMAP always; OAuth as a safety net)."
   def list_pollable_accounts do
-    Repo.all(from a in Account, where: a.status == "active")
+    Repo.all(from a in Account, where: a.status in ["active", "error"])
   end
 
   @doc "Active OAuth accounts whose push channel (watch/subscription) expires soon."
@@ -112,73 +123,170 @@ defmodule Mokaid.Mail do
   def ensure_oauth_account(_workspace_id, _member, _provider, _email, _connection_id),
     do: {:error, :invalid_account}
 
-  @imap_settings ~w(imap_host imap_port imap_ssl smtp_host smtp_port smtp_ssl username)
-
-  @doc """
-  Creates an IMAP/SMTP account. Password is Vault-encrypted, never stored raw.
-  Credentials are probed against the IMAP server first so users get instant
-  feedback on a typo'd host or password.
-  """
+  @doc "Validates IMAP and optional SMTP access before encrypting and saving credentials."
   def create_imap_account(workspace_id, member, attrs) do
-    with :ok <- probe_imap(attrs) do
-      insert_imap_account(workspace_id, member, attrs)
+    with {:ok, attrs} <- ConnectionSettings.normalize(attrs),
+         :ok <- probe_mailbox(attrs) do
+      save_imap_account(%Account{}, workspace_id, member, attrs)
     end
   end
 
-  defp probe_imap(attrs) do
+  @doc "Reconnects a saved IMAP mailbox without deleting its messages or rules."
+  def update_imap_account(%Account{provider: "imap"} = account, member, attrs) do
+    with {:ok, attrs} <- ConnectionSettings.normalize(attrs),
+         :ok <- same_mailbox_address(account, attrs),
+         :ok <- probe_mailbox(attrs) do
+      save_imap_account(account, account.workspace_id, member, attrs)
+    end
+  end
+
+  def update_imap_account(_account, _member, _attrs), do: {:error, :invalid_account}
+
+  defp same_mailbox_address(account, attrs) do
+    if String.downcase(attrs["email_address"]) == account.email_address do
+      :ok
+    else
+      {:error,
+       Ecto.Changeset.add_error(
+         Account.changeset(account, %{}),
+         :email_address,
+         "cannot be changed when reconnecting; connect this address as a new mailbox"
+       )}
+    end
+  end
+
+  defp probe_mailbox(attrs) do
     if Application.get_env(:mokaid, :imap_probe_enabled, true) do
-      case Mokaid.Mail.ImapProbe.check(
-             attrs["imap_host"],
-             attrs["imap_port"] || 993,
-             attrs["username"] || attrs["email_address"],
-             attrs["password"] || ""
-           ) do
-        :ok -> :ok
-        {:error, reason} -> {:error, {:imap_probe_failed, reason}}
-      end
+      with :ok <- probe_imap(attrs), :ok <- probe_smtp(attrs), do: :ok
     else
       :ok
     end
   end
 
-  defp insert_imap_account(workspace_id, member, attrs) do
-    settings =
-      attrs
-      |> Map.take(@imap_settings)
-      |> Map.reject(fn {_k, v} -> is_nil(v) or v == "" end)
+  defp probe_imap(attrs) do
+    case Mokaid.Mail.ImapProbe.check(
+           attrs["imap_host"],
+           attrs["imap_port"],
+           attrs["username"],
+           attrs["password"],
+           security: attrs["imap_security"]
+         ) do
+      :ok -> :ok
+      {:error, reason} -> {:error, {:imap_probe_failed, reason}}
+    end
+  end
 
-    credentials = %{
-      "username" => attrs["username"] || attrs["email_address"],
-      "password" => attrs["password"]
-    }
+  defp probe_smtp(%{"smtp_host" => host} = attrs) when is_binary(host) and host != "" do
+    case Mokaid.Mail.SmtpProbe.check(
+           host,
+           attrs["smtp_port"],
+           attrs["smtp_username"] || attrs["username"],
+           attrs["smtp_password"] || attrs["password"],
+           security: attrs["smtp_security"]
+         ) do
+      :ok -> :ok
+      {:error, reason} -> {:error, {:smtp_probe_failed, reason}}
+    end
+  end
+
+  defp probe_smtp(_attrs), do: :ok
+
+  defp save_imap_account(account, workspace_id, member, attrs) do
+    settings = ConnectionSettings.settings(attrs)
+
+    identity_changed? =
+      account.id &&
+        (account.email_address != String.downcase(attrs["email_address"]) or
+           Enum.any?(~w(imap_host username), &((account.settings || %{})[&1] != settings[&1])))
 
     changeset =
-      Account.changeset(%Account{}, %{
+      Account.changeset(account, %{
         "workspace_id" => workspace_id,
         "member_id" => member.id,
         "provider" => "imap",
         "email_address" => attrs["email_address"],
         "display_name" => attrs["display_name"],
-        "settings" => settings
+        "settings" => settings,
+        "status" => "active",
+        "error_message" => nil,
+        "sync_state" => if(identity_changed?, do: %{}, else: account.sync_state || %{})
       })
+      |> Ecto.Changeset.put_change(
+        :encrypted_credentials,
+        Vault.encrypt(ConnectionSettings.credentials(attrs))
+      )
 
-    changeset =
-      if is_binary(attrs["password"]) and attrs["password"] != "" do
-        Ecto.Changeset.put_change(changeset, :encrypted_credentials, Vault.encrypt(credentials))
-      else
-        Ecto.Changeset.add_error(changeset, :password, "can't be blank")
-      end
-
-    with {:ok, account} <- Repo.insert(changeset) do
-      broadcast(workspace_id, account.id)
-      {:ok, account}
+    with {:ok, saved} <- Repo.insert_or_update(changeset) do
+      broadcast(workspace_id, saved.id)
+      {:ok, saved}
     end
   end
 
   def delete_account(%Account{} = account) do
-    with {:ok, deleted} <- Repo.delete(account) do
-      broadcast(account.workspace_id, account.id)
+    result =
+      Repo.transaction(fn ->
+        current = get_account(account.workspace_id, account.id)
+        if is_nil(current), do: Repo.rollback(:not_found)
+
+        # OAuth reconnect also locks its integration before upserting the mailbox.
+        # Keep that order here so reconnect cannot race credential removal.
+        connection_id = current.connection_id
+        connection = lock_mail_connection(current)
+
+        current =
+          Repo.one(
+            from a in Account,
+              where: a.id == ^account.id and a.workspace_id == ^account.workspace_id,
+              lock: "FOR UPDATE"
+          )
+
+        if is_nil(current), do: Repo.rollback(:not_found)
+
+        if current.connection_id != connection_id,
+          do: Repo.rollback(:account_changed)
+
+        with {:ok, deleted} <- Repo.delete(current),
+             :ok <- disconnect_unused_mail_connection(connection, current) do
+          deleted
+        else
+          {:error, reason} -> Repo.rollback(reason)
+        end
+      end)
+
+    with {:ok, deleted} <- result do
+      broadcast(deleted.workspace_id, deleted.id)
       {:ok, deleted}
+    end
+  end
+
+  defp lock_mail_connection(%Account{provider: provider, connection_id: id} = account)
+       when provider in ["gmail", "microsoft"] and not is_nil(id) do
+    Repo.one(
+      from c in Integrations.IntegrationConnection,
+        where: c.id == ^id and c.workspace_id == ^account.workspace_id,
+        lock: "FOR UPDATE"
+    )
+    |> Repo.preload(:provider)
+  end
+
+  defp lock_mail_connection(_), do: nil
+
+  defp disconnect_unused_mail_connection(nil, _account), do: :ok
+
+  defp disconnect_unused_mail_connection(connection, account) do
+    provider = if account.provider == "microsoft", do: "outlook", else: "gmail"
+    address = String.downcase(String.trim(connection.connected_account || ""))
+    shared? = Repo.exists?(from a in Account, where: a.connection_id == ^connection.id)
+
+    if connection.provider.key == provider and address == account.email_address and not shared? do
+      case connection
+           |> Ecto.Changeset.change(status: "disconnected", encrypted_credentials: nil)
+           |> Repo.update() do
+        {:ok, _} -> :ok
+        {:error, reason} -> {:error, reason}
+      end
+    else
+      :ok
     end
   end
 
@@ -229,7 +337,17 @@ defmodule Mokaid.Mail do
         {:error, :no_connection}
 
       connection ->
-        TokenRefresher.fresh_credentials(connection)
+        connection = Repo.preload(connection, :provider)
+        expected_provider = if account.provider == "microsoft", do: "outlook", else: "gmail"
+        connected_address = String.downcase(String.trim(connection.connected_account || ""))
+
+        if connection.workspace_id == account.workspace_id and
+             connection.status == "connected" and connection.provider.key == expected_provider and
+             connected_address == String.downcase(account.email_address) do
+          TokenRefresher.fresh_credentials(connection)
+        else
+          {:error, :reconnect_required}
+        end
     end
   end
 
