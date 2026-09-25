@@ -4,6 +4,7 @@
 #include <mokaid/features/record_list_model.hpp>
 #include <mokaid/features/detail_browser.hpp>
 #include <mokaid/features/drive_download.hpp>
+#include <mokaid/features/avatar_generation_controller.hpp>
 #include <mokaid/storage/cache_store.hpp>
 #include <QHash>
 #include <QTimer>
@@ -39,6 +40,7 @@ class FeatureController final : public QObject {
     Q_PROPERTY(bool driveCanGoBack READ driveCanGoBack NOTIFY changed)
     Q_PROPERTY(bool driveCanDownload READ driveCanDownload NOTIFY changed)
     Q_PROPERTY(QObject* driveDownload READ driveDownload CONSTANT)
+    Q_PROPERTY(QObject* avatarCreator READ avatarCreator CONSTANT)
 public:
     FeatureController(ApiClient& api, SessionController& session, CacheStore& cache, QObject* parent = nullptr);
     QVariantList pages() const;
@@ -69,6 +71,7 @@ public:
     bool driveCanGoBack() const { return driveTrash_ || driveBreadcrumbs_.size() > 1; }
     bool driveCanDownload() const;
     QObject* driveDownload() { return &driveDownload_; }
+    QObject* avatarCreator() { return &avatarCreator_; }
     Q_INVOKABLE void openDriveFolder(const QString& id);
     Q_INVOKABLE void navigateDriveBreadcrumb(int index);
     Q_INVOKABLE void driveBack();
@@ -117,6 +120,7 @@ private:
     RecordListModel records_;
     DetailBrowser detailView_;
     DriveDownload driveDownload_;
+    AvatarGenerationController avatarCreator_;
     QTimer searchTimer_;
     QString currentPage_{"office"}, selectedId_, error_, search_, contextTag_;
     QString pendingOfferAgentId_, pendingOfferMode_;

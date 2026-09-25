@@ -21,12 +21,50 @@
 #include <memory>
 
 using namespace mokaid::desktop;
+class AvatarCreatorFixture final : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QVariantList catalog MEMBER catalog NOTIFY changed)
+    Q_PROPERTY(QVariantList generations MEMBER generations NOTIFY changed)
+    Q_PROPERTY(QVariantMap current MEMBER current NOTIFY changed)
+    Q_PROPERTY(QString error MEMBER error NOTIFY changed)
+    Q_PROPERTY(bool submitting MEMBER submitting NOTIFY changed)
+    Q_PROPERTY(bool refreshing MEMBER refreshing NOTIFY changed)
+    Q_PROPERTY(bool online MEMBER online NOTIFY changed)
+public:
+    QVariantList catalog, generations;
+    QVariantMap current;
+    QString error, submittedPrompt, submittedName;
+    QUrl submittedPhoto;
+    bool submitting{}, refreshing{}, online{true};
+    int submits{};
+    Q_INVOKABLE void refresh() {}
+    Q_INVOKABLE void refreshCurrent() {}
+    Q_INVOKABLE void clearCurrent() { current.clear(); emit changed(); }
+    Q_INVOKABLE void generateText(const QString& prompt,const QString& name) {
+        submittedPrompt=prompt; submittedName=name; ++submits;
+        current={{"id","fixture-generation"},{"mode","text"},{"status","generating"},{"progress",27}};
+        generations={current}; emit changed();
+    }
+    Q_INVOKABLE void generateImage(const QUrl& photo,const QString& name) { submittedPhoto=photo; submittedName=name; ++submits; }
+    Q_INVOKABLE void selectGeneration(const QString& id) {
+        for (const auto& row:generations) if (row.toMap().value("id").toString()==id) { current=row.toMap(); emit changed(); return; }
+    }
+    void finish() {
+        current.insert("status","ready"); current.insert("asset_id","fixture-custom-asset"); current.insert("progress",100);
+        generations={current}; emit changed();
+    }
+signals:
+    void changed();
+};
 class ActionFormFixture final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QString currentPage MEMBER currentPage NOTIFY changed)
+    Q_PROPERTY(QObject* avatarCreator READ avatarCreator CONSTANT)
 public:
+    AvatarCreatorFixture avatars;
+    QObject* avatarCreator() { return &avatars; }
     bool busy() const { return false; }
     QString error() const { return {}; }
     QVariantMap submitted;
@@ -118,6 +156,8 @@ private slots:
             QVERIFY(QFile::copy(QStringLiteral(MOKAID_FEATURE_QML_DIRECTORY)+"/"+file,staging.path()+"/"+file));
         QFile qmldir(staging.path()+"/qmldir"); QVERIFY(qmldir.open(QIODevice::WriteOnly));
         qmldir.write("singleton Theme 1.0 Theme.qml\n"); qmldir.close();
+        QFile portrait(staging.path()+"/WorkforcePortrait.qml"); QVERIFY(portrait.open(QIODevice::WriteOnly|QIODevice::Truncate));
+        portrait.write("import QtQuick\nItem { property var agent; property real size; implicitWidth: size; implicitHeight: size }"); portrait.close();
         ActionFormFixture features; features.agentCreation=true; features.currentPage="agent-new";
         QQmlEngine engine; QStringList warnings;
         connect(&engine,&QQmlEngine::warnings,this,[&](const QList<QQmlError>& errors) { for (const auto& error:errors) warnings.append(error.toString()); });
@@ -155,6 +195,20 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(supervised,"clicked")); QVERIFY(QMetaObject::invokeMethod(fast,"clicked"));
         QVERIFY(supervised->property("highlighted").toBool()); QVERIFY(fast->property("highlighted").toBool());
         QVERIFY(!visualItem(window.contentItem(),"creationChoice_autonomy_mode_balanced")->property("highlighted").toBool());
+        auto* textSource=visualItem(window.contentItem(),"avatarSource_text"); QVERIFY(textSource);
+        QVERIFY(QMetaObject::invokeMethod(textSource,"clicked")); QTRY_VERIFY(!submit->isEnabled());
+        auto* prompt=visualItem(window.contentItem(),"avatarPrompt"); QVERIFY(prompt);
+        QVERIFY(prompt->setProperty("text","A friendly architect in a navy jacket, full body."));
+        auto* generate=visualItem(window.contentItem(),"avatarGenerate"); QVERIFY(generate); QVERIFY(generate->isEnabled());
+        QVERIFY(QMetaObject::invokeMethod(generate,"clicked"));
+        QCOMPARE(features.avatars.submittedPrompt,QString("A friendly architect in a navy jacket, full body."));
+        QCOMPARE(features.avatars.submittedName,QString("Dev teammate"));
+        QVERIFY(!submit->isEnabled()); QVERIFY(!generate->isEnabled());
+        features.avatars.finish();
+        auto* useCharacter=visualItem(window.contentItem(),"avatarUseGenerated"); QTRY_VERIFY(useCharacter->isVisible());
+        QVERIFY(!submit->isEnabled());
+        QVERIFY(QMetaObject::invokeMethod(useCharacter,"clicked")); QTRY_VERIFY(submit->isEnabled());
+        QCOMPARE(values(dialog).value("avatar_asset_id").toString(),QString("fixture-custom-asset"));
         const auto captureDirectory=qEnvironmentVariable("MOKAID_NATIVE_CAPTURE_DIR");
         QTest::qWait(40);
         if (!captureDirectory.isEmpty()) { QDir().mkpath(captureDirectory); QVERIFY(window.grabWindow().save(captureDirectory+"/agent-customization-wide.png")); }
@@ -162,6 +216,7 @@ private slots:
         QVERIFY(dialog->property("height").toReal()<=532); QVERIFY(submit->isVisible());
         if (!captureDirectory.isEmpty()) QVERIFY(window.grabWindow().save(captureDirectory+"/agent-customization-minimum.png"));
         QVERIFY(QMetaObject::invokeMethod(submit,"clicked")); QCOMPARE(features.submissions,1);
+        QCOMPARE(features.submitted.value("avatar_asset_id").toString(),QString("fixture-custom-asset"));
         QCOMPARE(features.submitted.value("display_name").toString(),QString("Dev teammate"));
         QCOMPARE(features.submitted.value("instructions").toString(),QString("Review pull requests and explain the tradeoffs."));
         QCOMPARE(features.submitted.value("archetype_key").toString(),QString("developer"));

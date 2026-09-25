@@ -70,7 +70,7 @@ bool externalUrlAllowed(const QUrl& url) {
 }
 
 FeatureController::FeatureController(ApiClient& api, SessionController& session, CacheStore& cache, QObject* parent)
-    : QObject(parent),api_(api),session_(session),cache_(cache),records_(this),detailView_(this),driveDownload_(api,this),searchTimer_(this) {
+    : QObject(parent),api_(api),session_(session),cache_(cache),records_(this),detailView_(this),driveDownload_(api,this),avatarCreator_(api,session,this),searchTimer_(this) {
     connect(this,&FeatureController::changed,this,[this] {
         detailView_.setDocument(details_,currentPage_+":"+selectedId_,detailHeading_.isEmpty()?QString("Overview"):detailHeading_,currentPage_,detailCollection_);
     });

@@ -76,7 +76,9 @@ function normalizeStandingRoot(root: AbstractMesh) {
     bounds = root.getHierarchyBoundingVectors(true);
     modelHeight = bounds.max.y - bounds.min.y;
   }
-  root.position.y = -bounds.min.y;
+  root.position.y -= bounds.min.y;
+  root.computeWorldMatrix(true);
+  bounds = root.getHierarchyBoundingVectors(true);
   return { bounds, modelHeight };
 }
 
@@ -106,8 +108,7 @@ function pickClip(groups: AnimationGroup[], preferred: string) {
       const n = ag.name.toLowerCase();
       return n.endsWith(`-${lower}`) || n.endsWith(`_${lower}`);
     }) ??
-    groups.find((ag) => ag.name.toLowerCase().includes(lower)) ??
-    groups[0]
+    groups.find((ag) => ag.name.toLowerCase().includes(lower))
   );
 }
 
@@ -132,6 +133,11 @@ export function AgentPreview3D({
 
   activeRef.current = active;
 
+  // A failed old model must not prevent a newly selected custom model loading.
+  useEffect(() => {
+    setFailed(false);
+  }, [glbUrl]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -153,7 +159,14 @@ export function AgentPreview3D({
         sceneRef.current = scene;
         scene.clearColor = new Color4(0, 0, 0, 0);
 
-        const camera = new ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 2.5, 5, Vector3.Zero(), scene);
+        const camera = new ArcRotateCamera(
+          "cam",
+          -Math.PI / 2,
+          Math.PI / 2.5,
+          5,
+          Vector3.Zero(),
+          scene,
+        );
         const FIXED_BETA = Math.PI / 2.5;
         camera.lowerBetaLimit = FIXED_BETA;
         camera.upperBetaLimit = FIXED_BETA;
@@ -176,7 +189,11 @@ export function AgentPreview3D({
           const { bounds, modelHeight } = normalizeStandingRoot(root);
 
           const midY = modelHeight / 2;
-          camera.target = new Vector3(0, midY, 0);
+          camera.target = new Vector3(
+            (bounds.min.x + bounds.max.x) / 2,
+            midY,
+            (bounds.min.z + bounds.max.z) / 2,
+          );
 
           const pad = 1.12;
           const fovY = camera.fov;
@@ -239,7 +256,7 @@ export function AgentPreview3D({
       meshesRef.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width, height, glbUrl, allowTint, animation]);
+  }, [width, height, glbUrl, allowTint, animation, failed]);
 
   useEffect(() => {
     if (allowTint && meshesRef.current.length > 0) {
@@ -259,7 +276,10 @@ export function AgentPreview3D({
 
   if (failed) {
     return (
-      <div className={className} style={{ width, height, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div
+        className={className}
+        style={{ width, height, display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
         <Avatar name={name} size="xl" isAi color={color} />
       </div>
     );
@@ -302,6 +322,10 @@ export function AgentHeadPreview3D({
   const engineRef = useRef<Engine | null>(null);
   const [failed, setFailed] = useState(false);
   const glbUrl = resolveAgentGlbUrl(cdnPath) || AGENT_GLB_URL;
+
+  useEffect(() => {
+    setFailed(false);
+  }, [glbUrl]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -351,11 +375,15 @@ export function AgentHeadPreview3D({
 
         const root = result.meshes.find((m) => !m.parent) ?? result.meshes[0];
         if (root) {
-          const { modelHeight } = normalizeStandingRoot(root);
+          const { bounds, modelHeight } = normalizeStandingRoot(root);
 
           // Eye-level front portrait, pulled back so head + shoulders breathe.
           const eyeY = modelHeight * 0.78;
-          camera.target = new Vector3(0, eyeY, 0);
+          camera.target = new Vector3(
+            (bounds.min.x + bounds.max.x) / 2,
+            eyeY,
+            (bounds.min.z + bounds.max.z) / 2,
+          );
           camera.alpha = -Math.PI / 2;
           camera.beta = Math.PI / 2.4;
           const headSpan = modelHeight * 0.42;
@@ -367,7 +395,7 @@ export function AgentHeadPreview3D({
           result.animationGroups.find((ag) => {
             const n = ag.name.toLowerCase();
             return n === "idle" || n.endsWith("-idle") || n.includes("idle");
-          }) ?? result.animationGroups[0];
+          });
         if (idle) idle.start(true, 1.0, idle.from, idle.to, false);
 
         boostMaterialLighting(result.meshes);
@@ -401,7 +429,7 @@ export function AgentHeadPreview3D({
       engineRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [size, glbUrl]);
+  }, [size, glbUrl, failed]);
 
   if (failed) {
     return <Avatar name={name} size={fallbackSize} isAi color={color} />;

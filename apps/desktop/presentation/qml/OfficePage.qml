@@ -78,6 +78,18 @@ Item {
             }
             BusyIndicator { anchors.centerIn: viewport; running: viewport.loading; visible: running }
             Rectangle {
+                visible: viewport.avatarError.length > 0 && !viewport.error.length
+                anchors.left: viewport.left; anchors.top: viewport.top; anchors.margins: 12
+                width: Math.min(viewport.width - 24, 430); height: avatarRecovery.implicitHeight + 24
+                radius: Theme.radiusPanel; color: Theme.surface; border.color: Theme.border
+                ColumnLayout {
+                    id: avatarRecovery
+                    anchors.fill: parent; anchors.margins: 12; spacing: 8
+                    MokaidLabel { Layout.fillWidth: true; text: viewport.avatarError; wrapMode: Text.Wrap; color: Theme.warning }
+                    MokaidButton { text: "Retry character"; onClicked: viewport.retryCustomAvatars() }
+                }
+            }
+            Rectangle {
                 visible: viewport.error.length > 0
                 anchors.centerIn: viewport
                 width: Math.min(parent.width - 40, 520); height: recovery.implicitHeight + 40

@@ -78,12 +78,14 @@ function useWorkspaceKey(base: string): {
 /* ---------- Agents ---------- */
 
 export function useAssets3d(kind?: string) {
+  const workspaceId = useAuthStore((state) => state.workspaceId);
+  const userId = useAuthStore((state) => state.user?.id);
   return useQuery({
-    queryKey: ["assets-3d", kind ?? "all"],
+    queryKey: ["assets-3d", workspaceId, userId, kind ?? "all"],
+    enabled: Boolean(workspaceId && userId),
     queryFn: () =>
       apiFetch<Envelope<Asset3d[]>>("/api/assets-3d", {
         params: kind ? { kind } : undefined,
-        skipWorkspace: true,
       }).then((r) => r.data),
   });
 }

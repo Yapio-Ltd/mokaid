@@ -114,7 +114,7 @@ void ApiClient::upload(const QString& path, const QList<QUrl>& files, const QJso
         if (!file->open(QIODevice::ReadOnly)) { done({0, {}, {}, file->errorString(), false}); return; }
         QString name = QFileInfo(file->fileName()).fileName(); name.replace('"', '_'); name.replace('\r', '_'); name.replace('\n', '_');
         QHttpPart part;
-        const auto fieldName = path.endsWith("/drive/upload") || path.endsWith("/avatar") || path.endsWith("/logo") ? "file" : "files[]";
+        const auto fieldName = path.endsWith("/drive/upload") || path.endsWith("/avatar") || path.endsWith("/logo") || path.endsWith("/avatar-generations") ? "file" : "files[]";
         part.setHeader(QNetworkRequest::ContentDispositionHeader, QString("form-data; name=\"%1\"; filename=\"%2\"").arg(fieldName, name));
         part.setHeader(QNetworkRequest::ContentTypeHeader, QMimeDatabase().mimeTypeForFile(file->fileName()).name());
         part.setBodyDevice(file.get()); file->setParent(multi.get()); file.release(); multi->append(part);

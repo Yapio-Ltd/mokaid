@@ -112,6 +112,77 @@ struct DriveFixture {
 class FeatureTests final : public QObject {
     Q_OBJECT
 private slots:
+    void avatarGenerationTextPollsAndRetainsCompletedAsset() {
+        LocalApi remote;
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            if (remote.methods.last()=="POST") LocalApi::reply(socket,R"({"data":{"id":"gen-one","mode":"text","status":"generating","progress":18}})",202);
+            else if (path=="/api/avatar-generations/gen-one") LocalApi::reply(socket,R"({"data":{"id":"gen-one","mode":"text","status":"ready","progress":100,"asset_id":"custom-asset"}})");
+            else LocalApi::reply(socket,R"({"data":[]})");
+        };
+        ApiClient api(remote.origin()); api.setSession("test-token","alice",false); api.setWorkspace("workspace-a");
+        PhoenixClient realtime; SessionController session(api,realtime);
+        AvatarGenerationController avatars(api,session);
+        avatars.generateText("  An architect wearing blue, full body.  ","Ada");
+        QTRY_COMPARE(avatars.current().value("status").toString(),QString("generating"));
+        QCOMPARE(remote.paths.front(),QString("/api/avatar-generations"));
+        QCOMPARE(remote.bodies.front().value("mode").toString(),QString("text"));
+        QCOMPARE(remote.bodies.front().value("prompt").toString(),QString("An architect wearing blue, full body."));
+        QCOMPARE(remote.bodies.front().value("name").toString(),QString("Ada"));
+        avatars.refreshCurrent();
+        QTRY_COMPARE(avatars.current().value("status").toString(),QString("ready"));
+        QCOMPARE(avatars.current().value("asset_id").toString(),QString("custom-asset"));
+        QCOMPARE(avatars.generations().size(),1);
+        QCOMPARE(avatars.generations().front().toMap().value("asset_id").toString(),QString("custom-asset"));
+        api.setWorkspace("workspace-b"); avatars.refresh();
+        QVERIFY(avatars.current().isEmpty()); QVERIFY(avatars.generations().isEmpty());
+        QTRY_VERIFY(!avatars.refreshing());
+    }
+    void avatarGenerationValidatesImageAndUsesSingleFileMultipart() {
+        LocalApi remote; QByteArray upload;
+        remote.handler=[&](QTcpSocket* socket,const QString&) {
+            upload=socket->property("request").toByteArray();
+            LocalApi::reply(socket,R"({"data":{"id":"image-gen","mode":"image","status":"queued","progress":0}})",202);
+        };
+        ApiClient api(remote.origin()); api.setSession("test-token","alice",false); api.setWorkspace("workspace-a");
+        PhoenixClient realtime; SessionController session(api,realtime); AvatarGenerationController avatars(api,session);
+        avatars.generateText(QString(601,'x')); QVERIFY(!avatars.error().isEmpty()); QVERIFY(remote.paths.isEmpty());
+        avatars.generateImage(QUrl("https://example.test/photo.png")); QVERIFY(!avatars.error().isEmpty()); QVERIFY(remote.paths.isEmpty());
+        QTemporaryDir directory; QFile file(directory.filePath("portrait.png")); QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("not an image"); file.close();
+        avatars.generateImage(QUrl::fromLocalFile(file.fileName())); QVERIFY(!avatars.error().isEmpty()); QVERIFY(remote.paths.isEmpty());
+        QVERIFY(file.open(QIODevice::WriteOnly|QIODevice::Truncate));
+        file.write("RIFF0000WEBP"); file.close();
+        avatars.generateImage(QUrl::fromLocalFile(file.fileName())); QVERIFY(!avatars.error().isEmpty()); QVERIFY(remote.paths.isEmpty());
+        QVERIFY(file.open(QIODevice::WriteOnly|QIODevice::Truncate));
+        file.write(QByteArray::fromHex("89504e470d0a1a0a00000000")); QVERIFY(file.resize(10000001)); file.close();
+        avatars.generateImage(QUrl::fromLocalFile(file.fileName())); QVERIFY(!avatars.error().isEmpty()); QVERIFY(remote.paths.isEmpty());
+        QVERIFY(file.open(QIODevice::WriteOnly|QIODevice::Truncate));
+        file.write(QByteArray::fromHex("89504e470d0a1a0a00000000")); file.close();
+        avatars.generateImage(QUrl::fromLocalFile(file.fileName()),"My teammate");
+        QTRY_COMPARE(avatars.current().value("id").toString(),QString("image-gen"));
+        QVERIFY(upload.contains("name=\"file\"; filename=\"portrait.png\""));
+        QVERIFY(!upload.contains("name=\"files[]\""));
+        QVERIFY(upload.contains("name=\"mode\"\r\n\r\nimage"));
+        QVERIFY(avatars.error().isEmpty());
+    }
+    void avatarGenerationRestoresPendingJobsAndKeepsErrorsRecoverable() {
+        LocalApi remote;
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            if (path.startsWith("/api/assets-3d")) LocalApi::reply(socket,R"({"data":[{"id":"catalog-character","kind":"character"}]})");
+            else if (path=="/api/avatar-generations") LocalApi::reply(socket,R"({"data":[{"id":"existing-gen","status":"rigging","progress":72}]})");
+            else LocalApi::reply(socket,R"({"data":{"id":"existing-gen","status":"failed","progress":72,"error":"The image could not be rigged."}})");
+        };
+        ApiClient api(remote.origin()); api.setSession("test-token","alice",false); api.setWorkspace("workspace-a");
+        PhoenixClient realtime; SessionController session(api,realtime); AvatarGenerationController avatars(api,session);
+        avatars.refresh(); QTRY_VERIFY(!avatars.refreshing());
+        QTRY_COMPARE(avatars.catalog().size(),1);
+        QCOMPARE(avatars.current().value("id").toString(),QString("existing-gen"));
+        avatars.refreshCurrent(); QTRY_COMPARE(avatars.current().value("status").toString(),QString("failed"));
+        QCOMPARE(avatars.current().value("error").toString(),QString("The image could not be rigged."));
+        api.setOnline(false); avatars.generateText("An architect");
+        QVERIFY(avatars.error().contains("Connect"));
+        QCOMPARE(avatars.current().value("id").toString(),QString("existing-gen"));
+    }
     void richPresentationDataKeepsRealValuesAndFiltersNestedCredentials() {
         LocalApi remote;
         remote.handler=[](QTcpSocket* socket,const QString&) {

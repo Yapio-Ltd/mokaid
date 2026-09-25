@@ -170,6 +170,16 @@ public:
 NativeViewport::NativeViewport(QQuickItem *parent)
     : QQuickItem(parent), office_(std::make_shared<engine::Office>()) {
   setFlag(ItemHasContents, true);
+  connect(&customAvatars_, &CustomAvatarLoader::ready, this,
+          [this](QString key, std::shared_ptr<const engine::Scene> scene) {
+    if (!activeCustomAvatars_.contains(key)) return;
+    office_->setCustomAvatar(key.toStdString(), std::move(scene));
+    loadedCustomAvatars_.insert(key);
+    avatarError_.clear(); emit avatarErrorChanged(); update();
+  });
+  connect(&customAvatars_, &CustomAvatarLoader::failed, this, [this](const QString &message) {
+    avatarError_ = message; emit avatarErrorChanged();
+  });
   setAcceptedMouseButtons(Qt::LeftButton);
   timer_.setInterval(16);
   timer_.setTimerType(Qt::PreciseTimer);
@@ -196,6 +206,8 @@ NativeViewport::~NativeViewport() {
 void NativeViewport::setAssetRoot(const QString &path) {
   if (assetRoot_ == path)
     return;
+  customAvatars_.reset();
+  loadedCustomAvatars_.clear();
   assetRoot_ = path;
   emit assetRootChanged();
   loading_ = true;
@@ -226,8 +238,10 @@ void NativeViewport::setAssetRoot(const QString &path) {
                 emit guard->loadingChanged();
                 if (!error.isEmpty())
                   guard->reportError(error);
-                else
+                else {
                   ++guard->rendererGeneration_;
+                  guard->retryCustomAvatars();
+                }
                 guard->update();
               },
               Qt::QueuedConnection);
@@ -235,6 +249,7 @@ void NativeViewport::setAssetRoot(const QString &path) {
 }
 void NativeViewport::setAgents(const QVariantList &list) {
   agents_ = list;
+  QSet<QString> activeCustom;
   std::vector<engine::Agent> agents;
   agents.reserve(static_cast<std::size_t>(list.size()));
   for (const auto &v : list) {
@@ -248,16 +263,37 @@ void NativeViewport::setAgents(const QVariantList &list) {
     auto type = m.value("asset_type").toString();
     if (type.startsWith("avatar_"))
       type = type.mid(7);
+    if (type.startsWith("custom:")) activeCustom.insert(type);
     agents.push_back({m.value("id").toString().toStdString(),
                       m.value("name").toString().toStdString(),
                       std::string(animation),
                       type.toStdString(), m.value("seat_index", -1).toInt(),
                       std::max(0,m.value("level",0).toInt())});
   }
+  // Native renderer scene caches retain GPU resources; replacing a custom
+  // roster rebuilds the renderer and releases models no longer in this office.
+  if (!(activeCustomAvatars_ - activeCustom).isEmpty()) ++rendererGeneration_;
+  activeCustomAvatars_ = activeCustom;
+  loadedCustomAvatars_.intersect(activeCustom);
   office_->setAgents(std::move(agents));
+  if (activeCustom.isEmpty()) {
+    customAvatars_.reset();
+    avatarError_.clear(); emit avatarErrorChanged();
+  } else if (!loading_) {
+    for (const auto &value : agents_) {
+      const auto agent = value.toMap();
+      const auto key = agent.value("asset_type").toString();
+      if (activeCustom.contains(key) && !loadedCustomAvatars_.contains(key))
+        customAvatars_.load(key, QUrl(agent.value("avatar_native_cdn_path").toString()));
+    }
+  }
   emit agentsChanged();
   updateIndicators();
   update();
+}
+void NativeViewport::retryCustomAvatars() {
+  avatarError_.clear(); emit avatarErrorChanged();
+  setAgents(agents_);
 }
 void NativeViewport::setPaused(bool v) {
   if (paused_ == v)

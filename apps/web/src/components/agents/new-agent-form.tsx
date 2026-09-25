@@ -1,10 +1,13 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowRight,
   Check,
   Coins,
+  ImagePlus,
+  LayoutGrid,
+  PencilLine,
   Sparkles,
   Zap,
 } from "lucide-react";
@@ -17,6 +20,7 @@ import {
 } from "@/api/hooks";
 import type { AgentAutonomyMode } from "@/api/types";
 import { ApiError } from "@/api/client";
+import { CustomCharacterCreator } from "@/components/agents/custom-character-creator";
 import { AutonomyModePicker } from "@/components/agents/autonomy-mode-picker";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -84,6 +88,14 @@ export function NewAgentForm() {
   const [autonomyMode, setAutonomyMode] = useState<AgentAutonomyMode>("balanced");
   const [avatarAssetId, setAvatarAssetId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [characterMethod, setCharacterMethod] = useState<"catalog" | "image" | "text">("catalog");
+  const [customAsset, setCustomAsset] = useState<Asset3d | null>(null);
+  const [customReady, setCustomReady] = useState(false);
+  const selectCustomAsset = useCallback((asset: Asset3d) => {
+    setCustomAsset(asset);
+    setAvatarAssetId(asset.id);
+    setCustomReady(true);
+  }, []);
 
   const selectedArchetype = archetypes.find((a) => a.key === archetypeKey) ?? archetypes[0];
   const selectedBoost = boosts.find((b) => b.key === boostKey) ?? null;
@@ -95,7 +107,10 @@ export function NewAgentForm() {
   const visibleBoosts = boosts.filter((b) => !(b.key === "boost_l10" && isBlank));
 
   const selectedAsset =
-    models.find((a) => a.id === (avatarAssetId || defaultAssetId)) ?? models[0] ?? null;
+    (customAsset?.id === avatarAssetId ? customAsset : null) ??
+    models.find((a) => a.id === (avatarAssetId || defaultAssetId)) ??
+    models[0] ??
+    null;
 
   useEffect(() => {
     if (!avatarAssetId && defaultAssetId) setAvatarAssetId(defaultAssetId);
@@ -116,6 +131,8 @@ export function NewAgentForm() {
         return name.trim().length > 0;
       case "archetype":
         return canAffordBoost;
+      case "character":
+        return characterMethod === "catalog" || customReady;
       default:
         return true;
     }
@@ -345,8 +362,12 @@ export function NewAgentForm() {
                     )}
                   >
                     <span>
-                      <span className="block text-xs font-semibold text-text">Start at level 1</span>
-                      <span className="text-[10px] text-text-muted">Free — learn from missions</span>
+                      <span className="block text-xs font-semibold text-text">
+                        Start at level 1
+                      </span>
+                      <span className="text-[10px] text-text-muted">
+                        Free — learn from missions
+                      </span>
                     </span>
                     <span className="text-[10px] font-semibold text-success">0 credits</span>
                   </button>
@@ -471,81 +492,132 @@ export function NewAgentForm() {
           )}
 
           {step === "character" && (
-            <Field label="3D character" hint="Full model with original colors. Click to select.">
-              {charactersLoading && models.length === 0 ? (
-                <div className="flex h-[320px] items-center justify-center rounded-xl bg-surface-raised/50 text-xs text-text-muted">
-                  Loading characters…
-                </div>
-              ) : charactersError || models.length === 0 ? (
-                <div className="flex h-[320px] flex-col items-center justify-center gap-2 rounded-xl bg-surface-raised/50 px-4 text-center text-xs text-text-muted">
-                  <span>No 3D characters available.</span>
-                  {charactersError && (
-                    <span className="text-[11px] text-danger">
-                      {(charactersErr as Error)?.message || "Failed to load characters."}
-                    </span>
-                  )}
-                  <span className="text-[11px] text-text-muted/80">
-                    The catalog may not be seeded yet in this environment.
-                  </span>
-                  <Button
+            <section className="space-y-5" aria-label="3D character">
+              <div>
+                <h2 className="text-base font-semibold text-text">Give your agent a character</h2>
+                <p className="mt-1 text-xs leading-relaxed text-text-secondary">
+                  Choose from the team, upload a photo, or describe someone entirely new.
+                </p>
+              </div>
+              <div
+                className="grid grid-cols-3 gap-1 rounded-lg bg-surface-raised p-1"
+                role="group"
+                aria-label="Character creation method"
+              >
+                {(
+                  [
+                    { key: "catalog", label: "Choose", Icon: LayoutGrid },
+                    { key: "image", label: "From a photo", Icon: ImagePlus },
+                    { key: "text", label: "From a prompt", Icon: PencilLine },
+                  ] as const
+                ).map(({ key, label, Icon }) => (
+                  <button
+                    key={key}
                     type="button"
-                    size="sm"
-                    variant="secondary"
-                    loading={charactersFetching}
-                    onClick={() => refetchCharacters()}
+                    aria-pressed={characterMethod === key}
+                    onClick={() => {
+                      setCharacterMethod(key);
+                      if (key === "catalog") setAvatarAssetId(defaultAssetId);
+                    }}
+                    className={cn(
+                      "mk-focus-ring flex min-h-12 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-[11px] font-medium transition-colors sm:flex-row sm:gap-2 sm:text-xs",
+                      characterMethod === key
+                        ? "bg-primary/15 text-primary-light"
+                        : "text-text-secondary hover:bg-surface-hover",
+                    )}
                   >
-                    Retry
-                  </Button>
-                </div>
+                    <Icon size={15} aria-hidden="true" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {characterMethod !== "catalog" ? (
+                <CustomCharacterCreator
+                  mode={characterMethod}
+                  name={name}
+                  selectedAssetId={avatarAssetId}
+                  onSelect={selectCustomAsset}
+                  onReadyChange={setCustomReady}
+                />
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {models.map((asset) => {
-                    const selected = asset.id === (avatarAssetId || defaultAssetId);
-                    return (
-                      <button
-                        key={asset.id}
+                <div>
+                  {charactersLoading && models.length === 0 ? (
+                    <div className="flex h-[320px] items-center justify-center rounded-xl bg-surface-raised/50 text-xs text-text-muted">
+                      Loading characters…
+                    </div>
+                  ) : charactersError || models.length === 0 ? (
+                    <div className="flex h-[320px] flex-col items-center justify-center gap-2 rounded-xl bg-surface-raised/50 px-4 text-center text-xs text-text-muted">
+                      <span>No 3D characters available.</span>
+                      {charactersError && (
+                        <span className="text-[11px] text-danger">
+                          {(charactersErr as Error)?.message || "Failed to load characters."}
+                        </span>
+                      )}
+                      <span className="text-[11px] text-text-muted/80">
+                        Try again, or create your own character from a photo or prompt.
+                      </span>
+                      <Button
                         type="button"
-                        onClick={() => setAvatarAssetId(asset.id)}
-                        className={cn(
-                          "group flex flex-col overflow-hidden rounded-xl border text-left transition-all",
-                          selected
-                            ? "border-primary/70 bg-primary-muted/25 shadow-[0_0_0_1px_rgba(124,92,255,0.25)]"
-                            : "border-border bg-surface-raised/40 hover:border-border-strong",
-                        )}
+                        size="sm"
+                        variant="secondary"
+                        loading={charactersFetching}
+                        onClick={() => refetchCharacters()}
                       >
-                        <span
-                          className="relative flex w-full items-end justify-center overflow-hidden"
-                          style={{
-                            height: 180,
-                            background:
-                              "radial-gradient(ellipse at 50% 70%, #3d3858 0%, #16141f 65%, #12101a 100%)",
-                          }}
-                        >
-                          <Suspense
-                            fallback={
-                              <span className="absolute inset-0 animate-pulse bg-surface-hover/30" />
-                            }
+                        Retry
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {models.map((asset) => {
+                        const selected = asset.id === (avatarAssetId || defaultAssetId);
+                        return (
+                          <button
+                            key={asset.id}
+                            type="button"
+                            onClick={() => setAvatarAssetId(asset.id)}
+                            aria-pressed={selected}
+                            className={cn(
+                              "mk-focus-ring group flex flex-col overflow-hidden rounded-xl border text-left transition-colors",
+                              selected
+                                ? "border-primary/70 bg-primary-muted/25 shadow-[0_0_0_1px_rgba(124,92,255,0.25)]"
+                                : "border-border bg-surface-raised/40 hover:border-border-strong",
+                            )}
                           >
-                            <AgentPreview3D
-                              name={assetLabel(asset)}
-                              color={DEFAULT_ACCENT}
-                              width={110}
-                              height={170}
-                              cdnPath={asset.cdn_path}
-                              allowTint={false}
-                              animation="walking"
-                            />
-                          </Suspense>
-                        </span>
-                        <span className="px-3 py-2 text-[11px] font-semibold capitalize text-text">
-                          {assetLabel(asset)}
-                        </span>
-                      </button>
-                    );
-                  })}
+                            <span
+                              className="relative flex w-full items-end justify-center overflow-hidden"
+                              style={{
+                                height: 180,
+                                background:
+                                  "radial-gradient(ellipse at 50% 70%, #3d3858 0%, #16141f 65%, #12101a 100%)",
+                              }}
+                            >
+                              <Suspense
+                                fallback={
+                                  <span className="absolute inset-0 animate-pulse bg-surface-hover/30" />
+                                }
+                              >
+                                <AgentPreview3D
+                                  name={assetLabel(asset)}
+                                  color={DEFAULT_ACCENT}
+                                  width={110}
+                                  height={170}
+                                  cdnPath={asset.cdn_path}
+                                  allowTint={false}
+                                  animation="walking"
+                                />
+                              </Suspense>
+                            </span>
+                            <span className="px-3 py-2 text-[11px] font-semibold capitalize text-text">
+                              {assetLabel(asset)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
-            </Field>
+            </section>
           )}
 
           {error && (
@@ -591,7 +663,9 @@ export function NewAgentForm() {
           <div>
             <p className="text-xs font-medium text-text-secondary">Live preview</p>
             <p className="mt-0.5 text-[11px] text-text-muted">
-              Your future employee, updated as you build.
+              {characterMethod !== "catalog" && !customReady
+                ? "Your generated character will appear here."
+                : "Your future employee, updated as you build."}
             </p>
           </div>
 
@@ -603,11 +677,20 @@ export function NewAgentForm() {
                 "radial-gradient(ellipse at 50% 70%, #3d3858 0%, #16141f 65%, #12101a 100%)",
             }}
           >
-            {selectedAsset ? (
+            {characterMethod !== "catalog" && !customReady ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-text-secondary">
+                <ImagePlus size={34} className="text-primary-light" aria-hidden="true" />
+                <span className="text-sm font-medium">Make this character yours</span>
+                <span className="text-xs leading-relaxed">
+                  Your 3D preview appears here when your character is ready.
+                </span>
+              </div>
+            ) : selectedAsset ? (
               <Suspense
                 fallback={<span className="absolute inset-0 animate-pulse bg-surface-hover/30" />}
               >
                 <AgentPreview3D
+                  key={selectedAsset.id}
                   name={name.trim() || assetLabel(selectedAsset)}
                   color={DEFAULT_ACCENT}
                   width={170}
@@ -627,10 +710,24 @@ export function NewAgentForm() {
           {/* Build summary */}
           <div className="space-y-1 rounded-xl border border-border/60 bg-surface-raised/40 px-4 py-3">
             <SummaryRow label="Name" value={name.trim() || "—"} />
+            <SummaryRow
+              label="Character"
+              value={
+                characterMethod !== "catalog" && !customReady
+                  ? "Waiting for your character"
+                  : selectedAsset
+                    ? assetLabel(selectedAsset)
+                    : "Default"
+              }
+            />
             <SummaryRow label="Archetype" value={selectedArchetype?.name ?? "—"} />
             <SummaryRow
               label="Head start"
-              value={selectedBoost ? `${selectedBoost.name} · ${formatNumber(boostCost)} cr` : "Level 1 (free)"}
+              value={
+                selectedBoost
+                  ? `${selectedBoost.name} · ${formatNumber(boostCost)} cr`
+                  : "Level 1 (free)"
+              }
             />
             <SummaryRow label="Model" value={modelQuality === "fast" ? "Fast" : "Smart"} />
             <SummaryRow
