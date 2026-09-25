@@ -22,6 +22,8 @@ SENSITIVE = "FIXTURE_LEGACY_ENV_MUST_NOT_APPEAR_IN_LOGS"
 TRUSTED_ALB_CIDRS = "10.10.0.0/24,10.10.1.0/24"
 MESHY_API_ARN = "arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid-prod/meshy_api_key-Abc123"
 MESHY_WEBHOOK_ARN = "arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid-prod/meshy_webhook_secret-Xyz789"
+MESHY_TERRAFORM_API_ARN = "arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid-prod/meshy_api_key-20260925082706211700000003-MRaY5X"
+MESHY_TERRAFORM_WEBHOOK_ARN = "arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid-prod/meshy_webhook_secret-20260925082706211700000001-dTkjrZ"
 ASSETS_BUCKET = "mokaid-assets-3d-prod-660601648321"
 
 
@@ -314,6 +316,31 @@ class EcsTests(unittest.TestCase):
                 actual = aws.registered["containerDefinitions"][1]
                 self.assertEqual(actual["secrets"], before["secrets"])
                 self.assertEqual(actual["environment"], before["environment"])
+
+    def test_meshy_accepts_exact_terraform_name_prefix_secret_arns(self):
+        aws = MockAws()
+        ecs.prepare(dict(self.env, MESHY_API_KEY_SECRET_ARN=MESHY_TERRAFORM_API_ARN,
+                         MESHY_WEBHOOK_SECRET_ARN=MESHY_TERRAFORM_WEBHOOK_ARN), aws)
+        secrets = aws.registered["containerDefinitions"][1]["secrets"]
+        self.assertIn({"name": "MESHY_API_KEY", "valueFrom": MESHY_TERRAFORM_API_ARN}, secrets)
+        self.assertIn({"name": "MESHY_WEBHOOK_SECRET", "valueFrom": MESHY_TERRAFORM_WEBHOOK_ARN}, secrets)
+        self.assertEqual(self.updates(aws), [])
+
+    def test_meshy_rejects_malformed_terraform_name_suffix_before_aws(self):
+        prefix = MESHY_API_ARN.rsplit("-", 1)[0] + "-"
+        invalid = (prefix + "1" * 25 + "-Abc123", prefix + "1" * 27 + "-Abc123",
+                   prefix + "1" * 25 + "x-Abc123", prefix + "1" * 26 + "Abc123",
+                   prefix + "1" * 26 + "--Abc123", prefix + "1" * 26 + "-Abc12",
+                   MESHY_TERRAFORM_API_ARN + ":key::",
+                   MESHY_TERRAFORM_API_ARN.replace("meshy_api_key-", "meshy_api_key_extra-"),
+                   MESHY_TERRAFORM_API_ARN.replace("il-central-1", "eu-west-1"),
+                   MESHY_TERRAFORM_API_ARN.replace("660601648321", "123456789012"))
+        for value in invalid:
+            with self.subTest(value=value):
+                aws = MockAws()
+                with self.assertRaises(ecs.Failure):
+                    ecs.prepare(dict(self.env, MESHY_API_KEY_SECRET_ARN=value), aws)
+                self.assertEqual(aws.calls, [])
 
     def test_meshy_api_key_only_keeps_webhook_secret_unconfigured_until_supplied(self):
         aws = MockAws()

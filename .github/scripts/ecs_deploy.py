@@ -242,8 +242,10 @@ def meshy_secret_overrides(env: Mapping[str, str], container: str) -> dict[str, 
             continue
         if container != "mokaid-prod-api":
             raise Failure("Meshy secret overrides are restricted to mokaid-prod-api")
+        # Terraform name_prefix adds a 26-digit unique suffix to the secret name;
+        # Secrets Manager then appends its own six-character ARN suffix.
         pattern = (r"arn:aws:secretsmanager:il-central-1:660601648321:secret:"
-                   + re.escape("mokaid-prod/" + secret_name) + r"-[A-Za-z0-9]{6}")
+                   + re.escape("mokaid-prod/" + secret_name) + r"-(?:[0-9]{26}-)?[A-Za-z0-9]{6}")
         if not re.fullmatch(pattern, value):
             raise Failure(f"{setting} must be the exact allowed production Secrets Manager ARN")
         overrides[name] = value
