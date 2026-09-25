@@ -39,6 +39,9 @@ config :mokaid, :figma_oauth,
 config :mokaid, :google_oauth,
   client_id: System.get_env("GOOGLE_CLIENT_ID"),
   client_secret: System.get_env("GOOGLE_CLIENT_SECRET"),
+  desktop_redirect_uri:
+    System.get_env("GOOGLE_DESKTOP_REDIRECT_URI") ||
+      "https://mokaid.com/api/mail/oauth/google/callback",
   redirect_uris:
     Enum.uniq([
       System.get_env("GOOGLE_REDIRECT_URI") || "https://mokaid.com/oauth/google/callback",
@@ -107,7 +110,8 @@ config :mokaid, :resend,
 # GCP Pub/Sub topic used by Gmail users.watch push notifications.
 config :mokaid, :gmail_pubsub,
   topic: System.get_env("GMAIL_PUBSUB_TOPIC"),
-  audience: System.get_env("GMAIL_PUBSUB_AUDIENCE")
+  audience: System.get_env("GMAIL_PUBSUB_AUDIENCE"),
+  service_account: System.get_env("GMAIL_PUBSUB_SERVICE_ACCOUNT")
 
 config :mokaid, :notion_oauth,
   client_id: System.get_env("NOTION_CLIENT_ID"),

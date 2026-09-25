@@ -5,27 +5,32 @@ defmodule MokaidWeb.MailWebhookController do
   - Gmail: GCP Pub/Sub push envelope (from `users.watch`)
   - Microsoft: Graph change notifications (+ the validationToken handshake)
 
-  Always answers 2xx (except the Graph handshake) so providers don't enter
-  retry storms; a lost notification is covered by the polling safety net.
+  Gmail rejects requests without the configured Google-signed push identity.
+  Valid notifications are hints acknowledged with 2xx; polling covers missed pushes.
   """
 
   use MokaidWeb, :controller
 
   alias Mokaid.Mail
   alias Mokaid.Mail.Webhooks
+  alias Mokaid.Mail.GmailPushAuth
   alias Mokaid.Mail.Workers.SyncWorker
 
-  require Logger
-
   def gmail(conn, params) do
-    with {:ok, %{email_address: email}} <- Webhooks.decode_gmail_pubsub(params),
-         %{} = account <- Mail.find_gmail_account(email) do
-      enqueue_sync(account)
-    else
-      _ -> Logger.debug("gmail webhook ignored: #{inspect(Map.keys(params))}")
-    end
+    with [authorization] <- get_req_header(conn, "authorization"),
+         :ok <- GmailPushAuth.verify(authorization) do
+      case Webhooks.decode_gmail_pubsub(params) do
+        {:ok, %{email_address: email}} ->
+          email |> Mail.find_gmail_accounts() |> Enum.each(&enqueue_sync/1)
 
-    json(conn, %{status: "ok"})
+        _ ->
+          :ok
+      end
+
+      json(conn, %{status: "ok"})
+    else
+      _ -> conn |> put_status(:unauthorized) |> json(%{error: "unauthorized"})
+    end
   end
 
   # Graph subscription handshake: echo the raw token as text/plain.

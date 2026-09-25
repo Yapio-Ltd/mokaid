@@ -7,7 +7,10 @@ defmodule Mokaid.Integrations.TokenRefresher do
   from the stored `refresh_token` (and persists the rotated credentials).
   """
 
+  import Ecto.Query
+
   alias Mokaid.Integrations
+  alias Mokaid.Repo
   alias Mokaid.Integrations.{GoogleOAuth, IntegrationConnection, MicrosoftOAuth}
 
   require Logger
@@ -53,18 +56,14 @@ defmodule Mokaid.Integrations.TokenRefresher do
 
     cond do
       is_nil(refresh_token) or refresh_token == "" ->
-        # Cannot refresh — return what we have and let the caller surface a 401.
-        {:ok, credentials}
+        {:error, :missing_refresh_token}
 
       true ->
         case do_refresh(connection, refresh_token) do
           {:ok, fresh} ->
             merged = Map.merge(credentials, fresh)
 
-            case Integrations.store_credentials(connection, merged) do
-              {:ok, _updated} -> {:ok, merged}
-              {:error, _} -> {:ok, merged}
-            end
+            persist_if_still_connected(connection, merged)
 
           {:error, reason} ->
             Logger.warning(
@@ -74,6 +73,40 @@ defmodule Mokaid.Integrations.TokenRefresher do
             {:error, :refresh_failed}
         end
     end
+  end
+
+  defp persist_if_still_connected(connection, credentials) do
+    # A disconnect or reconnect may finish during the provider's refresh call.
+    # Never resurrect cleared secrets or overwrite a newer account authorization.
+    Repo.transaction(fn ->
+      current =
+        Repo.one(
+          from c in IntegrationConnection,
+            where: c.id == ^connection.id and c.workspace_id == ^connection.workspace_id,
+            lock: "FOR UPDATE"
+        )
+
+      cond do
+        is_nil(current) or current.status != "connected" ->
+          Repo.rollback(:credentials_changed)
+
+        current.encrypted_credentials != connection.encrypted_credentials ->
+          # Another refresh/reconnect already won. Use its usable credentials
+          # instead of overwriting them or marking a healthy mailbox as broken.
+          latest = Integrations.decrypted_credentials(current)
+
+          if is_map(latest) and is_binary(latest["access_token"]) and
+               latest["access_token"] != "" and not expiring?(latest),
+             do: latest,
+             else: Repo.rollback(:credentials_changed)
+
+        true ->
+          case Integrations.store_credentials(current, credentials) do
+            {:ok, _} -> credentials
+            {:error, _} -> Repo.rollback(:credential_persistence_failed)
+          end
+      end
+    end)
   end
 
   defp do_refresh(connection, refresh_token) do

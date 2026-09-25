@@ -34,6 +34,6 @@ defmodule Mokaid.Integrations.IntegrationConnection do
     ])
     |> validate_required([:workspace_id, :provider_id])
     |> validate_inclusion(:status, ~w(connected disconnected error pending))
-    |> unique_constraint([:workspace_id, :provider_id])
+    |> unique_constraint([:workspace_id, :provider_id, :connected_account])
   end
 end

@@ -28,6 +28,10 @@ defmodule MokaidWeb.Router do
   end
 
   scope "/api", MokaidWeb do
+    get "/mail/oauth/google/callback", MailOAuthController, :google_callback
+  end
+
+  scope "/api", MokaidWeb do
     pipe_through :api
 
     get "/health", HealthController, :show
@@ -165,6 +169,11 @@ defmodule MokaidWeb.Router do
     post "/leave-requests", LeaveRequestController, :create
     post "/leave-requests/:id/approve", LeaveRequestController, :approve
     post "/leave-requests/:id/reject", LeaveRequestController, :reject
+
+    post "/mail/oauth/google/start", MailOAuthController, :google_start
+    get "/mail/oauth/:id", MailOAuthController, :show
+    delete "/mail/oauth/:id", MailOAuthController, :cancel
+    put "/mail/accounts/:id/imap", MailController, :update_imap_account
 
     get "/integrations", IntegrationController, :index
     post "/integrations/:provider/connect", IntegrationController, :connect
