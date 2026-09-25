@@ -129,7 +129,8 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
   defp finish(flow, params, redirect_uri) do
     with %{status: "active"} = member <- Members.get_member(flow.workspace_id, flow.member_id),
          :ok <- Permissions.authorize(member, "integrations.connect"),
-         {:ok, result} <- GoogleOAuth.exchange_code(params["code"], params["state"], redirect_uri),
+         {:ok, result} <-
+           GoogleOAuth.exchange_code(params["code"], params["state"], redirect_uri),
          {:ok, completed} <- persist_completion(flow, result) do
       {:ok, completed}
     else
