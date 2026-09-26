@@ -67,7 +67,7 @@ defmodule MokaidWeb.FallbackController do
 
   defp humanize(:invalid_avatar_input), do: "Choose a photo or enter a character description."
   defp humanize(:invalid_avatar_prompt), do: "Describe your character in 3 to 600 characters."
-  defp humanize(:invalid_avatar_image), do: "Upload a JPEG or PNG image under 10 MB."
+  defp humanize(:invalid_avatar_image), do: "Upload a JPEG, PNG or WebP image under 10 MB."
   defp humanize(:invalid_avatar_name), do: "Use a character name between 1 and 80 characters."
 
   defp humanize(:avatar_generation_in_progress),

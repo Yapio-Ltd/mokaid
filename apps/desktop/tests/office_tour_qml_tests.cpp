@@ -425,6 +425,9 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(&view.window));
         QTRY_VERIFY_WITH_TIMEOUT(!view.viewport->loading(), 30000);
         QVERIFY2(view.viewport->error().isEmpty(), qPrintable(view.viewport->error()));
+        qInfo() << "render before polish" << view.viewport->diagnostics() << view.window.isVisible() << view.window.isExposed();
+        view.window.grabWindow();
+        qInfo() << "render after polish" << view.viewport->diagnostics();
         QTRY_VERIFY2_WITH_TIMEOUT(view.viewport->diagnostics().value("triangles").toInt() > 0,
             qPrintable(view.bounds("officeViewport")+"; renderer="+view.viewport->error()+"; warnings="+view.warnings.join(';')),15000);
         QTRY_VERIFY(view.viewport->property("tourAvailable").toBool());
