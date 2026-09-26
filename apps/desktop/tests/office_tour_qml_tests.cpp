@@ -425,9 +425,9 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(&view.window));
         QTRY_VERIFY_WITH_TIMEOUT(!view.viewport->loading(), 30000);
         QVERIFY2(view.viewport->error().isEmpty(), qPrintable(view.viewport->error()));
-        qInfo() << "render before polish" << view.viewport->diagnostics() << view.window.isVisible() << view.window.isExposed();
-        view.window.grabWindow();
-        qInfo() << "render after polish" << view.viewport->diagnostics();
+        // Synchronize the first loaded scene even when a CLI-launched native
+        // window is occluded by another application on the test machine.
+        QVERIFY(!view.window.grabWindow().isNull());
         QTRY_VERIFY2_WITH_TIMEOUT(view.viewport->diagnostics().value("triangles").toInt() > 0,
             qPrintable(view.bounds("officeViewport")+"; renderer="+view.viewport->error()+"; warnings="+view.warnings.join(';')),15000);
         QTRY_VERIFY(view.viewport->property("tourAvailable").toBool());
@@ -437,18 +437,21 @@ private slots:
         // Overview opens the rich agent drawer; repeated chat/roster updates
         // must not restart its network selection or interrupt the active tab.
         const auto overviewId=view.office.agents.first().toMap().value("id").toString();
+        QSignalSpy openedFrames(&view.window, &QQuickWindow::frameSwapped);
         view.office.selectAgent(overviewId);
         QTRY_COMPARE(view.features.selectedId,overviewId);
+        auto* drawer = view.find("officeChatDrawer");
+        QVERIFY(drawer);
+        // The panel is positioned inside the page even while its animated
+        // parent is still clipped shut. Wait for the drawer's presented size.
+        QTRY_COMPARE(drawer->width(), drawer->property("panelWidth").toReal());
+        QTRY_VERIFY_WITH_TIMEOUT(openedFrames.count() >= 2, 3000);
         QTRY_VERIFY2(view.insideOffice(view.find("agentDetailPanel")),qPrintable(view.bounds("agentDetailPanel")));
         QVERIFY(view.insideOffice(view.find("agentDetailFooter")));
         QVERIFY(!view.find("officeImmersiveChat"));
         const auto selectionRequests=view.features.selectCount;
         emit view.office.changed(); emit view.features.changed();
         QCOMPARE(view.features.selectCount,selectionRequests);
-        qInfo() << "close before polish" << view.bounds("agentDetailClose");
-        QCoreApplication::processEvents();
-        view.window.grabWindow();
-        qInfo() << "close after polish" << view.bounds("agentDetailClose");
         QVERIFY(view.click("agentDetailClose"));
         QTRY_VERIFY(view.office.selectedAgent.isEmpty());
         QVERIFY(view.features.selectedId.isEmpty());
@@ -528,7 +531,12 @@ private slots:
         QVERIFY2(badge, "At least one seated synthetic colleague must be reachable by looking around");
         const auto agentId = badge->parentItem()->property("agentId").toString();
         QVERIFY(view.click(badge));
-        QTRY_COMPARE_WITH_TIMEOUT(view.office.selectedAgent.value("id").toString(), agentId, 25000);
+        QTRY_VERIFY2_WITH_TIMEOUT(view.office.selectedAgent.value("id").toString() == agentId,
+            qPrintable(QString("requested=%1; selected=%2; pending=%3; destination=%4; current=%5; moving=%6; settling=%7; active=%8")
+                .arg(agentId, view.office.selectedAgent.value("id").toString(),
+                    view.find("officePageUnderTest")->property("approachingAgentId").toString(),
+                    view.viewport->tourDestination(), view.viewport->tourCurrentStop())
+                .arg(view.viewport->tourMoving()).arg(view.viewport->tourSettling()).arg(view.window.isActive())), 25000);
         QTRY_VERIFY(view.inside(view.find("officeImmersiveChat")));
         QVERIFY(view.find("officeImmersiveChat")->property("compact").toBool());
         auto* composer = view.find("officeChatComposer");
