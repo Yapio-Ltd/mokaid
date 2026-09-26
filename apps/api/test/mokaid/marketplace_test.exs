@@ -119,6 +119,12 @@ defmodule Mokaid.MarketplaceTest do
     assert clone.level == 10
     # Seller still has the original
     assert Agents.get_agent(seller_ws.id, agent.id)
+    assert [purchase] = Marketplace.list_purchases(buyer_ws.id)
+    assert purchase.id == result.order_id
+    assert purchase.status == "fulfilled"
+    assert purchase.cloned_agent_id == clone.id
+    assert purchase.listing.agent.id == agent.id
+    assert Marketplace.list_purchases(seller_ws.id) == []
   end
 
   test "mine marks agents under level 10 as ineligible" do

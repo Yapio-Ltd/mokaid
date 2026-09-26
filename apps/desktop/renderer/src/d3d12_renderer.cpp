@@ -7,6 +7,7 @@
 #include <dxgi1_6.h>
 #include <fstream>
 #include <mokaid/renderer/renderer.hpp>
+#include <mokaid/engine/office_screens.hpp>
 #include <unordered_map>
 #include <windows.h>
 #include <wrl/client.h>
@@ -39,9 +40,9 @@ std::vector<char> read(const std::filesystem::path &p) {
 }
 struct Uniforms {
   engine::Mat4 viewProjection, model;
-  engine::Vec4 color, emissive, camera, params, display;
+  engine::Vec4 color, emissive, camera, params, display, renderOptions;
 };
-static_assert(sizeof(Uniforms) == 208);
+static_assert(sizeof(Uniforms) == 224);
 struct MeshGpu {
   ComPtr<ID3D12Resource> vertices, indices;
   D3D12_VERTEX_BUFFER_VIEW vb{};
@@ -55,16 +56,19 @@ struct SceneGpu {
 };
 struct FrameSlot {
   ComPtr<ID3D12CommandAllocator> allocator;
-  ComPtr<ID3D12Resource> color, hdr, emission, bloomA, bloomB, depth, constants;
+  ComPtr<ID3D12Resource> color, hdr, emission, bloomA, bloomB, haloA, haloB, reflection, depth, constants;
   ComPtr<ID3D11Texture2D> imported;
+  ComPtr<ID3D12Resource> screenAtlas;
+  std::shared_ptr<const engine::Texture> screenSource;
   std::vector<ComPtr<ID3D12Resource>> staging;
   std::uint64_t produced{}, consumed{};
   std::byte *mapped{};
 };
 class D3D12Renderer final : public Renderer {
-  static constexpr UINT targetsPerSlot = 5;
-  static constexpr UINT sampledTargetsPerSlot = 4;
-  static constexpr UINT firstSceneDescriptor = 1 + 3 * sampledTargetsPerSlot;
+  static constexpr UINT targetsPerSlot = 8;
+  static constexpr UINT sampledTargetsPerSlot = 7;
+  static constexpr UINT firstScreenDescriptor = 1 + 3 * sampledTargetsPerSlot;
+  static constexpr UINT firstSceneDescriptor = firstScreenDescriptor + 3;
   ComPtr<ID3D12Device> device_;
   ComPtr<ID3D11Device5> qtDevice_;
   ComPtr<ID3D11DeviceContext4> qtContext_;
@@ -151,7 +155,7 @@ class D3D12Renderer final : public Renderer {
     return target;
   }
   ComPtr<ID3D12Resource> uploadTexture(const engine::Texture &t,
-                                       UINT descriptor, FrameSlot &f) {
+                                       UINT descriptor, FrameSlot &f, bool countBytes = true) {
     const auto &base = t.mips.front();
     D3D12_RESOURCE_DESC desc{};
     desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -188,7 +192,7 @@ class D3D12Renderer final : public Renderer {
                             layouts[i].Footprint.RowPitch,
                     m.rgba.data() + static_cast<std::size_t>(row) * m.width * 4,
                     m.width * 4);
-      stats_.textureBytes += m.rgba.size();
+      if (countBytes) stats_.textureBytes += m.rgba.size();
     }
     staging->Unmap(0, nullptr);
     for (UINT i = 0; i < desc.MipLevels; ++i) {
@@ -327,7 +331,11 @@ public:
     emissionRange.BaseShaderRegister = 1;
     D3D12_DESCRIPTOR_RANGE materialRange = range;
     materialRange.BaseShaderRegister = 2;
-    std::array<D3D12_ROOT_PARAMETER, 6> params{};
+    D3D12_DESCRIPTOR_RANGE screenRange = range;
+    screenRange.BaseShaderRegister = 3;
+    D3D12_DESCRIPTOR_RANGE reflectionRange = range;
+    reflectionRange.BaseShaderRegister = 4;
+    std::array<D3D12_ROOT_PARAMETER, 8> params{};
     for (UINT i = 0; i < 2; ++i) {
       params[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
       params[i].Descriptor.ShaderRegister = i;
@@ -345,19 +353,31 @@ public:
     params[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
     params[5].Descriptor.ShaderRegister = 2;
     params[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    params[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    params[6].DescriptorTable = {1, &screenRange};
+    params[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    params[7].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    params[7].DescriptorTable = {1, &reflectionRange};
+    params[7].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     D3D12_STATIC_SAMPLER_DESC sampler{};
     sampler.Filter = D3D12_FILTER_ANISOTROPIC;
     sampler.AddressU = sampler.AddressV = sampler.AddressW =
         D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    sampler.MaxAnisotropy = 4;
+    sampler.MaxAnisotropy = 8;
     sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
     sampler.MaxLOD = D3D12_FLOAT32_MAX;
     sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    D3D12_STATIC_SAMPLER_DESC postSampler = sampler;
+    postSampler.ShaderRegister = 1;
+    postSampler.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+    postSampler.AddressU = postSampler.AddressV = postSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+    postSampler.MaxAnisotropy = 1;
+    const std::array<D3D12_STATIC_SAMPLER_DESC, 2> sceneSamplers{sampler, postSampler};
     D3D12_ROOT_SIGNATURE_DESC rd{};
     rd.NumParameters = static_cast<UINT>(params.size());
     rd.pParameters = params.data();
-    rd.NumStaticSamplers = 1;
-    rd.pStaticSamplers = &sampler;
+    rd.NumStaticSamplers = static_cast<UINT>(sceneSamplers.size());
+    rd.pStaticSamplers = sceneSamplers.data();
     rd.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     ComPtr<ID3DBlob> blob, error;
     check(D3D12SerializeRootSignature(&rd, D3D_ROOT_SIGNATURE_VERSION_1, &blob,
@@ -369,7 +389,7 @@ public:
           "Create root signature");
     // Fullscreen passes reuse t0/t1 but have their own root constants and a
     // clamp sampler, so bloom never wraps across the viewport edges.
-    std::array<D3D12_ROOT_PARAMETER, 3> postParams{};
+    std::array<D3D12_ROOT_PARAMETER, 4> postParams{};
     postParams[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
     postParams[0].Constants.ShaderRegister = 3;
     postParams[0].Constants.Num32BitValues = 4;
@@ -380,11 +400,9 @@ public:
     postParams[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
     postParams[2].DescriptorTable = {1, &emissionRange};
     postParams[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-    D3D12_STATIC_SAMPLER_DESC postSampler = sampler;
-    postSampler.ShaderRegister = 1;
-    postSampler.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-    postSampler.AddressU = postSampler.AddressV = postSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    postSampler.MaxAnisotropy = 1;
+    postParams[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    postParams[3].DescriptorTable = {1, &materialRange};
+    postParams[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     D3D12_ROOT_SIGNATURE_DESC postSignature{};
     postSignature.NumParameters = static_cast<UINT>(postParams.size());
     postSignature.pParameters = postParams.data();
@@ -515,6 +533,7 @@ public:
       f.imported.Reset();
       f.color.Reset();
       f.hdr.Reset(); f.emission.Reset(); f.bloomA.Reset(); f.bloomB.Reset();
+      f.haloA.Reset(); f.haloB.Reset(); f.reflection.Reset();
       f.depth.Reset();
       D3D12_RESOURCE_DESC d{};
       d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -562,6 +581,9 @@ public:
       makeIntermediate(f.emission, w, h, 1);
       makeIntermediate(f.bloomA, halfWidth, halfHeight, 2);
       makeIntermediate(f.bloomB, halfWidth, halfHeight, 3);
+      makeIntermediate(f.haloA, std::max(1U, (w + 7) / 8), std::max(1U, (h + 7) / 8), 4);
+      makeIntermediate(f.haloB, std::max(1U, (w + 7) / 8), std::max(1U, (h + 7) / 8), 5);
+      makeIntermediate(f.reflection, w, h, 6);
       d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
       d.Format = DXGI_FORMAT_D32_FLOAT;
       D3D12_CLEAR_VALUE clear{};
@@ -595,19 +617,36 @@ public:
     }
     for (const auto &i : frame.instances)
       upload(i.scene, f);
+    // Each slot has a stable atlas descriptor. Only rewrite after its producer
+    // fence retires, so a later live update cannot race an in-flight draw.
+    if (f.screenSource != frame.screenAtlas) {
+      if (frame.screenAtlas && !frame.screenAtlas->mips.empty()) {
+        const auto &pixels = frame.screenAtlas->mips.front();
+        if (!pixels.width || !pixels.height || pixels.rgba.size() != static_cast<std::size_t>(pixels.width) * pixels.height * 4)
+          throw std::runtime_error("Invalid live screen atlas");
+        f.screenAtlas = uploadTexture(*frame.screenAtlas, firstScreenDescriptor + static_cast<UINT>(slot_), f, false);
+      } else f.screenAtlas.Reset();
+      f.screenSource = frame.screenAtlas;
+    }
     std::vector<engine::Pose> poses;
     poses.reserve(frame.instances.size());
     for (const auto &instance : frame.instances)
       poses.push_back(engine::evaluateInstancePose(instance));
-    transition(f.hdr.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-               D3D12_RESOURCE_STATE_RENDER_TARGET);
-    transition(f.emission.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-               D3D12_RESOURCE_STATE_RENDER_TARGET);
+    const auto lighting = lightingFor(frame);
+    std::memcpy(f.mapped, &lighting, sizeof(lighting));
+    std::size_t offset = (sizeof(lighting) + 255) & ~std::size_t(255);
+    stats_.drawCalls = 0;
+    stats_.triangles = 0;
     const auto slotIndex = static_cast<UINT>(slot_);
     const auto rtvBase = slotIndex * targetsPerSlot;
     const auto srvBase = 1 + slotIndex * sampledTargetsPerSlot;
+    for (int reflectionPass = 1; reflectionPass >= 0; --reflectionPass) {
+    transition(reflectionPass ? f.reflection.Get() : f.hdr.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+               D3D12_RESOURCE_STATE_RENDER_TARGET);
+    transition(f.emission.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+               D3D12_RESOURCE_STATE_RENDER_TARGET);
     const std::array<D3D12_CPU_DESCRIPTOR_HANDLE, 2> rt{
-        cpu(rtv_.Get(), rtvStep_, rtvBase + 1), cpu(rtv_.Get(), rtvStep_, rtvBase + 2)};
+        cpu(rtv_.Get(), rtvStep_, rtvBase + (reflectionPass ? 7 : 1)), cpu(rtv_.Get(), rtvStep_, rtvBase + 2)};
     const auto ds = cpu(dsv_.Get(), dsvStep_, slotIndex);
     const float clear[4] = {.008505F, .008505F, .011558F, 1};
     const float noEmission[4] = {0, 0, 0, 1};
@@ -625,19 +664,15 @@ public:
     commands_->SetGraphicsRootSignature(root_.Get());
     ID3D12DescriptorHeap *heaps[] = {srv_.Get()};
     commands_->SetDescriptorHeaps(1, heaps);
+    commands_->SetGraphicsRootDescriptorTable(6, gpu(f.screenAtlas ? firstScreenDescriptor + slotIndex : 0));
+    commands_->SetGraphicsRootDescriptorTable(7, gpu(reflectionPass ? 0 : srvBase + 6));
     commands_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    stats_.drawCalls = 0;
-    stats_.triangles = 0;
-    const auto lighting = lightingFor(frame);
-    std::memcpy(f.mapped, &lighting, sizeof(lighting));
     commands_->SetGraphicsRootConstantBufferView(5, f.constants->GetGPUVirtualAddress());
-    // D3D12 root CBVs must start at a 256-byte boundary. The 912-byte light
-    // block occupies the first 1024 bytes of this frame's own upload buffer.
-    std::size_t offset = (sizeof(lighting) + 255) & ~std::size_t(255);
     for (int alpha = 0; alpha < 2; ++alpha) {
       commands_->SetPipelineState(alpha ? transparent_.Get() : opaque_.Get());
       for (std::size_t instanceIndex = 0; instanceIndex < frame.instances.size(); ++instanceIndex) {
         const auto &i = frame.instances[instanceIndex];
+        if (reflectionPass && instanceIndex > 0 && i.agentId.empty()) continue;
         const auto &s = *i.scene;
         const auto &pose = poses[instanceIndex];
         const auto &g = scenes_.at(i.scene.get());
@@ -647,16 +682,21 @@ public:
           if ((i.surfaceMask & (1U << mat.surfaceKind)) == 0) continue;
           if ((mat.alphaMode == 2) != (alpha == 1))
             continue;
+          const auto world = i.transform * pose.world[m.node];
+          const int screenSeat = mat.surfaceKind == 1 ? engine::officeScreenSeat(m, world) : -1;
+          const float screenState = screenSeat >= 0 && f.screenAtlas ?
+              1.F + std::clamp(frame.screenActivity[static_cast<std::size_t>(screenSeat)], 0.F, 1.F) : 0.F;
           const Uniforms u{frame.viewProjection,
-                           i.transform * pose.world[m.node],
+                           world,
                            mat.color,
                            {mat.emissive.x, mat.emissive.y, mat.emissive.z, mat.metallic},
-                           {frame.camera.x, frame.camera.y, frame.camera.z, 1},
+                           {frame.camera.x, reflectionPass ? -.024F - frame.camera.y : frame.camera.y, frame.camera.z, 1},
                            {m.skin >= 0 ? 1.F : 0.F,
                             static_cast<float>(mat.alphaMode), mat.alphaCutoff,
                             mat.roughness},
                            {static_cast<float>(mat.surfaceKind), frame.sceneSeconds,
-                            static_cast<float>(m.material + m.node * 3), 0}};
+                            static_cast<float>(screenSeat), screenState},
+                           {static_cast<float>(reflectionPass), static_cast<float>(width_), static_cast<float>(height_), instanceIndex == 0 ? 1.F : 0.F}};
           const auto bones = engine::skinMatrices(s, m, pose);
           if (offset + 256 + sizeof(bones) > constantsCapacity)
             throw std::runtime_error("Per-frame uniform budget exceeded");
@@ -689,15 +729,17 @@ public:
         }
       }
     }
-    transition(f.hdr.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+    transition(reflectionPass ? f.reflection.Get() : f.hdr.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
                D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     transition(f.emission.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
                D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    }
     commands_->SetGraphicsRootSignature(postRoot_.Get());
     auto postPass = [&](ID3D12PipelineState *pipeline, ID3D12Resource *target,
                         UINT targetDescriptor, UINT sourceDescriptor, UINT secondSourceDescriptor,
                         UINT targetWidth, UINT targetHeight, float directionX, float directionY,
-                        D3D12_RESOURCE_STATES initialState, D3D12_RESOURCE_STATES finalState) {
+                        D3D12_RESOURCE_STATES initialState, D3D12_RESOURCE_STATES finalState,
+                        UINT thirdSourceDescriptor = 0) {
       transition(target, initialState, D3D12_RESOURCE_STATE_RENDER_TARGET);
       const auto output = cpu(rtv_.Get(), rtvStep_, targetDescriptor);
       commands_->OMSetRenderTargets(1, &output, FALSE, nullptr);
@@ -711,6 +753,7 @@ public:
       commands_->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(postConstants.size()), postConstants.data(), 0);
       commands_->SetGraphicsRootDescriptorTable(1, gpu(sourceDescriptor));
       commands_->SetGraphicsRootDescriptorTable(2, gpu(secondSourceDescriptor));
+      commands_->SetGraphicsRootDescriptorTable(3, gpu(thirdSourceDescriptor));
       commands_->DrawInstanced(3, 1, 0, 0);
       transition(target, D3D12_RESOURCE_STATE_RENDER_TARGET, finalState);
     };
@@ -721,8 +764,13 @@ public:
              D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     postPass(blur_.Get(), f.bloomA.Get(), rtvBase + 3, srvBase + 3, 0, halfWidth, halfHeight, 0, 2,
              D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    const UINT haloWidth = std::max(1U, (width_ + 7) / 8), haloHeight = std::max(1U, (height_ + 7) / 8);
+    postPass(blur_.Get(), f.haloB.Get(), rtvBase + 6, srvBase + 2, 0, haloWidth, haloHeight, 5, 0,
+             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    postPass(blur_.Get(), f.haloA.Get(), rtvBase + 5, srvBase + 5, 0, haloWidth, haloHeight, 0, 2,
+             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     postPass(composite_.Get(), f.color.Get(), rtvBase, srvBase, srvBase + 2, width_, height_, 0, 0,
-             D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COMMON);
+             D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COMMON, srvBase + 4);
     check(commands_->Close(), "Close frame commands");
     ID3D12CommandList *lists[] = {commands_.Get()};
     queue_->ExecuteCommandLists(1, lists);

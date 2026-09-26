@@ -1,7 +1,6 @@
 import { AlertTriangle, ArrowRight, CheckCircle2, Loader2, Sparkles, X } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useToastStore, type ToastTone } from "@/stores/toast-store";
-import { useReviewQueueStore } from "@/stores/review-queue-store";
 import { useUiStore } from "@/stores/ui-store";
 import { cn } from "@/lib/cn";
 
@@ -25,8 +24,6 @@ const toneClasses: Record<ToastTone, string> = {
 export function Toaster() {
   const toasts = useToastStore((s) => s.toasts);
   const dismiss = useToastStore((s) => s.dismiss);
-  const openReview = useReviewQueueStore((s) => s.open);
-  const enqueueReview = useReviewQueueStore((s) => s.enqueue);
   const navigate = useNavigate();
 
   if (toasts.length === 0) return null;
@@ -45,24 +42,6 @@ export function Toaster() {
                 ? () => {
                     dismiss(toast.id);
                     const taskId = toast.taskId!;
-                    if (toast.tone === "warning") {
-                      const store = useReviewQueueStore.getState();
-                      if (!store.queue.some((q) => q.taskId === taskId)) {
-                        enqueueReview(
-                          {
-                            taskId,
-                            kind: toast.title.toLowerCase().includes("approval")
-                              ? "tool_approval"
-                              : "in_review",
-                            title: toast.description?.replace(/^"|"$/g, "") || toast.title,
-                          },
-                          { open: true },
-                        );
-                      } else {
-                        openReview();
-                      }
-                      return;
-                    }
                     // Queue first so AppShell’s route-change cleanup opens (not closes) the panel.
                     useUiStore.getState().requestOpenTask(taskId);
                     void navigate({ to: "/tasks" }).then(() => {

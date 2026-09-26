@@ -1,0 +1,190 @@
+[
+  {
+    "clip": "08-return",
+    "aspect": "9x16",
+    "sheet": "production/review/08-return-9x16-framing.jpg",
+    "samples": [
+      {
+        "editTime": 0,
+        "sourceFrame": 0,
+        "focusX": 0.65
+      },
+      {
+        "editTime": 0.5,
+        "sourceFrame": 16,
+        "focusX": 0.6265625
+      },
+      {
+        "editTime": 1,
+        "sourceFrame": 32,
+        "focusX": 0.5750000000000001
+      },
+      {
+        "editTime": 1.5,
+        "sourceFrame": 48,
+        "focusX": 0.5234375
+      },
+      {
+        "editTime": 2,
+        "sourceFrame": 64,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 3,
+        "sourceFrame": 96,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 4,
+        "sourceFrame": 128,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 5,
+        "sourceFrame": 160,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 6,
+        "sourceFrame": 192,
+        "focusX": 0.5
+      }
+    ]
+  },
+  {
+    "clip": "08-return",
+    "aspect": "4x5",
+    "sheet": "production/review/08-return-4x5-framing.jpg",
+    "samples": [
+      {
+        "editTime": 0,
+        "sourceFrame": 0,
+        "focusX": 0.65
+      },
+      {
+        "editTime": 0.5,
+        "sourceFrame": 16,
+        "focusX": 0.6265625
+      },
+      {
+        "editTime": 1,
+        "sourceFrame": 32,
+        "focusX": 0.5750000000000001
+      },
+      {
+        "editTime": 1.5,
+        "sourceFrame": 48,
+        "focusX": 0.5234375
+      },
+      {
+        "editTime": 2,
+        "sourceFrame": 64,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 3,
+        "sourceFrame": 96,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 4,
+        "sourceFrame": 128,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 5,
+        "sourceFrame": 160,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 6,
+        "sourceFrame": 192,
+        "focusX": 0.5
+      }
+    ]
+  },
+  {
+    "clip": "09-completed",
+    "aspect": "9x16",
+    "sheet": "production/review/09-completed-9x16-framing.jpg",
+    "samples": [
+      {
+        "editTime": 0,
+        "sourceFrame": 0,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 1,
+        "sourceFrame": 27,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 2,
+        "sourceFrame": 55,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 3.5,
+        "sourceFrame": 96,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 5,
+        "sourceFrame": 137,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 6,
+        "sourceFrame": 165,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 7,
+        "sourceFrame": 192,
+        "focusX": 0.5
+      }
+    ]
+  },
+  {
+    "clip": "09-completed",
+    "aspect": "4x5",
+    "sheet": "production/review/09-completed-4x5-framing.jpg",
+    "samples": [
+      {
+        "editTime": 0,
+        "sourceFrame": 0,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 1,
+        "sourceFrame": 27,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 2,
+        "sourceFrame": 55,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 3.5,
+        "sourceFrame": 96,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 5,
+        "sourceFrame": 137,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 6,
+        "sourceFrame": 165,
+        "focusX": 0.5
+      },
+      {
+        "editTime": 7,
+        "sourceFrame": 192,
+        "focusX": 0.5
+      }
+    ]
+  }
+]

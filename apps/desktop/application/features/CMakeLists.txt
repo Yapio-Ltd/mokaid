@@ -1,5 +1,7 @@
 add_library(mokaid_features STATIC
   feature_catalog.cpp feature_controller.cpp record_list_model.cpp detail_browser.cpp drive_download.cpp
+  avatar_generation_controller.cpp include/mokaid/features/avatar_generation_controller.hpp
+  mail_accounts_controller.cpp include/mokaid/features/mail_accounts_controller.hpp
   prepared_download.cpp prepared_download.hpp
   include/mokaid/features/feature_catalog.hpp
   include/mokaid/features/feature_controller.hpp
@@ -29,7 +31,26 @@ if(BUILD_TESTING)
         "${native_page_portraits}/portrait-finance.png" "${native_page_portraits}/portrait-corporate.png"
         "${native_page_portraits}/portrait-developer.png" "${native_page_portraits}/portrait-research.png"
         "${native_page_portraits}/portrait-legal.png" "${native_page_portraits}/portrait-byte.png"
-        "${native_page_portraits}/portrait-nyx.png" "${native_page_portraits}/portrait-moss.png")
+        "${native_page_portraits}/portrait-nyx.png" "${native_page_portraits}/portrait-moss.png"
+        "${native_page_portraits}/marketplace-hero.png")
     add_test(NAME desktop-native-pages-qml COMMAND mokaid_native_pages_qml_tests)
+    qt_add_executable(mokaid_tasks_qml_tests ../../tests/tasks_qml_tests.cpp)
+    target_link_libraries(mokaid_tasks_qml_tests PRIVATE mokaid_features Qt6::Quick Qt6::QuickControls2 Qt6::Test mokaid_options)
+    target_compile_definitions(mokaid_tasks_qml_tests PRIVATE MOKAID_TASKS_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../../presentation/qml")
+    qt_add_resources(mokaid_tasks_qml_tests tasks_portraits
+      PREFIX "/ui" BASE "${native_page_portraits}"
+      FILES "${native_page_portraits}/portrait-male.png" "${native_page_portraits}/portrait-design.png"
+        "${native_page_portraits}/portrait-finance.png" "${native_page_portraits}/portrait-corporate.png"
+        "${native_page_portraits}/portrait-developer.png" "${native_page_portraits}/portrait-research.png"
+        "${native_page_portraits}/portrait-legal.png" "${native_page_portraits}/portrait-byte.png"
+        "${native_page_portraits}/portrait-nyx.png" "${native_page_portraits}/portrait-moss.png")
+    add_test(NAME desktop-tasks-qml COMMAND mokaid_tasks_qml_tests)
+    qt_add_executable(mokaid_agent_detail_qml_tests ../../tests/agent_detail_qml_tests.cpp)
+    target_link_libraries(mokaid_agent_detail_qml_tests PRIVATE mokaid_features Qt6::Quick Qt6::QuickControls2 Qt6::Test mokaid_options)
+    target_compile_definitions(mokaid_agent_detail_qml_tests PRIVATE MOKAID_AGENT_DETAIL_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../../presentation/qml")
+    qt_add_resources(mokaid_agent_detail_qml_tests agent_detail_portraits
+      PREFIX "/ui" BASE "${native_page_portraits}"
+      FILES "${native_page_portraits}/portrait-male.png" "${native_page_portraits}/portrait-legal.png")
+    add_test(NAME desktop-agent-detail-qml COMMAND mokaid_agent_detail_qml_tests)
   endif()
 endif()

@@ -1,0 +1,207 @@
+{
+  "report": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/production/review/audio-review.json",
+  "summary": {
+    "measuredClips": 9,
+    "unavailableClips": [],
+    "errorClips": [],
+    "sourcesWithDetectedSignal": 9,
+    "overloadAlertCount": 0,
+    "alertCount": 16
+  },
+  "levels": [
+    {
+      "index": 1,
+      "id": "cafe",
+      "status": "measured",
+      "integratedLUFS": -47.4,
+      "rangeLU": 0.9,
+      "truePeakDBTP": -34.5
+    },
+    {
+      "index": 2,
+      "id": "approach",
+      "status": "measured",
+      "integratedLUFS": -21.7,
+      "rangeLU": 15,
+      "truePeakDBTP": -8.9
+    },
+    {
+      "index": 3,
+      "id": "portal",
+      "status": "measured",
+      "integratedLUFS": -50.5,
+      "rangeLU": 0.4,
+      "truePeakDBTP": -28.8
+    },
+    {
+      "index": 4,
+      "id": "office",
+      "status": "measured",
+      "integratedLUFS": -47.5,
+      "rangeLU": 2.4,
+      "truePeakDBTP": -25.9
+    },
+    {
+      "index": 5,
+      "id": "collaboration",
+      "status": "measured",
+      "integratedLUFS": -33,
+      "rangeLU": 1.6,
+      "truePeakDBTP": -16.4
+    },
+    {
+      "index": 6,
+      "id": "life",
+      "status": "measured",
+      "integratedLUFS": -47.2,
+      "rangeLU": 9.8,
+      "truePeakDBTP": -24.3
+    },
+    {
+      "index": 7,
+      "id": "execution",
+      "status": "measured",
+      "integratedLUFS": -25.5,
+      "rangeLU": 10.9,
+      "truePeakDBTP": -7.7
+    },
+    {
+      "index": 8,
+      "id": "return",
+      "status": "measured",
+      "integratedLUFS": -33.1,
+      "rangeLU": 13.5,
+      "truePeakDBTP": -13.7
+    },
+    {
+      "index": 9,
+      "id": "completed",
+      "status": "measured",
+      "integratedLUFS": -19.4,
+      "rangeLU": 13.4,
+      "truePeakDBTP": -2.7
+    }
+  ],
+  "alerts": [
+    {
+      "severity": "warning",
+      "clip": 1,
+      "code": "very-quiet-source",
+      "integratedLUFS": -47.4
+    },
+    {
+      "severity": "warning",
+      "clip": 3,
+      "code": "very-quiet-source",
+      "integratedLUFS": -50.5
+    },
+    {
+      "severity": "warning",
+      "clip": 4,
+      "code": "very-quiet-source",
+      "integratedLUFS": -47.5
+    },
+    {
+      "severity": "warning",
+      "clip": 6,
+      "code": "very-quiet-source",
+      "integratedLUFS": -47.2
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 1,
+      "to": 2,
+      "metric": "integratedDeltaLU",
+      "delta": 25.7
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 2,
+      "to": 3,
+      "metric": "edgeRmsDeltaDB",
+      "delta": -14.8
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 2,
+      "to": 3,
+      "metric": "integratedDeltaLU",
+      "delta": -28.8
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 4,
+      "to": 5,
+      "metric": "edgeRmsDeltaDB",
+      "delta": 15.459
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 4,
+      "to": 5,
+      "metric": "integratedDeltaLU",
+      "delta": 14.5
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 5,
+      "to": 6,
+      "metric": "edgeRmsDeltaDB",
+      "delta": -21.089
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 5,
+      "to": 6,
+      "metric": "integratedDeltaLU",
+      "delta": -14.2
+    },
+    {
+      "severity": "warning",
+      "code": "source-level-discontinuity",
+      "from": 6,
+      "to": 7,
+      "metric": "edgeRmsDeltaDB",
+      "delta": 11.878
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 6,
+      "to": 7,
+      "metric": "integratedDeltaLU",
+      "delta": 21.7
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 7,
+      "to": 8,
+      "metric": "edgeRmsDeltaDB",
+      "delta": -23.148
+    },
+    {
+      "severity": "warning",
+      "code": "source-level-discontinuity",
+      "from": 7,
+      "to": 8,
+      "metric": "integratedDeltaLU",
+      "delta": -7.6
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 8,
+      "to": 9,
+      "metric": "integratedDeltaLU",
+      "delta": 13.7
+    }
+  ]
+}

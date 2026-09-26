@@ -78,12 +78,14 @@ function useWorkspaceKey(base: string): {
 /* ---------- Agents ---------- */
 
 export function useAssets3d(kind?: string) {
+  const workspaceId = useAuthStore((state) => state.workspaceId);
+  const userId = useAuthStore((state) => state.user?.id);
   return useQuery({
-    queryKey: ["assets-3d", kind ?? "all"],
+    queryKey: ["assets-3d", workspaceId, userId, kind ?? "all"],
+    enabled: Boolean(workspaceId && userId),
     queryFn: () =>
       apiFetch<Envelope<Asset3d[]>>("/api/assets-3d", {
         params: kind ? { kind } : undefined,
-        skipWorkspace: true,
       }).then((r) => r.data),
   });
 }
@@ -447,40 +449,6 @@ export function useDeleteTask() {
   return useMutation({
     mutationFn: (taskId: string) =>
       apiFetch<{ ok: boolean }>(`/api/tasks/${taskId}`, { method: "DELETE" }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["agents"] });
-    },
-  });
-}
-
-/** Human decision on an agent's pending approval request (approve / reject / edited). */
-export function useApproveTaskAction() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      taskId,
-      approvalRequestId,
-      decision,
-      payload,
-      remember,
-    }: {
-      taskId: string;
-      approvalRequestId: string;
-      decision: "approved" | "rejected" | "edited";
-      payload?: Record<string, unknown>;
-      /** Persist an always-allow / always-deny rule for this agent+tool. */
-      remember?: "allow" | "deny";
-    }) =>
-      apiFetch<Envelope<{ id: string; status: string }>>(`/api/tasks/${taskId}/approve-action`, {
-        method: "POST",
-        body: {
-          approval_request_id: approvalRequestId,
-          decision,
-          ...(payload ? { payload } : {}),
-          ...(remember ? { remember } : {}),
-        },
-      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["agents"] });

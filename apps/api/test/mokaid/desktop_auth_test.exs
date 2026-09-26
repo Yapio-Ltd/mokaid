@@ -115,6 +115,134 @@ defmodule Mokaid.Auth.DesktopTest do
     assert Repo.get!(DesktopSession, session_id).revoked_at
   end
 
+  test "retrying a lost refresh response recovers the same successor without another rotation" do
+    first = tokens(user_fixture())
+    request_id = String.duplicate("r", 43)
+    assert {:ok, second} = Desktop.refresh(first.refresh_token, request_id)
+    assert second.refresh_token != first.refresh_token
+
+    assert {:ok, _, %{desktop_session_id: session_id}} =
+             Desktop.verify_access(second.access_token)
+
+    expiry = Repo.get!(DesktopSession, session_id).expires_at
+
+    # No process-local cache participates: repeat from the persisted predecessor.
+    for _ <- 1..3 do
+      assert {:ok, recovered} = Desktop.refresh(first.refresh_token, request_id)
+      assert recovered.refresh_token == second.refresh_token
+      assert {:ok, _, _} = Desktop.verify_access(recovered.access_token)
+    end
+
+    assert Repo.aggregate(
+             from(t in DesktopRefreshToken, where: t.session_id == ^session_id),
+             :count
+           ) ==
+             2
+
+    stored =
+      Repo.get_by!(DesktopRefreshToken, token_hash: :crypto.hash(:sha256, first.refresh_token))
+
+    assert stored.refresh_request_id_hash == :crypto.hash(:sha256, request_id)
+    assert Repo.get!(DesktopSession, session_id).expires_at == expiry
+    assert {:ok, _} = Desktop.refresh(second.refresh_token, String.duplicate("n", 43))
+  end
+
+  test "retryable refresh keeps active sessions alive for another thirty days" do
+    first = tokens(user_fixture())
+    {:ok, _, %{desktop_session_id: id}} = Desktop.verify_access(first.access_token)
+    near_expiry = DateTime.add(DateTime.utc_now(), 60)
+    Repo.get!(DesktopSession, id) |> change(expires_at: near_expiry) |> Repo.update!()
+    before_refresh = DateTime.utc_now()
+
+    assert {:ok, second} = Desktop.refresh(first.refresh_token, String.duplicate("r", 43))
+    assert second.expires_in == 600
+    renewed = Repo.get!(DesktopSession, id)
+    assert DateTime.diff(renewed.expires_at, before_refresh) >= 30 * 24 * 60 * 60
+  end
+
+  test "a different request ID or legacy replay revokes a retryable family" do
+    for replay <- [:wrong_id, :legacy] do
+      first = tokens(user_fixture())
+      assert {:ok, second} = Desktop.refresh(first.refresh_token, String.duplicate("r", 43))
+
+      result =
+        case replay do
+          :wrong_id -> Desktop.refresh(first.refresh_token, String.duplicate("w", 43))
+          :legacy -> Desktop.refresh(first.refresh_token)
+        end
+
+      assert {:error, :invalid_grant} = result
+      assert {:error, :unauthorized} = Desktop.verify_access(second.access_token)
+
+      assert {:error, :invalid_grant} =
+               Desktop.refresh(second.refresh_token, String.duplicate("n", 43))
+    end
+  end
+
+  test "retry cannot recover a successor after that successor has been consumed" do
+    first = tokens(user_fixture())
+    request_id = String.duplicate("r", 43)
+    {:ok, second} = Desktop.refresh(first.refresh_token, request_id)
+    {:ok, third} = Desktop.refresh(second.refresh_token, String.duplicate("n", 43))
+    assert {:error, :invalid_grant} = Desktop.refresh(first.refresh_token, request_id)
+    assert {:error, :unauthorized} = Desktop.verify_access(third.access_token)
+  end
+
+  test "legacy rotations cannot be recovered by adding a request ID afterwards" do
+    first = tokens(user_fixture())
+    {:ok, second} = Desktop.refresh(first.refresh_token)
+
+    assert {:error, :invalid_grant} =
+             Desktop.refresh(first.refresh_token, String.duplicate("r", 43))
+
+    assert {:error, :unauthorized} = Desktop.verify_access(second.access_token)
+  end
+
+  test "malformed retry IDs do not consume a valid refresh credential" do
+    first = tokens(user_fixture())
+
+    for request_id <- [
+          nil,
+          "",
+          "short",
+          String.duplicate("r", 44),
+          String.duplicate("+", 43),
+          %{}
+        ] do
+      assert {:error, :invalid_grant} = Desktop.refresh(first.refresh_token, request_id)
+    end
+
+    assert {:ok, _} = Desktop.refresh(first.refresh_token, String.duplicate("r", 43))
+  end
+
+  test "retry recovery still rejects revoked, expired and suspended sessions" do
+    for invalidation <- [:revoked, :expired, :suspended] do
+      user = user_fixture()
+      first = tokens(user)
+      request_id = String.duplicate("r", 43)
+      {:ok, second} = Desktop.refresh(first.refresh_token, request_id)
+      {:ok, _, %{desktop_session_id: id}} = Desktop.verify_access(second.access_token)
+
+      case invalidation do
+        :revoked ->
+          Desktop.revoke(second.refresh_token)
+
+        :expired ->
+          Repo.get!(DesktopSession, id)
+          |> change(expires_at: DateTime.add(DateTime.utc_now(), -1))
+          |> Repo.update!()
+
+        :suspended ->
+          user |> change(status: "suspended") |> Repo.update!()
+      end
+
+      assert {:error, :invalid_grant} = Desktop.refresh(first.refresh_token, request_id)
+
+      assert {:error, :invalid_grant} =
+               Desktop.refresh(second.refresh_token, String.duplicate("n", 43))
+    end
+  end
+
   test "revocation accepts spent refresh token, disconnects socket and leaves another family active" do
     user = user_fixture()
     first = tokens(user)
@@ -187,6 +315,36 @@ defmodule Mokaid.Auth.DesktopTest do
     assert is_nil(Repo.get(DesktopSession, expired_id))
     refute Repo.exists?(from t in DesktopRefreshToken, where: t.session_id == ^expired_id)
     assert {:ok, _, _} = Desktop.verify_access(active.access_token)
+  end
+
+  test "cleanup bounds spent refresh history while preserving live sessions and recent retries" do
+    first = tokens(user_fixture())
+    {:ok, second} = Desktop.refresh(first.refresh_token, String.duplicate("a", 43))
+    request_id = String.duplicate("b", 43)
+    {:ok, third} = Desktop.refresh(second.refresh_token, request_id)
+    now = DateTime.utc_now()
+
+    old =
+      Repo.get_by!(DesktopRefreshToken, token_hash: :crypto.hash(:sha256, first.refresh_token))
+
+    old |> change(used_at: DateTime.add(now, -32 * 86_400)) |> Repo.update!()
+
+    recent =
+      Repo.get_by!(DesktopRefreshToken, token_hash: :crypto.hash(:sha256, second.refresh_token))
+
+    recent |> change(used_at: DateTime.add(now, -30 * 86_400)) |> Repo.update!()
+
+    assert :ok = Desktop.prune_expired()
+    assert is_nil(Repo.get(DesktopRefreshToken, old.id))
+    assert Repo.get(DesktopRefreshToken, recent.id)
+
+    assert {:error, :invalid_grant} =
+             Desktop.refresh(first.refresh_token, String.duplicate("a", 43))
+
+    assert {:ok, _, _} = Desktop.verify_access(third.access_token)
+    assert {:ok, recovered} = Desktop.refresh(second.refresh_token, request_id)
+    assert recovered.refresh_token == third.refresh_token
+    assert {:ok, _} = Desktop.refresh(third.refresh_token, String.duplicate("c", 43))
   end
 
   test "native sockets require a header and reject revoked or inactive sessions" do

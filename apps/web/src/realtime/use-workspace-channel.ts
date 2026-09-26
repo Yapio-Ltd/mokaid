@@ -11,25 +11,9 @@ import { useToolActivityStore } from "@/stores/tool-activity-store";
 import type { ToolActivityEvent } from "@/api/types";
 import { useTaskTypingStore } from "@/stores/task-typing-store";
 import { playSound } from "@/lib/sounds";
-import { useReviewQueueStore } from "@/stores/review-queue-store";
 import { joinChannel, onSocketOpen } from "./phoenix-client";
 
 type EventPayload = Record<string, unknown>;
-
-/** Suppress duplicate approval toasts for the same request (double broadcast / retries). */
-const recentApprovalToasts = new Map<string, number>();
-const APPROVAL_TOAST_TTL_MS = 30_000;
-
-function shouldToastApproval(approvalRequestId: string | undefined): boolean {
-  if (!approvalRequestId) return true;
-  const now = Date.now();
-  for (const [id, at] of recentApprovalToasts) {
-    if (now - at > APPROVAL_TOAST_TTL_MS) recentApprovalToasts.delete(id);
-  }
-  if (recentApprovalToasts.has(approvalRequestId)) return false;
-  recentApprovalToasts.set(approvalRequestId, now);
-  return true;
-}
 
 /** Inserts a chat message into the cached thread + summary — no refetch. */
 function insertChatMessage(
@@ -267,21 +251,10 @@ function maybeToast(event: string, payload: EventPayload): void {
         if (taskId) useUiStore.getState().flashTask(taskId);
         const agentName = str(payload, "agent_name") ?? "Your agent";
         playSound("task-done");
-        if (taskId) {
-          useReviewQueueStore.getState().enqueue(
-            {
-              taskId,
-              kind: "in_review",
-              title,
-              agentName: str(payload, "agent_name"),
-            },
-            { open: true },
-          );
-        }
         toast({
           tone: "success",
           title: `${agentName} finished`,
-          description: `"${title}": review the output and approve or request changes.`,
+          description: `"${title}": the response is ready. Let the agent know how it did.`,
           taskId,
           duration: 10000,
         });
@@ -298,34 +271,9 @@ function maybeToast(event: string, payload: EventPayload): void {
       }
       return;
     }
-    case "task.approval_required": {
-      playSound("attention");
-      const approvalRequestId = str(payload, "approval_request_id");
-      if (taskId) {
-        useReviewQueueStore.getState().enqueue(
-          {
-            taskId,
-            kind: "tool_approval",
-            title: title ?? "Task",
-            approvalRequestId,
-            agentName: str(payload, "agent_name"),
-          },
-          { open: true },
-        );
-      }
-      if (shouldToastApproval(approvalRequestId)) {
-        toast({
-          tone: "warning",
-          title: "Approval needed",
-          description: title
-            ? `"${title}": the agent is waiting for your go-ahead.`
-            : "An agent is waiting for your go-ahead.",
-          taskId,
-          duration: 12000,
-        });
-      }
+    // Legacy approval events still invalidate task data, but never interrupt the user.
+    case "task.approval_required":
       return;
-    }
     case "task.completed": {
       if (!title) return;
       playSound("task-done");

@@ -1,0 +1,109 @@
+[
+  {
+    "id": "foosball-square-keyframe",
+    "jobId": "b96abfcc-b415-483f-aeb9-e4d921c8d60b",
+    "status": "completed",
+    "estimatedCredits": 2.75,
+    "params": {
+      "model": "gpt_image_2_5",
+      "aspect_ratio": "1:1",
+      "quality": "high",
+      "resolution": "2k",
+      "count": 1,
+      "use_unlim": false,
+      "medias": [
+        {
+          "role": "image",
+          "value": "5f2a04ce-0dc9-4cd9-903b-8a46a490d5d0"
+        },
+        {
+          "role": "image",
+          "value": "ba78de97-b905-4412-9712-c82cb9eb6d73"
+        }
+      ],
+      "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions.\n\n\nProduce ONE square 1:1 keyframe adapting the exact first reference's successful foosball composition to a 4:5 protected square master. Preserve EXACT graphite table, both adult players and room behind: man violet overshirt LEFT deeper in frame, man amber sweater RIGHT nearer, blue glass room rear/right, coffee counter rear/left. Same faces and clothing from character sheet. One single full-size physical office shot.\n\nMove camera a little farther back at the same short end of the table so BOTH full heads, both pairs of hands holding the straight rods, the ball, and entire playing surface fit inside the CENTRAL 80 percent WIDTH of this square image. This center rectangle will be cropped to 4:5: its left/right boundaries are at x10% andx90%. Do not let faces, hands or required handles extend beyond them. Keep the players arranged in diagonal depth, not widely separated side-by-side. The table recedes from lower center to upper middle, action comfortably central. Leave the top20% as darker ceiling architecture for editorial title, not heads. Full faces must start below y24%; hands and table must fit above y93%. Actual same table and ordinary rods, accurate anatomy, no duplicated people, no text or graphics. Premium stylized3D softly lit violet/blue/amber, perfect perspective, warm natural restrained playful expressions. Single finished commercial frame, no border/panels."
+    },
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_134412_b96abfcc-b415-483f-aeb9-e4d921c8d60b.png",
+    "localPath": "references/office-foosball-square-01.png"
+  },
+  {
+    "id": "life-portrait-retry",
+    "jobId": "6a2ce31f-d688-47bd-8ee9-b2b342e7e937",
+    "status": "pending",
+    "estimatedCredits": 24,
+    "params": {
+      "model": "cinematic_studio_video_v2",
+      "aspect_ratio": "9:16",
+      "duration": 12,
+      "count": 1,
+      "mode": "pro",
+      "sound": "on",
+      "speedramp": "custom",
+      "multi_shots": false,
+      "cfg_scale": 0.7,
+      "use_unlim": false,
+      "medias": [
+        {
+          "role": "start_image",
+          "value": "7eeb5eb2-c1e9-4518-addf-07c4d4722ffe"
+        },
+        {
+          "role": "end_image",
+          "value": "5f2a04ce-0dc9-4cd9-903b-8a46a490d5d0"
+        },
+        {
+          "role": "image",
+          "value": "ba78de97-b905-4412-9712-c82cb9eb6d73"
+        }
+      ],
+      "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions.\n\n\nSCENE 6 — THEY ALSO HAVE A LIFE. Start EXACTLY with supplied meeting room frame. One continuous physical camera travelling shot. Camera turns and glides BACK OUT through the EXISTING glass entrance, follows violet floor paths to the warm coffee counter at back-center of this same compact office. Seconds 3-7: only the auburn-haired woman in sage blouse at the espresso machine; one espresso pour into a ceramic cup, warm steam, she takes her cup. Nobody else joins the coffee close-up. Then camera moves sideways along an existing aisle to the graphite foosball table at front/right. Seconds 9-12: precisely TWO adult coworkers already there: ONE violet-shirt man on LEFT and ONE brown-skinned curly-haired amber-sweater man on RIGHT. They play opposite sides and smile naturally. No third man and no duplicated amber sweaters. Keep both complete faces, both pairs of hands, straight rods and ball clearly inside frame. Camera ends on the supplied final composition, looking lengthwise along the table with the players arranged in depth. The table remains GRAPHITE with dark field and red players, never green. The room retains blue-edged GLASS meeting room behind/right and warm amber coffee behind/left, NEVER a plain purple wall. Same furniture throughout. No camera orbit around either person. Smooth acceleration in aisles, decelerate near action. No cuts, no dissolves, no morphs, no teleportation, no new furniture. NO text or logos. SOUND: quiet keyboards and room tone, espresso pour, ceramic cup touch, foosball rods and ball taps. No intelligible speech, no voiceover, no music."
+    }
+  },
+  {
+    "id": "life-square-safe-4x5",
+    "jobId": "4335058d-9845-4563-b957-2a71edf56ee4",
+    "status": "pending",
+    "estimatedCredits": 24,
+    "params": {
+      "model": "cinematic_studio_video_v2",
+      "aspect_ratio": "1:1",
+      "duration": 12,
+      "count": 1,
+      "mode": "pro",
+      "sound": "on",
+      "speedramp": "custom",
+      "multi_shots": false,
+      "cfg_scale": 0.7,
+      "use_unlim": false,
+      "medias": [
+        {
+          "role": "start_image",
+          "value": "daf10bb4-599f-4830-85ed-31cf0375de36"
+        },
+        {
+          "role": "end_image",
+          "value": "b96abfcc-b415-483f-aeb9-e4d921c8d60b"
+        },
+        {
+          "role": "image",
+          "value": "ba78de97-b905-4412-9712-c82cb9eb6d73"
+        }
+      ],
+      "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions.\n\n\nSCENE 6 — THEY ALSO HAVE A LIFE. Start EXACTLY with supplied meeting room frame. One continuous physical camera travelling shot. Camera turns and glides BACK OUT through the EXISTING glass entrance, follows violet floor paths to the warm coffee counter at back-center of this same compact office. Seconds 3-7: only the auburn-haired woman in sage blouse at the espresso machine; one espresso pour into a ceramic cup, warm steam, she takes her cup. Nobody else joins the coffee close-up. Then camera moves sideways along an existing aisle to the graphite foosball table at front/right. Seconds 9-12: precisely TWO adult coworkers already there: ONE violet-shirt man on LEFT and ONE brown-skinned curly-haired amber-sweater man on RIGHT. They play opposite sides and smile naturally. No third man and no duplicated amber sweaters. Keep both complete faces, both pairs of hands, straight rods and ball clearly inside frame. Camera ends on the supplied final composition, looking lengthwise along the table with the players arranged in depth. The table remains GRAPHITE with dark field and red players, never green. The room retains blue-edged GLASS meeting room behind/right and warm amber coffee behind/left, NEVER a plain purple wall. Same furniture throughout. No camera orbit around either person. Smooth acceleration in aisles, decelerate near action. No cuts, no dissolves, no morphs, no teleportation, no new furniture. NO text or logos. SOUND: quiet keyboards and room tone, espresso pour, ceramic cup touch, foosball rods and ball taps. No intelligible speech, no voiceover, no music.\n\nFinal social output is 4:5. This square1:1 take has a CENTRAL80% WIDTH action-safe rectangle, x10% to90%. Keep both faces and all four hands inside this central rectangle at the foosball table, as in supplied end reference. Left/right outside strips will be removed. Keep top20% darker architecture free of faces for editorial title. Show coffee pour and ball centrally too."
+    },
+    "intendedFormat": "4:5",
+    "generatedFormat": "1:1",
+    "startFrame": {
+      "mediaId": "daf10bb4-599f-4830-85ed-31cf0375de36",
+      "sourceJobId": "e0ad540e-ccd4-4ae7-a3bd-a487b820bf55",
+      "sourceFrame": 240,
+      "squareCrop": {
+        "width": 1080,
+        "height": 1080,
+        "x": 523.2,
+        "y": 0
+      },
+      "final4x5FocusX": 0.6
+    }
+  }
+]

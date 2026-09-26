@@ -45,13 +45,20 @@ class AttachedFile(BaseModel):
 
 
 class Colleague(BaseModel):
-    """Another AI agent of the workspace the running agent may consult."""
+    """Workspace colleague available for consultation or bounded team work.
+
+    Availability is a dispatch-time snapshot, not a reservation of the agent's
+    queue. Older payloads remain valid and inherit the lead's tool restrictions.
+    """
 
     id: str
     name: str
     role_title: str | None = None
     department: str | None = None
     skills: list[str] = Field(default_factory=list)
+    status: str = "idle"
+    agent: dict[str, Any] = Field(default_factory=dict)
+    autonomy: dict[str, Any] = Field(default_factory=dict)
 
 
 class RunRequest(BaseModel):
@@ -70,22 +77,28 @@ class RunRequest(BaseModel):
     # Persona of the assigned agent (display_name, role_title, department,
     # skills) — lets the deep agent speak and work in character.
     agent: dict[str, Any] = Field(default_factory=dict)
-    # Team mates available for consult_colleague.
+    # Team mates available for consultation or parallel contributions.
     colleagues: list[Colleague] = Field(default_factory=list)
     # Supervision: {"mode": "supervised|balanced|autonomous",
     #               "rules": [{"tool_pattern": "...", "behavior": "allow|deny"}]}
     autonomy: dict[str, Any] = Field(default_factory=dict)
+    # Server-issued policy. Never forward this or MCP credentials to a model.
+    runtime_policy: dict[str, Any] = Field(default_factory=dict)
 
 
 class ResumeRequest(BaseModel):
     run_id: str
     decision: str  # approved | rejected | edited
     payload: dict[str, Any] | None = None
+    tool_name: str | None = None
+    command_id: str | None = None
 
 
 class ToolCall(BaseModel):
     tool: str
     input: dict[str, Any]
+    # Optional for old runs; team contributions keep their author's identity.
+    agent_id: str | None = None
     output: Any = None
     risk: RiskLevel = RiskLevel.LOW
     approved: bool | None = None

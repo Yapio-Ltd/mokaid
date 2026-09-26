@@ -52,9 +52,11 @@ async def sync_account(payload: dict[str, Any]) -> dict[str, Any]:
     usage = UsageTracker()
     if messages:
         await analyze.analyze_messages(messages, rules, usage)
-        await phoenix.ingest_mail_messages(account_id, messages)
+        if not await phoenix.ingest_mail_messages(account_id, messages):
+            log.warning("mail_ingestion_failed", account_id=account_id)
+            return {"error": "ingestion_failed"}
 
-    await phoenix.update_mail_sync_state(
+    saved = await phoenix.update_mail_sync_state(
         account_id,
         {
             "sync_state": new_state,
@@ -63,6 +65,9 @@ async def sync_account(payload: dict[str, Any]) -> dict[str, Any]:
             "last_sync_at": datetime.now(UTC).isoformat(),
         },
     )
+
+    if not saved:
+        return {"error": "sync_state_failed"}
 
     if usage.cost_cents > 0:
         await phoenix.report_usage(

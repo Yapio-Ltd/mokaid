@@ -1,0 +1,34 @@
+{
+  "status": "failed",
+  "origin": "http://127.0.0.1:4173",
+  "movie": "/assets/mokaid-office-journey.adac1c365481.mp4",
+  "engine": "webkit",
+  "simulation": "Override document.hidden/visibilityState and dispatch visibilitychange; real media decoding and the production GSAP ticker remain active.",
+  "limitation": "Tests application suspension/resumption only. Does not emulate Safari OS window occlusion, native rAF throttling or an actual background tab.",
+  "version": "26.5",
+  "tracingScreenshots": false,
+  "pageErrors": [],
+  "error": "page.waitForFunction: Timeout 8000ms exceeded.\n    at waitPresented (/Users/olimservice/mokaid/apps/web/scripts/cinematic-story-visibility.mjs:83:40)\n    at /Users/olimservice/mokaid/apps/web/scripts/cinematic-story-visibility.mjs:90:9",
+  "failureState": {
+    "scroll": 4536,
+    "hidden": false,
+    "ready": "complete",
+    "productTop": -2916,
+    "height": 11700,
+    "currentTime": 20,
+    "presentedTime": "0.000",
+    "seeking": false,
+    "readyState": 4,
+    "paused": true,
+    "presentedEvents": [
+      0,
+      0
+    ],
+    "seeks": [
+      {
+        "time": 20,
+        "hidden": false
+      }
+    ]
+  }
+}

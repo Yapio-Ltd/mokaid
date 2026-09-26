@@ -15,6 +15,10 @@ Item {
     property bool filtered: false
     property bool hasMore: false
     property bool driveTrash: false
+    property string emptyTitle: ""
+    property string emptyHint: ""
+    property string emptyActionText: ""
+    signal emptyActionRequested()
     signal selected(string recordId)
     signal activated(var record)
     signal loadMore()
@@ -287,7 +291,8 @@ Item {
         anchors.centerIn: parent; width: Math.min(380,parent.width-48); spacing: 14
         visible: root.rows.length === 0 && !root.busy
         Rectangle { Layout.alignment: Qt.AlignHCenter; width: 66; height: 66; radius: 20; color: Theme.raised; MokaidIcon { anchors.centerIn: parent; name: root.filtered ? "search" : root.pageMeta.icon; size: 30; color: Theme.primary } }
-        MokaidLabel { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.filtered ? "No matches found" : root.driveTrash ? "Trash is empty" : root.offline ? "No saved data for this view" : root.pageMeta.empty || "Nothing here yet"; font.pixelSize: 20; font.weight: Font.DemiBold; wrapMode: Text.Wrap }
-        MokaidLabel { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.filtered ? "Try a different search to find what you need." : root.driveTrash ? "Items you move to trash appear here until restored." : root.offline ? "Reconnect to synchronize this workspace." : root.pageMeta.hint || "Refresh this view to retrieve the latest data."; font.pixelSize: 13; wrapMode: Text.Wrap; color: Theme.secondary }
+        MokaidLabel { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.filtered ? "No matches found" : root.driveTrash ? "Trash is empty" : root.offline ? "No saved data for this view" : root.emptyTitle || root.pageMeta.empty || "Nothing here yet"; font.pixelSize: 20; font.weight: Font.DemiBold; wrapMode: Text.Wrap }
+        MokaidLabel { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.filtered ? "Try a different search to find what you need." : root.driveTrash ? "Items you move to trash appear here until restored." : root.offline ? "Reconnect to synchronize this workspace." : root.emptyHint || root.pageMeta.hint || "Refresh this view to retrieve the latest data."; font.pixelSize: 13; wrapMode: Text.Wrap; color: Theme.secondary }
+        MokaidButton { objectName:"emptyConnectMailbox"; Layout.alignment:Qt.AlignHCenter; text:root.emptyActionText; visible:!!root.emptyActionText && !root.filtered && !root.offline; highlighted:true; onClicked:root.emptyActionRequested() }
     }
 }

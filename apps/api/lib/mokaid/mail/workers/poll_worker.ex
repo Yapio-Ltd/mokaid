@@ -13,7 +13,7 @@ defmodule Mokaid.Mail.Workers.PollWorker do
   alias Mokaid.Mail.Workers.SyncWorker
 
   # OAuth accounts poll only when webhooks look dead.
-  @oauth_staleness_seconds 15 * 60
+  @oauth_staleness_seconds 60
 
   @impl Oban.Worker
   def perform(_job) do
@@ -28,6 +28,14 @@ defmodule Mokaid.Mail.Workers.PollWorker do
     end)
 
     :ok
+  end
+
+  # Authentication needs a reconnect; temporary failures retry on a later sweep.
+  defp due?(%{status: "error"} = account, now) do
+    reason = account.error_message || ""
+
+    not String.starts_with?(reason, ["authentication failed:", "credentials unavailable"]) and
+      (is_nil(account.updated_at) or DateTime.diff(now, account.updated_at, :second) >= 300)
   end
 
   defp due?(%{provider: "imap"}, _now), do: true

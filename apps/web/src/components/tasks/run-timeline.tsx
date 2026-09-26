@@ -18,6 +18,7 @@ import { useTaskRuns } from "@/api/hooks";
 import { useToolActivityStore } from "@/stores/tool-activity-store";
 import { cn } from "@/lib/cn";
 import { formatDateTime, formatRelative } from "@/lib/format";
+import { TaskRuntimeProgress } from "./task-runtime-progress";
 
 function formatDuration(ms: number | undefined): string {
   if (!ms || ms < 0) return "";
@@ -59,7 +60,8 @@ function mergeFeeds(
   return [...events.values()];
 }
 
-function ActivityList({ events }: { events: ToolActivityEvent[] }) {
+function ActivityList({ events, run }: { events: ToolActivityEvent[]; run: TaskRun | null }) {
+  const names = new Map((run?.output?.runtime?.participants ?? []).map((participant) => [participant.agent_id, participant.name]));
   return (
     <ul className="space-y-1">
       {events.map((event) => (
@@ -84,6 +86,7 @@ function ActivityList({ events }: { events: ToolActivityEvent[] }) {
             )}
           >
             {event.description || event.tool}
+            {(event.agent_name || names.get(event.agent_id ?? "")) && <span className="ml-1 text-text-muted">· {event.agent_name || names.get(event.agent_id ?? "")}</span>}
           </span>
           {event.duration_ms != null && event.duration_ms > 0 && (
             <span className="shrink-0 tabular-nums text-[10px] text-text-muted">
@@ -147,7 +150,7 @@ export function RunTimeline({
       </button>
       {open && (
         <div className="mt-2 max-h-64 overflow-y-auto pr-1">
-          <ActivityList events={events} />
+          <ActivityList events={events} run={run} />
         </div>
       )}
     </div>
@@ -157,8 +160,9 @@ export function RunTimeline({
 const RUN_STATUS_LABELS: Record<string, string> = {
   queued: "Queued",
   running: "Running",
-  waiting_for_approval: "Waiting for approval",
+  waiting_for_approval: "Paused",
   waiting_for_user_input: "Waiting for input",
+  waiting_for_budget: "Credit limit reached",
   completed: "Completed",
   failed: "Failed",
   canceled: "Canceled",
@@ -167,6 +171,7 @@ const RUN_STATUS_LABELS: Record<string, string> = {
 function RunHistoryEntry({ run }: { run: TaskRun }) {
   const [open, setOpen] = useState(false);
   const events = run.tool_activity ?? [];
+  const hasRuntime = run.output?.runtime?.engine === "openai_agents";
   const startedAt = run.started_at ?? run.inserted_at;
 
   return (
@@ -175,7 +180,7 @@ function RunHistoryEntry({ run }: { run: TaskRun }) {
         type="button"
         className="flex w-full items-center gap-2 text-left"
         onClick={() => setOpen(!open)}
-        disabled={events.length === 0 && !run.error}
+        disabled={events.length === 0 && !run.error && !hasRuntime}
       >
         <span
           className={cn(
@@ -195,7 +200,7 @@ function RunHistoryEntry({ run }: { run: TaskRun }) {
         <span className="shrink-0 text-[10px] text-text-muted" title={formatDateTime(startedAt)}>
           {formatRelative(startedAt)}
         </span>
-        {(events.length > 0 || run.error) &&
+        {(events.length > 0 || run.error || hasRuntime) &&
           (open ? (
             <ChevronDown size={12} className="shrink-0 text-text-muted" />
           ) : (
@@ -209,7 +214,8 @@ function RunHistoryEntry({ run }: { run: TaskRun }) {
               {run.error}
             </p>
           )}
-          {events.length > 0 && <ActivityList events={events} />}
+          {events.length > 0 && <ActivityList events={events} run={run} />}
+          <TaskRuntimeProgress runtime={run.output?.runtime} />
         </div>
       )}
     </div>

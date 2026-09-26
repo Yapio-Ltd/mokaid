@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { SiteHeader } from "@/components/landing/site-header";
 import {
   CONTACT_EMAIL,
   EFFECTIVE_DATE,
@@ -41,26 +41,7 @@ export function LegalDocLayout({
 
   return (
     <div className="min-h-full bg-bg-deep text-text">
-      <header className="sticky top-0 z-10 bg-bg-deep/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
-          <Link
-            to="/"
-            className="mk-focus-ring flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-text-muted transition-colors hover:text-text"
-          >
-            <ArrowLeft size={13} /> Back to site
-          </Link>
-          <Link to="/" className="flex items-center gap-2">
-            <img
-              src="/branding/logo-without-bg.png"
-              alt={PRODUCT_DISPLAY}
-              className="h-7 w-7 object-contain"
-            />
-            <span className="text-sm font-bold tracking-tight text-text">
-              {PRODUCT_DISPLAY}
-            </span>
-          </Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="mk-fade-up mx-auto max-w-3xl px-5 py-16">
         <div className="mb-12">
@@ -73,7 +54,7 @@ export function LegalDocLayout({
           {intro}
         </div>
 
-        <div className="space-y-12">{children}</div>
+        <div className="space-y-12 [overflow-wrap:anywhere]">{children}</div>
 
         <div className="mt-16 flex flex-col items-center gap-3 pt-8 text-xs text-text-muted">
           <p>

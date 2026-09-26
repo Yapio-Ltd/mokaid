@@ -3,6 +3,7 @@
 #include <atomic>
 #include <chrono>
 #include <mokaid/renderer/renderer.hpp>
+#include <mokaid/engine/office_screens.hpp>
 #include <unordered_map>
 #include "office_lighting.hpp"
 
@@ -10,9 +11,9 @@ namespace mokaid::renderer {
 namespace {
 struct Uniforms {
   engine::Mat4 viewProjection, model;
-  engine::Vec4 color, emissive, camera, params, display;
+  engine::Vec4 color, emissive, camera, params, display, renderOptions;
 };
-static_assert(sizeof(Uniforms) == 208);
+static_assert(sizeof(Uniforms) == 224);
 struct GpuMesh {
   id<MTLBuffer> vertices;
   id<MTLBuffer> indices;
@@ -46,8 +47,10 @@ class MetalRenderer final : public Renderer {
   id<MTLComputePipelineState> downsample_, blur_, composite_;
   id<MTLDepthStencilState> depth_, noDepthWrite_;
   id<MTLSamplerState> sampler_;
-  id<MTLTexture> color_, hdr_, emission_, bloomA_, bloomB_, depthTexture_, white_;
+  id<MTLTexture> color_, hdr_, emission_, bloomA_, bloomB_, haloA_, haloB_, reflection_, depthTexture_, white_;
   id<MTLBuffer> identityBones_;
+  id<MTLTexture> screenAtlas_;
+  std::shared_ptr<const engine::Texture> screenSource_;
   std::unordered_map<const engine::Scene *, GpuScene> scenes_;
   Statistics stats_;
   std::shared_ptr<std::atomic_bool> commandFailed_{
@@ -150,7 +153,7 @@ public:
     s.mipFilter = MTLSamplerMipFilterLinear;
     s.sAddressMode = MTLSamplerAddressModeRepeat;
     s.tAddressMode = MTLSamplerAddressModeRepeat;
-    s.maxAnisotropy = 4;
+    s.maxAnisotropy = 8;
     sampler_ = [device_ newSamplerStateWithDescriptor:s];
     auto td = [MTLTextureDescriptor
         texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm_sRGB
@@ -183,19 +186,25 @@ public:
     desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
     id<MTLTexture> nextHdr = [device_ newTextureWithDescriptor:desc];
     id<MTLTexture> nextEmission = [device_ newTextureWithDescriptor:desc];
+    id<MTLTexture> nextReflection = [device_ newTextureWithDescriptor:desc];
     desc.width = std::max(1U, (w + 1) / 2);
     desc.height = std::max(1U, (h + 1) / 2);
     desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
     id<MTLTexture> nextBloomA = [device_ newTextureWithDescriptor:desc];
     id<MTLTexture> nextBloomB = [device_ newTextureWithDescriptor:desc];
+    desc.width = std::max(1U, (w + 7) / 8);
+    desc.height = std::max(1U, (h + 7) / 8);
+    id<MTLTexture> nextHaloA = [device_ newTextureWithDescriptor:desc];
+    id<MTLTexture> nextHaloB = [device_ newTextureWithDescriptor:desc];
     desc.width = w; desc.height = h;
     desc.pixelFormat = MTLPixelFormatDepth32Float;
     desc.usage = MTLTextureUsageRenderTarget;
     id<MTLTexture> nextDepth = [device_ newTextureWithDescriptor:desc];
-    if (!nextColor || !nextDepth || !nextHdr || !nextEmission || !nextBloomA || !nextBloomB)
+    if (!nextColor || !nextDepth || !nextHdr || !nextEmission || !nextBloomA || !nextBloomB || !nextHaloA || !nextHaloB || !nextReflection)
       throw std::runtime_error("Metal render target allocation failed");
     color_ = nextColor; hdr_ = nextHdr; emission_ = nextEmission;
     bloomA_ = nextBloomA; bloomB_ = nextBloomB;
+    haloA_ = nextHaloA; haloB_ = nextHaloB; reflection_ = nextReflection;
     depthTexture_ = nextDepth;
     width_ = w;
     height_ = h;
@@ -212,6 +221,25 @@ public:
       return;
     for (const auto &i : frame.instances)
       upload(i.scene);
+    if (screenSource_ != frame.screenAtlas) {
+      id<MTLTexture> nextAtlas = nil;
+      if (frame.screenAtlas && !frame.screenAtlas->mips.empty()) {
+        const auto &pixels = frame.screenAtlas->mips.front();
+        if (!pixels.width || !pixels.height || pixels.rgba.size() != static_cast<std::size_t>(pixels.width) * pixels.height * 4)
+          throw std::runtime_error("Invalid live screen atlas");
+        auto atlasDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm_sRGB
+            width:pixels.width height:pixels.height mipmapped:NO];
+        atlasDescriptor.storageMode = MTLStorageModeShared;
+        atlasDescriptor.usage = MTLTextureUsageShaderRead;
+        nextAtlas = [device_ newTextureWithDescriptor:atlasDescriptor];
+        if (!nextAtlas) throw std::runtime_error("Live screen atlas allocation failed");
+        [nextAtlas replaceRegion:MTLRegionMake2D(0, 0, pixels.width, pixels.height) mipmapLevel:0
+            withBytes:pixels.rgba.data() bytesPerRow:pixels.width * 4];
+      }
+      // Every earlier image remains leased by its recorded command buffer.
+      screenAtlas_ = nextAtlas;
+      screenSource_ = frame.screenAtlas;
+    }
     // Evaluate each instance once, shared by opaque and transparent passes.
     std::vector<engine::Pose> poses;
     poses.reserve(frame.instances.size());
@@ -220,9 +248,10 @@ public:
     // Keep resources through completion even if Qt internally records an
     // unretained command buffer. This also protects resize and item deletion.
     NSMutableArray<id> *inFlight = [NSMutableArray
-        arrayWithObjects:color_, hdr_, emission_, bloomA_, bloomB_, downsample_, blur_, composite_,
+        arrayWithObjects:color_, hdr_, emission_, bloomA_, bloomB_, haloA_, haloB_, reflection_, downsample_, blur_, composite_,
                          depthTexture_, opaque_, transparent_, depth_,
                          noDepthWrite_, sampler_, white_, identityBones_, nil];
+    if (screenAtlas_) [inFlight addObject:screenAtlas_];
     for (const auto &[key, gpu] : scenes_) {
       (void)key;
       for (const auto &mesh : gpu.meshes) {
@@ -232,9 +261,13 @@ public:
       for (id<MTLTexture> texture : gpu.textures)
         [inFlight addObject:texture];
     }
-    {
+    stats_.drawCalls = 0;
+    stats_.triangles = 0;
+    // Draw the same posed scene through the floor plane before the main pass.
+    // Mirroring projection rather than model space preserves correct shading.
+    for (int reflectionPass = 1; reflectionPass >= 0; --reflectionPass) {
       auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
-      pass.colorAttachments[0].texture = hdr_;
+      pass.colorAttachments[0].texture = reflectionPass ? reflection_ : hdr_;
       pass.colorAttachments[1].texture = emission_;
       pass.colorAttachments[1].loadAction = MTLLoadActionClear;
       pass.colorAttachments[1].storeAction = MTLStoreActionStore;
@@ -255,15 +288,17 @@ public:
       const EncodingLease encoding{encoder, commands, inFlight, commandFailed_};
       [encoder setCullMode:MTLCullModeNone];
       [encoder setFragmentSamplerState:sampler_ atIndex:0];
+      [encoder setFragmentTexture:screenAtlas_ ? screenAtlas_ : white_ atIndex:3];
+      [encoder setFragmentTexture:reflectionPass ? white_ : reflection_ atIndex:4];
       const auto lighting = lightingFor(frame);
       [encoder setFragmentBytes:&lighting length:sizeof(lighting) atIndex:3];
-      stats_.drawCalls = 0;
-      stats_.triangles = 0;
       for (int alphaPass = 0; alphaPass < 2; ++alphaPass) {
         [encoder setRenderPipelineState:alphaPass ? transparent_ : opaque_];
         [encoder setDepthStencilState:alphaPass ? noDepthWrite_ : depth_];
         for (std::size_t instanceIndex = 0; instanceIndex < frame.instances.size(); ++instanceIndex) {
           const auto &i = frame.instances[instanceIndex];
+          // Background office wings do not need their own reflection draw.
+          if (reflectionPass && instanceIndex > 0 && i.agentId.empty()) continue;
           const auto &s = *i.scene;
           const auto &pose = poses[instanceIndex];
           const auto &gpu = scenes_.at(i.scene.get());
@@ -273,16 +308,21 @@ public:
             if ((i.surfaceMask & (1U << mat.surfaceKind)) == 0) continue;
             if ((mat.alphaMode == 2) != (alphaPass == 1))
               continue;
+            const auto world = i.transform * pose.world[m.node];
+            const int screenSeat = mat.surfaceKind == 1 ? engine::officeScreenSeat(m, world) : -1;
+            const float screenState = screenSeat >= 0 && screenAtlas_ ?
+                1.F + std::clamp(frame.screenActivity[static_cast<std::size_t>(screenSeat)], 0.F, 1.F) : 0.F;
             const Uniforms u{frame.viewProjection,
-                             i.transform * pose.world[m.node],
+                             world,
                              mat.color,
                              {mat.emissive.x, mat.emissive.y, mat.emissive.z, mat.metallic},
-                             {frame.camera.x, frame.camera.y, frame.camera.z, 1},
+                             {frame.camera.x, reflectionPass ? -.024F - frame.camera.y : frame.camera.y, frame.camera.z, 1},
                              {m.skin >= 0 ? 1.F : 0.F,
                               static_cast<float>(mat.alphaMode), mat.alphaCutoff,
                               mat.roughness},
                              {static_cast<float>(mat.surfaceKind), frame.sceneSeconds,
-                              static_cast<float>(m.material + m.node * 3), 0}};
+                              static_cast<float>(screenSeat), screenState},
+                             {static_cast<float>(reflectionPass), static_cast<float>(width_), static_cast<float>(height_), instanceIndex == 0 ? 1.F : 0.F}};
             id<MTLBuffer> boneBuffer = identityBones_;
             if (m.skin >= 0) {
               const auto bones = engine::skinMatrices(s, m, pose);
@@ -337,12 +377,16 @@ public:
     compute(downsample_, emission_, bloomA_, {0, 0});
     compute(blur_, bloomA_, bloomB_, {2, 0});
     compute(blur_, bloomB_, bloomA_, {0, 2});
+    // The broad halo gets already filtered energy, with no second threshold.
+    compute(blur_, bloomA_, haloB_, {5, 0});
+    compute(blur_, haloB_, haloA_, {0, 2});
     id<MTLComputeCommandEncoder> composite = [commands computeCommandEncoder];
     if (!composite) throw std::runtime_error("Metal composition encoder creation failed");
     [composite setComputePipelineState:composite_];
     [composite setTexture:hdr_ atIndex:0];
     [composite setTexture:bloomA_ atIndex:1];
     [composite setTexture:color_ atIndex:2];
+    [composite setTexture:haloA_ atIndex:3];
     [composite dispatchThreads:MTLSizeMake(width_, height_, 1)
         threadsPerThreadgroup:MTLSizeMake(8, 8, 1)];
     [composite endEncoding];

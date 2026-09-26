@@ -14,14 +14,72 @@ import {
   Rocket,
   RotateCcw,
   Scale,
-  Sparkles,
   Users,
-  Webhook,
 } from "lucide-react";
 import { Footer } from "@/components/ui/footer";
 import { CONTACT_EMAIL, LEGAL_ENTITY_NAME } from "@/lib/legal-config";
 
-export function SiteFooter() {
+const RESOURCE_LINKS = [
+  { name: "AI Employees", Icon: Users, href: "/ai-employees" },
+  { name: "Use Cases", Icon: Lightbulb, href: "/use-cases" },
+  { name: "Compare", Icon: GitCompare, href: "/compare" },
+  { name: "Blog", Icon: BookOpen, href: "/blog" },
+  { name: "Glossary", Icon: BookText, href: "/glossary" },
+];
+
+export function SiteFooter({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <footer className="mk-site-footer border-t border-white/10 bg-bg-deep px-5 py-8 sm:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <a href="/" className="mk-focus-ring mk-brand-wordmark w-fit rounded text-lg text-text">
+            mokaid
+          </a>
+          <nav
+            aria-label="Footer"
+            className="flex flex-wrap gap-x-5 gap-y-3 text-xs text-text-secondary"
+          >
+            {[
+              { label: "Pricing", href: "/pricing" },
+              { label: "Download", href: "/download" },
+              { label: "Privacy", href: "/privacy" },
+              { label: "Terms", href: "/terms" },
+              { label: "Cookies", href: "/cookies" },
+              { label: "Refunds", href: "/refund" },
+              { label: "Legal", href: "/legal" },
+              { label: "Contact", href: `mailto:${CONTACT_EMAIL}` },
+            ].map(({ label, href }) => (
+              <a
+                key={href}
+                href={href}
+                className="mk-focus-ring rounded transition-colors hover:text-text"
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+        </div>
+        <nav
+          aria-label="Footer resources"
+          className="mx-auto mt-5 flex max-w-7xl flex-wrap gap-x-5 gap-y-2 text-xs text-text-secondary"
+        >
+          {RESOURCE_LINKS.map(({ name, href }) => (
+            <a
+              key={href}
+              href={href}
+              className="mk-focus-ring rounded transition-colors hover:text-text"
+            >
+              {name}
+            </a>
+          ))}
+        </nav>
+        <p className="mx-auto mt-6 max-w-7xl text-[11px] text-text-muted">
+          © {new Date().getFullYear()} {LEGAL_ENTITY_NAME}. All rights reserved.
+        </p>
+      </footer>
+    );
+  }
+
   return (
     <div className="mk-site-footer relative isolate overflow-hidden">
       {/* Soft atmospheric top fade — no hard white line */}
@@ -55,29 +113,14 @@ export function SiteFooter() {
             title: "Product",
             links: [
               {
-                name: "Product",
+                name: "Experience",
                 Icon: Blocks,
                 href: "/#product",
               },
               {
-                name: "Agents",
+                name: "AI employees",
                 Icon: Bot,
-                href: "/#agents",
-              },
-              {
-                name: "Marketplace",
-                Icon: BadgeDollarSign,
-                href: "/#marketplace",
-              },
-              {
-                name: "Connectors",
-                Icon: Webhook,
-                href: "/#connectors",
-              },
-              {
-                name: "Why mokaid",
-                Icon: Sparkles,
-                href: "/#why",
+                href: "/ai-employees",
               },
               {
                 name: "Pricing",
@@ -89,33 +132,7 @@ export function SiteFooter() {
           },
           {
             title: "Resources",
-            links: [
-              {
-                name: "AI Employees",
-                Icon: Users,
-                href: "/ai-employees",
-              },
-              {
-                name: "Use Cases",
-                Icon: Lightbulb,
-                href: "/use-cases",
-              },
-              {
-                name: "Compare",
-                Icon: GitCompare,
-                href: "/compare",
-              },
-              {
-                name: "Blog",
-                Icon: BookOpen,
-                href: "/blog",
-              },
-              {
-                name: "Glossary",
-                Icon: BookText,
-                href: "/glossary",
-              },
-            ],
+            links: RESOURCE_LINKS,
           },
           {
             title: "Account",

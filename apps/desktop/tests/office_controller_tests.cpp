@@ -103,6 +103,82 @@ private slots:
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, preferences_.path());
     }
+    void deskScreenUsesAssignedTaskAndLiveToolUpdates() {
+        Fixture f; QTRY_COMPARE(f.office.agents().size(), 2);
+        QJsonArray canonicalActivity;
+        f.remote.handler = [&](QTcpSocket* socket, const Request& request) {
+            if (request.path == "/api/agents") {
+                OfficeApi::reply(socket, {{"data", QJsonArray{QJsonObject{{"id", "agent-a"}, {"display_name", "Alice"},
+                    {"seat_index", 0}, {"status", "busy"}, {"current_task_id", "task-a"}}}}}); return true;
+            }
+            if (request.path == "/api/tasks/task-a") {
+                OfficeApi::reply(socket, {{"data", QJsonObject{{"id", "task-a"}, {"assigned_agent_id", "agent-a"},
+                    {"title", "Review the actual brief"}, {"status", "in_progress"}, {"progress_percent", 37},
+                    {"latest_run", QJsonObject{{"id", "run-a"}, {"status", "running"}, {"tool_activity", canonicalActivity}}}}}}); return true;
+            }
+            return false;
+        };
+        f.office.refresh();
+        auto task = [&] { return f.office.agents().first().toMap().value("screen_task").toMap(); };
+        QTRY_COMPARE(task().value("title").toString(), QString("Review the actual brief"));
+        QCOMPARE(task().value("progress_percent").toInt(), 37);
+        const auto requests = f.remote.count("/api/tasks/");
+        QJsonObject event{{"id", "event-a"}, {"tool", "read_file"}, {"description", "Reading the project brief"},
+            {"status", "running"}, {"arguments", QJsonObject{{"token", "must-not-enter-screen-data"}}}};
+        auto publish = [&](const QString& topic, const QString& run) {
+            emit f.realtime.eventReceived(topic, "task.tool_activity", {{"task_id", "task-a"},
+                {"agent_id", "agent-a"}, {"run_id", run}, {"event", event}});
+        };
+        publish("workspace:other", "run-a"); publish("workspace:workspace-a", "retired-run");
+        QVERIFY(task().value("latest_run").toMap().value("tool_activity").toList().isEmpty());
+        publish("workspace:workspace-a", "run-a");
+        auto activity = [&] { return task().value("latest_run").toMap().value("tool_activity").toList(); };
+        QCOMPARE(activity().size(), 1);
+        QCOMPARE(activity().first().toMap().value("description").toString(), QString("Reading the project brief"));
+        QVERIFY(!activity().first().toMap().contains("arguments"));
+        event["status"] = "ok"; publish("workspace:workspace-a", "run-a");
+        QCOMPARE(activity().size(), 1); QCOMPARE(activity().first().toMap().value("status").toString(), QString("ok"));
+        QCOMPARE(f.remote.count("/api/tasks/"), requests);
+        auto eventStatus = [&](const QString& id) {
+            for (const auto& value : activity()) if (value.toMap().value("id").toString() == id)
+                return value.toMap().value("status").toString();
+            return QString{};
+        };
+        event["id"] = "missed-completion"; event["status"] = "running";
+        publish("workspace:workspace-a", "run-a");
+        QCOMPARE(eventStatus("missed-completion"), QString("running"));
+        event["status"] = "ok"; event["finished_at"] = "2026-09-25T13:45:00Z";
+        canonicalActivity.append(event);
+        emit f.realtime.rejoined();
+        QTRY_COMPARE(eventStatus("missed-completion"), QString("ok"));
+        f.office.refresh();
+        QTRY_VERIFY(f.remote.count("/api/tasks/") >= requests + 2);
+        QCOMPARE(eventStatus("missed-completion"), QString("ok"));
+        emit f.realtime.connectionChanged(false);
+        QCOMPARE(f.office.agents().first().toMap().value("screen_connection").toString(), QString("reconnecting"));
+        f.api.setOnline(false);
+        QCOMPARE(f.office.agents().first().toMap().value("screen_connection").toString(), QString("offline"));
+        f.api.setWorkspace("workspace-b"); emit f.session.workspaceChanged();
+        QVERIFY(f.office.agents().isEmpty());
+    }
+    void lateDeskTaskCannotFollowAnAgentToAnotherAssignment() {
+        Fixture f; QTRY_COMPARE(f.office.agents().size(), 2);
+        QString assignment = "task-a"; QPointer<QTcpSocket> pending;
+        f.remote.handler = [&](QTcpSocket* socket, const Request& request) {
+            if (request.path == "/api/agents") {
+                OfficeApi::reply(socket, {{"data", QJsonArray{QJsonObject{{"id", "agent-a"}, {"display_name", "Alice"},
+                    {"seat_index", 0}, {"status", "busy"}, {"current_task_id", assignment}}}}}); return true;
+            }
+            if (request.path == "/api/tasks/task-a") { pending = socket; return true; }
+            return false;
+        };
+        f.office.refresh(); QTRY_VERIFY(pending);
+        assignment.clear(); f.office.refresh();
+        QTRY_VERIFY(f.office.agents().first().toMap().value("current_task_id").toString().isEmpty());
+        OfficeApi::reply(pending, {{"data", QJsonObject{{"id", "task-a"}, {"assigned_agent_id", "agent-a"}, {"title", "Old task"}}}});
+        QTest::qWait(50);
+        QVERIFY(f.office.agents().first().toMap().value("screen_task").toMap().isEmpty());
+    }
     void emptyCurrentIsIsolatedFromArchivedAndOtherWorkspace() {
         Fixture f; QTRY_COMPARE(f.office.agents().size(), 2);
         f.office.selectAgent("agent-a"); QTRY_VERIFY(!f.office.loading());

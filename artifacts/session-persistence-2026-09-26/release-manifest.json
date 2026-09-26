@@ -1,0 +1,42 @@
+{
+  "base_commit": "857c644c33a22f5caa65de13cedfbcb2a991e2b9",
+  "context": "/tmp/mokaid-session-release-20260926",
+  "files": [
+    {
+      "path": "apps/api/DESKTOP_AUTH.md",
+      "sha256": "ee8218ce1b0a5e5203abea5b757fdc807ee99b2fdd96d7e53e7de1b583fbb59c"
+    },
+    {
+      "path": "apps/api/lib/mokaid/auth/desktop.ex",
+      "sha256": "b96ffcff0a6e595c8cc1fc44efb8242b09172f128331430569c2637d6ceceac1"
+    },
+    {
+      "path": "apps/api/lib/mokaid/auth/desktop_refresh_token.ex",
+      "sha256": "1ea852e7fb04ee69a55fe99402cd53447edfb85ebd0850660cbc35eb24598c64"
+    },
+    {
+      "path": "apps/api/lib/mokaid_web/controllers/desktop_auth_controller.ex",
+      "sha256": "88313fb9b7ba66aa772750e798cfc01e62f463ea9212c25c0251a774de978112"
+    },
+    {
+      "path": "apps/api/test/mokaid/desktop_auth_test.exs",
+      "sha256": "26f646e7b0d0ba3a6afa6e2090bab1eb6b2b591cef6e407ffaf7d4a5d5604dd6"
+    },
+    {
+      "path": "apps/api/test/mokaid_web/desktop_auth_test.exs",
+      "sha256": "a5627db4e88481899c6919fdd5d50342f40c99302f7f4478497b822a816b4165"
+    },
+    {
+      "path": "apps/api/priv/repo/migrations/20260926210000_add_desktop_refresh_request_ids.exs",
+      "sha256": "e8fc8204eb7eb81171d0aaa28ed024c90cbeac230639bfa3f55be48b0b1e3790"
+    },
+    {
+      "path": "apps/api/lib/mokaid_web/router.ex",
+      "sha256": "b74197d74e57cbab453cf5fc838e6c5cc53a2d7578fda4906e281224ef77004b"
+    },
+    {
+      "path": "apps/api/config/config.exs",
+      "sha256": "101b3dce2114b1b0cf3afaae04a9cf7c1fe433f561765eda0a6ac0f6748294ef"
+    }
+  ]
+}

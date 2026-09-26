@@ -8,9 +8,6 @@ import { useOnboardingSettings } from "@/api/hooks";
 import { apiFetch } from "@/api/client";
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 import { CoachmarkTour } from "@/components/onboarding/coachmark-tour";
-import { ReviewBanner } from "@/components/approvals/review-banner";
-import { ReviewGateModal } from "@/components/approvals/review-gate-modal";
-import { useReviewQueueHydration } from "@/components/approvals/use-review-queue-hydration";
 import { TaskDetailPanel } from "@/components/tasks/task-detail-panel";
 import { DeliverableViewer } from "@/components/deliverables/deliverable-viewer";
 import { FloatingChatDock } from "@/components/chat/floating-chat-dock";
@@ -70,7 +67,6 @@ function useSessionWorkspaceSync() {
 export function AppShell() {
   useSessionWorkspaceSync();
   useWorkspaceChannel();
-  useReviewQueueHydration();
 
   // Task details live at the shell level: a task can be opened from any page
   // (dashboard rows, agent panel, toasts, kanban) via useUiStore.selectTask.
@@ -99,7 +95,6 @@ export function AppShell() {
       <div className="relative flex min-w-0 flex-1 flex-col">
         {!isWorkforcePage && <div className="mk-main-aura" aria-hidden />}
         {isWorkforcePage ? <WorkforceTopbar /> : <Topbar />}
-        <ReviewBanner />
         <main
           className={`relative min-h-0 flex-1 overflow-y-auto p-5${isWorkforcePage ? " wf-shell-main" : ""}`}
         >
@@ -114,7 +109,6 @@ export function AppShell() {
       <FloatingChatDock hideEmptyLauncher={isWorkforcePage} />
       <OnboardingGate />
       <CoachmarkTour />
-      <ReviewGateModal />
       <Toaster />
     </div>
   );

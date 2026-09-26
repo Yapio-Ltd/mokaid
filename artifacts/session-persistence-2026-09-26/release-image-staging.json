@@ -1,0 +1,14 @@
+{
+  "api_image": "sha256:0cde1951a2c4cecb1fe533821016303f41da60dd5bb1443880f58359fb67f0fe",
+  "scope": "isolated API release only",
+  "checks": [
+    "release-migrations",
+    "api-schema-tls",
+    "api-health",
+    "anonymous-identity-401",
+    "anonymous-consent-401",
+    "retryable-refresh-route-and-no-store"
+  ],
+  "passed": true,
+  "cleanup_complete": true
+}

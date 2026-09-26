@@ -1,0 +1,4030 @@
+diff --git a/apps/ai-worker/app/mail/fetchers.py b/apps/ai-worker/app/mail/fetchers.py
+--- a/apps/ai-worker/app/mail/fetchers.py
++++ b/apps/ai-worker/app/mail/fetchers.py
+@@ -10,6 +10,10 @@
+ import base64
+ import email
+ import imaplib
++import ipaddress
++import re
++import socket
++import ssl
+ from typing import Any
+ 
+ import httpx
+@@ -42,11 +46,50 @@
+     credentials: dict[str, Any], sync_state: dict[str, Any]
+ ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+     headers = _bearer(credentials)
++    new_state = dict(sync_state)
++    history_id = sync_state.get("history_id")
+ 
+     async with httpx.AsyncClient(timeout=30) as client:
+-        message_ids, next_history_id = await _gmail_new_message_ids(
+-            client, headers, sync_state.get("history_id")
+-        )
++        if history_id:
++            params = {
++                "startHistoryId": history_id,
++                "historyTypes": "messageAdded",
++                "labelId": "INBOX",
++                "maxResults": INCREMENTAL_LIMIT,
++            }
++            if sync_state.get("history_page_token"):
++                params["pageToken"] = sync_state["history_page_token"]
++            response = await client.get(f"{GMAIL_BASE}/history", headers=headers, params=params)
++            if response.status_code == 401:
++                raise AuthError("Gmail authorization expired. Reconnect this mailbox.")
++            if response.status_code == 404:
++                history_id = None
++            else:
++                response.raise_for_status()
++                body = response.json()
++                ids = [
++                    added["message"]["id"]
++                    for entry in body.get("history", [])
++                    for added in entry.get("messagesAdded", [])
++                    if added.get("message", {}).get("id")
++                ]
++                message_ids = list(dict.fromkeys(ids))
++                if body.get("nextPageToken"):
++                    # Keep the starting history cursor until every page is saved.
++                    new_state["history_page_token"] = body["nextPageToken"]
++                else:
++                    new_state.pop("history_page_token", None)
++                    if body.get("historyId"):
++                        new_state["history_id"] = str(body["historyId"])
++
++        if not history_id:
++            # Snapshot the cursor BEFORE listing messages: arrivals during the
++            # initial fetch must be replayed by the next incremental request.
++            snapshot_history = await _gmail_profile_history_id(client, headers)
++            message_ids = await _gmail_recent_ids(client, headers)
++            new_state.pop("history_page_token", None)
++            if snapshot_history:
++                new_state["history_id"] = snapshot_history
+ 
+         messages = []
+         for message_id in message_ids:
+@@ -54,49 +97,7 @@
+             if message:
+                 messages.append(message)
+ 
+-        if next_history_id is None:
+-            next_history_id = await _gmail_profile_history_id(client, headers)
+-
+-    new_state = dict(sync_state)
+-    if next_history_id:
+-        new_state["history_id"] = str(next_history_id)
+     return messages, new_state
+-
+-
+-async def _gmail_new_message_ids(
+-    client: httpx.AsyncClient, headers: dict, history_id: str | None
+-) -> tuple[list[str], str | None]:
+-    if history_id:
+-        response = await client.get(
+-            f"{GMAIL_BASE}/history",
+-            headers=headers,
+-            params={
+-                "startHistoryId": history_id,
+-                "historyTypes": "messageAdded",
+-                "maxResults": INCREMENTAL_LIMIT,
+-            },
+-        )
+-        if response.status_code == 401:
+-            raise AuthError("gmail token rejected")
+-        if response.status_code == 404:
+-            # historyId too old — fall back to a recent snapshot.
+-            return await _gmail_recent_ids(client, headers), None
+-        response.raise_for_status()
+-        body = response.json()
+-
+-        ids: list[str] = []
+-        for entry in body.get("history", []):
+-            for added in entry.get("messagesAdded", []):
+-                message = added.get("message", {})
+-                labels = message.get("labelIds", [])
+-                if "DRAFT" not in labels and "SENT" not in labels and message.get("id"):
+-                    ids.append(message["id"])
+-        # Dedupe, keep order.
+-        seen: set[str] = set()
+-        unique = [i for i in ids if not (i in seen or seen.add(i))]
+-        return unique[:INCREMENTAL_LIMIT], body.get("historyId")
+-
+-    return await _gmail_recent_ids(client, headers), None
+ 
+ 
+ async def _gmail_recent_ids(client: httpx.AsyncClient, headers: dict) -> list[str]:
+@@ -113,8 +114,9 @@
+ 
+ async def _gmail_profile_history_id(client: httpx.AsyncClient, headers: dict) -> str | None:
+     response = await client.get(f"{GMAIL_BASE}/profile", headers=headers)
+-    if response.status_code != 200:
+-        return None
++    if response.status_code == 401:
++        raise AuthError("Gmail authorization expired. Reconnect this mailbox.")
++    response.raise_for_status()
+     return str(response.json().get("historyId") or "") or None
+ 
+ 
+@@ -126,9 +128,9 @@
+     )
+     if response.status_code == 401:
+         raise AuthError("gmail token rejected")
+-    if response.status_code != 200:
+-        log.warning("gmail_message_fetch_failed", id=message_id, status=response.status_code)
+-        return None
++    if response.status_code == 404:
++        return None  # Deleted between listing and fetch.
++    response.raise_for_status()  # Never advance the cursor past a transient failure.
+ 
+     body = response.json()
+     payload = body.get("payload", {})
+@@ -199,43 +201,43 @@
+     credentials: dict[str, Any], sync_state: dict[str, Any]
+ ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+     headers = {**_bearer(credentials), "Prefer": 'IdType="ImmutableId"'}
+-    delta_link = sync_state.get("delta_link")
+-    url = delta_link or (f"{GRAPH_BASE}/me/mailFolders/inbox/messages/delta?$top={INITIAL_LIMIT}")
+-
++    new_state = dict(sync_state)
++    url = sync_state.get("next_link") or sync_state.get("delta_link") or (
++        f"{GRAPH_BASE}/me/mailFolders/inbox/messages/delta?$top={INITIAL_LIMIT}"
++    )
+     messages: list[dict[str, Any]] = []
+-    new_delta_link = None
+ 
+     async with httpx.AsyncClient(timeout=30) as client:
+         for _round in range(10):
++            if not url.startswith(GRAPH_BASE + "/"):
++                raise ValueError("Invalid Microsoft sync cursor")
+             response = await client.get(url, headers=headers)
+             if response.status_code == 401:
+-                raise AuthError("graph token rejected")
++                raise AuthError("Microsoft authorization expired. Reconnect this mailbox.")
+             if response.status_code == 410:
+-                # Delta token expired — restart from scratch next sync.
+-                state = dict(sync_state)
+-                state.pop("delta_link", None)
+-                return [], state
++                new_state.pop("delta_link", None)
++                new_state.pop("next_link", None)
++                return [], new_state
+             response.raise_for_status()
+             body = response.json()
+-
++            # Finish the entire page before saving its continuation. Truncating
++            # a page would permanently skip the remaining messages.
+             for item in body.get("value", []):
+-                if item.get("@removed") or not item.get("id"):
+-                    continue
+-                messages.append(_graph_to_normalized(item))
++                if not item.get("@removed") and item.get("id"):
++                    messages.append(_graph_to_normalized(item))
++
++            if body.get("@odata.deltaLink"):
++                new_state["delta_link"] = body["@odata.deltaLink"]
++                new_state.pop("next_link", None)
++                break
++            if body.get("@odata.nextLink"):
++                url = body["@odata.nextLink"]
++                new_state["next_link"] = url
+                 if len(messages) >= INCREMENTAL_LIMIT:
+                     break
+-
+-            if body.get("@odata.deltaLink"):
+-                new_delta_link = body["@odata.deltaLink"]
+-                break
+-            if body.get("@odata.nextLink") and len(messages) < INCREMENTAL_LIMIT:
+-                url = body["@odata.nextLink"]
+             else:
+-                break
+-
+-    new_state = dict(sync_state)
+-    if new_delta_link:
+-        new_state["delta_link"] = new_delta_link
++                raise ConnectionError("Microsoft returned no continuation cursor")
++
+     return messages, new_state
+ 
+ 
+@@ -281,59 +283,131 @@
+     return await asyncio.to_thread(_fetch_imap_blocking, credentials, settings, sync_state)
+ 
+ 
++def _public_socket(host: str, port: int, timeout: float) -> socket.socket:
++    addresses = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
++    if not addresses or any(not ipaddress.ip_address(item[4][0]).is_global for item in addresses):
++        raise ConnectionError("IMAP server must have a public internet address")
++    last_error = None
++    for family, socktype, proto, _, address in addresses:
++        connection = socket.socket(family, socktype, proto)
++        connection.settimeout(timeout)
++        try:
++            connection.connect(address)
++            return connection
++        except OSError as exc:
++            connection.close()
++            last_error = exc
++    raise ConnectionError("Could not reach the IMAP server") from last_error
++
++
++class _VerifiedIMAP4(imaplib.IMAP4):
++    def _create_socket(self, timeout):
++        return _public_socket(self.host, self.port, timeout)
++
++
++class _VerifiedIMAP4SSL(imaplib.IMAP4_SSL):
++    def _create_socket(self, timeout):
++        connection = _public_socket(self.host, self.port, timeout)
++        try:
++            return self.ssl_context.wrap_socket(connection, server_hostname=self.host)
++        except Exception:
++            connection.close()
++            raise
++
++
++def _connect_imap(settings: dict[str, Any]):
++    host = settings.get("imap_host", "")
++    security = settings.get("imap_security")
++    if not security:
++        security = "starttls" if settings.get("imap_ssl") in (False, "false") else "tls"
++    port = int(settings.get("imap_port") or (143 if security == "starttls" else 993))
++    context = ssl.create_default_context()
++    context.minimum_version = ssl.TLSVersion.TLSv1_2
++    if security == "tls":
++        return _VerifiedIMAP4SSL(host, port, ssl_context=context, timeout=30)
++    if security != "starttls":
++        raise ValueError("IMAP requires TLS or STARTTLS")
++    connection = _VerifiedIMAP4(host, port, timeout=30)
++    try:
++        connection.starttls(ssl_context=context)
++    except Exception:
++        connection.shutdown()
++        raise
++    return connection
++
++
+ def _fetch_imap_blocking(
+     credentials: dict[str, Any],
+     settings: dict[str, Any],
+     sync_state: dict[str, Any],
+ ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+-    host = settings.get("imap_host", "")
+-    port = int(settings.get("imap_port") or 993)
+-    username = credentials.get("username", "")
+-    password = credentials.get("password", "")
+-
+     try:
+-        connection = imaplib.IMAP4_SSL(host, port, timeout=30)
++        connection = _connect_imap(settings)
++    except ssl.SSLCertVerificationError as exc:
++        raise ConnectionError("The IMAP server certificate could not be verified") from exc
+     except Exception as exc:
+-        raise ConnectionError(f"imap connect failed: {exc}") from exc
++        raise ConnectionError("Could not establish a secure IMAP connection. Check host, port and TLS settings.") from exc
+ 
+     try:
+         try:
+-            connection.login(username, password)
++            connection.login(credentials.get("username", ""), credentials.get("password", ""))
+         except imaplib.IMAP4.error as exc:
+-            raise AuthError(f"imap login failed: {exc}") from exc
+-
+-        status, data = connection.select("INBOX", readonly=True)
++            # Server responses can echo login input: never persist them in UI/logs.
++            raise AuthError("IMAP login rejected. Reconnect using the correct username and app password.") from exc
++
++        status, _ = connection.select("INBOX", readonly=True)
+         if status != "OK":
+-            raise ConnectionError("imap select INBOX failed")
+-
+-        uid_next = _imap_uidnext(connection)
++            raise ConnectionError("IMAP server did not allow read access to INBOX")
++
++        uid_next, uid_validity = _imap_status(connection)
+         last_uid = int(sync_state.get("uid_next") or 0)
++        previous_validity = sync_state.get("uid_validity")
++        if previous_validity and str(previous_validity) != str(uid_validity):
++            last_uid = 0
+ 
+         if last_uid <= 0:
+-            # First sync: take the most recent messages only.
+             uids = _imap_recent_uids(connection, INITIAL_LIMIT)
+         else:
+             status, search_data = connection.uid("SEARCH", None, f"UID {last_uid}:*")
+-            uids = (search_data[0] or b"").split() if status == "OK" else []
+-            # UID n:* always matches at least the last message — filter it.
+-            uids = [u for u in uids if int(u) >= last_uid][:INCREMENTAL_LIMIT]
++            if status != "OK":
++                raise ConnectionError("IMAP message search failed")
++            uids = (search_data[0] or b"").split()
++            uids = sorted((u for u in uids if int(u) >= last_uid), key=int)[:INCREMENTAL_LIMIT]
+ 
+         messages = []
++        next_cursor = last_uid
+         for uid in uids:
+-            status, fetch_data = connection.uid("FETCH", uid, "(RFC822)")
+-            if status != "OK" or not fetch_data or fetch_data[0] is None:
+-                continue
+-            raw = fetch_data[0][1] if isinstance(fetch_data[0], tuple) else None
++            status, fetch_data = connection.uid("FETCH", uid, "(BODY.PEEK[])")
++            if status != "OK":
++                raise ConnectionError("IMAP message download failed")
++            raw = next((part[1] for part in fetch_data or [] if isinstance(part, tuple)), None)
++            next_cursor = int(uid) + 1
+             if not raw:
+-                continue
++                continue  # Message deleted since SEARCH; safely move past its UID.
+             parsed = email.message_from_bytes(raw)
+             uid_str = uid.decode() if isinstance(uid, bytes) else str(uid)
+-            messages.append(normalize.mime_to_normalized(parsed, uid_str))
++            # UIDs are unique only within a UIDVALIDITY epoch. Preserve legacy
++            # IDs until a reset so existing accounts do not duplicate all mail.
++            epoch_ids = sync_state.get("uid_epoch_ids", not bool(sync_state.get("uid_next")))
++            if previous_validity and str(previous_validity) != str(uid_validity):
++                epoch_ids = True
++            provider_id = f"{uid_validity}:{uid_str}" if epoch_ids else uid_str
++            messages.append(normalize.mime_to_normalized(parsed, provider_id))
+ 
+         new_state = dict(sync_state)
+-        if uid_next:
+-            new_state["uid_next"] = uid_next
++        # Advance only past the last fetched UID, never the server's UIDNEXT
++        # when a bounded batch has left newer messages waiting.
++        new_state["uid_next"] = next_cursor if uids else (uid_next or last_uid)
++        new_state["uid_validity"] = uid_validity
++        new_state["uid_epoch_ids"] = (
++            sync_state.get("uid_epoch_ids", not bool(sync_state.get("uid_next")))
++            or bool(previous_validity and str(previous_validity) != str(uid_validity))
++        )
+         return messages, new_state
++    except imaplib.IMAP4.error as exc:
++        # Any server response may echo submitted credentials, even after login.
++        # Keep protocol details out of the persisted account error and logs.
++        raise ConnectionError("The IMAP server interrupted synchronization. Try again.") from exc
+     finally:
+         try:
+             connection.logout()
+@@ -341,22 +415,21 @@
+             pass
+ 
+ 
+-def _imap_uidnext(connection: imaplib.IMAP4_SSL) -> int | None:
+-    status, data = connection.status("INBOX", "(UIDNEXT)")
+-    if status != "OK" or not data:
+-        return None
++def _imap_status(connection) -> tuple[int, int]:
++    status, data = connection.status("INBOX", "(UIDNEXT UIDVALIDITY)")
++    if status != "OK" or not data or not data[0]:
++        raise ConnectionError("IMAP mailbox status unavailable")
+     text = data[0].decode() if isinstance(data[0], bytes) else str(data[0])
+-    if "UIDNEXT" in text:
+-        try:
+-            return int(text.split("UIDNEXT")[1].strip(" ()").split()[0])
+-        except (ValueError, IndexError):
+-            return None
+-    return None
+-
+-
+-def _imap_recent_uids(connection: imaplib.IMAP4_SSL, limit: int) -> list[bytes]:
++    uidnext = re.search(r"\bUIDNEXT\s+(\d+)", text, re.IGNORECASE)
++    validity = re.search(r"\bUIDVALIDITY\s+(\d+)", text, re.IGNORECASE)
++    if not uidnext or not validity:
++        raise ConnectionError("IMAP server did not provide stable message identifiers")
++    return int(uidnext[1]), int(validity[1])
++
++
++def _imap_recent_uids(connection, limit: int) -> list[bytes]:
+     status, data = connection.uid("SEARCH", None, "ALL")
+     if status != "OK":
+-        return []
++        raise ConnectionError("IMAP message search failed")
+     uids = (data[0] or b"").split()
+-    return uids[-limit:]
++    return sorted(uids, key=int)[-limit:]
+diff --git a/apps/ai-worker/app/mail/sync.py b/apps/ai-worker/app/mail/sync.py
+--- a/apps/ai-worker/app/mail/sync.py
++++ b/apps/ai-worker/app/mail/sync.py
+@@ -52,9 +52,11 @@
+     usage = UsageTracker()
+     if messages:
+         await analyze.analyze_messages(messages, rules, usage)
+-        await phoenix.ingest_mail_messages(account_id, messages)
++        if not await phoenix.ingest_mail_messages(account_id, messages):
++            log.warning("mail_ingestion_failed", account_id=account_id)
++            return {"error": "ingestion_failed"}
+ 
+-    await phoenix.update_mail_sync_state(
++    saved = await phoenix.update_mail_sync_state(
+         account_id,
+         {
+             "sync_state": new_state,
+@@ -63,6 +65,9 @@
+             "last_sync_at": datetime.now(UTC).isoformat(),
+         },
+     )
++
++    if not saved:
++        return {"error": "sync_state_failed"}
+ 
+     if usage.cost_cents > 0:
+         await phoenix.report_usage(
+diff --git a/apps/ai-worker/tests/test_mail_sync.py b/apps/ai-worker/tests/test_mail_sync.py
+new file mode 100644
+--- /dev/null
++++ b/apps/ai-worker/tests/test_mail_sync.py
+@@ -0,0 +1,195 @@
++"""Mail transport and cursor regressions: no dropped mail or unverified TLS."""
++
++import imaplib
++import ssl
++from unittest.mock import AsyncMock, Mock
++
++import httpx
++import pytest
++import respx
++
++from app.mail import fetchers, sync
++
++
++class FakeImap:
++    def __init__(self, uids, *, validity=7, uidnext=None, fail_fetch=None):
++        self.uids = uids
++        self.validity = validity
++        self.uidnext = uidnext or (max(uids, default=0) + 1)
++        self.fail_fetch = fail_fetch
++        self.calls = []
++
++    def login(self, user, password):
++        self.calls.append(("login", user))
++        return "OK", []
++
++    def select(self, mailbox, readonly):
++        assert readonly is True
++        return "OK", [b"1"]
++
++    def status(self, mailbox, fields):
++        return "OK", [f'"INBOX" (UIDNEXT {self.uidnext} UIDVALIDITY {self.validity})'.encode()]
++
++    def uid(self, command, *args):
++        self.calls.append((command, *args))
++        if command == "SEARCH":
++            return "OK", [b" ".join(str(uid).encode() for uid in self.uids)]
++        if int(args[0]) == self.fail_fetch:
++            return "NO", []
++        return "OK", [(b"FETCH", b"Subject: Hello\r\nFrom: a@example.com\r\n\r\nbody")]
++
++    def logout(self):
++        self.calls.append(("logout",))
++
++
++def test_imap_batch_cursor_does_not_skip_remaining_messages(monkeypatch):
++    connection = FakeImap(list(range(1, 151)))
++    monkeypatch.setattr(fetchers, "_connect_imap", lambda _: connection)
++    messages, state = fetchers._fetch_imap_blocking({}, {}, {"uid_next": 1, "uid_validity": 7})
++    assert len(messages) == 100
++    assert state["uid_next"] == 101
++    messages, state = fetchers._fetch_imap_blocking({}, {}, state)
++    assert len(messages) == 50
++    assert state["uid_next"] == 151
++    assert all(call[2] == "(BODY.PEEK[])" for call in connection.calls if call[0] == "FETCH")
++
++
++def test_uidvalidity_reset_restarts_and_disambiguates_ids(monkeypatch):
++    connection = FakeImap([1, 2, 3], validity=8)
++    monkeypatch.setattr(fetchers, "_connect_imap", lambda _: connection)
++    messages, state = fetchers._fetch_imap_blocking({}, {}, {"uid_next": 999, "uid_validity": 7})
++    assert state["uid_next"] == 4
++    assert state["uid_validity"] == 8
++    assert messages[0]["provider_message_id"] == "8:1"
++
++
++def test_failed_imap_fetch_does_not_return_a_new_cursor(monkeypatch):
++    connection = FakeImap([1, 2], fail_fetch=2)
++    monkeypatch.setattr(fetchers, "_connect_imap", lambda _: connection)
++    with pytest.raises(ConnectionError, match="download failed"):
++        fetchers._fetch_imap_blocking({}, {}, {"uid_next": 1, "uid_validity": 7})
++    assert connection.calls[-1] == ("logout",)
++
++
++@pytest.mark.parametrize("operation", ["select", "status", "uid"])
++def test_post_login_protocol_errors_do_not_expose_credentials(monkeypatch, operation):
++    connection = FakeImap([1])
++    secret = "private-app-password"
++    setattr(connection, operation, Mock(side_effect=imaplib.IMAP4.error(f"server echoed {secret}")))
++    monkeypatch.setattr(fetchers, "_connect_imap", lambda _: connection)
++    with pytest.raises(ConnectionError) as error:
++        fetchers._fetch_imap_blocking({"username": "me", "password": secret}, {}, {})
++    assert secret not in str(error.value)
++    assert "interrupted synchronization" in str(error.value)
++
++
++@pytest.mark.parametrize("security", ["tls", "starttls"])
++def test_imap_verifies_certificate_and_hostname(monkeypatch, security):
++    implicit = Mock()
++    explicit = Mock()
++    monkeypatch.setattr(fetchers, "_VerifiedIMAP4SSL", implicit)
++    monkeypatch.setattr(fetchers, "_VerifiedIMAP4", explicit)
++    fetchers._connect_imap({"imap_host": "imap.example.com", "imap_security": security})
++    if security == "tls":
++        context = implicit.call_args.kwargs["ssl_context"]
++        assert implicit.call_args.args == ("imap.example.com", 993)
++    else:
++        context = explicit.return_value.starttls.call_args.kwargs["ssl_context"]
++        assert explicit.call_args.args == ("imap.example.com", 143)
++    assert context.check_hostname is True
++    assert context.verify_mode == ssl.CERT_REQUIRED
++    assert context.minimum_version >= ssl.TLSVersion.TLSv1_2
++
++
++def test_starttls_failure_closes_connection_without_login(monkeypatch):
++    explicit = Mock()
++    explicit.return_value.starttls.side_effect = ssl.SSLError("certificate rejected")
++    monkeypatch.setattr(fetchers, "_VerifiedIMAP4", explicit)
++    with pytest.raises(ConnectionError):
++        fetchers._fetch_imap_blocking(
++            {"username": "me", "password": "secret"}, {"imap_security": "starttls"}, {}
++        )
++    explicit.return_value.login.assert_not_called()
++    explicit.return_value.shutdown.assert_called_once()
++
++
++def test_private_dns_destinations_are_blocked_before_socket_connect(monkeypatch):
++    monkeypatch.setattr(fetchers.socket, "getaddrinfo", lambda *a, **kw: [(2, 1, 6, "", ("169.254.169.254", 993))])
++    with pytest.raises(ConnectionError, match="public internet address"):
++        fetchers._public_socket("mail.attacker.example", 993, 30)
++
++
++@pytest.mark.asyncio
++@respx.mock
++async def test_gmail_history_continues_pages_without_advancing_final_cursor():
++    history = respx.get(f"{fetchers.GMAIL_BASE}/history").mock(return_value=httpx.Response(200, json={
++        "historyId": "900", "nextPageToken": "next-page", "history": [{"messagesAdded": [
++            {"message": {"id": "m1", "threadId": "thread"}}
++        ]}]
++    }))
++    respx.get(f"{fetchers.GMAIL_BASE}/messages/m1").respond(200, json={"id": "m1"})
++    messages, state = await fetchers.fetch_gmail({}, {"history_id": "100"})
++    assert len(messages) == 1
++    assert history.calls[0].request.url.params["labelId"] == "INBOX"
++    assert state == {"history_id": "100", "history_page_token": "next-page"}
++    history.respond(200, json={"historyId": "900", "history": []})
++    _, state = await fetchers.fetch_gmail({}, state)
++    assert state == {"history_id": "900"}
++    assert history.calls[-1].request.url.params["pageToken"] == "next-page"
++
++
++@pytest.mark.asyncio
++@respx.mock
++async def test_gmail_initial_cursor_is_captured_before_message_listing():
++    profile = respx.get(f"{fetchers.GMAIL_BASE}/profile").respond(200, json={"historyId": "100"})
++    listing = respx.get(f"{fetchers.GMAIL_BASE}/messages").respond(200, json={"messages": []})
++    _, state = await fetchers.fetch_gmail({}, {})
++    assert respx.calls[0].request.url == profile.calls[0].request.url
++    assert listing.called
++    assert state["history_id"] == "100"
++
++
++@pytest.mark.asyncio
++@respx.mock
++async def test_gmail_message_failure_does_not_drop_the_message():
++    respx.get(f"{fetchers.GMAIL_BASE}/history").respond(200, json={"historyId": "900", "history": [
++        {"messagesAdded": [{"message": {"id": "m1", "threadId": "thread"}}]}
++    ]})
++    respx.get(f"{fetchers.GMAIL_BASE}/messages/m1").respond(503)
++    with pytest.raises(httpx.HTTPStatusError):
++        await fetchers.fetch_gmail({}, {"history_id": "100"})
++
++
++@pytest.mark.asyncio
++@respx.mock
++async def test_graph_saves_next_link_at_batch_boundary():
++    next_url = f"{fetchers.GRAPH_BASE}/me/mailFolders/inbox/messages/delta?skip=next"
++    respx.get(f"{fetchers.GRAPH_BASE}/me/mailFolders/inbox/messages/delta").respond(200, json={
++        "value": [{"id": str(i)} for i in range(101)], "@odata.nextLink": next_url
++    })
++    messages, state = await fetchers.fetch_graph({}, {})
++    assert len(messages) == 101
++    assert state["next_link"] == next_url
++
++
++@pytest.mark.asyncio
++async def test_failed_ingestion_never_advances_cursor(monkeypatch):
++    phoenix = Mock()
++    phoenix.ingest_mail_messages = AsyncMock(return_value=False)
++    phoenix.update_mail_sync_state = AsyncMock(return_value=True)
++    monkeypatch.setattr(sync, "PhoenixClient", lambda: phoenix)
++    monkeypatch.setattr(sync, "_fetch", AsyncMock(return_value=([{"subject": "Hello"}], {"uid_next": 42})))
++    monkeypatch.setattr(sync.analyze, "analyze_messages", AsyncMock())
++    result = await sync.sync_account({"account": {"id": "account-id"}})
++    assert result == {"error": "ingestion_failed"}
++    phoenix.update_mail_sync_state.assert_not_called()
++
++
++@pytest.mark.asyncio
++async def test_failed_cursor_persistence_is_not_reported_as_success(monkeypatch):
++    phoenix = Mock()
++    phoenix.update_mail_sync_state = AsyncMock(return_value=False)
++    monkeypatch.setattr(sync, "PhoenixClient", lambda: phoenix)
++    monkeypatch.setattr(sync, "_fetch", AsyncMock(return_value=([], {"uid_next": 42})))
++    result = await sync.sync_account({"account": {"id": "account-id"}})
++    assert result == {"error": "sync_state_failed"}
+diff --git a/apps/api/config/runtime.exs b/apps/api/config/runtime.exs
+--- a/apps/api/config/runtime.exs
++++ b/apps/api/config/runtime.exs
+@@ -39,6 +39,9 @@
+ config :mokaid, :google_oauth,
+   client_id: System.get_env("GOOGLE_CLIENT_ID"),
+   client_secret: System.get_env("GOOGLE_CLIENT_SECRET"),
++  desktop_redirect_uri:
++    System.get_env("GOOGLE_DESKTOP_REDIRECT_URI") ||
++      "https://mokaid.com/api/mail/oauth/google/callback",
+   redirect_uris:
+     Enum.uniq([
+       System.get_env("GOOGLE_REDIRECT_URI") || "https://mokaid.com/oauth/google/callback",
+@@ -107,7 +110,8 @@
+ # GCP Pub/Sub topic used by Gmail users.watch push notifications.
+ config :mokaid, :gmail_pubsub,
+   topic: System.get_env("GMAIL_PUBSUB_TOPIC"),
+-  audience: System.get_env("GMAIL_PUBSUB_AUDIENCE")
++  audience: System.get_env("GMAIL_PUBSUB_AUDIENCE"),
++  service_account: System.get_env("GMAIL_PUBSUB_SERVICE_ACCOUNT")
+ 
+ config :mokaid, :notion_oauth,
+   client_id: System.get_env("NOTION_CLIENT_ID"),
+diff --git a/apps/api/lib/mokaid/integrations.ex b/apps/api/lib/mokaid/integrations.ex
+--- a/apps/api/lib/mokaid/integrations.ex
++++ b/apps/api/lib/mokaid/integrations.ex
+@@ -244,37 +244,77 @@
+     end
+   end
+ 
+-  @doc "Stores Google OAuth credentials on every Google integration provider for the workspace."
+-  def connect_google_providers(workspace_id, member, credentials, account) do
+-    member = Repo.preload(member, :user)
+-
+-    connections =
+-      GoogleOAuth.google_provider_keys()
+-      |> Enum.filter(&(get_provider_by_key(&1) != nil))
+-      |> Enum.map(fn key ->
+-        connect_with_credentials(workspace_id, key, member, credentials, account)
+-      end)
+-      |> Enum.reduce([], fn
+-        {:ok, conn}, acc -> [conn | acc]
+-        _, acc -> acc
+-      end)
+-
+-    if connections == [] do
+-      {:error, :provider_not_found}
+-    else
+-      {:ok, Enum.reverse(connections)}
+-    end
+-  end
+-
+-  @doc "Mirrors Google OAuth credentials into MCP Hub installations for Google servers."
+-  def sync_google_mcp_installations(workspace_id, member, credentials, account) do
+-    for key <- GoogleOAuth.google_provider_keys() do
+-      with {:ok, installation} <- MCP.install(workspace_id, key, member, %{}),
+-           {:ok, _} <- MCP.store_credentials(installation, credentials, account) do
+-        :ok
++  @doc "Stores credentials only for the Google provider the member explicitly connected."
++  def connect_google_providers(
++        workspace_id,
++        member,
++        credentials,
++        account,
++        provider_key \\ "gmail"
++      ) do
++    member = Repo.preload(member, :user)
++
++    with true <- GoogleOAuth.google_provider?(provider_key),
++         {:ok, connection} <-
++           connect_with_credentials(workspace_id, provider_key, member, credentials, account) do
++      {:ok, [connection]}
++    else
++      false -> {:error, :invalid_provider}
++      other -> other
++    end
++  end
++
++  @doc "Atomically persists an OAuth connection, its mailbox, and the first sync job."
++  def complete_google_connection(result, member) do
++    Repo.transaction(fn ->
++      with {:ok, connections} <-
++             connect_google_providers(
++               result.workspace_id,
++               member,
++               result.credentials,
++               result.account,
++               result.provider_key
++             ),
++           {:ok, account} <- register_google_mailbox(result, member, connections) do
++        %{connections: connections, mail_account: account}
+       else
+-        {:error, :server_not_found} -> :ok
+-        _ -> :ok
++        {:error, reason} -> Repo.rollback(reason)
++      end
++    end)
++  end
++
++  defp register_google_mailbox(%{provider_key: "gmail"} = result, member, [connection]) do
++    with {:ok, account} <-
++           Mokaid.Mail.ensure_oauth_account(
++             result.workspace_id,
++             member,
++             "gmail",
++             result.account,
++             connection.id
++           ),
++         {:ok, _job} <-
++           %{"mail_account_id" => account.id}
++           |> Mokaid.Mail.Workers.SyncWorker.new()
++           |> Oban.insert() do
++      {:ok, account}
++    end
++  end
++
++  defp register_google_mailbox(_, _, _), do: {:ok, nil}
++
++  @doc "Mirrors only the requested Google integration into the MCP Hub."
++  def sync_google_mcp_installations(
++        workspace_id,
++        member,
++        credentials,
++        account,
++        provider_key \\ "gmail"
++      ) do
++    with {:ok, installation} <- MCP.install(workspace_id, provider_key, member, %{}) do
++      # The MCP catalog currently has one installation per provider. A second
++      # mailbox must never silently change the identity used by an existing one.
++      if installation.connected_account in [nil, account] do
++        MCP.store_credentials(installation, credentials, account)
+       end
+     end
+ 
+@@ -304,10 +344,12 @@
+         |> Repo.insert(
+           on_conflict:
+             {:replace, [:status, :connected_account, :connected_by_member_id, :updated_at]},
+-          conflict_target: [:workspace_id, :provider_id]
++          conflict_target: [:workspace_id, :provider_id, :connected_account],
++          returning: true
+         )
+ 
+       with {:ok, connection} <- result,
++           :ok <- require_refresh_token(provider_key, connection, credentials),
+            {:ok, updated} <- store_credentials(connection, credentials, account) do
+         Audit.log(workspace_id, member, "integration.connect", "integration", updated.id, %{
+           provider: provider_key,
+@@ -320,6 +362,16 @@
+       nil -> {:error, :provider_not_found}
+     end
+   end
++
++  defp require_refresh_token("gmail", connection, credentials) do
++    merged = merge_credentials(connection, credentials)
++
++    if is_binary(merged["refresh_token"]) and merged["refresh_token"] != "",
++      do: :ok,
++      else: {:error, :missing_refresh_token}
++  end
++
++  defp require_refresh_token(_, _, _), do: :ok
+ 
+   defp connect_mock(workspace_id, provider_key, member) do
+     with %IntegrationProvider{} = provider <- get_provider_by_key(provider_key) do
+@@ -335,7 +387,8 @@
+         |> Repo.insert(
+           on_conflict:
+             {:replace, [:status, :connected_account, :connected_by_member_id, :updated_at]},
+-          conflict_target: [:workspace_id, :provider_id]
++          conflict_target: [:workspace_id, :provider_id, :connected_account],
++          returning: true
+         )
+ 
+       with {:ok, connection} <- result do
+@@ -357,11 +410,18 @@
+       ) do
+     connection
+     |> Ecto.Changeset.change(
+-      encrypted_credentials: Vault.encrypt(credentials),
++      encrypted_credentials: Vault.encrypt(merge_credentials(connection, credentials)),
+       status: "connected",
+       connected_account: connected_account || connection.connected_account
+     )
+     |> Repo.update()
++  end
++
++  defp merge_credentials(connection, credentials) do
++    Map.merge(
++      decrypted_credentials(connection) || %{},
++      Map.reject(credentials, fn {_key, value} -> is_nil(value) or value == "" end)
++    )
+   end
+ 
+   def decrypted_credentials(%IntegrationConnection{encrypted_credentials: payload}) do
+diff --git a/apps/api/lib/mokaid/integrations/google_oauth.ex b/apps/api/lib/mokaid/integrations/google_oauth.ex
+--- a/apps/api/lib/mokaid/integrations/google_oauth.ex
++++ b/apps/api/lib/mokaid/integrations/google_oauth.ex
+@@ -1,60 +1,52 @@
+ defmodule Mokaid.Integrations.GoogleOAuth do
+-  @moduledoc """
+-  Google OAuth2 for workspace integrations (Drive, Gmail, Calendar, Docs, Sheets…).
+-
+-  One consent flow stores shared credentials on every Google integration provider
+-  for the workspace. Credentials come from `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
+-  (AWS Secrets Manager in deployed environments).
+-  """
++  @moduledoc "Google consent scoped to the requested integration, with encrypted PKCE state."
+ 
+   @authorize_endpoint "https://accounts.google.com/o/oauth2/v2/auth"
+   @token_endpoint "https://oauth2.googleapis.com/token"
+   @userinfo_endpoint "https://www.googleapis.com/oauth2/v2/userinfo"
+-  @state_salt "integrations_google_oauth"
++  @state_salt "integrations_google_oauth_v2"
+   @state_max_age 600
+-
+-  @scopes [
+-    "openid",
+-    "email",
+-    "profile",
+-    "https://www.googleapis.com/auth/drive",
+-    "https://www.googleapis.com/auth/gmail.modify",
+-    "https://www.googleapis.com/auth/calendar",
+-    "https://www.googleapis.com/auth/spreadsheets",
+-    "https://www.googleapis.com/auth/documents",
+-    "https://www.googleapis.com/auth/meetings.space.created"
+-  ]
+-
+-  @google_provider_keys ~w(
+-    google_drive
+-    gmail
+-    google_calendar
+-    google_docs
+-    google_sheets
+-    google_meet
+-  )
+-
+-  def google_provider_keys, do: @google_provider_keys
+-
+-  def google_provider?(key) when is_binary(key), do: key in @google_provider_keys
+-  def google_provider?(_), do: false
++  @provider_scopes %{
++    "gmail" => ["https://www.googleapis.com/auth/gmail.modify"],
++    "google_drive" => ["https://www.googleapis.com/auth/drive"],
++    "google_calendar" => ["https://www.googleapis.com/auth/calendar"],
++    "google_docs" => ["https://www.googleapis.com/auth/documents"],
++    "google_sheets" => ["https://www.googleapis.com/auth/spreadsheets"],
++    "google_meet" => ["https://www.googleapis.com/auth/meetings.space.created"]
++  }
++
++  def google_provider_keys, do: Map.keys(@provider_scopes)
++  def google_provider?(key), do: Map.has_key?(@provider_scopes, key)
++  def scopes(key), do: ["openid", "email"] ++ Map.get(@provider_scopes, key, [])
+ 
+   def configured? do
+-    config = config()
+-
+-    is_binary(config[:client_id]) and config[:client_id] != "" and
+-      is_binary(config[:client_secret]) and config[:client_secret] != ""
+-  end
+-
+-  def authorize_url(workspace_id, member_id, redirect_uri, provider_key \\ "google_drive") do
++    Enum.all?([:client_id, :client_secret], fn key ->
++      is_binary(config()[key]) and String.trim(config()[key]) != ""
++    end)
++  end
++
++  def authorize_url(
++        workspace_id,
++        member_id,
++        redirect_uri,
++        provider_key \\ "google_drive",
++        opts \\ []
++      ) do
+     with :ok <- ensure_configured(),
+          :ok <- validate_redirect_uri(redirect_uri),
+-         :ok <- validate_provider_key(provider_key) do
++         true <- google_provider?(provider_key) do
++      verifier = Base.url_encode64(:crypto.strong_rand_bytes(48), padding: false)
++      challenge = Base.url_encode64(:crypto.hash(:sha256, verifier), padding: false)
++
++      # Encryption keeps the verifier secret even though state travels through the browser.
+       state =
+-        Phoenix.Token.sign(MokaidWeb.Endpoint, @state_salt, %{
++        Phoenix.Token.encrypt(MokaidWeb.Endpoint, @state_salt, %{
+           workspace_id: workspace_id,
+           member_id: member_id,
+-          provider_key: provider_key
++          provider_key: provider_key,
++          redirect_uri: redirect_uri,
++          code_verifier: verifier,
++          flow_id: Keyword.get(opts, :flow_id)
+         })
+ 
+       query =
+@@ -62,137 +54,165 @@
+           "client_id" => config()[:client_id],
+           "redirect_uri" => redirect_uri,
+           "response_type" => "code",
+-          "scope" => Enum.join(@scopes, " "),
++          "scope" => Enum.join(scopes(provider_key), " "),
+           "state" => state,
++          "code_challenge" => challenge,
++          "code_challenge_method" => "S256",
+           "access_type" => "offline",
+-          "prompt" => "consent",
+-          "include_granted_scopes" => "true"
++          "prompt" => "consent select_account",
++          "include_granted_scopes" => "false"
+         })
+ 
+       {:ok, "#{@authorize_endpoint}?#{query}"}
+-    end
+-  end
+-
+-  def exchange_code(code, state, redirect_uri) do
++    else
++      false -> {:error, :invalid_provider}
++      other -> other
++    end
++  end
++
++  def verify_state(state, redirect_uri) when is_binary(state) and byte_size(state) <= 8192 do
++    with :ok <- validate_redirect_uri(redirect_uri),
++         {:ok, %{redirect_uri: ^redirect_uri, provider_key: provider} = result} <-
++           Phoenix.Token.decrypt(MokaidWeb.Endpoint, @state_salt, state, max_age: @state_max_age),
++         true <- google_provider?(provider) do
++      {:ok, result}
++    else
++      _ -> {:error, :invalid_state}
++    end
++  end
++
++  def verify_state(_, _), do: {:error, :invalid_state}
++
++  # Browser completion must match the initiating member. Desktop completion is
++  # authorized by the persisted flow and is performed only by its public callback.
++  def exchange_code(code, state, redirect_uri, expected_identity \\ nil)
++
++  def exchange_code(code, state, redirect_uri, expected_identity)
++      when is_binary(code) and byte_size(code) in 1..4096 do
+     with :ok <- ensure_configured(),
+-         :ok <- validate_redirect_uri(redirect_uri),
+-         {:ok, %{workspace_id: workspace_id, member_id: member_id, provider_key: provider_key}} <-
+-           Phoenix.Token.verify(MokaidWeb.Endpoint, @state_salt, state, max_age: @state_max_age),
+-         {:ok, tokens} <- request_tokens(code, redirect_uri) do
+-      account = fetch_account_email(tokens["access_token"])
+-
+-      credentials = %{
+-        "access_token" => tokens["access_token"],
+-        "refresh_token" => tokens["refresh_token"],
+-        "token_type" => tokens["token_type"] || "Bearer",
+-        "scope" => tokens["scope"],
+-        "expires_at" =>
+-          DateTime.utc_now()
+-          |> DateTime.add(tokens["expires_in"] || 3600, :second)
+-          |> DateTime.to_iso8601()
+-      }
+-
+-      {:ok,
+-       %{
+-         workspace_id: workspace_id,
+-         member_id: member_id,
+-         provider_key: provider_key,
+-         credentials: credentials,
+-         account: account
+-       }}
+-    else
+-      {:error, :invalid} -> {:error, :invalid_state}
+-      {:error, :expired} -> {:error, :invalid_state}
+-      other -> other
+-    end
+-  end
+-
+-  @doc "Exchanges a refresh token for fresh credentials."
+-  def refresh_tokens(refresh_token) do
+-    with :ok <- ensure_configured() do
+-      config = config()
+-
+-      response =
+-        Req.post(@token_endpoint,
+-          form: [
+-            client_id: config[:client_id],
+-            client_secret: config[:client_secret],
+-            refresh_token: refresh_token,
+-            grant_type: "refresh_token"
+-          ]
+-        )
+-
+-      case response do
+-        {:ok, %Req.Response{status: 200, body: %{"access_token" => _} = body}} ->
+-          {:ok,
+-           %{
+-             "access_token" => body["access_token"],
+-             "refresh_token" => body["refresh_token"] || refresh_token,
+-             "token_type" => body["token_type"] || "Bearer",
+-             "scope" => body["scope"],
+-             "expires_at" =>
+-               DateTime.utc_now()
+-               |> DateTime.add(body["expires_in"] || 3600, :second)
+-               |> DateTime.to_iso8601()
+-           }}
+-
+-        {:ok, %Req.Response{status: status, body: body}} ->
+-          {:error, {:token_refresh_failed, status, inspect(body)}}
+-
+-        {:error, exception} ->
+-          {:error, {:token_refresh_failed, :network, Exception.message(exception)}}
+-      end
+-    end
+-  end
+-
+-  defp request_tokens(code, redirect_uri) do
+-    config = config()
+-
+-    response =
+-      Req.post(@token_endpoint,
+-        form: [
+-          code: code,
+-          client_id: config[:client_id],
+-          client_secret: config[:client_secret],
+-          redirect_uri: redirect_uri,
+-          grant_type: "authorization_code"
+-        ]
+-      )
+-
+-    case response do
+-      {:ok, %Req.Response{status: 200, body: %{"access_token" => _} = body}} ->
++         {:ok, data} <- verify_state(state, redirect_uri),
++         :ok <- validate_identity(data, expected_identity),
++         {:ok, tokens} <- request_tokens(code, redirect_uri, data.code_verifier),
++         :ok <- validate_granted_scopes(tokens, data.provider_key),
++         {:ok, account} <- fetch_account_email(tokens["access_token"]) do
++      {:ok, Map.merge(data, %{credentials: credentials(tokens), account: account})}
++    end
++  end
++
++  def exchange_code(_, _, _, _), do: {:error, :invalid_state}
++
++  def refresh_tokens(refresh_token) when is_binary(refresh_token) and refresh_token != "" do
++    with :ok <- ensure_configured(),
++         {:ok, body} <-
++           token_request(
++             [
++               client_id: config()[:client_id],
++               client_secret: config()[:client_secret],
++               refresh_token: refresh_token,
++               grant_type: "refresh_token"
++             ],
++             :token_refresh_failed
++           ) do
++      {:ok, Map.put(credentials(body), "refresh_token", body["refresh_token"] || refresh_token)}
++    end
++  end
++
++  def refresh_tokens(_), do: {:error, :missing_refresh_token}
++
++  defp credentials(tokens) do
++    %{
++      "access_token" => tokens["access_token"],
++      "refresh_token" => tokens["refresh_token"],
++      "token_type" => tokens["token_type"] || "Bearer",
++      "scope" => tokens["scope"],
++      "expires_at" =>
++        DateTime.utc_now()
++        |> DateTime.add(tokens["expires_in"] || 3600, :second)
++        |> DateTime.to_iso8601()
++    }
++    |> Map.reject(fn {_key, value} -> is_nil(value) end)
++  end
++
++  defp request_tokens(code, redirect_uri, verifier) do
++    token_request(
++      [
++        code: code,
++        code_verifier: verifier,
++        client_id: config()[:client_id],
++        client_secret: config()[:client_secret],
++        redirect_uri: redirect_uri,
++        grant_type: "authorization_code"
++      ],
++      :token_exchange_failed
++    )
++  end
++
++  defp token_request(form, error) do
++    case Req.post(http_client(),
++           url: @token_endpoint,
++           form: form,
++           retry: false,
++           receive_timeout: 15_000
++         ) do
++      {:ok, %Req.Response{status: 200, body: %{"access_token" => token} = body}}
++      when is_binary(token) and token != "" ->
+         {:ok, body}
+ 
+-      {:ok, %Req.Response{status: status, body: body}} ->
+-        {:error, {:token_exchange_failed, status, inspect(body)}}
+-
+-      {:error, exception} ->
+-        {:error, {:token_exchange_failed, :network, Exception.message(exception)}}
++      {:ok, %Req.Response{status: status}} ->
++        {:error, {error, status, :provider_error}}
++
++      {:error, _} ->
++        {:error, {error, :network, :unavailable}}
+     end
+   end
+ 
+   defp fetch_account_email(access_token) do
+-    case Req.get(@userinfo_endpoint, headers: [{"authorization", "Bearer #{access_token}"}]) do
+-      {:ok, %Req.Response{status: 200, body: %{"email" => email}}} -> email
+-      _ -> nil
+-    end
+-  end
++    case Req.get(http_client(),
++           url: @userinfo_endpoint,
++           headers: [{"authorization", "Bearer #{access_token}"}],
++           retry: false,
++           receive_timeout: 15_000
++         ) do
++      {:ok, %Req.Response{status: 200, body: %{"email" => email} = body}}
++      when is_binary(email) and email != "" ->
++        if body["verified_email"] == true or body["email_verified"] == true,
++          do: {:ok, email |> String.trim() |> String.downcase()},
++          else: {:error, :unverified_account}
++
++      _ ->
++        {:error, :account_fetch_failed}
++    end
++  end
++
++  defp validate_granted_scopes(%{"scope" => granted}, key) when is_binary(granted) do
++    granted = String.split(granted)
++
++    if Enum.all?(Map.fetch!(@provider_scopes, key), &(&1 in granted)),
++      do: :ok,
++      else: {:error, :missing_required_scopes}
++  end
++
++  # Google may omit scope when it matches the requested scope (RFC 6749 §5.1).
++  defp validate_granted_scopes(_, _), do: :ok
++
++  defp validate_identity(%{workspace_id: workspace, member_id: member}, {workspace, member}),
++    do: :ok
++
++  defp validate_identity(%{flow_id: flow_id}, nil) when is_binary(flow_id), do: :ok
++  defp validate_identity(_, _), do: {:error, :invalid_state}
++
++  def desktop_redirect_uri,
++    do: config()[:desktop_redirect_uri] || "https://mokaid.com/api/mail/oauth/google/callback"
+ 
+   defp validate_redirect_uri(redirect_uri) do
+-    if redirect_uri in (config()[:redirect_uris] || []) do
+-      :ok
+-    else
+-      {:error, :invalid_redirect_uri}
+-    end
+-  end
+-
+-  defp validate_provider_key(key) do
+-    if google_provider?(key), do: :ok, else: {:error, :invalid_provider}
+-  end
+-
+-  defp ensure_configured do
+-    if configured?(), do: :ok, else: {:error, :oauth_not_configured}
+-  end
+-
++    allowed = [desktop_redirect_uri() | config()[:redirect_uris] || []]
++
++    if is_binary(redirect_uri) and redirect_uri in allowed,
++      do: :ok,
++      else: {:error, :invalid_redirect_uri}
++  end
++
++  defp ensure_configured, do: if(configured?(), do: :ok, else: {:error, :oauth_not_configured})
++  defp http_client, do: Req.new(Application.get_env(:mokaid, :google_oauth_http_options, []))
+   defp config, do: Application.get_env(:mokaid, :google_oauth, [])
+ end
+diff --git a/apps/api/lib/mokaid/integrations/integration_connection.ex b/apps/api/lib/mokaid/integrations/integration_connection.ex
+--- a/apps/api/lib/mokaid/integrations/integration_connection.ex
++++ b/apps/api/lib/mokaid/integrations/integration_connection.ex
+@@ -34,6 +34,6 @@
+     ])
+     |> validate_required([:workspace_id, :provider_id])
+     |> validate_inclusion(:status, ~w(connected disconnected error pending))
+-    |> unique_constraint([:workspace_id, :provider_id])
++    |> unique_constraint([:workspace_id, :provider_id, :connected_account])
+   end
+ end
+diff --git a/apps/api/lib/mokaid/integrations/mail_oauth_flow.ex b/apps/api/lib/mokaid/integrations/mail_oauth_flow.ex
+new file mode 100644
+--- /dev/null
++++ b/apps/api/lib/mokaid/integrations/mail_oauth_flow.ex
+@@ -0,0 +1,195 @@
++defmodule Mokaid.Integrations.MailOAuthFlow do
++  @moduledoc "Short-lived, member-bound completion state for native mailbox authorization."
++  use Ecto.Schema
++  import Ecto.Query
++
++  alias Mokaid.{Integrations, Members, Permissions, Repo}
++  alias Mokaid.Integrations.GoogleOAuth
++
++  @primary_key {:id, :binary_id, autogenerate: true}
++  @foreign_key_type :binary_id
++  @timestamps_opts [type: :utc_datetime_usec]
++
++  schema "mail_oauth_flows" do
++    field :workspace_id, :binary_id
++    field :member_id, :binary_id
++    field :status, :string, default: "pending"
++    field :account_id, :binary_id
++    field :error, :string
++    field :expires_at, :utc_datetime_usec
++    timestamps()
++  end
++
++  def start(workspace_id, member) do
++    id = Ecto.UUID.generate()
++
++    with :ok <- Permissions.authorize(member, "integrations.connect"),
++         {:ok, url} <-
++           GoogleOAuth.authorize_url(
++             workspace_id,
++             member.id,
++             GoogleOAuth.desktop_redirect_uri(),
++             "gmail",
++             flow_id: id
++           ),
++         {:ok, _flow} <-
++           Repo.insert(%__MODULE__{
++             id: id,
++             workspace_id: workspace_id,
++             member_id: member.id,
++             expires_at: DateTime.add(DateTime.utc_now(), 600, :second)
++           }) do
++      # Retain completed flows long enough for clients to resume polling; old
++      # state has no credentials and can be removed without affecting mailboxes.
++      cutoff = DateTime.add(DateTime.utc_now(), -86_400, :second)
++      Repo.delete_all(from f in __MODULE__, where: f.expires_at < ^cutoff)
++      {:ok, %{authorize_url: url, flow_id: id}}
++    end
++  end
++
++  def get(workspace_id, member_id, id) do
++    with {:ok, id} <- Ecto.UUID.cast(id),
++         %__MODULE__{} = flow <-
++           Repo.get_by(__MODULE__, id: id, workspace_id: workspace_id, member_id: member_id) do
++      if flow.status in ["pending", "completing"] and
++           DateTime.compare(flow.expires_at, DateTime.utc_now()) != :gt do
++        {:ok, %{status: "failed", error: "authorization_expired", account_id: nil}}
++      else
++        status = if flow.status == "completing", do: "pending", else: flow.status
++        {:ok, %{status: status, error: flow.error, account_id: flow.account_id}}
++      end
++    else
++      _ -> {:error, :not_found}
++    end
++  end
++
++  def cancel(workspace_id, member_id, id) do
++    with {:ok, id} <- Ecto.UUID.cast(id),
++         {:ok, _} <- get(workspace_id, member_id, id) do
++      Repo.update_all(
++        from(f in __MODULE__,
++          where:
++            f.id == ^id and f.workspace_id == ^workspace_id and
++              f.member_id == ^member_id and f.status in ["pending", "completing"]
++        ),
++        set: [status: "failed", error: "authorization_cancelled", updated_at: DateTime.utc_now()]
++      )
++
++      get(workspace_id, member_id, id)
++    else
++      _ -> {:error, :not_found}
++    end
++  end
++
++  def complete(params) do
++    redirect_uri = GoogleOAuth.desktop_redirect_uri()
++
++    with {:ok, %{flow_id: id} = state} when is_binary(id) <-
++           GoogleOAuth.verify_state(params["state"], redirect_uri),
++         %__MODULE__{} = flow <-
++           Repo.get_by(__MODULE__,
++             id: id,
++             workspace_id: state.workspace_id,
++             member_id: state.member_id
++           ),
++         true <- DateTime.compare(flow.expires_at, DateTime.utc_now()) == :gt,
++         :ok <- claim(flow) do
++      result = finish(flow, params, redirect_uri)
++
++      case result do
++        {:ok, _completed} ->
++          {:ok, :connected}
++
++        {:error, reason} ->
++          error = public_error(reason)
++
++          Repo.update_all(
++            from(f in __MODULE__, where: f.id == ^flow.id and f.status == "completing"),
++            set: [status: "failed", error: error, updated_at: DateTime.utc_now()]
++          )
++
++          {:error, error}
++      end
++    else
++      _ -> {:error, "authorization_expired"}
++    end
++  end
++
++  defp claim(flow) do
++    case Repo.update_all(from(f in __MODULE__, where: f.id == ^flow.id and f.status == "pending"),
++           set: [status: "completing", updated_at: DateTime.utc_now()]
++         ) do
++      {1, _} -> :ok
++      _ -> {:error, :already_completed}
++    end
++  end
++
++  defp finish(_flow, %{"error" => _}, _redirect_uri), do: {:error, :access_denied}
++
++  defp finish(flow, params, redirect_uri) do
++    with %{status: "active"} = member <- Members.get_member(flow.workspace_id, flow.member_id),
++         :ok <- Permissions.authorize(member, "integrations.connect"),
++         {:ok, result} <- GoogleOAuth.exchange_code(params["code"], params["state"], redirect_uri),
++         {:ok, completed} <- persist_completion(flow, result) do
++      {:ok, completed}
++    else
++      nil -> {:error, :forbidden}
++      %{status: _} -> {:error, :forbidden}
++      other -> other
++    end
++  end
++
++  defp persist_completion(flow, result) do
++    # Serialize cancellation against the commit, not the provider's network call.
++    # Once cancelled, even a successful code exchange cannot attach a mailbox.
++    Repo.transaction(fn ->
++      locked = Repo.one(from f in __MODULE__, where: f.id == ^flow.id, lock: "FOR UPDATE")
++      if is_nil(locked) or locked.status != "completing", do: Repo.rollback(:access_denied)
++
++      if DateTime.compare(locked.expires_at, DateTime.utc_now()) != :gt,
++        do: Repo.rollback(:authorization_expired)
++
++      # Consent can outlive membership, role changes, or an account suspension.
++      # Re-read after the provider call and hold these rows through the commit.
++      member =
++        Repo.one(
++          from m in Mokaid.Members.Member,
++            where: m.id == ^flow.member_id and m.workspace_id == ^flow.workspace_id,
++            lock: "FOR SHARE"
++        )
++
++      if is_nil(member) or member.status != "active", do: Repo.rollback(:forbidden)
++
++      user =
++        Repo.one(
++          from u in Mokaid.Accounts.User,
++            where: u.id == ^member.user_id,
++            lock: "FOR SHARE"
++        )
++
++      if not Mokaid.Accounts.User.active?(user), do: Repo.rollback(:forbidden)
++      member = member |> Repo.preload(:role) |> Map.put(:user, user)
++
++      if Permissions.authorize(member, "integrations.connect") != :ok,
++        do: Repo.rollback(:forbidden)
++
++      case Integrations.complete_google_connection(result, member) do
++        {:ok, %{mail_account: account} = completed} ->
++          Repo.update!(Ecto.Changeset.change(locked, status: "connected", account_id: account.id))
++          completed
++
++        {:error, reason} ->
++          Repo.rollback(reason)
++      end
++    end)
++  end
++
++  def public_error(:authorization_expired), do: "authorization_expired"
++  def public_error(:access_denied), do: "authorization_cancelled"
++  def public_error(:missing_required_scopes), do: "mail_permission_required"
++  def public_error(:missing_refresh_token), do: "reconnect_with_consent"
++  def public_error(:forbidden), do: "workspace_access_revoked"
++  def public_error(:account_fetch_failed), do: "google_account_unavailable"
++  def public_error(:unverified_account), do: "google_account_unverified"
++  def public_error(_), do: "connection_failed"
++end
+diff --git a/apps/api/lib/mokaid/integrations/token_refresher.ex b/apps/api/lib/mokaid/integrations/token_refresher.ex
+--- a/apps/api/lib/mokaid/integrations/token_refresher.ex
++++ b/apps/api/lib/mokaid/integrations/token_refresher.ex
+@@ -7,7 +7,10 @@
+   from the stored `refresh_token` (and persists the rotated credentials).
+   """
+ 
++  import Ecto.Query
++
+   alias Mokaid.Integrations
++  alias Mokaid.Repo
+   alias Mokaid.Integrations.{GoogleOAuth, IntegrationConnection, MicrosoftOAuth}
+ 
+   require Logger
+@@ -53,18 +56,14 @@
+ 
+     cond do
+       is_nil(refresh_token) or refresh_token == "" ->
+-        # Cannot refresh — return what we have and let the caller surface a 401.
+-        {:ok, credentials}
++        {:error, :missing_refresh_token}
+ 
+       true ->
+         case do_refresh(connection, refresh_token) do
+           {:ok, fresh} ->
+             merged = Map.merge(credentials, fresh)
+ 
+-            case Integrations.store_credentials(connection, merged) do
+-              {:ok, _updated} -> {:ok, merged}
+-              {:error, _} -> {:ok, merged}
+-            end
++            persist_if_still_connected(connection, merged)
+ 
+           {:error, reason} ->
+             Logger.warning(
+@@ -74,6 +73,40 @@
+             {:error, :refresh_failed}
+         end
+     end
++  end
++
++  defp persist_if_still_connected(connection, credentials) do
++    # A disconnect or reconnect may finish during the provider's refresh call.
++    # Never resurrect cleared secrets or overwrite a newer account authorization.
++    Repo.transaction(fn ->
++      current =
++        Repo.one(
++          from c in IntegrationConnection,
++            where: c.id == ^connection.id and c.workspace_id == ^connection.workspace_id,
++            lock: "FOR UPDATE"
++        )
++
++      cond do
++        is_nil(current) or current.status != "connected" ->
++          Repo.rollback(:credentials_changed)
++
++        current.encrypted_credentials != connection.encrypted_credentials ->
++          # Another refresh/reconnect already won. Use its usable credentials
++          # instead of overwriting them or marking a healthy mailbox as broken.
++          latest = Integrations.decrypted_credentials(current)
++
++          if is_map(latest) and is_binary(latest["access_token"]) and
++               latest["access_token"] != "" and not expiring?(latest),
++             do: latest,
++             else: Repo.rollback(:credentials_changed)
++
++        true ->
++          case Integrations.store_credentials(current, credentials) do
++            {:ok, _} -> credentials
++            {:error, _} -> Repo.rollback(:credential_persistence_failed)
++          end
++      end
++    end)
+   end
+ 
+   defp do_refresh(connection, refresh_token) do
+diff --git a/apps/api/lib/mokaid/mail.ex b/apps/api/lib/mokaid/mail.ex
+--- a/apps/api/lib/mokaid/mail.ex
++++ b/apps/api/lib/mokaid/mail.ex
+@@ -11,7 +11,7 @@
+ 
+   alias Mokaid.Integrations
+   alias Mokaid.Integrations.TokenRefresher
+-  alias Mokaid.Mail.{Account, Message, Rule}
++  alias Mokaid.Mail.{Account, ConnectionSettings, Message, Rule}
+   alias Mokaid.Notifications
+   alias Mokaid.Realtime
+   alias Mokaid.Repo
+@@ -60,9 +60,20 @@
+ 
+   def find_gmail_account(_), do: nil
+ 
++  def find_gmail_accounts(email_address) when is_binary(email_address) do
++    email = String.downcase(String.trim(email_address))
++
++    Repo.all(
++      from a in Account,
++        where: a.provider == "gmail" and a.email_address == ^email and a.status == "active"
++    )
++  end
++
++  def find_gmail_accounts(_), do: []
++
+   @doc "Accounts that rely on periodic polling (IMAP always; OAuth as a safety net)."
+   def list_pollable_accounts do
+-    Repo.all(from a in Account, where: a.status == "active")
++    Repo.all(from a in Account, where: a.status in ["active", "error"])
+   end
+ 
+   @doc "Active OAuth accounts whose push channel (watch/subscription) expires soon."
+@@ -112,73 +123,170 @@
+   def ensure_oauth_account(_workspace_id, _member, _provider, _email, _connection_id),
+     do: {:error, :invalid_account}
+ 
+-  @imap_settings ~w(imap_host imap_port imap_ssl smtp_host smtp_port smtp_ssl username)
+-
+-  @doc """
+-  Creates an IMAP/SMTP account. Password is Vault-encrypted, never stored raw.
+-  Credentials are probed against the IMAP server first so users get instant
+-  feedback on a typo'd host or password.
+-  """
++  @doc "Validates IMAP and optional SMTP access before encrypting and saving credentials."
+   def create_imap_account(workspace_id, member, attrs) do
+-    with :ok <- probe_imap(attrs) do
+-      insert_imap_account(workspace_id, member, attrs)
+-    end
+-  end
+-
+-  defp probe_imap(attrs) do
++    with {:ok, attrs} <- ConnectionSettings.normalize(attrs),
++         :ok <- probe_mailbox(attrs) do
++      save_imap_account(%Account{}, workspace_id, member, attrs)
++    end
++  end
++
++  @doc "Reconnects a saved IMAP mailbox without deleting its messages or rules."
++  def update_imap_account(%Account{provider: "imap"} = account, member, attrs) do
++    with {:ok, attrs} <- ConnectionSettings.normalize(attrs),
++         :ok <- same_mailbox_address(account, attrs),
++         :ok <- probe_mailbox(attrs) do
++      save_imap_account(account, account.workspace_id, member, attrs)
++    end
++  end
++
++  def update_imap_account(_account, _member, _attrs), do: {:error, :invalid_account}
++
++  defp same_mailbox_address(account, attrs) do
++    if String.downcase(attrs["email_address"]) == account.email_address do
++      :ok
++    else
++      {:error,
++       Ecto.Changeset.add_error(
++         Account.changeset(account, %{}),
++         :email_address,
++         "cannot be changed when reconnecting; connect this address as a new mailbox"
++       )}
++    end
++  end
++
++  defp probe_mailbox(attrs) do
+     if Application.get_env(:mokaid, :imap_probe_enabled, true) do
+-      case Mokaid.Mail.ImapProbe.check(
+-             attrs["imap_host"],
+-             attrs["imap_port"] || 993,
+-             attrs["username"] || attrs["email_address"],
+-             attrs["password"] || ""
+-           ) do
+-        :ok -> :ok
+-        {:error, reason} -> {:error, {:imap_probe_failed, reason}}
+-      end
++      with :ok <- probe_imap(attrs), :ok <- probe_smtp(attrs), do: :ok
+     else
+       :ok
+     end
+   end
+ 
+-  defp insert_imap_account(workspace_id, member, attrs) do
+-    settings =
+-      attrs
+-      |> Map.take(@imap_settings)
+-      |> Map.reject(fn {_k, v} -> is_nil(v) or v == "" end)
+-
+-    credentials = %{
+-      "username" => attrs["username"] || attrs["email_address"],
+-      "password" => attrs["password"]
+-    }
++  defp probe_imap(attrs) do
++    case Mokaid.Mail.ImapProbe.check(
++           attrs["imap_host"],
++           attrs["imap_port"],
++           attrs["username"],
++           attrs["password"],
++           security: attrs["imap_security"]
++         ) do
++      :ok -> :ok
++      {:error, reason} -> {:error, {:imap_probe_failed, reason}}
++    end
++  end
++
++  defp probe_smtp(%{"smtp_host" => host} = attrs) when is_binary(host) and host != "" do
++    case Mokaid.Mail.SmtpProbe.check(
++           host,
++           attrs["smtp_port"],
++           attrs["smtp_username"] || attrs["username"],
++           attrs["smtp_password"] || attrs["password"],
++           security: attrs["smtp_security"]
++         ) do
++      :ok -> :ok
++      {:error, reason} -> {:error, {:smtp_probe_failed, reason}}
++    end
++  end
++
++  defp probe_smtp(_attrs), do: :ok
++
++  defp save_imap_account(account, workspace_id, member, attrs) do
++    settings = ConnectionSettings.settings(attrs)
++
++    identity_changed? =
++      account.id &&
++        (account.email_address != String.downcase(attrs["email_address"]) or
++           Enum.any?(~w(imap_host username), &((account.settings || %{})[&1] != settings[&1])))
+ 
+     changeset =
+-      Account.changeset(%Account{}, %{
++      Account.changeset(account, %{
+         "workspace_id" => workspace_id,
+         "member_id" => member.id,
+         "provider" => "imap",
+         "email_address" => attrs["email_address"],
+         "display_name" => attrs["display_name"],
+-        "settings" => settings
++        "settings" => settings,
++        "status" => "active",
++        "error_message" => nil,
++        "sync_state" => if(identity_changed?, do: %{}, else: account.sync_state || %{})
+       })
+-
+-    changeset =
+-      if is_binary(attrs["password"]) and attrs["password"] != "" do
+-        Ecto.Changeset.put_change(changeset, :encrypted_credentials, Vault.encrypt(credentials))
+-      else
+-        Ecto.Changeset.add_error(changeset, :password, "can't be blank")
++      |> Ecto.Changeset.put_change(
++        :encrypted_credentials,
++        Vault.encrypt(ConnectionSettings.credentials(attrs))
++      )
++
++    with {:ok, saved} <- Repo.insert_or_update(changeset) do
++      broadcast(workspace_id, saved.id)
++      {:ok, saved}
++    end
++  end
++
++  def delete_account(%Account{} = account) do
++    result =
++      Repo.transaction(fn ->
++        current = get_account(account.workspace_id, account.id)
++        if is_nil(current), do: Repo.rollback(:not_found)
++
++        # OAuth reconnect also locks its integration before upserting the mailbox.
++        # Keep that order here so reconnect cannot race credential removal.
++        connection_id = current.connection_id
++        connection = lock_mail_connection(current)
++
++        current =
++          Repo.one(
++            from a in Account,
++              where: a.id == ^account.id and a.workspace_id == ^account.workspace_id,
++              lock: "FOR UPDATE"
++          )
++
++        if is_nil(current), do: Repo.rollback(:not_found)
++
++        if current.connection_id != connection_id,
++          do: Repo.rollback(:account_changed)
++
++        with {:ok, deleted} <- Repo.delete(current),
++             :ok <- disconnect_unused_mail_connection(connection, current) do
++          deleted
++        else
++          {:error, reason} -> Repo.rollback(reason)
++        end
++      end)
++
++    with {:ok, deleted} <- result do
++      broadcast(deleted.workspace_id, deleted.id)
++      {:ok, deleted}
++    end
++  end
++
++  defp lock_mail_connection(%Account{provider: provider, connection_id: id} = account)
++       when provider in ["gmail", "microsoft"] and not is_nil(id) do
++    Repo.one(
++      from c in Integrations.IntegrationConnection,
++        where: c.id == ^id and c.workspace_id == ^account.workspace_id,
++        lock: "FOR UPDATE"
++    )
++    |> Repo.preload(:provider)
++  end
++
++  defp lock_mail_connection(_), do: nil
++
++  defp disconnect_unused_mail_connection(nil, _account), do: :ok
++
++  defp disconnect_unused_mail_connection(connection, account) do
++    provider = if account.provider == "microsoft", do: "outlook", else: "gmail"
++    address = String.downcase(String.trim(connection.connected_account || ""))
++    shared? = Repo.exists?(from a in Account, where: a.connection_id == ^connection.id)
++
++    if connection.provider.key == provider and address == account.email_address and not shared? do
++      case connection
++           |> Ecto.Changeset.change(status: "disconnected", encrypted_credentials: nil)
++           |> Repo.update() do
++        {:ok, _} -> :ok
++        {:error, reason} -> {:error, reason}
+       end
+-
+-    with {:ok, account} <- Repo.insert(changeset) do
+-      broadcast(workspace_id, account.id)
+-      {:ok, account}
+-    end
+-  end
+-
+-  def delete_account(%Account{} = account) do
+-    with {:ok, deleted} <- Repo.delete(account) do
+-      broadcast(account.workspace_id, account.id)
+-      {:ok, deleted}
++    else
++      :ok
+     end
+   end
+ 
+@@ -229,7 +337,17 @@
+         {:error, :no_connection}
+ 
+       connection ->
+-        TokenRefresher.fresh_credentials(connection)
++        connection = Repo.preload(connection, :provider)
++        expected_provider = if account.provider == "microsoft", do: "outlook", else: "gmail"
++        connected_address = String.downcase(String.trim(connection.connected_account || ""))
++
++        if connection.workspace_id == account.workspace_id and
++             connection.status == "connected" and connection.provider.key == expected_provider and
++             connected_address == String.downcase(account.email_address) do
++          TokenRefresher.fresh_credentials(connection)
++        else
++          {:error, :reconnect_required}
++        end
+     end
+   end
+ 
+diff --git a/apps/api/lib/mokaid/mail/account.ex b/apps/api/lib/mokaid/mail/account.ex
+--- a/apps/api/lib/mokaid/mail/account.ex
++++ b/apps/api/lib/mokaid/mail/account.ex
+@@ -25,7 +25,7 @@
+     field :provider, :string
+     field :email_address, :string
+     field :display_name, :string
+-    field :encrypted_credentials, :binary
++    field :encrypted_credentials, :binary, redact: true
+     field :settings, :map, default: %{}
+     field :status, :string, default: "active"
+     field :error_message, :string
+diff --git a/apps/api/lib/mokaid/mail/connection_settings.ex b/apps/api/lib/mokaid/mail/connection_settings.ex
+new file mode 100644
+--- /dev/null
++++ b/apps/api/lib/mokaid/mail/connection_settings.ex
+@@ -0,0 +1,114 @@
++defmodule Mokaid.Mail.ConnectionSettings do
++  @moduledoc "Validated, explicit TLS settings shared by mailbox probes and the sync worker."
++  import Ecto.Changeset
++
++  @types %{
++    email_address: :string,
++    display_name: :string,
++    username: :string,
++    password: :string,
++    imap_host: :string,
++    imap_port: :integer,
++    imap_security: :string,
++    smtp_host: :string,
++    smtp_port: :integer,
++    smtp_security: :string,
++    smtp_username: :string,
++    smtp_password: :string
++  }
++  @settings ~w(imap_host imap_port imap_security smtp_host smtp_port smtp_security username smtp_username)
++
++  def normalize(attrs) when is_map(attrs) do
++    attrs =
++      attrs
++      |> normalize_security("imap", "tls")
++      |> normalize_security("smtp", "starttls")
++
++    changeset =
++      {%{}, @types}
++      |> cast(attrs, Map.keys(@types))
++      |> trim_fields()
++      |> default(
++        :username,
++        if(is_binary(attrs["email_address"]), do: attrs["email_address"], else: nil)
++      )
++      |> default(:imap_port, if(attrs["imap_security"] == "starttls", do: 143, else: 993))
++      |> default(:smtp_port, if(attrs["smtp_security"] == "tls", do: 465, else: 587))
++      |> validate_required([:email_address, :username, :password, :imap_host])
++      |> validate_format(:email_address, ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
++      |> validate_length(:email_address, max: 254)
++      |> validate_length(:username, max: 320)
++      |> validate_length(:password, max: 4096)
++      |> validate_length(:smtp_username, max: 320)
++      |> validate_length(:smtp_password, max: 4096)
++      |> validate_format(:username, ~r/^[^\x00\r\n]+$/)
++      |> validate_format(:password, ~r/^[^\x00\r\n]+$/)
++      |> validate_format(:smtp_username, ~r/^[^\x00\r\n]+$/)
++      |> validate_format(:smtp_password, ~r/^[^\x00\r\n]+$/)
++      |> validate_host(:imap_host)
++      |> validate_host(:smtp_host)
++      |> validate_number(:imap_port, greater_than: 0, less_than: 65_536)
++      |> validate_number(:smtp_port, greater_than: 0, less_than: 65_536)
++      |> validate_inclusion(:imap_security, ~w(tls starttls))
++      |> validate_inclusion(:smtp_security, ~w(tls starttls))
++
++    case apply_action(changeset, :insert) do
++      {:ok, normalized} ->
++        {:ok, Map.new(normalized, fn {key, value} -> {Atom.to_string(key), value} end)}
++
++      error ->
++        error
++    end
++  end
++
++  def settings(attrs), do: Map.take(attrs, @settings)
++
++  def credentials(attrs) do
++    Map.take(attrs, ~w(username password smtp_username smtp_password))
++  end
++
++  defp normalize_security(attrs, protocol, default) do
++    legacy = attrs[protocol <> "_ssl"]
++
++    inferred =
++      cond do
++        legacy in [false, "false", "0", 0] -> "starttls"
++        legacy in [true, "true", "1", 1] -> "tls"
++        attrs[protocol <> "_port"] in [143, "143", 587, "587"] -> "starttls"
++        attrs[protocol <> "_port"] in [993, "993", 465, "465"] -> "tls"
++        true -> default
++      end
++
++    Map.update(attrs, protocol <> "_security", inferred, fn value ->
++      if value in [nil, ""], do: inferred, else: value
++    end)
++  end
++
++  defp trim_fields(changeset) do
++    Enum.reduce(
++      [:email_address, :username, :imap_host, :smtp_host, :smtp_username],
++      changeset,
++      fn field, acc ->
++        update_change(acc, field, fn value ->
++          if is_binary(value), do: String.trim(value), else: value
++        end)
++      end
++    )
++  end
++
++  defp default(changeset, field, value) do
++    if get_field(changeset, field) in [nil, ""] do
++      put_change(changeset, field, if(is_binary(value), do: String.trim(value), else: value))
++    else
++      changeset
++    end
++  end
++
++  defp validate_host(changeset, field) do
++    changeset
++    |> validate_length(field, max: 253)
++    |> validate_format(field, ~r/\A(?=.{1,253}\z)[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?\z/,
++      message: "must be a server hostname, without a URL, path or port"
++    )
++  end
++end
+diff --git a/apps/api/lib/mokaid/mail/gmail_push_auth.ex b/apps/api/lib/mokaid/mail/gmail_push_auth.ex
+new file mode 100644
+--- /dev/null
++++ b/apps/api/lib/mokaid/mail/gmail_push_auth.ex
+@@ -0,0 +1,51 @@
++defmodule Mokaid.Mail.GmailPushAuth do
++  @moduledoc "Verifies Google's OIDC signature and the configured Pub/Sub push identity."
++
++  @jwks_url "https://www.googleapis.com/oauth2/v3/certs"
++  @cache_key {__MODULE__, :keys}
++
++  def verify("Bearer " <> token) when byte_size(token) in 1..8192 do
++    config = Application.get_env(:mokaid, :gmail_pubsub, [])
++    now = System.system_time(:second)
++
++    with audience when is_binary(audience) and audience != "" <- config[:audience],
++         email when is_binary(email) and email != "" <- config[:service_account],
++         {:ok, %{"alg" => "RS256", "kid" => kid}} <- Joken.peek_header(token),
++         {:ok, keys} <- signing_keys(now),
++         %{} = key <- Enum.find(keys, &(&1["kid"] == kid and &1["kty"] == "RSA")),
++         {:ok, claims} <- Joken.verify(token, Joken.Signer.create("RS256", key)),
++         true <- claims["iss"] in ["accounts.google.com", "https://accounts.google.com"],
++         true <- claims["aud"] == audience and claims["email"] == email,
++         true <- claims["email_verified"] == true,
++         exp when is_integer(exp) and exp > now <- claims["exp"],
++         iat when is_integer(iat) and iat <= now + 60 <- claims["iat"] do
++      :ok
++    else
++      _ -> {:error, :unauthorized}
++    end
++  rescue
++    _ -> {:error, :unauthorized}
++  end
++
++  def verify(_), do: {:error, :unauthorized}
++
++  defp signing_keys(now) do
++    case :persistent_term.get(@cache_key, nil) do
++      {expires, keys} when expires > now -> {:ok, keys}
++      _ -> fetch_keys(now)
++    end
++  end
++
++  defp fetch_keys(now) do
++    options = Application.get_env(:mokaid, :gmail_push_http_options, [])
++
++    case Req.get(Keyword.merge([url: @jwks_url, receive_timeout: 5_000, retry: false], options)) do
++      {:ok, %{status: 200, body: %{"keys" => keys}}} when is_list(keys) ->
++        :persistent_term.put(@cache_key, {now + 300, keys})
++        {:ok, keys}
++
++      _ ->
++        {:error, :unavailable}
++    end
++  end
++end
+diff --git a/apps/api/lib/mokaid/mail/imap_probe.ex b/apps/api/lib/mokaid/mail/imap_probe.ex
+--- a/apps/api/lib/mokaid/mail/imap_probe.ex
++++ b/apps/api/lib/mokaid/mail/imap_probe.ex
+@@ -1,121 +1,97 @@
+ defmodule Mokaid.Mail.ImapProbe do
+-  @moduledoc """
+-  Minimal IMAP LOGIN probe used to validate credentials before persisting an
+-  IMAP account. Speaks just enough IMAP over TLS: read the server greeting,
+-  attempt `LOGIN`, then `LOGOUT`.
+-  """
++  @moduledoc "Verifies an IMAP login and read-only INBOX access over authenticated TLS."
++  alias Mokaid.Mail.ProbeSocket
+ 
+-  @connect_timeout 8_000
+-  @response_timeout 8_000
+-
+-  @doc """
+-  Attempts a TLS connection + LOGIN. Returns `:ok` or `{:error, reason}`
+-  where reason is `:connect_failed`, `:auth_failed` or `:protocol_error`.
+-  """
+   def check(host, port, username, password, opts \\ [])
+ 
+   def check(host, port, username, password, opts)
+-      when is_binary(host) and is_binary(username) and is_binary(password) do
+-    port = normalize_port(port)
+-    ssl? = Keyword.get(opts, :ssl, true)
++      when is_binary(host) and is_integer(port) and port in 1..65_535 and
++             is_binary(username) and is_binary(password) do
++    security =
++      Keyword.get(opts, :security, if(Keyword.get(opts, :ssl, true), do: "tls", else: "starttls"))
+ 
+-    if ssl? do
+-      check_ssl(host, port, username, password)
++    transport = Keyword.get(opts, :transport, ProbeSocket)
++
++    if security in ["tls", "starttls"] and safe_credentials?(username, password) do
++      with {:ok, socket} <- transport.connect(host, port, security, opts) do
++        try do
++          with {:ok, greeting} <- transport.recv_line(socket),
++               true <- Regex.match?(~r/^\* OK(?: |\r?\n)/i, greeting),
++               {:ok, secured} <- secure(socket, host, security, transport, opts) do
++            try do
++              with :ok <-
++                     command(
++                       transport,
++                       secured,
++                       "A1",
++                       "LOGIN #{quote_imap(username)} #{quote_imap(password)}",
++                       :auth_failed
++                     ),
++                   :ok <- command(transport, secured, "A2", "EXAMINE INBOX", :inbox_unavailable) do
++                transport.send_line(secured, "A3 LOGOUT")
++                :ok
++              end
++            after
++              transport.close(secured)
++            end
++          else
++            {:error, reason} -> {:error, reason}
++            _ -> {:error, :protocol_error}
++          end
++        after
++          transport.close(socket)
++        end
++      end
+     else
+-      {:error, :plaintext_not_supported}
++      {:error, :invalid_params}
+     end
+   end
+ 
+-  def check(_host, _port, _username, _password, _opts), do: {:error, :invalid_params}
++  def check(_, _, _, _, _), do: {:error, :invalid_params}
+ 
+-  defp check_ssl(host, port, username, password) do
+-    ssl_opts = [
+-      :binary,
+-      active: false,
+-      verify: :verify_peer,
+-      cacerts: :public_key.cacerts_get(),
+-      server_name_indication: String.to_charlist(host),
+-      customize_hostname_check: [
+-        match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+-      ]
+-    ]
++  defp secure(socket, _host, "tls", _transport, _opts), do: {:ok, socket}
+ 
+-    case :ssl.connect(String.to_charlist(host), port, ssl_opts, @connect_timeout) do
+-      {:ok, socket} ->
+-        try do
+-          with {:ok, _greeting} <- recv_line(socket),
+-               :ok <-
+-                 send_line(socket, ~s(A1 LOGIN #{quote_imap(username)} #{quote_imap(password)})),
+-               {:ok, response} <- recv_until_tag(socket, "A1") do
+-            send_line(socket, "A2 LOGOUT")
+-
+-            if String.contains?(response, "A1 OK") do
+-              :ok
+-            else
+-              {:error, :auth_failed}
+-            end
+-          else
+-            _ -> {:error, :protocol_error}
+-          end
+-        after
+-          :ssl.close(socket)
+-        end
+-
+-      {:error, _reason} ->
+-        {:error, :connect_failed}
++  defp secure(socket, host, "starttls", transport, opts) do
++    with :ok <- command(transport, socket, "S1", "STARTTLS", :starttls_unavailable) do
++      transport.starttls(socket, host, opts)
+     end
+   end
+ 
+-  defp send_line(socket, line), do: :ssl.send(socket, line <> "\r\n")
+-
+-  defp recv_line(socket) do
+-    case :ssl.recv(socket, 0, @response_timeout) do
+-      {:ok, data} -> {:ok, data}
+-      {:error, _} -> {:error, :recv_failed}
++  defp command(transport, socket, tag, command, rejected) do
++    with :ok <- transport.send_line(socket, "#{tag} #{command}") do
++      completion(transport, socket, tag, rejected, 0)
+     end
+   end
+ 
+-  # Accumulates responses until the tagged completion line shows up.
+-  defp recv_until_tag(socket, tag, acc \\ "", rounds \\ 0)
++  defp completion(_transport, _socket, _tag, _rejected, rounds) when rounds >= 40,
++    do: {:error, :protocol_error}
+ 
+-  defp recv_until_tag(_socket, _tag, _acc, rounds) when rounds > 10,
+-    do: {:error, :too_many_rounds}
++  defp completion(transport, socket, tag, rejected, rounds) do
++    case transport.recv_line(socket) do
++      {:ok, line} ->
++        case String.split(String.trim(line), " ", parts: 3) do
++          [^tag, status | _] ->
++            if String.upcase(status) == "OK", do: :ok, else: {:error, rejected}
+ 
+-  defp recv_until_tag(socket, tag, acc, rounds) do
+-    case :ssl.recv(socket, 0, @response_timeout) do
+-      {:ok, data} ->
+-        acc = acc <> data
++          ["*", "BYE" | _] ->
++            {:error, :protocol_error}
+ 
+-        if String.contains?(acc, "#{tag} OK") or String.contains?(acc, "#{tag} NO") or
+-             String.contains?(acc, "#{tag} BAD") do
+-          {:ok, acc}
+-        else
+-          recv_until_tag(socket, tag, acc, rounds + 1)
++          _ ->
++            completion(transport, socket, tag, rejected, rounds + 1)
+         end
+ 
+-      {:error, _} ->
+-        {:error, :recv_failed}
++      _ ->
++        {:error, :protocol_error}
+     end
+   end
+ 
+-  # IMAP quoted string: escape backslash and double quote.
++  defp safe_credentials?(username, password) do
++    username != "" and password != "" and
++      not String.contains?(username <> password, ["\r", "\n", <<0>>])
++  end
++
+   defp quote_imap(value) do
+-    escaped =
+-      value
+-      |> String.replace("\\", "\\\\")
+-      |> String.replace("\"", "\\\"")
+-
++    escaped = value |> String.replace("\\", "\\\\") |> String.replace("\"", "\\\"")
+     ~s("#{escaped}")
+   end
+-
+-  defp normalize_port(port) when is_integer(port), do: port
+-
+-  defp normalize_port(port) when is_binary(port) do
+-    case Integer.parse(port) do
+-      {int, _} -> int
+-      :error -> 993
+-    end
+-  end
+-
+-  defp normalize_port(_), do: 993
+ end
+diff --git a/apps/api/lib/mokaid/mail/probe_socket.ex b/apps/api/lib/mokaid/mail/probe_socket.ex
+new file mode 100644
+--- /dev/null
++++ b/apps/api/lib/mokaid/mail/probe_socket.ex
+@@ -0,0 +1,104 @@
++defmodule Mokaid.Mail.ProbeSocket do
++  @moduledoc false
++  @timeout 8_000
++
++  def connect(host, port, security, opts) do
++    with {:ok, addresses} <- resolve(host) do
++      deadline = System.monotonic_time(:millisecond) + Keyword.get(opts, :timeout, @timeout)
++
++      addresses
++      |> Enum.take(4)
++      |> Enum.reduce_while({:error, :connect_failed}, fn address, previous ->
++        remaining = deadline - System.monotonic_time(:millisecond)
++
++        if remaining <= 0 do
++          {:halt, previous}
++        else
++          case connect_address(address, host, port, security, opts, min(remaining, 3_000)) do
++            {:ok, _} = result -> {:halt, result}
++            error -> {:cont, error}
++          end
++        end
++      end)
++    end
++  end
++
++  defp connect_address(address, host, port, "tls", opts, timeout) do
++    case :ssl.connect(address, port, tls_options(host, opts), timeout) do
++      {:ok, socket} -> {:ok, {:ssl, socket}}
++      {:error, {:tls_alert, _}} -> {:error, :tls_failed}
++      {:error, _} -> {:error, :connect_failed}
++    end
++  end
++
++  defp connect_address(address, _host, port, "starttls", _opts, timeout) do
++    case :gen_tcp.connect(
++           address,
++           port,
++           [:binary, active: false, packet: :line, packet_size: 16_384],
++           timeout
++         ) do
++      {:ok, socket} -> {:ok, {:gen_tcp, socket}}
++      {:error, _} -> {:error, :connect_failed}
++    end
++  end
++
++  def starttls({:gen_tcp, socket}, host, opts) do
++    case :ssl.connect(socket, tls_options(host, opts), Keyword.get(opts, :timeout, @timeout)) do
++      {:ok, secured} -> {:ok, {:ssl, secured}}
++      {:error, _} -> {:error, :tls_failed}
++    end
++  end
++
++  def send_line({transport, socket}, line), do: transport.send(socket, line <> "\r\n")
++  def recv_line({transport, socket}), do: transport.recv(socket, 0, @timeout)
++  def close({transport, socket}), do: transport.close(socket)
++
++  defp tls_options(host, opts) do
++    [
++      :binary,
++      active: false,
++      packet: :line,
++      packet_size: 16_384,
++      verify: :verify_peer,
++      cacerts: Keyword.get_lazy(opts, :cacerts, &:public_key.cacerts_get/0),
++      server_name_indication: String.to_charlist(host),
++      customize_hostname_check: [match_fun: :public_key.pkix_verify_hostname_match_fun(:https)],
++      versions: [:"tlsv1.3", :"tlsv1.2"]
++    ]
++  end
++
++  # Resolve once and connect to that exact public address, while retaining the
++  # hostname for certificate verification. User-supplied hosts cannot probe AWS
++  # metadata/internal services or change address between validation and connect.
++  defp resolve(host) do
++    addresses =
++      [:inet, :inet6]
++      |> Enum.flat_map(fn family ->
++        case :inet.getaddrs(String.to_charlist(host), family) do
++          {:ok, values} -> values
++          _ -> []
++        end
++      end)
++
++    cond do
++      addresses == [] -> {:error, :connect_failed}
++      Enum.any?(addresses, &(not public_address?(&1))) -> {:error, :private_host}
++      true -> {:ok, Enum.uniq(addresses)}
++    end
++  end
++
++  def public_address?({a, b, c, _d}) do
++    a not in [0, 10, 127] and a < 224 and
++      not (a == 100 and b in 64..127) and not (a == 169 and b == 254) and
++      not (a == 172 and b in 16..31) and not (a == 192 and b in [0, 168]) and
++      not (a == 198 and b in [18, 19]) and not (a == 198 and b == 51 and c == 100) and
++      not (a == 203 and b == 0 and c == 113)
++  end
++
++  def public_address?({a, _, _, _, _, _, _, _} = ip) do
++    a in 0x2000..0x3FFF and not match?({0x2001, 0xDB8, _, _, _, _, _, _}, ip)
++  end
++
++  def public_address?(_), do: false
++end
+diff --git a/apps/api/lib/mokaid/mail/smtp_probe.ex b/apps/api/lib/mokaid/mail/smtp_probe.ex
+new file mode 100644
+--- /dev/null
++++ b/apps/api/lib/mokaid/mail/smtp_probe.ex
+@@ -0,0 +1,120 @@
++defmodule Mokaid.Mail.SmtpProbe do
++  @moduledoc "Verifies SMTP authentication over TLS, without sending a message."
++  alias Mokaid.Mail.ProbeSocket
++
++  def check(host, port, username, password, opts \\ []) do
++    security = Keyword.get(opts, :security, "starttls")
++    transport = Keyword.get(opts, :transport, ProbeSocket)
++
++    with {:ok, socket} <- transport.connect(host, port, security, opts) do
++      try do
++        with {:ok, 220, _} <- response(transport, socket),
++             {:ok, secured} <- secure(socket, host, security, transport, opts) do
++          try do
++            with :ok <- transport.send_line(secured, "EHLO mokaid.app"),
++                 {:ok, 250, capabilities} <- response(transport, secured),
++                 :ok <- authenticate(transport, secured, capabilities, username, password) do
++              transport.send_line(secured, "QUIT")
++              :ok
++            else
++              {:error, reason} -> {:error, reason}
++              _ -> {:error, :protocol_error}
++            end
++          after
++            transport.close(secured)
++          end
++        else
++          {:error, reason} -> {:error, reason}
++          _ -> {:error, :protocol_error}
++        end
++      after
++        transport.close(socket)
++      end
++    end
++  end
++
++  defp secure(socket, _host, "tls", _transport, _opts), do: {:ok, socket}
++
++  defp secure(socket, host, "starttls", transport, opts) do
++    with :ok <- transport.send_line(socket, "EHLO mokaid.app"),
++         {:ok, 250, capabilities} <- response(transport, socket),
++         true <- String.contains?(String.upcase(capabilities), "STARTTLS"),
++         :ok <- transport.send_line(socket, "STARTTLS"),
++         {:ok, 220, _} <- response(transport, socket) do
++      transport.starttls(socket, host, opts)
++    else
++      _ -> {:error, :starttls_unavailable}
++    end
++  end
++
++  defp authenticate(transport, socket, capabilities, username, password) do
++    mechanisms =
++      Regex.scan(~r/^250[ -]AUTH[= ](.*)$/mi, capabilities, capture: :all_but_first)
++      |> List.flatten()
++      |> Enum.join(" ")
++      |> String.upcase()
++      |> String.split()
++
++    cond do
++      "PLAIN" in mechanisms ->
++        credential = Base.encode64(<<0>> <> username <> <<0>> <> password)
++
++        with :ok <- transport.send_line(socket, "AUTH PLAIN " <> credential) do
++          case response(transport, socket) do
++            {:ok, 235, _} ->
++              :ok
++
++            {:ok, 334, _} ->
++              transport.send_line(socket, credential)
++              authenticated(transport, socket)
++
++            _ ->
++              {:error, :auth_failed}
++          end
++        end
++
++      "LOGIN" in mechanisms ->
++        with :ok <- transport.send_line(socket, "AUTH LOGIN"),
++             {:ok, 334, _} <- response(transport, socket),
++             :ok <- transport.send_line(socket, Base.encode64(username)),
++             {:ok, 334, _} <- response(transport, socket),
++             :ok <- transport.send_line(socket, Base.encode64(password)) do
++          authenticated(transport, socket)
++        else
++          _ -> {:error, :auth_failed}
++        end
++
++      true ->
++        {:error, :auth_unsupported}
++    end
++  end
++
++  defp authenticated(transport, socket) do
++    case response(transport, socket) do
++      {:ok, 235, _} -> :ok
++      _ -> {:error, :auth_failed}
++    end
++  end
++
++  defp response(transport, socket, lines \\ [], rounds \\ 0)
++  defp response(_, _, _, rounds) when rounds >= 40, do: {:error, :protocol_error}
++
++  defp response(transport, socket, lines, rounds) do
++    case transport.recv_line(socket) do
++      {:ok, <<code::binary-size(3), separator, _rest::binary>> = line} ->
++        case Integer.parse(code) do
++          {number, ""} when separator == ?\s ->
++            {:ok, number, Enum.join(Enum.reverse([line | lines]))}
++
++          {_number, ""} when separator == ?- ->
++            response(transport, socket, [line | lines], rounds + 1)
++
++          _ ->
++            {:error, :protocol_error}
++        end
++
++      _ ->
++        {:error, :protocol_error}
++    end
++  end
++end
+diff --git a/apps/api/lib/mokaid/mail/workers/poll_worker.ex b/apps/api/lib/mokaid/mail/workers/poll_worker.ex
+--- a/apps/api/lib/mokaid/mail/workers/poll_worker.ex
++++ b/apps/api/lib/mokaid/mail/workers/poll_worker.ex
+@@ -13,7 +13,7 @@
+   alias Mokaid.Mail.Workers.SyncWorker
+ 
+   # OAuth accounts poll only when webhooks look dead.
+-  @oauth_staleness_seconds 15 * 60
++  @oauth_staleness_seconds 60
+ 
+   @impl Oban.Worker
+   def perform(_job) do
+@@ -30,6 +30,14 @@
+     :ok
+   end
+ 
++  # Authentication needs a reconnect; temporary failures retry on a later sweep.
++  defp due?(%{status: "error"} = account, now) do
++    reason = account.error_message || ""
++
++    not String.starts_with?(reason, ["authentication failed:", "credentials unavailable"]) and
++      (is_nil(account.updated_at) or DateTime.diff(now, account.updated_at, :second) >= 300)
++  end
++
+   defp due?(%{provider: "imap"}, _now), do: true
+ 
+   defp due?(account, now) do
+diff --git a/apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex b/apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex
+--- a/apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex
++++ b/apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex
+@@ -45,37 +45,54 @@
+ 
+   def google_callback(conn, %{"code" => code, "state" => state} = params) do
+     redirect_uri = params["redirect_uri"] || default_google_redirect_uri()
+-
+-    with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),
+-         {:ok, result} <- GoogleOAuth.exchange_code(code, state, redirect_uri),
+-         :ok <- ensure_same_workspace(conn, result.workspace_id),
+-         {:ok, connections} <-
+-           Integrations.connect_google_providers(
+-             result.workspace_id,
+-             current_member(conn),
+-             result.credentials,
+-             result.account
+-           ),
+-         {:ok, _} <-
+-           Integrations.sync_google_mcp_installations(
+-             result.workspace_id,
+-             current_member(conn),
+-             result.credentials,
+-             result.account
+-           ) do
+-      ensure_mail_account(conn, result, connections, "gmail")
++    member = current_member(conn)
++
++    with :ok <- Permissions.authorize(member, "integrations.connect"),
++         {:ok, result} <-
++           GoogleOAuth.exchange_code(code, state, redirect_uri, {workspace_id(conn), member.id}),
++         {:ok, completed} <- Integrations.complete_google_connection(result, member) do
++      Integrations.sync_google_mcp_installations(
++        result.workspace_id,
++        member,
++        result.credentials,
++        result.account,
++        result.provider_key
++      )
+ 
+       json(conn, %{
+         data: %{
+-          connections: Enum.map(connections, &Serializer.integration_connection/1),
++          connections: Enum.map(completed.connections, &Serializer.integration_connection/1),
+           connected_account: result.account,
+-          provider_key: result.provider_key
++          provider_key: result.provider_key,
++          mail_account_id: completed.mail_account && completed.mail_account.id
+         }
+       })
+     else
+-      {:error, :invalid_state} -> invalid_state(conn)
+-      {:error, {:token_exchange_failed, _, _}} -> token_exchange_failed(conn, "Google")
+-      other -> other
++      {:error, :invalid_state} ->
++        invalid_state(conn)
++
++      {:error, {:token_exchange_failed, _, _}} ->
++        token_exchange_failed(conn, "Google")
++
++      {:error, reason}
++      when reason in [
++             :missing_required_scopes,
++             :missing_refresh_token,
++             :account_fetch_failed,
++             :unverified_account
++           ] ->
++        conn
++        |> put_status(:unprocessable_entity)
++        |> json(%{
++          error: %{
++            code: Mokaid.Integrations.MailOAuthFlow.public_error(reason),
++            message:
++              "Google mailbox authorization is incomplete. Connect again and allow mail access."
++          }
++        })
++
++      other ->
++        other
+     end
+   end
+ 
+diff --git a/apps/api/lib/mokaid_web/controllers/mail_controller.ex b/apps/api/lib/mokaid_web/controllers/mail_controller.ex
+--- a/apps/api/lib/mokaid_web/controllers/mail_controller.ex
++++ b/apps/api/lib/mokaid_web/controllers/mail_controller.ex
+@@ -16,6 +16,7 @@
+ 
+   def create_imap_account(conn, params) do
+     with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),
++         :ok <- allow_connection_attempt(conn),
+          {:ok, account} <-
+            Mail.create_imap_account(workspace_id(conn), current_member(conn), params) do
+       enqueue_sync(account)
+@@ -24,29 +25,104 @@
+       |> put_status(:created)
+       |> json(%{data: Serializer.mail_account(account)})
+     else
+-      {:error, {:imap_probe_failed, reason}} ->
++      {:error, :mail_connection_rate_limited} ->
+         conn
+-        |> put_status(:unprocessable_entity)
++        |> put_status(:too_many_requests)
+         |> json(%{
+           error: %{
+-            code: "imap_connection_failed",
+-            message: imap_error_message(reason)
++            code: "rate_limited",
++            message: "Too many connection attempts. Wait one minute and try again."
+           }
+         })
+ 
++      {:error, {probe, reason}} when probe in [:imap_probe_failed, :smtp_probe_failed] ->
++        connection_error(conn, probe, reason)
++
+       other ->
+         other
+     end
+   end
+ 
+-  defp imap_error_message(:auth_failed),
+-    do: "The IMAP server rejected the username or password."
+-
+-  defp imap_error_message(:connect_failed),
+-    do: "Could not reach the IMAP server. Check the host and port."
+-
+-  defp imap_error_message(_),
+-    do: "The IMAP connection could not be verified. Check the settings and try again."
++  def update_imap_account(conn, %{"id" => id} = params) do
++    with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),
++         :ok <- allow_connection_attempt(conn),
++         %{provider: "imap"} = account <- Mail.get_account(workspace_id(conn), id),
++         {:ok, updated} <- Mail.update_imap_account(account, current_member(conn), params) do
++      enqueue_sync(updated)
++      json(conn, %{data: Serializer.mail_account(updated)})
++    else
++      nil ->
++        not_found(conn)
++
++      %{provider: _} ->
++        not_found(conn)
++
++      {:error, :mail_connection_rate_limited} ->
++        conn
++        |> put_status(:too_many_requests)
++        |> json(%{
++          error: %{
++            code: "rate_limited",
++            message: "Too many connection attempts. Wait one minute and try again."
++          }
++        })
++
++      {:error, {probe, reason}} when probe in [:imap_probe_failed, :smtp_probe_failed] ->
++        connection_error(conn, probe, reason)
++
++      other ->
++        other
++    end
++  end
++
++  defp allow_connection_attempt(conn) do
++    case Hammer.check_rate("mail-connect:#{current_member(conn).id}", 60_000, 10) do
++      {:allow, _} -> :ok
++      {:deny, _} -> {:error, :mail_connection_rate_limited}
++    end
++  end
++
++  defp connection_error(conn, probe, reason) do
++    protocol = if probe == :smtp_probe_failed, do: "SMTP", else: "IMAP"
++
++    conn
++    |> put_status(:unprocessable_entity)
++    |> json(%{
++      error: %{
++        code: String.downcase(protocol) <> "_connection_failed",
++        message: connection_error_message(protocol, reason)
++      }
++    })
++  end
++
++  defp connection_error_message(protocol, :auth_failed),
++    do:
++      "The #{protocol} server rejected the login. Check your username and use an app password if your provider requires one."
++
++  defp connection_error_message(protocol, :connect_failed),
++    do: "Could not reach the #{protocol} server. Check the server name and port."
++
++  defp connection_error_message(protocol, :tls_failed),
++    do:
++      "The #{protocol} server's secure connection could not be verified. Check its certificate and TLS settings."
++
++  defp connection_error_message(protocol, :starttls_unavailable),
++    do: "This #{protocol} server does not accept STARTTLS. Check the security mode and port."
++
++  defp connection_error_message(protocol, :private_host),
++    do:
++      "The #{protocol} server must be reachable from the internet. Local and private network addresses are not supported."
++
++  defp connection_error_message(_protocol, :inbox_unavailable),
++    do:
++      "The login worked, but the server did not allow access to INBOX. Enable IMAP access for this mailbox."
++
++  defp connection_error_message(_protocol, :auth_unsupported),
++    do:
++      "This SMTP server requires another authentication method. Use the provider's OAuth connection when available."
++
++  defp connection_error_message(protocol, _),
++    do: "The #{protocol} connection could not be verified. Check the settings and try again."
+ 
+   def delete_account(conn, %{"id" => id}) do
+     with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),
+diff --git a/apps/api/lib/mokaid_web/controllers/mail_oauth_controller.ex b/apps/api/lib/mokaid_web/controllers/mail_oauth_controller.ex
+new file mode 100644
+--- /dev/null
++++ b/apps/api/lib/mokaid_web/controllers/mail_oauth_controller.ex
+@@ -0,0 +1,71 @@
++defmodule MokaidWeb.MailOAuthController do
++  use MokaidWeb, :controller
++  alias Mokaid.Integrations.MailOAuthFlow
++
++  def google_start(conn, _params) do
++    with {:ok, result} <- MailOAuthFlow.start(workspace_id(conn), current_member(conn)) do
++      json(conn, %{data: result})
++    else
++      {:error, :oauth_not_configured} ->
++        conn
++        |> put_status(:service_unavailable)
++        |> json(%{
++          error: %{
++            code: "oauth_not_configured",
++            message:
++              "Google connection is temporarily unavailable. Try IMAP or contact your administrator."
++          }
++        })
++
++      other ->
++        other
++    end
++  end
++
++  def show(conn, %{"id" => id}) do
++    with {:ok, result} <- MailOAuthFlow.get(workspace_id(conn), current_member(conn).id, id) do
++      json(conn, %{data: result})
++    end
++  end
++
++  def cancel(conn, %{"id" => id}) do
++    with {:ok, result} <- MailOAuthFlow.cancel(workspace_id(conn), current_member(conn).id, id) do
++      json(conn, %{data: result})
++    end
++  end
++
++  def google_callback(conn, params) do
++    {status, title, message} =
++      case MailOAuthFlow.complete(params) do
++        {:ok, :connected} ->
++          {200, "Gmail connected",
++           "Your mailbox is connected and its first synchronization has started. Return to Mokaid Desktop; you can close this tab."}
++
++        {:error, "authorization_cancelled"} ->
++          {400, "Connection cancelled",
++           "No mailbox was connected. Return to Mokaid Desktop to try again."}
++
++        {:error, "mail_permission_required"} ->
++          {400, "Gmail permission required",
++           "Return to Mokaid Desktop, connect Gmail again, and allow access to your mail."}
++
++        {:error, _} ->
++          {400, "Connection could not be completed",
++           "Return to Mokaid Desktop and try connecting Gmail again. The app will show the connection status."}
++      end
++
++    conn
++    |> put_resp_header("cache-control", "no-store")
++    |> put_resp_header("referrer-policy", "no-referrer")
++    |> put_resp_header(
++      "content-security-policy",
++      "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
++    )
++    |> put_status(status)
++    |> html("""
++    <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
++    <title>#{title} · Mokaid</title><style>body{margin:0;background:#0b0c17;color:#f2efff;font:16px system-ui;display:grid;min-height:100vh;place-items:center}main{max-width:440px;margin:24px;padding:36px;border:1px solid #39314f;border-radius:24px}h1{font-size:26px}p{color:#c2bad7;line-height:1.6}</style>
++    <main><p>Mokaid</p><h1>#{title}</h1><p>#{message}</p></main></html>
++    """)
++  end
++end
+diff --git a/apps/api/lib/mokaid_web/controllers/mail_webhook_controller.ex b/apps/api/lib/mokaid_web/controllers/mail_webhook_controller.ex
+--- a/apps/api/lib/mokaid_web/controllers/mail_webhook_controller.ex
++++ b/apps/api/lib/mokaid_web/controllers/mail_webhook_controller.ex
+@@ -5,27 +5,32 @@
+   - Gmail: GCP Pub/Sub push envelope (from `users.watch`)
+   - Microsoft: Graph change notifications (+ the validationToken handshake)
+ 
+-  Always answers 2xx (except the Graph handshake) so providers don't enter
+-  retry storms; a lost notification is covered by the polling safety net.
++  Gmail rejects requests without the configured Google-signed push identity.
++  Valid notifications are hints acknowledged with 2xx; polling covers missed pushes.
+   """
+ 
+   use MokaidWeb, :controller
+ 
+   alias Mokaid.Mail
+   alias Mokaid.Mail.Webhooks
++  alias Mokaid.Mail.GmailPushAuth
+   alias Mokaid.Mail.Workers.SyncWorker
+ 
+-  require Logger
++  def gmail(conn, params) do
++    with [authorization] <- get_req_header(conn, "authorization"),
++         :ok <- GmailPushAuth.verify(authorization) do
++      case Webhooks.decode_gmail_pubsub(params) do
++        {:ok, %{email_address: email}} ->
++          email |> Mail.find_gmail_accounts() |> Enum.each(&enqueue_sync/1)
+ 
+-  def gmail(conn, params) do
+-    with {:ok, %{email_address: email}} <- Webhooks.decode_gmail_pubsub(params),
+-         %{} = account <- Mail.find_gmail_account(email) do
+-      enqueue_sync(account)
++        _ ->
++          :ok
++      end
++
++      json(conn, %{status: "ok"})
+     else
+-      _ -> Logger.debug("gmail webhook ignored: #{inspect(Map.keys(params))}")
++      _ -> conn |> put_status(:unauthorized) |> json(%{error: "unauthorized"})
+     end
+-
+-    json(conn, %{status: "ok"})
+   end
+ 
+   # Graph subscription handshake: echo the raw token as text/plain.
+diff --git a/apps/api/lib/mokaid_web/router.ex b/apps/api/lib/mokaid_web/router.ex
+--- a/apps/api/lib/mokaid_web/router.ex
++++ b/apps/api/lib/mokaid_web/router.ex
+@@ -25,6 +25,10 @@
+ 
+   pipeline :platform_admin do
+     plug MokaidWeb.Plugs.RequirePlatformAdmin
++  end
++
++  scope "/api", MokaidWeb do
++    get "/mail/oauth/google/callback", MailOAuthController, :google_callback
+   end
+ 
+   scope "/api", MokaidWeb do
+@@ -159,6 +163,11 @@
+     post "/leave-requests", LeaveRequestController, :create
+     post "/leave-requests/:id/approve", LeaveRequestController, :approve
+     post "/leave-requests/:id/reject", LeaveRequestController, :reject
++
++    post "/mail/oauth/google/start", MailOAuthController, :google_start
++    get "/mail/oauth/:id", MailOAuthController, :show
++    delete "/mail/oauth/:id", MailOAuthController, :cancel
++    put "/mail/accounts/:id/imap", MailController, :update_imap_account
+ 
+     get "/integrations", IntegrationController, :index
+     post "/integrations/:provider/connect", IntegrationController, :connect
+diff --git a/apps/api/priv/repo/migrations/20260925130000_add_mail_oauth_flows_and_multiple_accounts.exs b/apps/api/priv/repo/migrations/20260925130000_add_mail_oauth_flows_and_multiple_accounts.exs
+new file mode 100644
+--- /dev/null
++++ b/apps/api/priv/repo/migrations/20260925130000_add_mail_oauth_flows_and_multiple_accounts.exs
+@@ -0,0 +1,37 @@
++defmodule Mokaid.Repo.Migrations.AddMailOauthFlowsAndMultipleAccounts do
++  use Ecto.Migration
++
++  def up do
++    drop unique_index(:integration_connections, [:workspace_id, :provider_id])
++
++    create unique_index(:integration_connections, [
++             :workspace_id,
++             :provider_id,
++             :connected_account
++           ])
++
++    create table(:mail_oauth_flows, primary_key: false) do
++      add :id, :binary_id, primary_key: true
++
++      add :workspace_id, references(:workspaces, type: :binary_id, on_delete: :delete_all),
++        null: false
++
++      add :member_id, references(:workspace_members, type: :binary_id, on_delete: :delete_all), null: false
++      add :status, :string, null: false, default: "pending"
++      add :account_id, references(:mail_accounts, type: :binary_id, on_delete: :nilify_all)
++      add :error, :string
++      add :expires_at, :utc_datetime_usec, null: false
++      timestamps(type: :utc_datetime_usec)
++    end
++
++    create index(:mail_oauth_flows, [:workspace_id, :member_id])
++    create index(:mail_oauth_flows, [:expires_at])
++  end
++
++  def down do
++    drop table(:mail_oauth_flows)
++    # Refuse rollback while multiple accounts exist instead of discarding credentials.
++    drop unique_index(:integration_connections, [:workspace_id, :provider_id, :connected_account])
++    create unique_index(:integration_connections, [:workspace_id, :provider_id])
++  end
++end
+diff --git a/apps/api/test/mokaid/google_mail_oauth_test.exs b/apps/api/test/mokaid/google_mail_oauth_test.exs
+new file mode 100644
+--- /dev/null
++++ b/apps/api/test/mokaid/google_mail_oauth_test.exs
+@@ -0,0 +1,106 @@
++defmodule Mokaid.Integrations.GoogleMailOAuthTest do
++  use ExUnit.Case, async: false
++  alias Mokaid.Integrations.GoogleOAuth
++
++  @redirect "http://localhost:5173/oauth/google/callback"
++  @desktop "https://mokaid.com/api/mail/oauth/google/callback"
++  @gmail_scope "https://www.googleapis.com/auth/gmail.modify"
++
++  setup do
++    previous = Application.get_env(:mokaid, :google_oauth)
++    previous_http = Application.get_env(:mokaid, :google_oauth_http_options, [])
++
++    Application.put_env(:mokaid, :google_oauth,
++      client_id: "test-client",
++      client_secret: "test-secret",
++      redirect_uris: [@redirect],
++      desktop_redirect_uri: @desktop
++    )
++
++    Application.put_env(:mokaid, :google_oauth_http_options, plug: {Req.Test, __MODULE__})
++
++    on_exit(fn ->
++      Application.put_env(:mokaid, :google_oauth, previous)
++      Application.put_env(:mokaid, :google_oauth_http_options, previous_http)
++    end)
++  end
++
++  test "Gmail asks only for mail and verified identity with unique encrypted S256 state" do
++    {:ok, first} = GoogleOAuth.authorize_url("workspace", "member", @redirect, "gmail")
++    {:ok, second} = GoogleOAuth.authorize_url("workspace", "member", @redirect, "gmail")
++    query = URI.decode_query(URI.parse(first).query)
++    assert String.split(query["scope"]) == ["openid", "email", @gmail_scope]
++    assert query["include_granted_scopes"] == "false"
++    assert query["code_challenge_method"] == "S256"
++    assert query["prompt"] == "consent select_account"
++    refute query["state"] == URI.decode_query(URI.parse(second).query)["state"]
++    assert {:ok, data} = GoogleOAuth.verify_state(query["state"], @redirect)
++
++    assert query["code_challenge"] ==
++             Base.url_encode64(:crypto.hash(:sha256, data.code_verifier), padding: false)
++
++    refute query["state"] =~ data.code_verifier
++    assert {:error, :invalid_state} = GoogleOAuth.verify_state(query["state"], @desktop)
++
++    assert {:error, :invalid_state} =
++             GoogleOAuth.exchange_code(
++               "code",
++               query["state"],
++               @redirect,
++               {"workspace", "another-member"}
++             )
++
++    assert {:error, :invalid_state} = GoogleOAuth.exchange_code("code", query["state"], @redirect)
++    assert {:error, :invalid_state} = GoogleOAuth.exchange_code(%{}, %{}, @redirect)
++  end
++
++  test "provider exchange sends the bound verifier and checks consent and verified email" do
++    for {scope, verified, expected} <- [
++          {@gmail_scope, true, :ok},
++          {"openid email", true, :missing_required_scopes},
++          {@gmail_scope, false, :unverified_account}
++        ] do
++      {:ok, url} = GoogleOAuth.authorize_url("workspace", "member", @redirect, "gmail")
++      state = URI.decode_query(URI.parse(url).query)["state"]
++      {:ok, data} = GoogleOAuth.verify_state(state, @redirect)
++
++      Req.Test.stub(__MODULE__, fn conn ->
++        case conn.request_path do
++          "/token" ->
++            {:ok, body, conn} = Plug.Conn.read_body(conn)
++            assert URI.decode_query(body)["code_verifier"] == data.code_verifier
++            assert URI.decode_query(body)["redirect_uri"] == @redirect
++            Req.Test.json(conn, %{access_token: "access", refresh_token: "refresh", scope: scope})
++
++          "/oauth2/v2/userinfo" ->
++            Req.Test.json(conn, %{email: "User@example.com", verified_email: verified})
++        end
++      end)
++
++      result = GoogleOAuth.exchange_code("code", state, @redirect, {"workspace", "member"})
++
++      if expected == :ok do
++        assert {:ok, %{account: "user@example.com", credentials: %{"refresh_token" => "refresh"}}} =
++                 result
++      else
++        assert {:error, ^expected} = result
++      end
++    end
++  end
++
++  test "refresh retains the refresh token when Google does not rotate it and sanitizes errors" do
++    Req.Test.stub(__MODULE__, fn conn -> Req.Test.json(conn, %{access_token: "fresh"}) end)
++
++    assert {:ok, %{"access_token" => "fresh", "refresh_token" => "old-refresh"} = credentials} =
++             GoogleOAuth.refresh_tokens("old-refresh")
++
++    refute Map.has_key?(credentials, "scope")
++
++    Req.Test.stub(__MODULE__, fn conn ->
++      Plug.Conn.send_resp(conn, 400, ~s({"error":"sensitive provider details"}))
++    end)
++
++    assert {:error, {:token_refresh_failed, 400, :provider_error}} =
++             GoogleOAuth.refresh_tokens("old-refresh")
++  end
++end
+diff --git a/apps/api/test/mokaid/mail/gmail_push_auth_test.exs b/apps/api/test/mokaid/mail/gmail_push_auth_test.exs
+new file mode 100644
+--- /dev/null
++++ b/apps/api/test/mokaid/mail/gmail_push_auth_test.exs
+@@ -0,0 +1,92 @@
++defmodule Mokaid.Mail.GmailPushAuthTest do
++  use ExUnit.Case, async: false
++  alias Mokaid.Mail.GmailPushAuth
++
++  @audience "https://mokaid.com/api/webhooks/gmail"
++  @email "mokaid-gmail-push@mokaid.iam.gserviceaccount.com"
++
++  setup do
++    config = Application.get_env(:mokaid, :gmail_pubsub)
++    http = Application.get_env(:mokaid, :gmail_push_http_options)
++    Application.put_env(:mokaid, :gmail_pubsub, audience: @audience, service_account: @email)
++    Application.put_env(:mokaid, :gmail_push_http_options, plug: {Req.Test, __MODULE__})
++    :persistent_term.erase({GmailPushAuth, :keys})
++
++    key = JOSE.JWK.generate_key({:rsa, 2048})
++    {_, public} = JOSE.JWK.to_public_map(key)
++    public = Map.put(public, "kid", "push-test")
++    {_, private} = JOSE.JWK.to_map(key)
++
++    Req.Test.stub(__MODULE__, fn conn ->
++      assert conn.request_path == "/oauth2/v3/certs"
++      Req.Test.json(conn, %{keys: [public]})
++    end)
++
++    on_exit(fn ->
++      :persistent_term.erase({GmailPushAuth, :keys})
++      restore(:gmail_pubsub, config)
++      restore(:gmail_push_http_options, http)
++    end)
++
++    %{signer: Joken.Signer.create("RS256", private, %{"kid" => "push-test"})}
++  end
++
++  test "accepts only the intended signed, verified and unexpired push identity", %{signer: signer} do
++    assert :ok == GmailPushAuth.verify(token(signer))
++
++    for override <- [
++          %{"aud" => "https://other.example"},
++          %{"email" => "other@mokaid.iam.gserviceaccount.com"},
++          %{"email_verified" => false},
++          %{"iss" => "https://attacker.example"},
++          %{"exp" => System.system_time(:second) - 1},
++          %{"iat" => System.system_time(:second) + 300},
++          %{"exp" => "tomorrow"}
++        ] do
++      assert {:error, :unauthorized} == GmailPushAuth.verify(token(signer, override))
++    end
++  end
++
++  test "rejects forged signatures, malformed tokens and missing configuration", %{signer: signer} do
++    other_key = JOSE.JWK.generate_key({:rsa, 2048})
++    {_, private} = JOSE.JWK.to_map(other_key)
++    attacker = Joken.Signer.create("RS256", private, %{"kid" => "push-test"})
++    assert {:error, :unauthorized} == GmailPushAuth.verify(token(attacker))
++
++    for value <- [nil, "", "Bearer not-a-jwt", "Bearer " <> String.duplicate("x", 8193)] do
++      assert {:error, :unauthorized} == GmailPushAuth.verify(value)
++    end
++
++    Application.put_env(:mokaid, :gmail_pubsub, audience: @audience)
++    assert {:error, :unauthorized} == GmailPushAuth.verify(token(signer))
++  end
++
++  test "webhook rejects unauthenticated requests before account lookup" do
++    conn = Phoenix.ConnTest.build_conn(:post, "/api/webhooks/gmail", %{})
++    conn = MokaidWeb.MailWebhookController.gmail(conn, %{})
++    assert conn.status == 401
++  end
++
++  defp token(signer, override \\ %{}) do
++    now = System.system_time(:second)
++
++    claims =
++      Map.merge(
++        %{
++          "aud" => @audience,
++          "email" => @email,
++          "email_verified" => true,
++          "iss" => "https://accounts.google.com",
++          "iat" => now,
++          "exp" => now + 3600
++        },
++        override
++      )
++
++    {:ok, jwt, _} = Joken.generate_and_sign(%{}, claims, signer)
++    "Bearer " <> jwt
++  end
++
++  defp restore(key, nil), do: Application.delete_env(:mokaid, key)
++  defp restore(key, value), do: Application.put_env(:mokaid, key, value)
++end
+diff --git a/apps/api/test/mokaid/mail_connection_test.exs b/apps/api/test/mokaid/mail_connection_test.exs
+new file mode 100644
+--- /dev/null
++++ b/apps/api/test/mokaid/mail_connection_test.exs
+@@ -0,0 +1,198 @@
++defmodule Mokaid.MailConnectionTest do
++  use ExUnit.Case, async: true
++  alias Mokaid.Mail.{ConnectionSettings, ImapProbe, ProbeSocket, SmtpProbe}
++
++  defmodule Transport do
++    def connect(_, _, security, _) do
++      record({:connect, security})
++      {:ok, :socket}
++    end
++
++    def starttls(_, _, _) do
++      record(:starttls)
++      Process.get(:upgrade_result, {:ok, :secured})
++    end
++
++    def send_line(socket, line) do
++      record({socket, line})
++      :ok
++    end
++
++    def recv_line(_) do
++      case Process.get(:responses, []) do
++        [line | rest] ->
++          Process.put(:responses, rest)
++          {:ok, line}
++
++        [] ->
++          {:error, :closed}
++      end
++    end
++
++    def close(_), do: :ok
++    defp record(value), do: Process.put(:commands, Process.get(:commands, []) ++ [value])
++  end
++
++  @attrs %{
++    "email_address" => " me@example.com ",
++    "username" => "",
++    "password" => "app password",
++    "imap_host" => " imap.example.com "
++  }
++
++  test "normalizes empty usernames and explicit TLS defaults without putting passwords in settings" do
++    assert {:ok, attrs} = ConnectionSettings.normalize(@attrs)
++    assert attrs["username"] == "me@example.com"
++    assert attrs["imap_port"] == 993
++    assert attrs["imap_security"] == "tls"
++    assert attrs["smtp_security"] == "starttls"
++    refute Map.has_key?(ConnectionSettings.settings(attrs), "password")
++    assert ConnectionSettings.credentials(attrs)["password"] == "app password"
++  end
++
++  test "legacy false SSL means required STARTTLS, never plaintext" do
++    assert {:ok, attrs} = ConnectionSettings.normalize(Map.put(@attrs, "imap_ssl", false))
++    assert attrs["imap_security"] == "starttls"
++    assert attrs["imap_port"] == 143
++  end
++
++  test "rejects invalid ports, host URLs, CRLF credentials and insecure modes before probing" do
++    for invalid <- [
++          %{"imap_port" => "993garbage"},
++          %{"imap_port" => 0},
++          %{"imap_port" => 65536},
++          %{"imap_host" => "https://imap.example.com"},
++          %{"password" => "pw\r\nA1 LOGOUT"},
++          %{"imap_security" => "none"},
++          %{"email_address" => 123},
++          %{"email_address" => %{}},
++          %{"password" => []},
++          %{"imap_port" => true},
++          %{"email_address" => nil},
++          %{"imap_host" => nil}
++        ] do
++      assert {:error, %Ecto.Changeset{valid?: false}} =
++               ConnectionSettings.normalize(Map.merge(@attrs, invalid))
++    end
++  end
++
++  test "rejects private, loopback, metadata and reserved probe destinations" do
++    for ip <- [
++          {127, 0, 0, 1},
++          {169, 254, 169, 254},
++          {10, 0, 0, 1},
++          {172, 16, 0, 1},
++          {192, 168, 1, 1},
++          {100, 64, 0, 1},
++          {0, 0, 0, 0},
++          {0, 0, 0, 0, 0, 0, 0, 1},
++          {0xFC00, 0, 0, 0, 0, 0, 0, 1}
++        ] do
++      refute ProbeSocket.public_address?(ip)
++    end
++
++    assert ProbeSocket.public_address?({8, 8, 8, 8})
++    assert ProbeSocket.public_address?({0x2607, 0xF8B0, 0, 0, 0, 0, 0, 1})
++  end
++
++  test "IMAP requires greeting, STARTTLS, tagged login and readable INBOX" do
++    Process.put(:responses, [
++      "* OK ready\r\n",
++      "S1 OK begin TLS\r\n",
++      "* CAPABILITY IMAP4rev1\r\n",
++      "A1 ok logged in\r\n",
++      "* 2 EXISTS\r\n",
++      "A2 OK read only\r\n"
++    ])
++
++    assert :ok =
++             ImapProbe.check("mail.example.com", 143, "me", "p\\\"w",
++               security: "starttls",
++               transport: Transport
++             )
++
++    assert [
++             {:connect, "starttls"},
++             {:socket, "S1 STARTTLS"},
++             :starttls,
++             {:secured, login},
++             {:secured, "A2 EXAMINE INBOX"},
++             {:secured, "A3 LOGOUT"}
++           ] = Process.get(:commands)
++
++    assert login == "A1 LOGIN \"me\" \"p\\\\\\\"w\""
++  end
++
++  test "IMAP never sends a password after rejected TLS upgrade" do
++    Process.put(:responses, ["* OK ready\r\n", "S1 NO unavailable\r\n"])
++
++    assert {:error, :starttls_unavailable} =
++             ImapProbe.check("mail.example.com", 143, "me", "secret",
++               security: "starttls",
++               transport: Transport
++             )
++
++    refute inspect(Process.get(:commands)) =~ "secret"
++  end
++
++  test "IMAP does not accept a tagged success embedded in an untagged server response" do
++    Process.put(:responses, ["* OK ready\r\n", "* OK message A1 OK\r\n", "A1 NO bad password\r\n"])
++
++    assert {:error, :auth_failed} =
++             ImapProbe.check("mail.example.com", 993, "me", "secret", transport: Transport)
++  end
++
++  test "SMTP authenticates only after STARTTLS and never sends mail" do
++    Process.put(:responses, [
++      "220 ready\r\n",
++      "250-mail.example.com\r\n",
++      "250 STARTTLS\r\n",
++      "220 start TLS\r\n",
++      "250-mail.example.com\r\n",
++      "250 AUTH PLAIN LOGIN\r\n",
++      "235 authenticated\r\n"
++    ])
++
++    assert :ok = SmtpProbe.check("smtp.example.com", 587, "me", "pw", transport: Transport)
++    commands = Process.get(:commands)
++
++    assert [
++             {:connect, "starttls"},
++             {:socket, "EHLO mokaid.app"},
++             {:socket, "STARTTLS"},
++             :starttls,
++             {:secured, "EHLO mokaid.app"},
++             {:secured, auth},
++             {:secured, "QUIT"}
++           ] = commands
++
++    assert auth == "AUTH PLAIN " <> Base.encode64(<<0>> <> "me" <> <<0>> <> "pw")
++    refute inspect(commands) =~ "MAIL FROM"
++  end
++
++  test "SMTP handles AUTH LOGIN and reports rejected authentication" do
++    Process.put(:responses, [
++      "220 ready\r\n",
++      "250 AUTH LOGIN\r\n",
++      "334 username\r\n",
++      "334 password\r\n",
++      "535 rejected\r\n"
++    ])
++
++    assert {:error, :auth_failed} =
++             SmtpProbe.check("smtp.example.com", 465, "me", "pw",
++               security: "tls",
++               transport: Transport
++             )
++  end
++
++  test "SMTP stops before credentials when certificate validation fails" do
++    Process.put(:responses, ["220 ready\r\n", "250 STARTTLS\r\n", "220 start TLS\r\n"])
++    Process.put(:upgrade_result, {:error, :tls_failed})
++
++    assert {:error, :tls_failed} =
++             SmtpProbe.check("smtp.example.com", 587, "me", "pw", transport: Transport)
++
++    refute inspect(Process.get(:commands)) =~ "AUTH"
++  end
++end
+diff --git a/apps/api/test/mokaid/mail_disconnect_test.exs b/apps/api/test/mokaid/mail_disconnect_test.exs
+new file mode 100644
+--- /dev/null
++++ b/apps/api/test/mokaid/mail_disconnect_test.exs
+@@ -0,0 +1,156 @@
++defmodule Mokaid.MailDisconnectTest do
++  use Mokaid.DataCase, async: false
++  alias Mokaid.{Integrations, Mail, Repo, Vault}
++  alias Mokaid.Integrations.{IntegrationConnection, IntegrationProvider, TokenRefresher}
++  alias Mokaid.Mail.Account
++
++  defp context do
++    {workspace, owner} = workspace_fixture()
++    {workspace, owner_member(workspace, owner)}
++  end
++
++  defp connection(workspace, member, key, email) do
++    provider =
++      Repo.insert!(
++        %IntegrationProvider{key: key, name: key, category: "communication", enabled: true},
++        on_conflict: {:replace, [:name]},
++        conflict_target: :key,
++        returning: true
++      )
++
++    Repo.insert!(%IntegrationConnection{
++      workspace_id: workspace.id,
++      provider_id: provider.id,
++      connected_by_member_id: member.id,
++      connected_account: email,
++      status: "connected",
++      encrypted_credentials:
++        Vault.encrypt(%{
++          "access_token" => "access",
++          "refresh_token" => "refresh",
++          "expires_at" => DateTime.to_iso8601(DateTime.add(DateTime.utc_now(), -60))
++        })
++    })
++  end
++
++  defp mailbox(workspace, member, provider, email, connection) do
++    Repo.insert!(%Account{
++      workspace_id: workspace.id,
++      member_id: member.id,
++      provider: provider,
++      email_address: email,
++      connection_id: connection.id
++    })
++  end
++
++  test "disconnect clears only the exact Gmail or Microsoft integration" do
++    for {provider, key} <- [{"gmail", "gmail"}, {"microsoft", "outlook"}] do
++      {workspace, member} = context()
++      own = connection(workspace, member, key, "first@example.com")
++      other = connection(workspace, member, key, "other@example.com")
++      drive = connection(workspace, member, "google_drive", "first@example.com")
++      account = mailbox(workspace, member, provider, "first@example.com", own)
++      remaining = mailbox(workspace, member, provider, "other@example.com", other)
++      assert {:ok, _} = Mail.delete_account(account)
++      assert is_nil(Mail.get_account(workspace.id, account.id))
++      disconnected = Integrations.get_connection(workspace.id, own.id)
++      assert disconnected.status == "disconnected"
++      assert is_nil(disconnected.encrypted_credentials)
++      assert Integrations.decrypted_credentials(disconnected) == nil
++      assert Integrations.get_connection(workspace.id, other.id).status == "connected"
++
++      assert Integrations.get_connection(workspace.id, drive.id).encrypted_credentials ==
++               drive.encrypted_credentials
++
++      assert Mail.get_account(workspace.id, remaining.id)
++    end
++  end
++
++  test "legacy shared or mismatched references never clear another mailbox identity" do
++    {workspace, member} = context()
++    own = connection(workspace, member, "gmail", "first@example.com")
++    first = mailbox(workspace, member, "gmail", "first@example.com", own)
++    legacy = mailbox(workspace, member, "gmail", "legacy@example.com", own)
++    assert {:ok, _} = Mail.delete_account(first)
++
++    assert Integrations.get_connection(workspace.id, own.id).encrypted_credentials ==
++             own.encrypted_credentials
++
++    assert {:ok, _} = Mail.delete_account(legacy)
++
++    assert Integrations.get_connection(workspace.id, own.id).encrypted_credentials ==
++             own.encrypted_credentials
++  end
++
++  test "foreign workspace and mismatched provider connections are untouched" do
++    {workspace, member} = context()
++    {other_workspace, other_member} = context()
++    foreign = connection(other_workspace, other_member, "gmail", "first@example.com")
++    account = mailbox(workspace, member, "gmail", "first@example.com", foreign)
++    assert {:ok, _} = Mail.delete_account(account)
++
++    assert Integrations.get_connection(other_workspace.id, foreign.id).encrypted_credentials ==
++             foreign.encrypted_credentials
++
++    drive = connection(workspace, member, "google_drive", "first@example.com")
++    account = mailbox(workspace, member, "gmail", "first@example.com", drive)
++    assert {:ok, _} = Mail.delete_account(account)
++
++    assert Integrations.get_connection(workspace.id, drive.id).encrypted_credentials ==
++             drive.encrypted_credentials
++  end
++
++  test "a refresh finishing after disconnect cannot restore credentials" do
++    {workspace, member} = context()
++    own = connection(workspace, member, "gmail", "first@example.com")
++    account = mailbox(workspace, member, "gmail", "first@example.com", own)
++    previous = Application.get_env(:mokaid, :google_oauth)
++    previous_http = Application.get_env(:mokaid, :google_oauth_http_options)
++    Application.put_env(:mokaid, :google_oauth, client_id: "test", client_secret: "test")
++    Application.put_env(:mokaid, :google_oauth_http_options, plug: {Req.Test, __MODULE__})
++
++    on_exit(fn ->
++      Application.put_env(:mokaid, :google_oauth, previous)
++      Application.put_env(:mokaid, :google_oauth_http_options, previous_http)
++    end)
++
++    Req.Test.stub(__MODULE__, fn conn ->
++      assert {:ok, _} = Mail.delete_account(account)
++      Req.Test.json(conn, %{access_token: "refreshed", refresh_token: "rotated"})
++    end)
++
++    assert {:error, :credentials_changed} = TokenRefresher.fresh_credentials(own)
++    disconnected = Integrations.get_connection(workspace.id, own.id)
++    assert disconnected.status == "disconnected"
++    assert is_nil(disconnected.encrypted_credentials)
++  end
++
++  test "a delayed refresh preserves newer reconnect credentials without disabling the mailbox" do
++    {workspace, member} = context()
++    own = connection(workspace, member, "gmail", "first@example.com")
++    previous = Application.get_env(:mokaid, :google_oauth)
++    previous_http = Application.get_env(:mokaid, :google_oauth_http_options)
++    Application.put_env(:mokaid, :google_oauth, client_id: "test", client_secret: "test")
++    Application.put_env(:mokaid, :google_oauth_http_options, plug: {Req.Test, __MODULE__})
++
++    on_exit(fn ->
++      Application.put_env(:mokaid, :google_oauth, previous)
++      Application.put_env(:mokaid, :google_oauth_http_options, previous_http)
++    end)
++
++    Req.Test.stub(__MODULE__, fn conn ->
++      assert {:ok, _} =
++               Integrations.store_credentials(own, %{
++                 "access_token" => "newer-access",
++                 "refresh_token" => "newer-refresh",
++                 "expires_at" => DateTime.to_iso8601(DateTime.add(DateTime.utc_now(), 3600))
++               })
++
++      Req.Test.json(conn, %{access_token: "stale-refresh", refresh_token: "stale-refresh-token"})
++    end)
++
++    assert {:ok, %{"access_token" => "newer-access"}} = TokenRefresher.fresh_credentials(own)
++    current = Integrations.get_connection(workspace.id, own.id)
++    assert Integrations.decrypted_credentials(current)["refresh_token"] == "newer-refresh"
++  end
++end
+diff --git a/apps/api/test/mokaid/mail_oauth_flow_test.exs b/apps/api/test/mokaid/mail_oauth_flow_test.exs
+new file mode 100644
+--- /dev/null
++++ b/apps/api/test/mokaid/mail_oauth_flow_test.exs
+@@ -0,0 +1,256 @@
++defmodule Mokaid.Integrations.MailOAuthFlowTest do
++  use Mokaid.DataCase, async: false
++  use Oban.Testing, repo: Mokaid.Repo
++  import Mokaid.Fixtures
++  alias Mokaid.{Integrations, Repo}
++  alias Mokaid.Integrations.{IntegrationProvider, MailOAuthFlow}
++
++  @redirect "https://mokaid.com/api/mail/oauth/google/callback"
++  @scope "https://www.googleapis.com/auth/gmail.modify"
++
++  setup do
++    previous = Application.get_env(:mokaid, :google_oauth)
++    previous_http = Application.get_env(:mokaid, :google_oauth_http_options, [])
++
++    Application.put_env(:mokaid, :google_oauth,
++      client_id: "test-client",
++      client_secret: "test-secret",
++      desktop_redirect_uri: @redirect
++    )
++
++    Application.put_env(:mokaid, :google_oauth_http_options, plug: {Req.Test, __MODULE__})
++
++    on_exit(fn ->
++      Application.put_env(:mokaid, :google_oauth, previous)
++      Application.put_env(:mokaid, :google_oauth_http_options, previous_http)
++    end)
++
++    {workspace, user} = workspace_fixture()
++    member = owner_member(workspace, user)
++
++    Repo.insert!(
++      %IntegrationProvider{key: "gmail", name: "Gmail", category: "communication", enabled: true},
++      on_conflict: :nothing,
++      conflict_target: :key
++    )
++
++    %{workspace: workspace, member: member}
++  end
++
++  defp authorize(workspace, member, email, refresh \\ "refresh") do
++    Req.Test.stub(__MODULE__, fn conn ->
++      case conn.request_path do
++        "/token" ->
++          Req.Test.json(conn, %{
++            access_token: "access-#{email}",
++            refresh_token: refresh,
++            scope: @scope
++          })
++
++        "/oauth2/v2/userinfo" ->
++          Req.Test.json(conn, %{email: email, verified_email: true})
++      end
++    end)
++
++    {:ok, started} = MailOAuthFlow.start(workspace.id, member)
++    state = URI.decode_query(URI.parse(started.authorize_url).query)["state"]
++    {started, %{"state" => state, "code" => "code"}}
++  end
++
++  test "native consent connects two independent Gmail accounts, queues initial sync, and rejects replay",
++       %{workspace: workspace, member: member} do
++    Oban.Testing.with_testing_mode(:manual, fn ->
++      {first, params} = authorize(workspace, member, "first@example.com")
++
++      assert {:ok, %{status: "pending"}} =
++               MailOAuthFlow.get(workspace.id, member.id, first.flow_id)
++
++      assert {:error, :not_found} =
++               MailOAuthFlow.get(workspace.id, Ecto.UUID.generate(), first.flow_id)
++
++      assert {:ok, :connected} = MailOAuthFlow.complete(params)
++
++      assert {:ok, %{status: "connected", account_id: first_id}} =
++               MailOAuthFlow.get(workspace.id, member.id, first.flow_id)
++
++      assert {:error, "authorization_expired"} = MailOAuthFlow.complete(params)
++      {second, params} = authorize(workspace, member, "second@example.com")
++      assert {:ok, :connected} = MailOAuthFlow.complete(params)
++
++      assert {:ok, %{account_id: second_id}} =
++               MailOAuthFlow.get(workspace.id, member.id, second.flow_id)
++
++      refute first_id == second_id
++      first_account = Mokaid.Mail.get_account(workspace.id, first_id)
++      second_account = Mokaid.Mail.get_account(workspace.id, second_id)
++      refute first_account.connection_id == second_account.connection_id
++      first_connection = Integrations.get_connection(workspace.id, first_account.connection_id)
++
++      assert Integrations.decrypted_credentials(first_connection)["access_token"] ==
++               "access-first@example.com"
++
++      assert all_enqueued(worker: Mokaid.Mail.Workers.SyncWorker)
++             |> Enum.map(& &1.args["mail_account_id"])
++             |> Enum.sort() == Enum.sort([first_id, second_id])
++    end)
++  end
++
++  test "reconnection preserves the existing refresh token and account identity", %{
++    workspace: workspace,
++    member: member
++  } do
++    Oban.Testing.with_testing_mode(:manual, fn ->
++      {first, params} = authorize(workspace, member, "first@example.com", "persistent-refresh")
++      assert {:ok, :connected} = MailOAuthFlow.complete(params)
++      {:ok, %{account_id: id}} = MailOAuthFlow.get(workspace.id, member.id, first.flow_id)
++      {second, params} = authorize(workspace, member, "first@example.com", nil)
++      assert {:ok, :connected} = MailOAuthFlow.complete(params)
++
++      assert {:ok, %{account_id: ^id}} =
++               MailOAuthFlow.get(workspace.id, member.id, second.flow_id)
++
++      account = Mokaid.Mail.get_account(workspace.id, id)
++      connection = Integrations.get_connection(workspace.id, account.connection_id)
++
++      assert Integrations.decrypted_credentials(connection)["refresh_token"] ==
++               "persistent-refresh"
++
++      assert length(Integrations.list_connections(workspace.id)) == 1
++    end)
++  end
++
++  test "missing refresh credentials roll back mailbox connection instead of reporting success", %{
++    workspace: workspace,
++    member: member
++  } do
++    {started, params} = authorize(workspace, member, "first@example.com", nil)
++    assert {:error, "reconnect_with_consent"} = MailOAuthFlow.complete(params)
++
++    assert {:ok, %{status: "failed", error: "reconnect_with_consent"}} =
++             MailOAuthFlow.get(workspace.id, member.id, started.flow_id)
++
++    assert Integrations.list_connections(workspace.id) == []
++    assert Mokaid.Mail.list_accounts(workspace.id) == []
++  end
++
++  test "cancellation and expired flows cannot create accounts", %{
++    workspace: workspace,
++    member: member
++  } do
++    {started, params} = authorize(workspace, member, "first@example.com")
++
++    assert {:error, "authorization_cancelled"} =
++             MailOAuthFlow.complete(Map.put(params, "error", "access_denied"))
++
++    assert {:ok, %{status: "failed"}} =
++             MailOAuthFlow.get(workspace.id, member.id, started.flow_id)
++
++    {expired, params} = authorize(workspace, member, "first@example.com")
++
++    Repo.get!(MailOAuthFlow, expired.flow_id)
++    |> Ecto.Changeset.change(expires_at: DateTime.add(DateTime.utc_now(), -1))
++    |> Repo.update!()
++
++    assert {:error, "authorization_expired"} = MailOAuthFlow.complete(params)
++
++    assert {:ok, %{status: "failed", error: "authorization_expired"}} =
++             MailOAuthFlow.get(workspace.id, member.id, expired.flow_id)
++  end
++
++  test "desktop cancellation prevents a later Google callback from connecting", %{
++    workspace: workspace,
++    member: member
++  } do
++    {started, params} = authorize(workspace, member, "first@example.com")
++
++    assert {:error, :not_found} =
++             MailOAuthFlow.cancel(workspace.id, Ecto.UUID.generate(), started.flow_id)
++
++    assert {:ok, %{status: "failed", error: "authorization_cancelled"}} =
++             MailOAuthFlow.cancel(workspace.id, member.id, started.flow_id)
++
++    assert {:error, "authorization_expired"} = MailOAuthFlow.complete(params)
++    assert Mokaid.Mail.list_accounts(workspace.id) == []
++  end
++
++  test "cancellation while Google exchanges credentials prevents persistence", %{
++    workspace: workspace,
++    member: member
++  } do
++    {started, params} = authorize(workspace, member, "first@example.com")
++
++    Req.Test.stub(__MODULE__, fn conn ->
++      case conn.request_path do
++        "/token" ->
++          assert {:ok, %{status: "failed"}} =
++                   MailOAuthFlow.cancel(workspace.id, member.id, started.flow_id)
++
++          Req.Test.json(conn, %{access_token: "access", refresh_token: "refresh", scope: @scope})
++
++        "/oauth2/v2/userinfo" ->
++          Req.Test.json(conn, %{email: "first@example.com", verified_email: true})
++      end
++    end)
++
++    assert {:error, "authorization_cancelled"} = MailOAuthFlow.complete(params)
++    assert Integrations.list_connections(workspace.id) == []
++    assert Mokaid.Mail.list_accounts(workspace.id) == []
++  end
++
++  for change <- [:expired, :member_removed, :permission_revoked, :user_suspended] do
++    @change change
++    test "rejects consent when #{@change} during the provider exchange", %{
++      workspace: workspace,
++      member: member
++    } do
++      change = @change
++      {started, params} = authorize(workspace, member, "first@example.com")
++
++      Req.Test.stub(__MODULE__, fn conn ->
++        case conn.request_path do
++          "/token" ->
++            change_authorization(change, started, workspace, member)
++
++            Req.Test.json(conn, %{access_token: "access", refresh_token: "refresh", scope: @scope})
++
++          "/oauth2/v2/userinfo" ->
++            Req.Test.json(conn, %{email: "first@example.com", verified_email: true})
++        end
++      end)
++
++      expected = authorization_error(change)
++
++      assert {:error, ^expected} = MailOAuthFlow.complete(params)
++
++      assert {:ok, %{status: "failed", error: ^expected}} =
++               MailOAuthFlow.get(workspace.id, member.id, started.flow_id)
++
++      assert Integrations.list_connections(workspace.id) == []
++      assert Mokaid.Mail.list_accounts(workspace.id) == []
++    end
++  end
++
++  defp authorization_error(:expired), do: "authorization_expired"
++  defp authorization_error(_), do: "workspace_access_revoked"
++
++  defp change_authorization(change, started, workspace, member) do
++    case change do
++      :expired ->
++        Repo.get!(MailOAuthFlow, started.flow_id)
++        |> Ecto.Changeset.change(expires_at: DateTime.add(DateTime.utc_now(), -1))
++        |> Repo.update!()
++
++      :member_removed ->
++        member |> Ecto.Changeset.change(status: "removed") |> Repo.update!()
++
++      :permission_revoked ->
++        role = Mokaid.Members.get_role_by_name(workspace.id, "Viewer")
++        member |> Ecto.Changeset.change(role_id: role.id) |> Repo.update!()
++
++      :user_suspended ->
++        Repo.get!(Mokaid.Accounts.User, member.user_id)
++        |> Ecto.Changeset.change(status: "suspended")
++        |> Repo.update!()
++    end
++  end
++end
+diff --git a/apps/api/test/mokaid/mail_test.exs b/apps/api/test/mokaid/mail_test.exs
+--- a/apps/api/test/mokaid/mail_test.exs
++++ b/apps/api/test/mokaid/mail_test.exs
+@@ -44,6 +44,79 @@
+       assert %{password: ["can't be blank"]} = errors_on(changeset)
+     end
+ 
++    test "reconnect preserves account, messages and cursor while replacing encrypted credentials" do
++      {workspace, member} = workspace_with_member()
++
++      attrs = %{
++        "email_address" => "reconnect@example.com",
++        "password" => "old",
++        "imap_host" => "imap.example.com"
++      }
++
++      {:ok, account} = Mail.create_imap_account(workspace.id, member, attrs)
++
++      {:ok, account} =
++        Mail.update_sync_state(account, %{
++          "status" => "error",
++          "error_message" => "old failure",
++          "sync_state" => %{"uid_next" => 42}
++        })
++
++      {:ok, _} =
++        Mail.ingest_messages(account, [%{"provider_message_id" => "mail-1", "subject" => "Saved"}])
++
++      assert {:ok, updated} =
++               Mail.update_imap_account(account, member, Map.put(attrs, "password", "new"))
++
++      assert updated.id == account.id
++      assert updated.status == "active"
++      assert updated.error_message == nil
++      assert updated.sync_state == %{"uid_next" => 42}
++
++      assert {:ok, %{"password" => "new"}} =
++               Mokaid.Vault.decrypt_map(updated.encrypted_credentials)
++
++      assert [_] = Mail.list_messages(workspace.id)
++      refute Map.has_key?(updated.settings, "password")
++    end
++
++    test "reconnection refuses to mix another email address into the same mailbox" do
++      {workspace, member} = workspace_with_member()
++
++      attrs = %{
++        "email_address" => "original@example.com",
++        "password" => "pw",
++        "imap_host" => "imap.example.com"
++      }
++
++      {:ok, account} = Mail.create_imap_account(workspace.id, member, attrs)
++
++      assert {:error, changeset} =
++               Mail.update_imap_account(
++                 account,
++                 member,
++                 Map.put(attrs, "email_address", "different@example.com")
++               )
++
++      assert %{email_address: [_]} = errors_on(changeset)
++      assert Mail.get_account(workspace.id, account.id).email_address == "original@example.com"
++    end
++
++    test "invalid settings do not create a mailbox" do
++      {workspace, member} = workspace_with_member()
++
++      assert {:error, changeset} =
++               Mail.create_imap_account(workspace.id, member, %{
++                 "email_address" => "bad@example.com",
++                 "password" => "pw",
++                 "imap_host" => "imap.example.com",
++                 "imap_port" => "993oops"
++               })
++
++      assert %{imap_port: [_]} = errors_on(changeset)
++      assert [] = Mail.list_accounts(workspace.id)
++    end
++
+     test "enforces one account per workspace/provider/address" do
+       {workspace, member} = workspace_with_member()
+ 
+@@ -71,6 +144,47 @@
+ 
+       assert account.id == again.id
+       assert [_only_one] = Mail.list_accounts(workspace.id)
++    end
++
++    test "worker credentials cannot cross mailbox identities on legacy shared connections" do
++      {workspace, member} = workspace_with_member()
++
++      provider =
++        Repo.insert!(%Mokaid.Integrations.IntegrationProvider{
++          key: "gmail",
++          name: "Gmail",
++          category: "email"
++        })
++
++      connection =
++        Repo.insert!(%Mokaid.Integrations.IntegrationConnection{
++          workspace_id: workspace.id,
++          provider_id: provider.id,
++          status: "connected",
++          connected_account: "second@gmail.com",
++          encrypted_credentials:
++            Mokaid.Vault.encrypt(%{
++              "access_token" => "test-token",
++              "expires_at" => "2099-01-01T00:00:00Z"
++            })
++        })
++
++      {:ok, first} =
++        Mail.ensure_oauth_account(workspace.id, member, "gmail", "first@gmail.com", connection.id)
++
++      {:ok, second} =
++        Mail.ensure_oauth_account(
++          workspace.id,
++          member,
++          "gmail",
++          "second@gmail.com",
++          connection.id
++        )
++
++      assert {:error, :reconnect_required} = Mail.worker_account_payload(first)
++
++      assert {:ok, %{credentials: %{"access_token" => "test-token"}}} =
++               Mail.worker_account_payload(second)
+     end
+ 
+     test "gmail accounts are findable by address for webhooks" do
+diff --git a/apps/api/test/mokaid_web/mail_oauth_controller_test.exs b/apps/api/test/mokaid_web/mail_oauth_controller_test.exs
+new file mode 100644
+--- /dev/null
++++ b/apps/api/test/mokaid_web/mail_oauth_controller_test.exs
+@@ -0,0 +1,132 @@
++defmodule MokaidWeb.MailOAuthControllerTest do
++  use MokaidWeb.ConnCase, async: false
++  alias Mokaid.Auth.{Desktop, Token}
++
++  setup do
++    previous = Application.get_env(:mokaid, :google_oauth)
++    previous_rollout = Application.get_env(:mokaid, :desktop_only_business)
++
++    Application.put_env(:mokaid, :google_oauth,
++      client_id: "test-client",
++      client_secret: "test-secret",
++      desktop_redirect_uri: "https://mokaid.com/api/mail/oauth/google/callback"
++    )
++
++    Application.put_env(:mokaid, :desktop_only_business, true)
++
++    on_exit(fn ->
++      Application.put_env(:mokaid, :google_oauth, previous)
++      Application.put_env(:mokaid, :desktop_only_business, previous_rollout)
++    end)
++
++    {workspace, user} = workspace_fixture()
++    %{workspace: workspace, user: user}
++  end
++
++  defp native_token(user) do
++    verifier = String.duplicate("v", 64)
++    redirect = "http://127.0.0.1:54321/callback"
++
++    {:ok, request} =
++      Desktop.create_request(%{
++        "code_challenge" => Base.url_encode64(:crypto.hash(:sha256, verifier), padding: false),
++        "state" => String.duplicate("s", 43),
++        "redirect_uri" => redirect
++      })
++
++    {:ok, callback} = Desktop.approve(request.id, user)
++    %{"code" => code} = URI.decode_query(URI.parse(callback).query)
++
++    {:ok, tokens} =
++      Desktop.exchange(%{"code" => code, "code_verifier" => verifier, "redirect_uri" => redirect})
++
++    tokens.access_token
++  end
++
++  defp authenticate(conn, token, workspace) do
++    conn
++    |> put_req_header("authorization", "Bearer " <> token)
++    |> put_req_header("x-workspace-id", workspace.id)
++  end
++
++  test "native mailbox flow can start and poll without a browser session", %{
++    conn: conn,
++    workspace: workspace,
++    user: user
++  } do
++    token = native_token(user)
++
++    response =
++      conn
++      |> authenticate(token, workspace)
++      |> post("/api/mail/oauth/google/start", %{})
++      |> json_response(200)
++
++    id = response["data"]["flow_id"]
++    authorize = URI.decode_query(URI.parse(response["data"]["authorize_url"]).query)
++    assert authorize["redirect_uri"] == "https://mokaid.com/api/mail/oauth/google/callback"
++
++    assert conn
++           |> authenticate(token, workspace)
++           |> get("/api/mail/oauth/" <> id)
++           |> json_response(200) == %{
++             "data" => %{"status" => "pending", "account_id" => nil, "error" => nil}
++           }
++
++    assert conn
++           |> authenticate(token, workspace)
++           |> get("/api/mail/oauth/not-a-uuid")
++           |> json_response(404)
++  end
++
++  test "browser sessions cannot initiate desktop mail consent", %{
++    conn: conn,
++    workspace: workspace,
++    user: user
++  } do
++    response =
++      conn
++      |> authenticate(Token.sign(user.id), workspace)
++      |> post("/api/mail/oauth/google/start", %{})
++      |> json_response(403)
++
++    assert response["error"]["code"] == "desktop_required"
++  end
++
++  test "public provider return accepts an ordinary browser and reveals no codes", %{conn: conn} do
++    conn =
++      conn
++      |> put_req_header("accept", "text/html")
++      |> get("/api/mail/oauth/google/callback", %{state: "invalid", code: "secret-code"})
++
++    assert html_response(conn, 400) =~ "Return to Mokaid Desktop"
++    refute conn.resp_body =~ "secret-code"
++    assert get_resp_header(conn, "cache-control") == ["no-store"]
++    assert get_resp_header(conn, "referrer-policy") == ["no-referrer"]
++  end
++
++  test "native cancellation persists a failed flow", %{
++    conn: conn,
++    workspace: workspace,
++    user: user
++  } do
++    token = native_token(user)
++
++    response =
++      conn
++      |> authenticate(token, workspace)
++      |> post("/api/mail/oauth/google/start", %{})
++      |> json_response(200)
++
++    id = response["data"]["flow_id"]
++
++    cancelled =
++      conn
++      |> authenticate(token, workspace)
++      |> delete("/api/mail/oauth/" <> id)
++      |> json_response(200)
++
++    assert cancelled["data"]["status"] == "failed"
++    assert cancelled["data"]["error"] == "authorization_cancelled"
++  end
++end
+diff --git a/apps/api/test/mokaid_web/mail_webhook_controller_test.exs b/apps/api/test/mokaid_web/mail_webhook_controller_test.exs
+new file mode 100644
+--- /dev/null
++++ b/apps/api/test/mokaid_web/mail_webhook_controller_test.exs
+@@ -0,0 +1,110 @@
++defmodule MokaidWeb.MailWebhookControllerTest do
++  use MokaidWeb.ConnCase, async: false
++  use Oban.Testing, repo: Mokaid.Repo
++  alias Mokaid.Mail.{Account, GmailPushAuth}
++
++  @audience "https://mokaid.com/api/webhooks/gmail"
++  @email "mokaid-gmail-push@mokaid.iam.gserviceaccount.com"
++
++  setup do
++    previous = Application.get_env(:mokaid, :gmail_pubsub)
++    previous_http = Application.get_env(:mokaid, :gmail_push_http_options)
++    Application.put_env(:mokaid, :gmail_pubsub, audience: @audience, service_account: @email)
++    Application.put_env(:mokaid, :gmail_push_http_options, plug: {Req.Test, __MODULE__})
++    :persistent_term.erase({GmailPushAuth, :keys})
++    key = JOSE.JWK.generate_key({:rsa, 2048})
++    {_, public} = JOSE.JWK.to_public_map(key)
++    {_, private} = JOSE.JWK.to_map(key)
++
++    Req.Test.stub(__MODULE__, fn conn ->
++      Req.Test.json(conn, %{keys: [Map.put(public, "kid", "push-test")]})
++    end)
++
++    on_exit(fn ->
++      :persistent_term.erase({GmailPushAuth, :keys})
++      Application.put_env(:mokaid, :gmail_pubsub, previous)
++      Application.put_env(:mokaid, :gmail_push_http_options, previous_http)
++    end)
++
++    signer = Joken.Signer.create("RS256", private, %{"kid" => "push-test"})
++    now = System.system_time(:second)
++
++    {:ok, token, _} =
++      Joken.generate_and_sign(
++        %{},
++        %{
++          "aud" => @audience,
++          "email" => @email,
++          "email_verified" => true,
++          "iss" => "https://accounts.google.com",
++          "iat" => now,
++          "exp" => now + 3600
++        },
++        signer
++      )
++
++    %{authorization: "Bearer " <> token}
++  end
++
++  defp mailbox(email, status \\ "active") do
++    {workspace, user} = workspace_fixture()
++    member = owner_member(workspace, user)
++
++    Repo.insert!(%Account{
++      workspace_id: workspace.id,
++      member_id: member.id,
++      email_address: email,
++      provider: "gmail",
++      status: status
++    })
++  end
++
++  test "signed Gmail push fans out to every active matching workspace without duplicates", %{
++    conn: conn,
++    authorization: authorization
++  } do
++    one = mailbox("shared@example.com")
++    two = mailbox("shared@example.com")
++    mailbox("shared@example.com", "paused")
++    mailbox("different@example.com")
++
++    payload = %{
++      message: %{
++        data:
++          Base.encode64(Jason.encode!(%{emailAddress: "SHARED@example.com", historyId: "123"}))
++      }
++    }
++
++    Oban.Testing.with_testing_mode(:manual, fn ->
++      for _ <- 1..2 do
++        assert conn
++               |> put_req_header("authorization", authorization)
++               |> post("/api/webhooks/gmail", payload)
++               |> json_response(200) == %{"status" => "ok"}
++      end
++
++      ids =
++        all_enqueued(worker: Mokaid.Mail.Workers.SyncWorker)
++        |> Enum.map(& &1.args["mail_account_id"])
++
++      assert Enum.sort(ids) == Enum.sort([one.id, two.id])
++    end)
++  end
++
++  test "invalid signature cannot queue a mailbox sync", %{conn: conn} do
++    mailbox("shared@example.com")
++
++    payload = %{
++      message: %{data: Base.encode64(Jason.encode!(%{emailAddress: "shared@example.com"}))}
++    }
++
++    Oban.Testing.with_testing_mode(:manual, fn ->
++      assert conn
++             |> put_req_header("authorization", "Bearer forged")
++             |> post("/api/webhooks/gmail", payload)
++             |> json_response(401)
++
++      assert all_enqueued(worker: Mokaid.Mail.Workers.SyncWorker) == []
++    end)
++  end
++end

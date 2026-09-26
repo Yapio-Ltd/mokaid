@@ -89,6 +89,53 @@ defmodule MokaidWeb.DesktopAuthTest do
            |> json_response(401)
   end
 
+  test "dedicated refresh endpoint recovers a committed response and protects credentials", %{
+    conn: conn,
+    user: user
+  } do
+    {:ok, request} = Desktop.create_request(attrs())
+    {:ok, redirect} = Desktop.approve(request.id, user)
+    %{"code" => code} = URI.decode_query(URI.parse(redirect).query)
+
+    {:ok, first} =
+      Desktop.exchange(%{
+        "code" => code,
+        "code_verifier" => @verifier,
+        "redirect_uri" => @redirect
+      })
+
+    request_id = String.duplicate("r", 43)
+    params = %{refresh_token: first.refresh_token, refresh_request_id: request_id}
+    rotated = post(conn, "/api/desktop/auth/refresh", params)
+    second = json_response(rotated, 200)["data"]
+    assert second["refresh_token"] != first.refresh_token
+    assert get_resp_header(rotated, "cache-control") == ["no-store"]
+    recovered = post(conn, "/api/desktop/auth/refresh", params) |> json_response(200)
+    assert recovered["data"]["refresh_token"] == second["refresh_token"]
+    assert recovered["data"]["user"]["id"] == user.id
+    refute rotated.resp_body =~ request_id
+    assert "refresh_request_id" in Application.fetch_env!(:phoenix, :filter_parameters)
+
+    assert post(conn, "/api/desktop/auth/refresh", %{refresh_token: first.refresh_token})
+           |> json_response(400)
+  end
+
+  test "refresh endpoint applies the token rate limit and never reflects malformed IDs", %{
+    conn: conn
+  } do
+    params = %{refresh_token: "invalid", refresh_request_id: "never-return-this-request-id"}
+
+    for _ <- 1..60 do
+      result = post(conn, "/api/desktop/auth/refresh", params)
+      assert json_response(result, 400)["error"]["code"] == "invalid_grant"
+      refute result.resp_body =~ params.refresh_request_id
+    end
+
+    blocked = post(conn, "/api/desktop/auth/refresh", params)
+    assert json_response(blocked, 429)["error"]["code"] == "rate_limited"
+    assert get_resp_header(blocked, "retry-after") == ["60"]
+  end
+
   test "invalid input is bounded and errors do not reflect secrets", %{conn: conn} do
     secret = "never-return-this-secret"
 

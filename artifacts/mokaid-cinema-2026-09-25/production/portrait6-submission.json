@@ -1,0 +1,41 @@
+{
+  "jobId": "10cc591a-7b6f-4a43-bafe-00bf83cb266c",
+  "status": "pending",
+  "params": {
+    "model": "cinematic_studio_video_v2",
+    "aspect_ratio": "9:16",
+    "duration": 12,
+    "count": 1,
+    "mode": "pro",
+    "sound": "on",
+    "speedramp": "custom",
+    "multi_shots": false,
+    "cfg_scale": 0.7,
+    "use_unlim": false,
+    "medias": [
+      {
+        "role": "start_image",
+        "value": "7eeb5eb2-c1e9-4518-addf-07c4d4722ffe"
+      },
+      {
+        "role": "end_image",
+        "value": "5f2a04ce-0dc9-4cd9-903b-8a46a490d5d0"
+      },
+      {
+        "role": "image",
+        "value": "ba78de97-b905-4412-9712-c82cb9eb6d73"
+      }
+    ],
+    "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions.\n\n\nSCENE 6 — LIFE IN THE OFFICE, PORTRAIT CONTINUITY SHOT.\nStart at the EXACT supplied start image: camera just outside blue illuminated glass meeting room, looking at the auburn-haired woman in sage blouse seated at the graphite table and the standing man in violet overshirt, shared tablet. Keep their faces, clothing, furniture, blue door frame and real spatial positions. They remain solid and continuous. Camera is INSIDE one full-size office.\n\nOne single physical camera travelling shot, no edit, no dissolve, no metamorphosis. For the first second gently decelerate the existing forward move. Then glide LEFTWARD out through the already open meeting-room entrance, revealing the existing warm amber coffee counter in the back-center of this SAME office, not a new location. The auburn/sage woman naturally stands and moves toward the coffee counter alongside the camera, never teleporting. Around seconds 3-7, a close medium portrait of her hands operating the espresso machine and rich dark espresso flowing into one white ceramic cup, warm steam lit by amber practicals, then she gently lifts the cup. A calm, personable and productive pause.\n\nThe camera continues physically sliding out along the violet illuminated floor aisle toward the existing graphite foosball table at front/right. Around seconds 8-12 settle into the exact end-image camera position at one SHORT END of the table, looking lengthwise down its diagonal depth. Show the violet-overshirt man and brown-skinned curly-haired man in amber sweater naturally playing opposite sides. The violet man arrives by walking along the adjacent clear aisle; do not duplicate him in the meeting room. Both full faces, both pairs of hands holding straight rods and the ball on the playing field stay visible inside central 75 percent of tall image. One small goal and restrained amused reaction, no exaggerated comedy. End in the supplied foosball portrait composition with smooth deceleration.\n\nPreserve master charcoal architecture, meeting room at rear/right and coffee counter at rear/left, actual plants, same desks. Reference final frame defines a different physical camera position in same place, NOT furniture changing. Keep top 20 percent dark architecture clear for later editorial title, but render NO text, NO words, NO logos, NO floating graphics. Friendly sophisticated adults, same premium semi-realistic stylized 3D humans, not metallic robots, normal anatomy. No hard cuts, no zooms, no dissolving walls, no portals, no laptop.\n\nSOUND: subdued office room tone and distant keyboard typing throughout; natural espresso machine and coffee pour in middle, ceramic cup gently touching counter, then small foosball ball and rods impacts. Very quiet unvoiced conversational murmur only, no intelligible dialogue, no voiceover and no loud music. Natural warm calm soundscape."
+  },
+  "estimatedCredits": 24,
+  "startFrame": {
+    "mediaId": "7eeb5eb2-c1e9-4518-addf-07c4d4722ffe",
+    "sourceJobId": "e0ad540e-ccd4-4ae7-a3bd-a487b820bf55",
+    "sourceFrame": 240,
+    "focusX": 0.68,
+    "focusY": 0.5,
+    "format": "9:16",
+    "localPath": "frames/05-last-9x16.png"
+  }
+}

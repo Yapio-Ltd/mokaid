@@ -6,6 +6,8 @@ Item {
     id: root
     property var agent: ({})
     property real size: 58
+    property bool framed: true
+    clip: !framed
     readonly property bool softwareRendering: GraphicsInfo.api === GraphicsInfo.Software
     implicitWidth: size
     implicitHeight: size
@@ -16,6 +18,8 @@ Item {
     // Custom locations and unresolved assignments must not borrow another face.
     readonly property string portraitSource: {
         if (agent.kind !== "ai" && agent.kind !== "hybrid") return ""
+        const thumbnail = String(agent.avatar_thumbnail_url || "").trim()
+        if (/^https:\/\/[^/?#]+\//.test(thumbnail)) return thumbnail
         const path = String(agent.avatar_cdn_path || "").trim()
         if (!path) return agent.avatar_asset_id ? "" : "qrc:/ui/portrait-male.png"
         const match = /^(?:(?:https?:\/\/[^/?#]+)?\/?assets3d\/|assets\/optimized\/)avatar_(male|design|finance|corporate|developer|research|legal|byte|nyx|moss)(?:\.[a-f0-9]+)?\.glb(?:[?#].*)?$/.exec(path)
@@ -26,6 +30,7 @@ Item {
         return (words[0].charAt(0) + (words.length > 1 ? words[words.length - 1].charAt(0) : "")).toUpperCase()
     }
     Rectangle {
+        visible: root.framed
         anchors.fill: parent
         radius: width / 2
         gradient: Gradient {
@@ -46,13 +51,13 @@ Item {
     Image {
         id: portrait
         anchors.fill: parent
-        anchors.margins: 2
+        anchors.margins: root.framed ? 2 : 0
         source: root.portraitSource
-        sourceSize.width: 192
-        sourceSize.height: 192
+        sourceSize.width: root.framed ? 192 : 384
+        sourceSize.height: root.framed ? 192 : 384
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
-        visible: root.softwareRendering
+        visible: root.softwareRendering || !root.framed
     }
     Rectangle {
         id: mask
@@ -65,7 +70,7 @@ Item {
     MultiEffect {
         anchors.fill: portrait
         source: portrait
-        visible: !root.softwareRendering && portrait.status === Image.Ready
+        visible: root.framed && !root.softwareRendering && portrait.status === Image.Ready
         maskEnabled: true
         maskSource: mask
         maskThresholdMin: .5

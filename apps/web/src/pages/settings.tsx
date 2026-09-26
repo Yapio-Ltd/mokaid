@@ -10,6 +10,7 @@ import { LogoMark } from "@/components/brand/logo";
 import { useAuthStore } from "@/stores/auth-store";
 import { useChatStore } from "@/stores/chat-store";
 import { useOnboardingStore } from "@/stores/onboarding-store";
+import { ManagedRuntimeSettings } from "@/components/settings/managed-runtime-settings";
 
 const featureToggles = [
   { key: "3d_office", label: "3D Office View", description: "Show the live 3D office on the dashboard" },
@@ -102,6 +103,7 @@ export function SettingsPage() {
   return (
     <div className="max-w-3xl space-y-5">
       <PageHeader title="Workspace Settings" subtitle="General preferences and feature toggles" />
+      <ManagedRuntimeSettings key={workspaceId} />
 
       <Card className="mk-fade-up">
         <CardHeader>

@@ -10,6 +10,22 @@ export type TaskStatus =
 
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
+export type TaskResponseRating = "good" | "needs_improvement";
+
+export interface TaskResponseFeedback {
+  rating: TaskResponseRating;
+  prompt: string | null;
+  run_id: string | null;
+  submitted_by_member_id: string | null;
+  submitted_at: string;
+}
+
+export interface TaskResponseFeedbackInput {
+  rating: TaskResponseRating;
+  prompt?: string;
+  run_id?: string;
+}
+
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "edited" | "expired";
 
 export type AiRunStatus =

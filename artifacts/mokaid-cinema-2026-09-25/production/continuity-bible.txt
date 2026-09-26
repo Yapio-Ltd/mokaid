@@ -1,0 +1,49 @@
+VISUAL CONTINUITY BIBLE:
+
+This film belongs to the same continuous cinematic universe.
+
+The digital office is the Mokaid AI Office shown in the reference image:
+a premium stylized 3D office environment, slightly isometric but fully volumetric,
+dark charcoal architecture, sophisticated violet and electric blue neon floor lighting,
+warm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,
+lounge area and foosball table.
+
+Keep the exact same architecture, furniture language, lighting palette and spatial identity
+throughout every shot.
+
+The AI employees are friendly premium stylized humanoid digital workers.
+They are not metallic robots and not cartoon characters.
+They look intelligent, approachable, professional and slightly futuristic.
+Consistent character design throughout the film.
+
+Cinematic physically plausible camera movement.
+Premium global illumination.
+Soft volumetric light.
+Realistic depth of field.
+Subtle motion blur.
+High-end commercial cinematography.
+No chaotic camera movement.
+No sudden geometry changes.
+No morphing furniture.
+No disappearing characters.
+No duplicated characters.
+No warped screens.
+No text generated inside screens unless specifically requested.
+
+Every shot must feel like the camera is physically travelling through one continuous place.
+Smooth acceleration and deceleration.
+Elegant ease-in and ease-out camera curves.
+No hard cuts unless explicitly requested.
+
+CAMERA MOTION LANGUAGE:
+The camera movement must feel designed for interactive website scrollytelling.
+Every major movement follows cinematic easing curves:
+stillness → gradual acceleration → fluid travel → gradual deceleration → stillness.
+No constant-speed robotic camera movement.
+Create natural visual resting points where the website can pause the video during scrolling.
+Use strong foreground parallax when travelling through the office.
+Occasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.
+Movement should feel like a premium interactive experience,
+somewhere between an Apple product film, a Pixar environment exploration
+and a high-end architectural camera tour.
+No shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions.

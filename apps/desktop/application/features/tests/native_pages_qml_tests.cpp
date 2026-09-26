@@ -1,5 +1,6 @@
 #include <mokaid/features/feature_controller.hpp>
 #include <QDir>
+#include <QDateTime>
 #include <QFile>
 #include <QFontDatabase>
 #include <QGuiApplication>
@@ -13,6 +14,7 @@
 #include <QQuickItem>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QSettings>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
@@ -28,6 +30,8 @@ public:
     QTcpServer server;
     QHash<QString,QJsonObject> responses;
     QStringList requests;
+    QStringList methods;
+    QList<QJsonObject> bodies;
     NativePageApi() {
         server.listen(QHostAddress::LocalHost,0);
         connect(&server,&QTcpServer::newConnection,this,[this] {
@@ -38,10 +42,18 @@ public:
                     const auto request=socket->property("request").toByteArray()+socket->readAll();
                     socket->setProperty("request",request);
                     if (!request.contains("\r\n\r\n") || socket->property("handled").toBool()) return;
+                    const auto headersEnd=request.indexOf("\r\n\r\n");
+                    qsizetype length=0;
+                    for (const auto& line:request.left(headersEnd).split('\n'))
+                        if (line.toLower().startsWith("content-length:")) length=line.mid(15).trimmed().toLongLong();
+                    const auto requestBody=request.mid(headersEnd+4);
+                    if (requestBody.size()<length) return;
                     socket->setProperty("handled",true);
                     const auto path=QString::fromUtf8(request.split(' ').value(1)).section('?',0,0);
                     requests.append(path);
-                    const auto body=QJsonDocument(responses.value(path,QJsonObject{{"data",QJsonArray{}}})).toJson(QJsonDocument::Compact);
+                    methods.append(QString::fromUtf8(request.split(' ').value(0)));
+                    bodies.append(QJsonDocument::fromJson(requestBody.left(length)).object());
+                    const auto body=QJsonDocument(responses.value(methods.last()+" "+path,responses.value(path,QJsonObject{{"data",QJsonArray{}}}))).toJson(QJsonDocument::Compact);
                     socket->write("HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: "+QByteArray::number(body.size())+"\r\n\r\n"+body);
                     socket->disconnectFromHost();
                 });
@@ -96,8 +108,10 @@ signals:
 class NativeSessionStub final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool online READ online CONSTANT)
+    Q_PROPERTY(QString workspaceId READ workspaceId CONSTANT)
 public:
     bool online() const { return true; }
+    QString workspaceId() const { return QStringLiteral("fixture-workspace"); }
 };
 
 struct NativePageFixture {
@@ -187,6 +201,21 @@ static QJsonArray agents() {
     };
 }
 
+static QJsonArray marketplaceListings() {
+    const auto listing=[](const QString& id,const QString& name,const QString& role,const QString& department,const QString& avatar,const QString& mode,int price,const QJsonArray& skills) {
+        return QJsonObject{{"id",id},{"workspace_id","fixture-seller"},{"title",name},{"description","An experienced AI specialist ready to help your team with clear, thoughtful work."},
+            {"mode",mode},{"rent_billing",mode=="rent"?QJsonValue("subscription"):QJsonValue::Null},{"price_cents",price},{"currency","usd"},{"status","active"},{"agent_level",12},{"knowledge_item_count",8},
+            {"inserted_at","2026-09-25T09:00:00Z"},{"agent",QJsonObject{{"id","source-"+id},{"kind","ai"},{"display_name",name},{"role_title",role},{"department",department},{"level",12},
+                {"avatar_cdn_path","/assets3d/avatar_"+avatar+".0123456789ab.glb"},{"skills",skills}}}};
+    };
+    return {
+        listing("listing-legal","Taya","Legal Specialist","legal","legal","rent",2900,{"Contract review","Compliance"}),
+        listing("listing-software","Devio","Software Engineer","development","developer","sale",9900,{"Development","Code review"}),
+        listing("listing-research","Sira","Research Assistant","research","research","rent",1900,{"Research","Data analysis"}),
+        listing("listing-design","Luna","Brand Designer","design","design","sale",14900,{"Design","Brand strategy"})
+    };
+}
+
 class NativePagesQmlTests final : public QObject {
     Q_OBJECT
     static QVariant property(QObject* object,const char* name) {
@@ -194,6 +223,52 @@ class NativePagesQmlTests final : public QObject {
         return value.metaType()==QMetaType::fromType<QJSValue>()?value.value<QJSValue>().toVariant():value;
     }
 private slots:
+    void mailConnectFlowSupportsGoogleAndPresetImapAtMinimumSize() {
+        NativePageFixture fixture; QVERIFY(fixture.remote.server.isListening());
+        fixture.remote.responses.insert("POST /api/mail/oauth/google/start",{{"data",QJsonObject{{"flow_id","fixture-flow"},{"authorize_url","https://accounts.google.com/o/oauth2/v2/auth?state=test-only"}}}});
+        fixture.remote.responses.insert("GET /api/mail/oauth/fixture-flow",{{"data",QJsonObject{{"status","connected"}}}});
+        fixture.remote.responses.insert("POST /api/mail/accounts/imap",{{"data",QJsonObject{{"id","fixture-mail"}}}});
+        fixture.features.navigate("mail"); QTRY_VERIFY(!fixture.features.busy());
+        auto& mail=*qobject_cast<MailAccountsController*>(fixture.features.mailAccounts()); QTRY_VERIFY(!mail.refreshing());
+        NativePageView view(fixture,"FeaturePage.qml"); QVERIFY2(view.item,qPrintable(view.failure));
+        const auto find=[&view](const QString& name) -> QQuickItem* {
+            QList<QQuickItem*> children{view.window.contentItem()};
+            for(qsizetype i=0;i<children.size();++i) { if(children[i]->objectName()==name) return children[i]; children.append(children[i]->childItems()); }
+            return nullptr;
+        };
+        const auto click=[&view,&find](const QString& name) -> bool {
+            auto* item=find(name); if(!item || !item->isVisible() || item->width()<1 || item->height()<1) return false;
+            QTest::mouseClick(&view.window,Qt::LeftButton,Qt::NoModifier,item->mapToScene(QPointF(item->width()/2,item->height()/2)).toPoint()); return true;
+        };
+        QVERIFY(view.find("emptyConnectMailbox")); QVERIFY(view.click("featurePrimaryButton"));
+        QTRY_VERIFY(find("connectGmailButton")); QTRY_VERIFY(find("connectGmailButton")->isVisible());
+        QVERIFY(view.capture("mail-connect-choices"));
+        QSignalSpy browser(&mail,&MailAccountsController::requestExternal);
+        QVERIFY(click("connectGmailButton")); QTRY_COMPARE(browser.count(),1); QVERIFY(mail.oauthPending());
+        QVERIFY(view.capture("mail-google-browser"));
+        mail.checkOAuth(); QTRY_VERIFY(!mail.oauthPending());
+        QVERIFY(view.click("featurePrimaryButton")); QTRY_VERIFY(find("connectImapButton")->isVisible()); QVERIFY(click("connectImapButton"));
+        auto* email=find("mailEmail"); auto* password=find("mailPassword"); QVERIFY(email); QVERIFY(password);
+        email->setProperty("text","alice@icloud.com"); QVERIFY(QMetaObject::invokeMethod(email,"editingFinished"));
+        QCOMPARE(find("mailImapHost")->property("text").toString(),QString("imap.mail.me.com"));
+        QCOMPARE(find("mailSmtpHost")->property("text").toString(),QString("smtp.mail.me.com"));
+        QCOMPARE(find("mailSmtpPort")->property("text").toString(),QString("587"));
+        QCOMPARE(password->property("echoMode").toInt(),2); // TextInput.Password
+        view.resize(760,620); QTest::qWait(60);
+        auto* submit=find("mailSubmitButton"); QVERIFY(submit); QVERIFY(submit->isVisible());
+        const auto location=submit->mapToScene(QPointF()); QVERIFY(location.y()+submit->height()<=620);
+        QVERIFY(view.capture("mail-imap-icloud-760"));
+        password->setProperty("text","fixture-only-app-password"); QVERIFY(click("mailSubmitButton"));
+        QTRY_VERIFY(fixture.remote.requests.contains("/api/mail/accounts/imap")); QTRY_VERIFY(!mail.submitting());
+        QTRY_COMPARE(password->property("text").toString(),QString());
+        const auto index=fixture.remote.requests.indexOf("/api/mail/accounts/imap");
+        QCOMPARE(fixture.remote.bodies.at(index).value("smtp_security").toString(),QString("starttls"));
+        QCOMPARE(fixture.remote.bodies.at(index).value("username").toString(),QString("alice@icloud.com"));
+        QVERIFY(view.click("featurePrimaryButton")); QTRY_VERIFY(find("connectImapButton")->isVisible()); QVERIFY(click("connectImapButton"));
+        password->setProperty("text","fixture-draft-secret"); fixture.api.setWorkspace("different-workspace"); mail.setActive(true);
+        QTRY_COMPARE(password->property("text").toString(),QString());
+        QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
+    }
     void workforcePortraitsFollowAssignedCharacters_data() {
         QTest::addColumn<QVariantMap>("agent");
         QTest::addColumn<QString>("portrait");
@@ -238,6 +313,26 @@ private slots:
         }
         QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
     }
+    void officeCardsUseGeneratedPortraitsWithoutBorrowingCatalogFaces() {
+        NativePageFixture fixture;
+        NativePageView view(fixture,"AgentCard.qml"); QVERIFY2(view.item,qPrintable(view.failure));
+        view.resize(240,120);
+        const QVariantMap custom{{"kind","ai"},{"display_name","Alex Lane"},{"asset_type","custom:fixture"},{"avatar_asset_id","fixture-custom"}};
+        QVERIFY(view.page->setProperty("agent",custom));
+        QVERIFY(view.page->property("usesCustomPortrait").toBool());
+        auto* portrait=view.find("officeCustomPortrait"); QVERIFY(portrait);
+        QVERIFY(portrait->property("portraitSource").toString().isEmpty());
+        QCOMPARE(portrait->property("initials").toString(),QString("AL"));
+        QVERIFY(!view.find("officeCatalogPortrait"));
+        auto withThumbnail=custom; withThumbnail.insert("avatar_thumbnail_url","https://mokaid.com/api/avatar-assets/fixture/token/thumbnail.png");
+        QVERIFY(view.page->setProperty("agent",withThumbnail));
+        QCOMPARE(portrait->property("portraitSource").toString(),withThumbnail.value("avatar_thumbnail_url").toString());
+        QVERIFY(view.page->setProperty("agent",QVariantMap{{"kind","ai"},{"display_name","Catalog agent"},{"asset_type","legal"}}));
+        QVERIFY(!view.page->property("usesCustomPortrait").toBool());
+        auto* builtin=view.find("officeCatalogPortrait"); QVERIFY(builtin);
+        QCOMPARE(builtin->property("kind").toString(),QString("legal"));
+        QVERIFY(!view.find("officeCustomPortrait"));
+    }
     void agentsUsePersistedDataAndKeepInteractionsAtMinimumSize() {
         NativePageFixture fixture; QVERIFY(fixture.remote.server.isListening());
         fixture.remote.collection("/api/agents",agents()); fixture.features.navigate("agents");
@@ -252,7 +347,7 @@ private slots:
         QVERIFY(view.click("agentFilter_active")); QTRY_COMPARE(property(view.page.get(),"filteredAgents").toList().size(),3);
         QVERIFY(view.click("agentFilter_idle")); QTRY_COMPARE(property(view.page.get(),"filteredAgents").toList().size(),1);
         QVERIFY(view.click("agentRow_fixture-software")); QTRY_COMPARE(fixture.features.selectedId(),QString("fixture-software"));
-        QVERIFY(view.click("testSelectedAgent")); QCOMPARE(fixture.context.testedAgent,QString("fixture-software"));
+        QVERIFY(view.click("agentDetailAssign")); QCOMPARE(fixture.context.testedAgent,QString("fixture-software"));
         QVERIFY(view.click("agentFilter_all")); QVERIFY(view.click("agentGridMode"));
         QTRY_VERIFY(view.page->property("gridMode").toBool()); QTest::qWait(120); QVERIFY(view.capture("agents-grid"));
         QTRY_VERIFY(view.inside("agentTile_fixture-legal"));
@@ -520,11 +615,198 @@ private slots:
         QVERIFY(fixture.features.pendingOfferAgentId().isEmpty());
         QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
     }
+    void marketplaceNavigationFiltersAndDetailsUseRealListings() {
+        NativePageFixture fixture;
+        fixture.remote.collection("/api/marketplace/listings",marketplaceListings());
+        fixture.features.navigate("marketplace"); QTRY_VERIFY(!fixture.features.busy());
+        NativePageView view(fixture,"MarketplacePage.qml");
+        QVERIFY2(view.item,qPrintable(view.failure)); view.resize(1140,760);
+        QTRY_COMPARE(property(view.page.get(),"listings").toList().size(),4);
+        QTRY_VERIFY(!fixture.features.busy());
+        QVERIFY(view.capture("marketplace-discover-1140"));
+        QVERIFY(view.click("marketplaceNav-categories"));
+        QTRY_COMPARE(view.page->property("tab").toString(),QString("categories"));
+        QVERIFY(view.capture("marketplace-categories-1140"));
+        QVERIFY(view.click("marketplaceCategory-legal"));
+        QTRY_COMPARE(property(view.page.get(),"listings").toList().size(),1);
+        QCOMPARE(property(view.page.get(),"listings").toList().first().toMap().value("id").toString(),QString("listing-legal"));
+        QVERIFY(view.click("marketplaceNav-search"));
+        QVERIFY(view.page->setProperty("categoryFilter","all"));
+        QVERIFY(view.page->setProperty("queryText","software"));
+        QTRY_COMPARE(property(view.page.get(),"listings").toList().size(),1);
+        QCOMPARE(property(view.page.get(),"listings").toList().first().toMap().value("id").toString(),QString("listing-software"));
+        QVERIFY(view.page->setProperty("modeFilter","rent"));
+        QTRY_COMPARE(property(view.page.get(),"listings").toList().size(),0);
+        QVERIFY(view.page->setProperty("queryText",""));
+        QVERIFY(view.page->setProperty("modeFilter","all"));
+        QVERIFY(view.page->setProperty("maxPrice",30));
+        QTRY_COMPARE(property(view.page.get(),"listings").toList().size(),2);
+        QVERIFY(view.capture("marketplace-search-1140"));
+        // The filtered model changes synchronously; its GridLayout delegates
+        // receive their clickable geometry on the next Qt polish pass.
+        QTRY_VERIFY(view.find("marketplaceCard-listing-legal")
+            && view.find("marketplaceCard-listing-legal")->isVisible()
+            && view.find("marketplaceCard-listing-legal")->width()>1
+            && view.find("marketplaceCard-listing-legal")->height()>1);
+        QVERIFY(view.click("marketplaceCard-listing-legal"));
+        QTRY_COMPARE(view.page->property("screen").toString(),QString("detail"));
+        QCOMPARE(property(view.page.get(),"selectedListing").toMap().value("id").toString(),QString("listing-legal"));
+        QVERIFY(view.capture("marketplace-detail-1140"));
+        view.resize(760,700); QTest::qWait(100);
+        QVERIFY(view.inside("marketplaceBuy"));
+        QVERIFY(view.capture("marketplace-detail-760"));
+        QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
+    }
+    void marketplaceCheckoutWaitsForPersistedFulfillment() {
+        NativePageFixture fixture;
+        fixture.remote.collection("/api/marketplace/listings",marketplaceListings());
+        fixture.remote.responses.insert("/api/marketplace/checkout",{{"data",QJsonObject{{"order_id","order-legal"},{"fulfilled",true}}}});
+        QJsonObject purchase{{"id","order-legal"},{"listing_id","listing-legal"},{"status","pending"},{"cloned_agent_id",QJsonValue::Null},{"listing",marketplaceListings().first()}};
+        fixture.remote.collection("/api/marketplace/purchases",{purchase});
+        fixture.features.navigate("marketplace"); QTRY_VERIFY(!fixture.features.busy());
+        NativePageView view(fixture,"MarketplacePage.qml");
+        QVERIFY2(view.item,qPrintable(view.failure)); view.resize(1140,760);
+        QTRY_VERIFY(!fixture.features.busy());
+        QVERIFY(view.click("marketplaceCard-listing-legal"));
+        QTRY_COMPARE(view.page->property("screen").toString(),QString("detail"));
+        QVERIFY(view.click("marketplaceBuy"));
+        QTRY_COMPARE(view.page->property("screen").toString(),QString("checkout"));
+        QVERIFY(view.capture("marketplace-checkout-1140"));
+        view.resize(760,700); QTest::qWait(100);
+        QVERIFY(view.inside("marketplaceCheckoutConfirm"));
+        QVERIFY(view.capture("marketplace-checkout-760"));
+        view.resize(1140,760); QTest::qWait(100);
+        QVERIFY(view.click("marketplaceCheckoutConfirm"));
+        QTRY_VERIFY(fixture.remote.requests.contains("/api/marketplace/checkout"));
+        const auto requestIndex=fixture.remote.requests.indexOf("/api/marketplace/checkout");
+        QCOMPARE(fixture.remote.methods.at(requestIndex),QString("POST"));
+        QCOMPARE(fixture.remote.bodies.at(requestIndex).value("listing_id").toString(),QString("listing-legal"));
+        QTRY_COMPARE(view.page->property("checkoutOrderId").toString(),QString("order-legal"));
+        QTRY_VERIFY(!fixture.features.busy());
+        QVERIFY(view.click("marketplacePurchaseRefresh"));
+        QTRY_VERIFY(fixture.remote.requests.contains("/api/marketplace/purchases"));
+        QTRY_VERIFY(!fixture.features.busy());
+        QCOMPARE(view.page->property("screen").toString(),QString("checkout"));
+        purchase.insert("status","fulfilled");
+        fixture.remote.collection("/api/marketplace/purchases",{purchase});
+        const auto priorCount=fixture.remote.requests.count("/api/marketplace/purchases");
+        QVERIFY(view.click("marketplacePurchaseRefresh"));
+        QTRY_VERIFY(fixture.remote.requests.count("/api/marketplace/purchases")>priorCount);
+        QTRY_VERIFY(!fixture.features.busy());
+        QCOMPARE(view.page->property("screen").toString(),QString("checkout"));
+        purchase.insert("cloned_agent_id","purchased-legal");
+        fixture.remote.collection("/api/marketplace/purchases",{purchase});
+        QVERIFY(view.click("marketplacePurchaseRefresh"));
+        QTRY_COMPARE(view.page->property("screen").toString(),QString("success"));
+        QCOMPARE(property(view.page.get(),"purchasedOrder").toMap().value("cloned_agent_id").toString(),QString("purchased-legal"));
+        QVERIFY(view.capture("marketplace-success-1140"));
+        view.resize(760,700); QTest::qWait(100);
+        QVERIFY(view.capture("marketplace-success-760"));
+        QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
+    }
+    void marketplaceSellerWizardValidatesAndPublishesTheSelectedAgent() {
+        NativePageFixture fixture;
+        const auto listingRows=marketplaceListings();
+        QJsonArray mine{
+            QJsonObject{{"agent",listingRows.at(0).toObject().value("agent")},{"eligible",true},{"level",12},{"knowledge_item_count",8}},
+            QJsonObject{{"agent",listingRows.at(1).toObject().value("agent")},{"listing",listingRows.at(1)},{"eligible",true},{"level",12},{"knowledge_item_count",12}},
+            QJsonObject{{"agent",listingRows.at(2).toObject().value("agent")},{"eligible",false},{"level",4},{"knowledge_item_count",2}}
+        };
+        const QJsonObject meta{{"min_level",10},{"fee_percent",15},{"connect_ready",true}};
+        fixture.remote.collection("/api/marketplace/listings",listingRows);
+        fixture.remote.responses.insert("/api/marketplace/mine",{{"data",mine},{"meta",meta}});
+        fixture.features.navigate("marketplace"); QTRY_VERIFY(!fixture.features.busy());
+        NativePageView view(fixture,"MarketplacePage.qml");
+        QVERIFY2(view.item,qPrintable(view.failure)); view.resize(1140,760);
+        QTRY_VERIFY(!fixture.features.busy());
+        QVERIFY(view.click("marketplaceNav-mine"));
+        QTRY_COMPARE(property(view.page.get(),"mineRows").toList().size(),3);
+        QTRY_VERIFY(!fixture.features.busy());
+        QVERIFY(view.capture("marketplace-listings-1140"));
+        auto paused=listingRows.at(1).toObject(); paused.insert("status","paused");
+        fixture.remote.responses.insert("/api/marketplace/listings/listing-software/pause",{{"data",paused}});
+        QVERIFY(QMetaObject::invokeMethod(view.page.get(),"toggleListing",Q_ARG(QVariant,listingRows.at(1).toObject().toVariantMap())));
+        QTRY_VERIFY(fixture.remote.requests.contains("/api/marketplace/listings/listing-software/pause"));
+        QTRY_VERIFY(!fixture.features.busy());
+        QCOMPARE(property(view.page.get(),"mineRows").toList().size(),3);
+        QCOMPARE(property(view.page.get(),"mineRows").toList().at(1).toMap().value("listing").toMap().value("status").toString(),QString("paused"));
+        fixture.remote.responses.insert("/api/marketplace/listings/listing-software/resume",{{"data",listingRows.at(1)}});
+        QVERIFY(QMetaObject::invokeMethod(view.page.get(),"toggleListing",Q_ARG(QVariant,paused.toVariantMap())));
+        QTRY_VERIFY(fixture.remote.requests.contains("/api/marketplace/listings/listing-software/resume"));
+        QTRY_VERIFY(!fixture.features.busy());
+        QCOMPARE(property(view.page.get(),"mineRows").toList().at(1).toMap().value("listing").toMap().value("status").toString(),QString("active"));
+        QVERIFY(view.click("marketplaceCreateListing"));
+        QTRY_COMPARE(view.page->property("screen").toString(),QString("publish"));
+        QCOMPARE(view.page->property("publishAgentId").toString(),QString("source-listing-legal"));
+        QVERIFY(view.page->setProperty("publishTitle","Taya · Contract review"));
+        QVERIFY(view.page->setProperty("publishDescription","Reviews contracts and highlights relevant clauses."));
+        QVERIFY(view.capture("marketplace-publish-1140"));
+        view.resize(760,700); QTest::qWait(100);
+        QVERIFY(view.inside("marketplacePublishNext"));
+        QVERIFY(view.capture("marketplace-publish-760"));
+        view.resize(1140,760); QTest::qWait(100);
+        QVERIFY(view.click("marketplacePublishNext"));
+        auto* seller=view.find("marketplaceSeller"); QVERIFY(seller);
+        QTRY_COMPARE(seller->property("wizardStep").toInt(),1);
+        QVERIFY(view.click("marketplacePublishNext"));
+        QTRY_COMPARE(seller->property("wizardStep").toInt(),2);
+        QVERIFY(view.page->setProperty("publishPrice","0.50"));
+        QTRY_VERIFY(!view.find("marketplacePublishNext")->isEnabled());
+        QVERIFY(view.page->setProperty("publishPrice","49"));
+        QTRY_VERIFY(view.find("marketplacePublishNext")->isEnabled());
+        QVERIFY(view.click("marketplacePublishNext"));
+        QTRY_COMPARE(seller->property("wizardStep").toInt(),3);
+        QTRY_VERIFY(view.find("marketplacePublishNext")->isEnabled());
+        auto published=listingRows.first().toObject(); published.insert("mode","sale"); published.insert("price_cents",4900); published.insert("title","Taya · Contract review");
+        auto updatedMine=mine.first().toObject(); updatedMine.insert("listing",published); mine.replace(0,updatedMine);
+        fixture.remote.responses.insert("POST /api/marketplace/listings",{{"data",published}});
+        fixture.remote.responses.insert("/api/marketplace/mine",{{"data",mine},{"meta",meta}});
+        QVERIFY(view.click("marketplacePublishNext"));
+        QTRY_COMPARE(view.page->property("screen").toString(),QString("browse"));
+        QTRY_VERIFY(!fixture.features.busy());
+        int publishIndex=-1;
+        for (qsizetype i=0;i<fixture.remote.requests.size();++i)
+            if (fixture.remote.requests.at(i)=="/api/marketplace/listings" && fixture.remote.methods.at(i)=="POST") publishIndex=static_cast<int>(i);
+        QVERIFY(publishIndex>=0);
+        const auto body=fixture.remote.bodies.at(publishIndex);
+        QCOMPARE(body.value("agent_id").toString(),QString("source-listing-legal"));
+        QCOMPARE(body.value("title").toString(),QString("Taya · Contract review"));
+        QCOMPARE(body.value("description").toString(),QString("Reviews contracts and highlights relevant clauses."));
+        QCOMPARE(body.value("price_cents").toInt(),4900);
+        QCOMPARE(body.value("mode").toString(),QString("sale"));
+        QTRY_COMPARE(property(view.page.get(),"mineRows").toList().first().toMap().value("listing").toMap().value("price_cents").toInt(),4900);
+        QJsonArray orders;
+        for (int month=0;month<6;++month) orders.append(QJsonObject{{"id",QString("order-%1").arg(month)},
+            {"listing_id",month%2?"listing-legal":"listing-software"},{"status","fulfilled"},{"amount_cents",(month+1)*1000},
+            {"paid_at",QDateTime::currentDateTimeUtc().addMonths(month-5).toString(Qt::ISODate)}});
+        const QJsonObject earningsResponse{{"gross_cents",21000},{"fee_cents",3150},{"net_cents",17850},
+            {"fee_percent",15},{"connect_ready",true},{"orders",orders},{"listings",QJsonArray{published,listingRows.at(1)}},
+            {"active_leases",QJsonArray{QJsonObject{{"id","lease-legal"},{"status","active"}}}}};
+        fixture.remote.responses.insert("/api/marketplace/earnings",{{"data",earningsResponse}});
+        QVERIFY(view.click("marketplaceNav-earnings"));
+        QTRY_COMPARE(property(view.page.get(),"earningsData").toMap().value("gross_cents").toInt(),21000);
+        auto* earnings=view.find("marketplaceEarnings"); QVERIFY(earnings);
+        QCOMPARE(property(earnings,"orders").toList().size(),6);
+        QCOMPARE(property(earnings,"categories").toList().size(),2);
+        int chartGross=0;
+        for (const auto& month:property(earnings,"chartMonths").toList()) chartGross+=month.toMap().value("gross").toInt();
+        QCOMPARE(chartGross,21000);
+        QTest::qWait(100);
+        QVERIFY(view.capture("marketplace-earnings-1140"));
+        view.resize(760,700); QTest::qWait(100);
+        QVERIFY(view.capture("marketplace-earnings-760"));
+        QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
+    }
 };
 int main(int argc,char**argv) {
     qputenv("QT_QPA_PLATFORM","offscreen");
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Software); QQuickStyle::setStyle("Basic");
     QGuiApplication app(argc,argv);
+    QTemporaryDir settingsDirectory;
+    QCoreApplication::setOrganizationName("MokaidTests");
+    QCoreApplication::setApplicationName("NativePages");
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,settingsDirectory.path());
     QFontDatabase::addApplicationFont(QStringLiteral(MOKAID_NATIVE_QML_DIRECTORY)+"/../assets/fonts/Manrope.ttf");
     NativePagesQmlTests tests; return QTest::qExec(&tests,argc,argv);
 }

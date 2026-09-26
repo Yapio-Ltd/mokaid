@@ -1,0 +1,140 @@
+{
+  "origin": "http://127.0.0.1:4173",
+  "source": "/assets/mokaid-office-journey.adac1c365481.mp4",
+  "engine": "26.5",
+  "responses": [],
+  "page": {
+    "mode": "static",
+    "finalTop": 1620,
+    "events": [],
+    "eligibility": [
+      {
+        "type": "query",
+        "query": "(hover: none), (pointer: coarse)",
+        "matches": false,
+        "timeMs": 79
+      },
+      {
+        "type": "query",
+        "query": "(orientation: portrait)",
+        "matches": false,
+        "timeMs": 79
+      },
+      {
+        "type": "query",
+        "query": "(prefers-reduced-motion)",
+        "matches": false,
+        "timeMs": 110
+      },
+      {
+        "type": "query",
+        "query": "(prefers-reduced-motion: reduce)",
+        "matches": false,
+        "timeMs": 110
+      },
+      {
+        "type": "query",
+        "query": "(min-width: 768px)",
+        "matches": true,
+        "timeMs": 117
+      },
+      {
+        "type": "query",
+        "query": "(prefers-reduced-motion: reduce)",
+        "matches": false,
+        "timeMs": 117
+      },
+      {
+        "type": "query",
+        "query": "(prefers-reduced-motion: reduce)",
+        "matches": false,
+        "timeMs": 118
+      },
+      {
+        "type": "query",
+        "query": "(prefers-reduced-motion: reduce)",
+        "matches": false,
+        "timeMs": 118
+      },
+      {
+        "type": "query",
+        "query": "(min-width: 1024px) and (pointer: fine) and (prefers-reduced-motion: no-preference)",
+        "matches": true,
+        "timeMs": 118
+      },
+      {
+        "type": "rect",
+        "timeMs": 118,
+        "top": 469.203125,
+        "height": 3846.9375,
+        "viewport": 900,
+        "ready": "interactive",
+        "mode": "static",
+        "previousHeight": 367.875,
+        "previousComputedHeight": "367.875px",
+        "sheets": []
+      },
+      {
+        "type": "query",
+        "query": "(min-width: 768px)",
+        "matches": true,
+        "timeMs": 119
+      },
+      {
+        "type": "query",
+        "query": "(prefers-reduced-motion: reduce)",
+        "matches": false,
+        "timeMs": 119
+      },
+      {
+        "type": "query",
+        "query": "(pointer: coarse)",
+        "matches": false,
+        "timeMs": 119
+      },
+      {
+        "type": "query",
+        "query": "(hover: none)",
+        "matches": false,
+        "timeMs": 119
+      },
+      {
+        "type": "rect",
+        "timeMs": 15369,
+        "top": 1620,
+        "height": 2105.171875,
+        "viewport": 900,
+        "ready": "complete",
+        "mode": "static",
+        "previousHeight": 1620,
+        "previousComputedHeight": "1620px",
+        "sheets": [
+          "https://rsms.me/inter/inter.css",
+          "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap",
+          "http://127.0.0.1:4173/assets/gsap-BNWJ7Zcm.css",
+          "http://127.0.0.1:4173/assets/index-G7J6ODMj.css"
+        ]
+      }
+    ],
+    "codecs": [
+      {
+        "codec": "avc1.640032",
+        "canPlay": "probably"
+      },
+      {
+        "codec": "avc1.640028",
+        "canPlay": "probably"
+      },
+      {
+        "codec": "avc1.4D4028",
+        "canPlay": "probably"
+      }
+    ]
+  },
+  "direct": {
+    "outcome": "loadeddata",
+    "width": 1920,
+    "height": 1080,
+    "duration": 74
+  }
+}

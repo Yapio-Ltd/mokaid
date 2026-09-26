@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "node_version_supported": true,
+  "application_not_started": true,
+  "dependencies_ready": true,
+  "meshy_api_key_present": true,
+  "meshy_webhook_secret_present": true,
+  "meshy_balance_read": true,
+  "native_cooker_present": true,
+  "native_cooker_import": true,
+  "assets_bucket_configured": true,
+  "storage_write_probe_requested": true,
+  "storage_probe_key_valid": true,
+  "storage_put": true,
+  "storage_get_attempted": true,
+  "storage_get_verified": true
+}

@@ -1,0 +1,105 @@
+{
+  "verified_at": "2026-09-25T10:25:52.578712+00:00",
+  "cluster": "mokaid-prod",
+  "region": "il-central-1",
+  "services": [
+    {
+      "service": "mokaid-prod-api",
+      "revision": "arn:aws:ecs:il-central-1:660601648321:task-definition/mokaid-prod-api:53",
+      "rollout": "COMPLETED",
+      "running": 1,
+      "desired": 1,
+      "pending": 0,
+      "tasks": [
+        {
+          "task_arn": "arn:aws:ecs:il-central-1:660601648321:task/mokaid-prod/ed1d7decc4694237bfcadb7c4117fe92",
+          "health": "UNKNOWN",
+          "containers": [
+            {
+              "name": "mokaid-prod-api",
+              "status": "RUNNING",
+              "health": "UNKNOWN",
+              "image_digest": "sha256:9f95d59851fb1d7f0e32019482e9d7632cbf2746f17001c29c5770cc9ae4c633"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "service": "mokaid-prod-ai-worker",
+      "revision": "arn:aws:ecs:il-central-1:660601648321:task-definition/mokaid-prod-ai-worker:47",
+      "rollout": "COMPLETED",
+      "running": 1,
+      "desired": 1,
+      "pending": 0,
+      "tasks": [
+        {
+          "task_arn": "arn:aws:ecs:il-central-1:660601648321:task/mokaid-prod/b774e1b677434e958eb0d41344efc9d4",
+          "health": "UNKNOWN",
+          "containers": [
+            {
+              "name": "mokaid-prod-ai-worker",
+              "status": "RUNNING",
+              "health": "UNKNOWN",
+              "image_digest": "sha256:0c510a28a1dcf5127dfaa4b78deebe12816f47180331061d4c27f0b7fbed40d5"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "migration": {
+    "revision": "mokaid-prod-api:52",
+    "status": "SUCCEEDED",
+    "migration": "20260925130000_add_mail_oauth_flows_and_multiple_accounts"
+  },
+  "release_manifest_sha256": "162326bd67e88e1bfc0843b8fa4f97524cf62ea2de787f0696c71efcb9de5d98",
+  "http_checks": [
+    {
+      "check": "health",
+      "status": 200,
+      "expected": 200,
+      "passed": true,
+      "content_type": "application/json; charset=utf-8"
+    },
+    {
+      "check": "oauth_start_requires_session",
+      "status": 401,
+      "expected": 401,
+      "passed": true,
+      "content_type": "application/json; charset=utf-8"
+    },
+    {
+      "check": "oauth_callback_rejects_bad_state",
+      "status": 400,
+      "expected": 400,
+      "passed": true,
+      "content_type": "text/html; charset=utf-8",
+      "cache_control": "no-store",
+      "referrer_policy": "no-referrer",
+      "csp": "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
+    },
+    {
+      "check": "gmail_push_requires_identity",
+      "status": 401,
+      "expected": 401,
+      "passed": true,
+      "content_type": "application/json; charset=utf-8"
+    }
+  ],
+  "google_configuration": {
+    "native_redirect_saved": true,
+    "aws_client_credentials_verified": true,
+    "publishing_status": "Testing",
+    "test_audience_count": 1,
+    "pubsub_subscription_created": false,
+    "sync_poll_interval_minutes": 5
+  },
+  "blocked_by_automatic_approval_review": [
+    "OAuth production publication",
+    "Keyless Pub/Sub service account and scoped TokenCreator binding"
+  ],
+  "mailbox_login_verified": false,
+  "email_sent": false,
+  "temporary_docker_credential_file_removed": true
+}

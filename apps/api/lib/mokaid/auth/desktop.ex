@@ -13,6 +13,7 @@ defmodule Mokaid.Auth.Desktop do
   @request_seconds 300
   @access_seconds 600
   @session_seconds 30 * 24 * 60 * 60
+  @refresh_history_seconds @session_seconds + 86_400
   @access_salt "mokaid desktop access v1"
   @access_prefix "md_at_"
   @refresh_prefix "md_rt_"
@@ -139,32 +140,62 @@ defmodule Mokaid.Auth.Desktop do
 
   def exchange(_), do: {:error, :invalid_grant}
 
-  def refresh(token) do
+  # Legacy clients retain strict single-use refresh semantics.
+  def refresh(token), do: rotate_refresh(token, nil)
+
+  @doc "Retry a rotation using a request ID persisted with the current credential."
+  def refresh(token, request_id) do
+    if url_token?(request_id, 43, 43),
+      do: rotate_refresh(token, request_id),
+      else: {:error, :invalid_grant}
+  end
+
+  defp rotate_refresh(token, request_id) do
     with {:ok, token_row} <- find_refresh(token) do
       # The family lock serializes refresh/revoke and all token generations.
       Repo.transaction(fn ->
         session = lock_session(token_row.session_id)
         current = Repo.get(DesktopRefreshToken, token_row.id)
         now = DateTime.utc_now()
+        user = if session, do: Repo.get(User, session.user_id)
 
         cond do
-          not active_session?(session, now) ->
+          not active_session?(session, now) or is_nil(current) ->
             {:error, :invalid_grant}
 
-          not is_nil(current.used_at) ->
+          not User.active?(user) ->
             revoke_session(session, now)
             {:replayed, session.id}
 
-          true ->
-            user = Repo.get(User, session.user_id)
+          not is_nil(current.used_at) ->
+            case retry_refresh(current, token, request_id) do
+              nil ->
+                revoke_session(session, now)
+                {:replayed, session.id}
 
-            if User.active?(user) do
-              current |> Ecto.Changeset.change(used_at: now) |> Repo.update!()
-              {:ok, issue_tokens(session, user, now)}
-            else
-              revoke_session(session, now)
-              {:replayed, session.id}
+              refresh ->
+                {:ok, token_response(session, user, now, refresh)}
             end
+
+          true ->
+            current
+            |> Ecto.Changeset.change(
+              used_at: now,
+              refresh_request_id_hash: if(request_id, do: digest(request_id))
+            )
+            |> Repo.update!()
+
+            session =
+              session
+              |> Ecto.Changeset.change(expires_at: DateTime.add(now, @session_seconds))
+              |> Repo.update!()
+
+            refresh =
+              if request_id,
+                do: derived_refresh(token, request_id),
+                else: @refresh_prefix <> random_token()
+
+            {:ok, issue_tokens(session, user, now, refresh)}
         end
       end)
       |> case do
@@ -216,11 +247,22 @@ defmodule Mokaid.Auth.Desktop do
 
   @doc "Delete expired authorization material after a one-day diagnostic retention window."
   def prune_expired do
-    cutoff = DateTime.add(DateTime.utc_now(), -86_400)
+    now = DateTime.utc_now()
+    cutoff = DateTime.add(now, -86_400)
     Repo.delete_all(from r in DesktopRequest, where: r.expires_at < ^cutoff)
 
     Repo.delete_all(
       from s in DesktopSession, where: s.expires_at < ^cutoff or s.revoked_at < ^cutoff
+    )
+
+    # Rolling sessions can stay active indefinitely. Keep a spent generation
+    # through the full recovery/inactivity window plus one day, then forget it.
+    # It can no longer authorize or recover a live unused successor at that age.
+    refresh_cutoff = DateTime.add(now, -@refresh_history_seconds)
+
+    Repo.delete_all(
+      from t in DesktopRefreshToken,
+        where: not is_nil(t.used_at) and t.used_at < ^refresh_cutoff
     )
 
     :ok
@@ -253,9 +295,12 @@ defmodule Mokaid.Auth.Desktop do
     end
   end
 
-  defp issue_tokens(session, user, now) do
-    refresh = @refresh_prefix <> random_token()
+  defp issue_tokens(session, user, now, refresh \\ @refresh_prefix <> random_token()) do
     Repo.insert!(%DesktopRefreshToken{session_id: session.id, token_hash: digest(refresh)})
+    token_response(session, user, now, refresh)
+  end
+
+  defp token_response(session, user, now, refresh) do
     expiry = min(DateTime.to_unix(now) + @access_seconds, DateTime.to_unix(session.expires_at))
 
     access =
@@ -272,6 +317,35 @@ defmodule Mokaid.Auth.Desktop do
       expires_in: expiry - DateTime.to_unix(now),
       user: user
     }
+  end
+
+  # A retry may recover only the immediate, still-unused successor. Holding an
+  # old credential alone cannot recover it or bypass family replay detection.
+  # Both inputs stay in the client's credential vault; only their hashes persist
+  # here. The domain-separated HMAC recreates the same successor after a restart.
+  defp retry_refresh(%{refresh_request_id_hash: hash} = current, token, request_id)
+       when is_binary(hash) and is_binary(request_id) do
+    if Plug.Crypto.secure_compare(hash, digest(request_id)) do
+      refresh = derived_refresh(token, request_id)
+
+      if Repo.exists?(
+           from t in DesktopRefreshToken,
+             where:
+               t.session_id == ^current.session_id and t.token_hash == ^digest(refresh) and
+                 is_nil(t.used_at)
+         ),
+         do: refresh
+    end
+  end
+
+  defp retry_refresh(_, _, _), do: nil
+
+  defp derived_refresh(token, request_id) do
+    secret =
+      :crypto.mac(:hmac, :sha256, token, "mokaid desktop refresh retry v1:" <> request_id)
+      |> Base.url_encode64(padding: false)
+
+    @refresh_prefix <> secret
   end
 
   defp pending?(%DesktopRequest{approved_at: nil, consumed_at: nil, expires_at: expires}),

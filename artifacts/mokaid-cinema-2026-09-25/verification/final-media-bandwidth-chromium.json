@@ -1,0 +1,43 @@
+{
+  "status": "passed",
+  "fixtureSubstitution": false,
+  "timestamp": "2026-09-25T14:56:18.172Z",
+  "engine": "chromium",
+  "source": "/assets/mokaid-office-journey.adac1c365481.mp4",
+  "upstreamOrigin": "http://127.0.0.1:4173",
+  "scenario": "Actual HTTP byte-range stream at an aggregate low bandwidth; enter before readiness and retain the illustrated experience.",
+  "configuredKiBPerSecond": 16,
+  "maximumTestMs": 9000,
+  "chunksBytes": 1024,
+  "limitations": "Validates low-bandwidth fallback, not seek catch-up or fluent 1080p playback over this connection.",
+  "version": "151.0.7922.34",
+  "beforeEntry": {
+    "mode": "loading",
+    "readyState": 0,
+    "presentedTime": 0
+  },
+  "transport": {
+    "bytesPerSecond": 16384,
+    "chunkBytes": 1024,
+    "elapsedMs": 1304,
+    "transferredBytes": 4096,
+    "requests": [
+      {
+        "range": "bytes=0-",
+        "status": 206,
+        "bytes": 4096,
+        "startedMs": 898,
+        "firstByteMs": 954,
+        "lastByteMs": 1145,
+        "aborted": true
+      }
+    ]
+  },
+  "afterEntry": {
+    "mode": "static",
+    "illustratedMoments": 3,
+    "videoElements": 0,
+    "entryIllustrationDecoded": true,
+    "downloadCTA": true
+  }
+}

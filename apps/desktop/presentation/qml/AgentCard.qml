@@ -7,6 +7,7 @@ AbstractButton {
     property var agent: ({})
     property bool selected: false
     property bool online: true
+    readonly property bool usesCustomPortrait: String(agent.asset_type || "").indexOf("custom:") === 0 || !!agent.avatar_thumbnail_url
     readonly property string agentName: agent.display_name || agent.name || "Agent"
     readonly property string missionStatus: agent.status === "busy" || agent.status === "working" ? "Working" : agent.status === "waiting" ? "Needs you" : agent.status === "blocked" ? "Blocked" : agent.status === "active" ? "Active" : agent.status === "idle" ? "Idle" : agent.status === "training" ? "Training" : agent.status || "Status unavailable"
     readonly property color statusColor: ["busy", "working", "active"].indexOf(agent.status) >= 0 ? Theme.success : ["waiting", "training"].indexOf(agent.status) >= 0 ? Theme.warning : agent.status === "blocked" ? Theme.danger : Theme.accentBlue
@@ -27,7 +28,26 @@ AbstractButton {
         RowLayout {
             anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
             spacing: 10
-            AgentPortrait { kind: root.agent.asset_type || "male"; online: root.online; size: 44 }
+            Loader {
+                Layout.preferredWidth: 44; Layout.preferredHeight: 44
+                sourceComponent: root.usesCustomPortrait ? customPortrait : catalogPortrait
+                Component {
+                    id: catalogPortrait
+                    AgentPortrait { objectName: "officeCatalogPortrait"; kind: root.agent.asset_type || "male"; online: root.online; size: 44 }
+                }
+                Component {
+                    id: customPortrait
+                    WorkforcePortrait {
+                        objectName: "officeCustomPortrait"
+                        agent: root.agent; size: 44
+                        Rectangle {
+                            visible: root.online; width: 8; height: 8; radius: 4
+                            anchors.left: parent.left; anchors.bottom: parent.bottom
+                            color: Theme.success; border.color: Theme.background; border.width: 2
+                        }
+                    }
+                }
+            }
             ColumnLayout {
                 Layout.fillWidth: true; spacing: 5
                 MokaidLabel { Layout.fillWidth: true; text: root.agentName; font.pixelSize: 12; font.weight: Font.DemiBold; elide: Text.ElideRight }

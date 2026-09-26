@@ -44,6 +44,79 @@ defmodule Mokaid.MailTest do
       assert %{password: ["can't be blank"]} = errors_on(changeset)
     end
 
+    test "reconnect preserves account, messages and cursor while replacing encrypted credentials" do
+      {workspace, member} = workspace_with_member()
+
+      attrs = %{
+        "email_address" => "reconnect@example.com",
+        "password" => "old",
+        "imap_host" => "imap.example.com"
+      }
+
+      {:ok, account} = Mail.create_imap_account(workspace.id, member, attrs)
+
+      {:ok, account} =
+        Mail.update_sync_state(account, %{
+          "status" => "error",
+          "error_message" => "old failure",
+          "sync_state" => %{"uid_next" => 42}
+        })
+
+      {:ok, _} =
+        Mail.ingest_messages(account, [%{"provider_message_id" => "mail-1", "subject" => "Saved"}])
+
+      assert {:ok, updated} =
+               Mail.update_imap_account(account, member, Map.put(attrs, "password", "new"))
+
+      assert updated.id == account.id
+      assert updated.status == "active"
+      assert updated.error_message == nil
+      assert updated.sync_state == %{"uid_next" => 42}
+
+      assert {:ok, %{"password" => "new"}} =
+               Mokaid.Vault.decrypt_map(updated.encrypted_credentials)
+
+      assert [_] = Mail.list_messages(workspace.id)
+      refute Map.has_key?(updated.settings, "password")
+    end
+
+    test "reconnection refuses to mix another email address into the same mailbox" do
+      {workspace, member} = workspace_with_member()
+
+      attrs = %{
+        "email_address" => "original@example.com",
+        "password" => "pw",
+        "imap_host" => "imap.example.com"
+      }
+
+      {:ok, account} = Mail.create_imap_account(workspace.id, member, attrs)
+
+      assert {:error, changeset} =
+               Mail.update_imap_account(
+                 account,
+                 member,
+                 Map.put(attrs, "email_address", "different@example.com")
+               )
+
+      assert %{email_address: [_]} = errors_on(changeset)
+      assert Mail.get_account(workspace.id, account.id).email_address == "original@example.com"
+    end
+
+    test "invalid settings do not create a mailbox" do
+      {workspace, member} = workspace_with_member()
+
+      assert {:error, changeset} =
+               Mail.create_imap_account(workspace.id, member, %{
+                 "email_address" => "bad@example.com",
+                 "password" => "pw",
+                 "imap_host" => "imap.example.com",
+                 "imap_port" => "993oops"
+               })
+
+      assert %{imap_port: [_]} = errors_on(changeset)
+      assert [] = Mail.list_accounts(workspace.id)
+    end
+
     test "enforces one account per workspace/provider/address" do
       {workspace, member} = workspace_with_member()
 
@@ -71,6 +144,47 @@ defmodule Mokaid.MailTest do
 
       assert account.id == again.id
       assert [_only_one] = Mail.list_accounts(workspace.id)
+    end
+
+    test "worker credentials cannot cross mailbox identities on legacy shared connections" do
+      {workspace, member} = workspace_with_member()
+
+      provider =
+        Repo.insert!(%Mokaid.Integrations.IntegrationProvider{
+          key: "gmail",
+          name: "Gmail",
+          category: "email"
+        })
+
+      connection =
+        Repo.insert!(%Mokaid.Integrations.IntegrationConnection{
+          workspace_id: workspace.id,
+          provider_id: provider.id,
+          status: "connected",
+          connected_account: "second@gmail.com",
+          encrypted_credentials:
+            Mokaid.Vault.encrypt(%{
+              "access_token" => "test-token",
+              "expires_at" => "2099-01-01T00:00:00Z"
+            })
+        })
+
+      {:ok, first} =
+        Mail.ensure_oauth_account(workspace.id, member, "gmail", "first@gmail.com", connection.id)
+
+      {:ok, second} =
+        Mail.ensure_oauth_account(
+          workspace.id,
+          member,
+          "gmail",
+          "second@gmail.com",
+          connection.id
+        )
+
+      assert {:error, :reconnect_required} = Mail.worker_account_payload(first)
+
+      assert {:ok, %{credentials: %{"access_token" => "test-token"}}} =
+               Mail.worker_account_payload(second)
     end
 
     test "gmail accounts are findable by address for webhooks" do

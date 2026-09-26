@@ -65,4 +65,8 @@ if(APPLE AND BUILD_TESTING)
   target_compile_options(mokaid_metal_smoke PRIVATE -fobjc-arc -Wall -Wextra -Wpedantic)
   target_link_libraries(mokaid_metal_smoke PRIVATE mokaid_renderer
     "-framework Metal" "-framework Foundation" "-framework ImageIO" "-framework CoreGraphics")
+  add_executable(mokaid_character_portraits EXCLUDE_FROM_ALL tests/character_portraits.mm)
+  target_compile_options(mokaid_character_portraits PRIVATE -fobjc-arc -Wall -Wextra -Wpedantic)
+  target_link_libraries(mokaid_character_portraits PRIVATE mokaid_renderer
+    "-framework Metal" "-framework Foundation" "-framework ImageIO" "-framework CoreGraphics")
 endif()

@@ -18,7 +18,7 @@ ApplicationWindow {
     property bool quitting: false
     property bool adminMode: features.currentPage.indexOf("admin-") === 0
     property bool previewsRetained: preview.documents[0] !== null || preview.documents[1] !== null
-    property bool workProtected: office.hasDrafts || office.sending || missions.hasDraft || missions.busy || actionDialog.opened || activityPanels.protectedWork || previewsRetained
+    property bool workProtected: desktopShell.taskDrafts || desktopShell.agentDrafts || office.hasDrafts || office.sending || missions.hasDraft || missions.busy || actionDialog.opened || activityPanels.protectedWork || previewsRetained
         || features.driveDownload.busy || features.driveDownload.pendingTransaction.length > 0 || projectRuntime.busy
         || orchestrator.busy || orchestrator.draft.length > 0 || moked.audioActive
     onWorkProtectedChanged: updates.setInstallationAllowed(!workProtected)
@@ -91,9 +91,9 @@ ApplicationWindow {
         anchors.centerIn: parent; width: 400; spacing: 22
         Image { source: "qrc:/branding/logo-without-bg.png"; Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 86; Layout.preferredHeight: 86; fillMode: Image.PreserveAspectFit }
         MokaidLabel { text: "Your AI office.\nRight on your desktop."; font.pixelSize: 32; font.weight: Font.DemiBold; color: Theme.text; horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true }
-        MokaidLabel { text: "Sign in securely in your browser to connect your workspace."; color: Theme.secondary; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true }
-        MokaidButton { text: session.busy ? "Waiting for browser…" : "Sign in to Mokaid"; Layout.fillWidth: true; Layout.preferredHeight: 46; enabled: !session.busy; highlighted: true; onClicked: session.signIn() }
-        MokaidButton { visible: session.busy; text: "Cancel sign-in"; Layout.alignment: Qt.AlignHCenter; onClicked: session.cancelSignIn() }
+        MokaidLabel { text: session.canResume && !session.signingIn ? "Your session is saved. Reconnecting to your workspace…" : "Sign in securely in your browser to connect your workspace."; color: Theme.secondary; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true }
+        MokaidButton { text: session.busy ? (session.signingIn ? "Waiting for browser…" : "Reconnecting…") : (session.canResume ? "Retry connection" : "Sign in to Mokaid"); Layout.fillWidth: true; Layout.preferredHeight: 46; enabled: !session.busy; highlighted: true; onClicked: session.retry() }
+        MokaidButton { visible: session.signingIn; text: "Cancel sign-in"; Layout.alignment: Qt.AlignHCenter; onClicked: session.cancelSignIn() }
         MokaidLabel { text: session.error; visible: text.length > 0; color: Theme.danger; wrapMode: Text.Wrap; Layout.fillWidth: true }
         MokaidLabel { text: system.productName + " " + system.version; color: Theme.muted; Layout.alignment: Qt.AlignHCenter }
     }

@@ -54,6 +54,11 @@ defmodule MokaidWeb.DesktopAuthController do
 
   def token(conn, _params), do: error(conn, :bad_request, "invalid_grant")
 
+  def refresh(conn, %{"refresh_token" => token, "refresh_request_id" => request_id}),
+    do: token_response(conn, Desktop.refresh(token, request_id))
+
+  def refresh(conn, _params), do: error(conn, :bad_request, "invalid_grant")
+
   def revoke(conn, params) do
     Desktop.revoke(params["refresh_token"])
     send_resp(conn, :no_content, "")
@@ -76,7 +81,7 @@ defmodule MokaidWeb.DesktopAuthController do
   defp rate_limit(conn, _) do
     ip = conn.remote_ip |> :inet.ntoa() |> to_string()
     action = action_name(conn)
-    limit = if action in [:token, :revoke], do: 60, else: 15
+    limit = if action in [:token, :refresh, :revoke], do: 60, else: 15
 
     case Hammer.check_rate("desktop-auth:#{action}:#{ip}", 60_000, limit) do
       {:allow, _} ->

@@ -69,14 +69,21 @@ origins require HTTPS; HTTP is allowed only for explicit loopback development.
 Browser sign-in accepts only the configured origin's `/desktop/authorize` with
 one transaction ID. It never accepts an arbitrary server-returned redirect.
 The temporary loopback callback is bound to PKCE and state. OS credential
-storage holds the rotating refresh token; workspace cache contains no session
-token. API and WebSocket credentials are headers, not URL parameters.
-Refresh requests are serialized. A lost response or ambiguous server failure
-requires fresh browser sign-in, since replaying an already rotated credential
-revokes its session family. Connection failures proven to occur before the HTTP
-request, and rate limiting, retain the saved credential for a delayed retry.
-Vault write failures revoke issued credentials and clear local identity; a
-failed vault erase leaves a sign-out marker that prevents automatic restoration.
+storage holds the rotating refresh token and its random renewal request ID in
+one atomic record; workspace cache contains no session token. API and WebSocket
+credentials are headers, not URL parameters. Existing saved tokens are upgraded
+before renewal. One app instance per credential identity serializes access.
+Refresh requests use `/api/desktop/auth/refresh`. Lost responses, network/server
+failures and temporary vault write failures retain the recovery record and retry
+automatically, including after app restart. The server returns the same unspent
+successor for the same renewal operation, while rejecting unrelated replays.
+Sessions expire after 30 days of inactivity; successful rotation extends that
+window. Explicit logout, revocation and disabled accounts still require sign-in.
+An initial sign-in vault write failure revokes the issued credential. A failed
+vault erase leaves a sign-out marker that prevents automatic restoration.
+Deploy the API and its retryable-refresh migration before distributing this
+desktop build. An older server returns 404 for recovery; the client keeps the
+saved credential and retries without downgrading to unsafe legacy rotation.
 The serialized SQLite worker retains at most 500 entries / 256 MiB of payloads,
 with an 8 MiB per-entry ceiling; database pages and its WAL add storage overhead.
 

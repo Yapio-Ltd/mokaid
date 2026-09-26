@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "createdAt": "2026-09-25T18:35:06.357309+00:00",
+  "scope": "Final downloaded native Higgsedit social films",
+  "verification": "SHA-256 matches remote deliveries; native checks/render diagnostics empty; 1776 frames, 74 s, CFR 24 fps, AAC 48 kHz in every social format",
+  "story": "Shared cinematic-story.json, logoAt 71.2, Build your team →",
+  "visualReview": {
+    "payoff": "Five complete notification cards, original logo, Manrope title and CTA fit all three frames. Correct vertical scrims preserve readability.",
+    "framing": "Dedicated 9:16 office scene4 and adapted 6/7 maintain action. Final 4:5/9:16 baby-foot frames retain both faces and hands.",
+    "limitations": [
+      "Coffee in portrait adaptations is a background detail; the 16:9 film retains the espresso close-up.",
+      "9:16 cafe crops the sides of the laptop, consistently at opening and ending.",
+      "Portrait scene5 prioritizes the two interacting agents and tablet; third meeting participant is outside the crop."
+    ],
+    "framesExtracted": {
+      "16x9": [
+        18.5,
+        23,
+        34,
+        47,
+        54,
+        70,
+        73.5
+      ],
+      "4x5": [
+        18.5,
+        23,
+        34,
+        47,
+        54,
+        70,
+        73.5
+      ],
+      "9x16": [
+        3,
+        18.5,
+        23,
+        34,
+        40,
+        43,
+        47,
+        50,
+        54,
+        62,
+        70,
+        73.5
+      ]
+    },
+    "finalFramesVisuallyInspectedByExportAgent": {
+      "16x9": [
+        73.5
+      ],
+      "4x5": [
+        47,
+        73.5
+      ],
+      "9x16": [
+        3,
+        23,
+        40,
+        47,
+        50,
+        54,
+        73.5
+      ]
+    },
+    "additionalReview": "Root approved final images in all three formats; scene and seam reviews are recorded separately."
+  },
+  "audio": {
+    "humanListeningPerformed": false,
+    "transcriptionPerformed": false,
+    "transcriptionReason": "No locally cached speech model in Higgsfield sandbox; offline review script supplied without downloading a model.",
+    "sourceReview": "All nine source takes measured, audio signal present in each, no full-scale or intersample overload. Scene5 -15 dB gain preserved in framing data.",
+    "socialLevels": [
+      {
+        "format": "16x9",
+        "integratedLUFS": -20.9,
+        "LRA": 19.6,
+        "truePeakDBTP": -1.0
+      },
+      {
+        "format": "4x5",
+        "integratedLUFS": -22.1,
+        "LRA": 19.2,
+        "truePeakDBTP": -0.4
+      },
+      {
+        "format": "9x16",
+        "integratedLUFS": -19.5,
+        "LRA": 20.3,
+        "truePeakDBTP": -0.9
+      }
+    ],
+    "notes": "Restrained -20 LUFS target with generated dynamics retained; actual measured values reported. Audio presence and levels were checked objectively, not semantic sound or mix through listening."
+  },
+  "references": [
+    "7-adaptive-qa.json",
+    "8-9-framing-qa.json",
+    "audio-review.json",
+    "../../deliveries/social-verification.json"
+  ]
+}

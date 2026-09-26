@@ -1,0 +1,49 @@
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'artifacts/mokaid-cinema-2026-09-25/deliveries/mokaid-social-16x9-74s.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    title           : Mokaid — Enter your AI office
+    encoder         : Lavf59.27.100
+    comment         : Higgsfield Cinema Studio Video v2; native Higgsedit composition
+  Duration: 00:01:14.00, start: 0.000000, bitrate: 12190 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt709, progressive), 1920x1080, 11992 kb/s, 24 fps, 24 tbr, 12288 tbn (default)
+      Metadata:
+        handler_name    : VideoHandler
+        vendor_id       : [0][0][0][0]
+        encoder         : Lavc59.37.100 libx264
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 192 kb/s (default)
+      Metadata:
+        handler_name    : SoundHandler
+        vendor_id       : [0][0][0][0]
+Stream mapping:
+  Stream #0:1 -> #0:0 (aac (native) -> pcm_s16le (native))
+Press [q] to stop, [?] for help
+Output #0, null, to 'pipe:':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    title           : Mokaid — Enter your AI office
+    comment         : Higgsfield Cinema Studio Video v2; native Higgsedit composition
+    encoder         : Lavf61.7.100
+  Stream #0:0(und): Audio: pcm_s16le, 192000 Hz, stereo, s16, 6144 kb/s (default)
+      Metadata:
+        handler_name    : SoundHandler
+        vendor_id       : [0][0][0][0]
+        encoder         : Lavc61.19.101 pcm_s16le
+[Parsed_loudnorm_0 @ 0x7ad039200] 
+{
+	"input_i" : "-21.17",
+	"input_tp" : "-0.97",
+	"input_lra" : "19.50",
+	"input_thresh" : "-33.85",
+	"output_i" : "-21.99",
+	"output_tp" : "-1.50",
+	"output_lra" : "15.10",
+	"output_thresh" : "-32.91",
+	"normalization_type" : "dynamic",
+	"target_offset" : "1.99"
+}
+[out#0/null @ 0x7ad039080] video:0KiB audio:55504KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+size=N/A time=00:01:14.10 bitrate=N/A speed=46.9x    

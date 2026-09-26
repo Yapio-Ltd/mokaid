@@ -78,7 +78,8 @@ defmodule Mokaid.Agents do
     archetype_key = attrs["archetype_key"] || "blank"
     boost_key = attrs["boost_key"]
 
-    with {:ok, prepared, archetype, boost} <-
+    with :ok <- Mokaid.Assets3d.validate_avatar(workspace_id, attrs["avatar_asset_id"]),
+         {:ok, prepared, archetype, boost} <-
            Archetypes.build_create_attrs(sanitize_client_attrs(attrs), archetype_key, boost_key) do
       prepared =
         if blank?(prepared["avatar_asset_id"]) do
@@ -568,9 +569,11 @@ defmodule Mokaid.Agents do
       |> Map.drop(@public_update_drop ++ Enum.map(@public_update_drop, &String.to_atom/1))
 
     result =
-      agent
-      |> Agent.update_changeset(Map.put(attrs, "workspace_id", agent.workspace_id))
-      |> Repo.update()
+      with :ok <- Mokaid.Assets3d.validate_avatar(agent.workspace_id, attrs["avatar_asset_id"]) do
+        agent
+        |> Agent.update_changeset(Map.put(attrs, "workspace_id", agent.workspace_id))
+        |> Repo.update()
+      end
 
     with {:ok, updated} <- result do
       Realtime.broadcast_workspace(agent.workspace_id, "agent.updated", %{agent_id: updated.id})

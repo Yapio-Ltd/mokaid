@@ -39,7 +39,7 @@ export function MarketplaceReturnPage() {
             Open download <ArrowRight size={14} aria-hidden />
           </Link>
           <a
-            href="/#marketplace"
+            href="/"
             className="mk-focus-ring inline-flex min-h-11 items-center rounded-md px-4 text-sm font-medium text-text-secondary hover:text-text"
           >
             Back to homepage

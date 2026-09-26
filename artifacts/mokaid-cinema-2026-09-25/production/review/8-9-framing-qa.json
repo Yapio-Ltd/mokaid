@@ -1,0 +1,220 @@
+{
+  "review": "scene8-9-framing",
+  "status": "accepted_with_expected_portrait_caveats",
+  "method": "Local FFmpeg extraction of true accepted clips; cover crops inspected with view_image at source frames mapped from final montage time. No sandbox, generation or shared framing manifest edited.",
+  "scene8": {
+    "source": "clips/08-return.mp4",
+    "sourceDuration": 8,
+    "montageDuration": 6,
+    "pan": "focusX = 0.65 - 0.15 * smoothstep(clamp(editTime / 2,0,1)); focusY=0.5",
+    "observations": [
+      "First composition retains the approved focusX0.65 to match adaptive scene7 endings.",
+      "The shift to center completes over2seconds of final montage time (2.6667s source), not2source seconds.",
+      "Laptop display, emergence into the café and violet display glow remain clear in both crops.",
+      "In9:16 the amber player becomes partly cut off at the right border while the camera leaves the office; the principal narrative has shifted to the laptop exit. This is a format limitation rather than a missed return action.",
+      "The4:5crop retains more of both players and reveals the entire laptop after the exit."
+    ]
+  },
+  "scene9": {
+    "source": "clips/09-completed.mp4",
+    "sourceDuration": 8,
+    "montageDuration": 7,
+    "pan": "focusX=0.5 and focusY=0.5 constant",
+    "observations": [
+      "The central screen and violet glow remain stable and unobstructed across sampled frames.",
+      "The9:16crop cuts the laptop outer side edges, consistently with the opening portrait framing;4:5retains the full laptop.",
+      "These raw clips have no editorial notification overlays; this check does not certify the later overlay positions or typography."
+    ]
+  },
+  "samples": [
+    {
+      "clip": "08-return",
+      "aspect": "9x16",
+      "sheet": "production/review/08-return-9x16-framing.jpg",
+      "samples": [
+        {
+          "editTime": 0,
+          "sourceFrame": 0,
+          "focusX": 0.65
+        },
+        {
+          "editTime": 0.5,
+          "sourceFrame": 16,
+          "focusX": 0.6265625
+        },
+        {
+          "editTime": 1,
+          "sourceFrame": 32,
+          "focusX": 0.5750000000000001
+        },
+        {
+          "editTime": 1.5,
+          "sourceFrame": 48,
+          "focusX": 0.5234375
+        },
+        {
+          "editTime": 2,
+          "sourceFrame": 64,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 3,
+          "sourceFrame": 96,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 4,
+          "sourceFrame": 128,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 5,
+          "sourceFrame": 160,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 6,
+          "sourceFrame": 192,
+          "focusX": 0.5
+        }
+      ]
+    },
+    {
+      "clip": "08-return",
+      "aspect": "4x5",
+      "sheet": "production/review/08-return-4x5-framing.jpg",
+      "samples": [
+        {
+          "editTime": 0,
+          "sourceFrame": 0,
+          "focusX": 0.65
+        },
+        {
+          "editTime": 0.5,
+          "sourceFrame": 16,
+          "focusX": 0.6265625
+        },
+        {
+          "editTime": 1,
+          "sourceFrame": 32,
+          "focusX": 0.5750000000000001
+        },
+        {
+          "editTime": 1.5,
+          "sourceFrame": 48,
+          "focusX": 0.5234375
+        },
+        {
+          "editTime": 2,
+          "sourceFrame": 64,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 3,
+          "sourceFrame": 96,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 4,
+          "sourceFrame": 128,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 5,
+          "sourceFrame": 160,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 6,
+          "sourceFrame": 192,
+          "focusX": 0.5
+        }
+      ]
+    },
+    {
+      "clip": "09-completed",
+      "aspect": "9x16",
+      "sheet": "production/review/09-completed-9x16-framing.jpg",
+      "samples": [
+        {
+          "editTime": 0,
+          "sourceFrame": 0,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 1,
+          "sourceFrame": 27,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 2,
+          "sourceFrame": 55,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 3.5,
+          "sourceFrame": 96,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 5,
+          "sourceFrame": 137,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 6,
+          "sourceFrame": 165,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 7,
+          "sourceFrame": 192,
+          "focusX": 0.5
+        }
+      ]
+    },
+    {
+      "clip": "09-completed",
+      "aspect": "4x5",
+      "sheet": "production/review/09-completed-4x5-framing.jpg",
+      "samples": [
+        {
+          "editTime": 0,
+          "sourceFrame": 0,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 1,
+          "sourceFrame": 27,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 2,
+          "sourceFrame": 55,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 3.5,
+          "sourceFrame": 96,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 5,
+          "sourceFrame": 137,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 6,
+          "sourceFrame": 165,
+          "focusX": 0.5
+        },
+        {
+          "editTime": 7,
+          "sourceFrame": 192,
+          "focusX": 0.5
+        }
+      ]
+    }
+  ],
+  "audioReview": "Not listened."
+}

@@ -1,0 +1,19 @@
+{
+  "file": "artifacts/mokaid-cinema-2026-09-25/exports/mokaid-web-74s.mp4",
+  "bytes": 70724025,
+  "sha256": "adac1c36548182a4b68137fdba12dbe084290d6729ff75f5be6adc1a87281ff3",
+  "frameCount": 1776,
+  "maxGop": 6,
+  "checks": {
+    "h264": true,
+    "dimensions": true,
+    "duration": true,
+    "fps24": true,
+    "constantFrameIntervals": true,
+    "noBFrames": true,
+    "quarterSecondGop": true,
+    "silent": true,
+    "faststart": true
+  },
+  "passed": true
+}

@@ -14,7 +14,12 @@ defmodule MokaidWeb.TaskController do
 
       json(conn, %{
         data: Enum.map(tasks, &Serializer.task/1),
-        meta: %{counts: counts, completed_today: completed_today}
+        meta: %{
+          counts: counts,
+          completed_today: completed_today,
+          current_member_id: current_member(conn).id,
+          can_update: Permissions.can?(current_member(conn), "tasks.update")
+        }
       })
     end
   end
@@ -106,6 +111,26 @@ defmodule MokaidWeb.TaskController do
   # discussion left off instead of restarting blind.
   defp default_run_input(task), do: AI.default_input(task)
 
+  def feedback(conn, %{"id" => id} = params) do
+    with :ok <- Permissions.authorize(current_member(conn), "tasks.update"),
+         :ok <- authorize_feedback_continuation(conn, params["rating"]),
+         %{} = task <- Tasks.get_task(workspace_id(conn), id),
+         {:ok, %{task: updated, run: run}} <-
+           AI.review_response(task, params, current_member(conn)) do
+      Audit.log(workspace_id(conn), current_member(conn), "task.response_feedback", "task", id, %{
+        rating: params["rating"],
+        run_id: run && run.id
+      })
+
+      json(conn, %{data: Serializer.task(updated), meta: %{run_id: run && run.id}})
+    end
+  end
+
+  defp authorize_feedback_continuation(conn, "needs_improvement"),
+    do: Permissions.authorize(current_member(conn), "agents.run_ai")
+
+  defp authorize_feedback_continuation(_conn, _rating), do: :ok
+
   @doc "Stops the agent's work on this task and puts it back in To Do."
   def stop_ai(conn, %{"id" => id}) do
     with :ok <- Permissions.authorize(current_member(conn), "agents.run_ai"),
@@ -157,7 +182,7 @@ defmodule MokaidWeb.TaskController do
       end
 
       if updated.run_id do
-        AI.resume_after_approval(updated.run_id, decision, payload)
+        AI.resume_after_approval(updated.run_id, decision, payload, request.tool_name)
       end
 
       json(conn, %{data: %{id: updated.id, status: updated.status}})

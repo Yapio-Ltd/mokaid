@@ -231,6 +231,31 @@ std::shared_ptr<const Scene> loadScene(const std::filesystem::path &path) {
       const auto &joints=s->skins.front().joints;
       const auto head=*std::max_element(joints.begin(),joints.end(),[&](auto a,auto b){return reference.world[a].m[13]<reference.world[b].m[13];});
       const float crown=std::max(0.F,max.y-reference.world[head].m[13]);
+      const float crownHeight = (reference.world[head].m[13] - min.y) / std::max(.1F, s->referenceHeight);
+      // Some authored rigs have a crown tip; others end at the base of the
+      // skull. Both must rotate the head joint, never a decorative tip alone.
+      const auto headJoint = crownHeight > .92F ? s->nodes[head].parent : static_cast<std::int32_t>(head);
+      if (headJoint >= 0) {
+        const auto &headMatrix = reference.world[static_cast<std::size_t>(headJoint)];
+        const float headHeight = (headMatrix.m[13] - min.y) / std::max(.1F, s->referenceHeight);
+        // A crown tip over a central head joint is present in the authored
+        // humanoids. A raised hand or an unusual custom skeleton fails closed.
+        if (headHeight > .64F && headHeight < .94F && crownHeight > .72F &&
+            std::abs(headMatrix.m[12]) < s->referenceHeight * .10F) {
+          auto chest = s->nodes[static_cast<std::size_t>(headJoint)].parent;
+          for (int depth = 0; chest >= 0 && depth < 4; ++depth) {
+            const auto children = std::count_if(s->nodes.begin(), s->nodes.end(),
+                [chest](const auto &node) { return node.parent == chest; });
+            const float height = (reference.world[static_cast<std::size_t>(chest)].m[13] - min.y) / s->referenceHeight;
+            if (children >= 3 && height > .6F && height < headHeight) {
+              s->gazeHead = headJoint; s->gazeChest = chest; s->gazeCrown = static_cast<std::int32_t>(head);
+              s->gazeCrownOffset = crown;
+              break;
+            }
+            chest = s->nodes[static_cast<std::size_t>(chest)].parent;
+          }
+        }
+      }
       for(const auto &clip:s->animations) {
         HeadTrack track;track.clip=clip.name;track.duration=clip.duration;
         for(std::size_t i=0;i<track.positions.size();++i) {
@@ -395,7 +420,21 @@ Pose evaluateInstancePose(const Instance &instance) {
       if (offset.node >= nodes.size()) throw std::runtime_error("Invalid instance node translation");
       nodes[offset.node].translation = nodes[offset.node].translation + offset.delta;
     }
-    return composePose(nodes);
+    auto pose = composePose(nodes);
+    for (const auto &offset : instance.nodeRotations) {
+      if (offset.node >= nodes.size() || !finite(offset.rotation))
+        throw std::runtime_error("Invalid instance node rotation");
+      const auto &joint = pose.world[offset.node];
+      const Vec3 pivot{joint.m[12], joint.m[13], joint.m[14]};
+      const auto rotation = trs(pivot, offset.rotation) * trs(pivot * -1.F);
+      for (std::size_t index = offset.node; index < nodes.size(); ++index) {
+        auto ancestor = static_cast<std::int32_t>(index);
+        while (ancestor >= 0 && ancestor != static_cast<std::int32_t>(offset.node))
+          ancestor = nodes[static_cast<std::size_t>(ancestor)].parent;
+        if (ancestor >= 0) pose.world[index] = rotation * pose.world[index];
+      }
+    }
+    return pose;
   };
   if (instance.animationSamples.empty())
     return placed(animatedNodes(scene, instance.animation, instance.animationTime));

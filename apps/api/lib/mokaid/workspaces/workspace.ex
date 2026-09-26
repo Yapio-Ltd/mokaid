@@ -20,6 +20,8 @@ defmodule Mokaid.Workspaces.Workspace do
     field :feature_toggles, :map, default: %{}
     field :usage_limits, :map, default: %{}
     field :settings, :map, default: %{}
+    # Updated only through RuntimePolicy, never mass-assigned by workspace changesets.
+    field :managed_runtime_policy, :map, default: %{}
     field :deleted_at, :utc_datetime_usec
 
     has_many :members, Mokaid.Members.Member

@@ -1,0 +1,9 @@
+{
+  "tool": "Higgsedit native",
+  "correctAngle": 180,
+  "fixture": "200x200 white background with transparent-to-black vertical gradient",
+  "diagnostics": [],
+  "sampleRows": {"10": [242, 242, 242], "100": [127, 127, 127], "190": [12, 12, 12]},
+  "sampleColumns": [10, 100, 190],
+  "result": "Intensity varies down the image and is equal across each row. Prior angle90 was horizontal and caused a visible scrim edge and weak final CTA contrast."
+}

@@ -11,6 +11,7 @@ defmodule Mokaid.Assets3d.Asset do
   @kinds ~w(character environment accessory furniture prop)
 
   schema "asset_3d" do
+    belongs_to :workspace, Mokaid.Workspaces.Workspace
     field :slug, :string
     field :kind, :string
     field :storage_key, :string
@@ -28,6 +29,7 @@ defmodule Mokaid.Assets3d.Asset do
   def changeset(asset, attrs) do
     asset
     |> cast(attrs, [
+      :workspace_id,
       :slug,
       :kind,
       :storage_key,

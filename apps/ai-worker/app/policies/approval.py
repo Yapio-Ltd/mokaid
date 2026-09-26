@@ -26,11 +26,18 @@ TOOL_RISK: dict[str, RiskLevel] = {
     "explain_concept": RiskLevel.LOW,
     "save_knowledge_outcome": RiskLevel.LOW,
     "web_search": RiskLevel.LOW,
+    "delegate_work": RiskLevel.LOW,
+    "read_team_updates": RiskLevel.LOW,
+    "send_team_message": RiskLevel.LOW,
+    "collect_team_results": RiskLevel.LOW,
     "read_file": RiskLevel.LOW,
+    "read_team_artifact": RiskLevel.LOW,
+    "save_deliverable": RiskLevel.MEDIUM,
     "list_tasks": RiskLevel.LOW,
     # Content generation (internal artifacts)
     "draft_document": RiskLevel.MEDIUM,
     "generate_report": RiskLevel.MEDIUM,
+    "export_pdf": RiskLevel.MEDIUM,
     "summarize": RiskLevel.LOW,
     # File processing (internal artifacts, results are reviewable in-task)
     "analyze_file": RiskLevel.LOW,
@@ -72,10 +79,11 @@ def _risk_for_mcp_tool(tool_name: str) -> RiskLevel:
     return RiskLevel.HIGH if is_write_tool(tool_name) else RiskLevel.MEDIUM
 
 
-# Risk levels that pause the run per supervision mode. "supervised" reviews
-# even content generation; "autonomous" only stops for critical actions.
+# Content is reviewed once a response is ready. Even supervised runs may
+# produce internal deliverables without interrupting the task for each tool.
+# External side effects retain their supervision thresholds.
 _MODE_GATED: dict[str, set[RiskLevel]] = {
-    "supervised": {RiskLevel.MEDIUM, RiskLevel.HIGH, RiskLevel.CRITICAL},
+    "supervised": APPROVAL_THRESHOLD,
     "balanced": APPROVAL_THRESHOLD,
     "autonomous": {RiskLevel.CRITICAL},
 }

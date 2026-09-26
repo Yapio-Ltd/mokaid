@@ -7,6 +7,7 @@ cbuffer Draw : register(b0) {
   float4 camera;
   float4 params;
   float4 display;
+  float4 renderOptions;
 };
 cbuffer Skin : register(b1) { column_major float4x4 bones[128]; };
 struct OfficeLight { float4 position; float4 color; float4 direction; };
@@ -15,6 +16,8 @@ cbuffer Post : register(b3) { float2 outputSize; float2 blurDirection; };
 Texture2D<float4> baseTexture : register(t0);
 Texture2D<float4> emissionTexture : register(t1);
 Texture2D<float4> materialTexture : register(t2);
+Texture2D<float4> screenAtlas : register(t3);
+Texture2D<float4> reflectionTexture : register(t4);
 SamplerState linearSampler : register(s0);
 SamplerState postSampler : register(s1);
 struct Vertex {
@@ -50,7 +53,7 @@ Varying vsMain(Vertex v) {
            bones[(uint)v.joints.w] * v.weights.w;
   Varying o;
   const float4 world = mul(model, mul(skin, float4(v.position, 1)));
-  o.position = mul(viewProjection, world);
+  o.position = mul(viewProjection, renderOptions.x > .5 ? float4(world.x, -.024 - world.y, world.z, 1) : world);
   o.world = world.xyz;
   o.normal = transformedNormal(mul(model, skin), v.normal);
   o.uv = v.uv;
@@ -77,8 +80,25 @@ float3 directLight(float3 n, float3 view, float3 light, float3 albedo,
 }
 struct Surface { float4 color : SV_TARGET0; float4 emission : SV_TARGET1; };
 Surface psMain(Varying v) {
+  // Exclude the slab and its room-wide neon overlay at Y=.000405.
+  if (renderOptions.x > .5) clip(v.world.y - .003);
   if (display.x > .5 && display.x < 1.5) {
-    const float3 pixels = ambientScreen(v.uv, display.y, display.z);
+    // Tile content is the actual current task record. Animation communicates
+    // activity only; it never manufactures code, charts or progress numbers.
+    float3 pixels = float3(.009, .016, .03);
+    if (display.w > .5 && display.z >= 0.0) {
+      const float seat = floor(display.z);
+      const float2 tile = float2(seat - floor(seat / 3.0) * 3.0, floor(seat / 3.0));
+      const float2 tileSize = float2(512, 288);
+      const float2 atlasUv = (tile + (clamp(v.uv, 0.0, 1.0) * (tileSize - 1.0) + .5) / tileSize) / 3.0;
+      pixels = screenAtlas.SampleLevel(postSampler, atlasUv, 0).rgb;
+      if (display.w > 1.5) {
+        const float cursor = frac(display.y * .24);
+        const float strip = smoothstep(.938, .949, v.uv.y) * (1.0 - smoothstep(.962, .974, v.uv.y));
+        const float scan = exp(-pow((v.uv.x - cursor) * 9.0, 2.0));
+        pixels += float3(.055, .21, .34) * strip * (.22 + scan * .78);
+      }
+    }
     Surface screen;
     screen.color = float4(pixels, 1);
     screen.emission = float4(pixels, 1);
@@ -91,8 +111,18 @@ Surface psMain(Varying v) {
   const float3 view = normalize(camera.xyz - v.world);
   const float4 mr = materialTexture.Sample(linearSampler, v.uv);
   const float metallic = saturate(mr.b * emissive.w);
-  const float roughness = clamp(mr.g * params.w, .08, 1.0);
-  const float hemi = .055 + .075 * max(n.y, 0.0);
+  // Derivative-based normal variance reduces tiny specular sparkle in rigs / foliage.
+  const float normalVariance = .18 * (dot(ddx(n), ddx(n)) + dot(ddy(n), ddy(n)));
+  const float roughness = clamp(sqrt(pow(mr.g * params.w, 2.0) + normalVariance), .12, 1.0);
+  // A cool ceiling / warm horizon fills rough materials without flattening them.
+  const float3 diffuseEnvironment = lerp(float3(.055, .039, .069), float3(.12, .13, .19), n.y * .5 + .5);
+  const float3 reflectedView = reflect(-view, n);
+  const float horizon = pow(1.0 - abs(reflectedView.y), 3.0);
+  const float3 environment = lerp(float3(.075, .052, .105), float3(.19, .22, .33), max(reflectedView.y, 0.0))
+      + float3(.12, .074, .18) * horizon;
+  const float nv = max(dot(n, view), 0.0);
+  const float3 f0 = lerp(float3(.04, .04, .04), albedo.rgb, metallic);
+  const float3 environmentFresnel = f0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), f0) - f0) * pow(1.0 - nv, 5.0);
   float contact = 1.0;
   if (v.world.y < .12 && n.y > .65) {
     for (uint i = 0; i < 9; ++i) {
@@ -103,7 +133,7 @@ Surface psMain(Varying v) {
       }
     }
   }
-  float3 color = albedo.rgb * (hemi * (1.0 - metallic) + .04 * metallic) * contact;
+  float3 color = (albedo.rgb * diffuseEnvironment * (1.0 - metallic) + environment * environmentFresnel * (1.0 - .55 * roughness)) * contact;
   color += directLight(n, view, normalize(float3(-.4, .85, -.3)), albedo.rgb, metallic, roughness, 1.0) * .7;
   color += directLight(n, view, normalize(float3(.6, .4, .6)), albedo.rgb, metallic, roughness, 1.0) * float3(.16, .18, .25);
   for (uint i = 0; i < 16; ++i) {
@@ -119,6 +149,19 @@ Surface psMain(Varying v) {
       attenuation *= smoothstep(.35, .7, v.world.y);
     color += directLight(n, view, direction, albedo.rgb, metallic, roughness,
                          light.direction.w > .5 ? .25 : .2) * light.color.rgb * light.color.w * attenuation;
+  }
+  // Projected, scene-correct reflection at the authored floor plane (Y=-.012). A broad
+  // five-tap lobe makes the floor satin rather than a second mirror image.
+  if (renderOptions.x < .5 && renderOptions.w > .5 && abs(v.world.y + .012) < .02 && n.y > .92) {
+    const float2 reflectionUv = v.position.xy / renderOptions.yz;
+    const float2 reflectionStep = float2(2.2 + roughness * 3.0, 2.2 + roughness * 3.0) / renderOptions.yz;
+    float3 reflected = reflectionTexture.SampleLevel(postSampler, reflectionUv, 0).rgb * .4;
+    reflected += reflectionTexture.SampleLevel(postSampler, reflectionUv + reflectionStep * float2(1, 0), 0).rgb * .15;
+    reflected += reflectionTexture.SampleLevel(postSampler, reflectionUv + reflectionStep * float2(-1, 0), 0).rgb * .15;
+    reflected += reflectionTexture.SampleLevel(postSampler, reflectionUv + reflectionStep * float2(0, 1), 0).rgb * .15;
+    reflected += reflectionTexture.SampleLevel(postSampler, reflectionUv + reflectionStep * float2(0, -1), 0).rgb * .15;
+    const float reflectance = .11 + .26 * pow(1.0 - nv, 3.0);
+    color = color * (1.0 - reflectance * .65) + reflected * reflectance * contact;
   }
   const float3 emitted = emissionTexture.Sample(linearSampler, v.uv).rgb * emissive.rgb;
   Surface result;
@@ -144,10 +187,10 @@ float4 bloomDownsample(PostVarying v) : SV_TARGET {
     for (int x = -1; x <= 1; x += 2)
       value += baseTexture.SampleLevel(postSampler, uv + float2(x, y) * texel * .5, 0).rgb * .25;
   const float brightness = max(value.r, max(value.g, value.b));
-  float knee = saturate(brightness - .5);
+  float knee = saturate(brightness - .2);
   knee = knee * knee * .5;
-  value *= max(brightness - 1.0, knee) / max(brightness, .0001);
-  return float4(min(value, 8.0), 1);
+  value *= max(brightness - .55, knee) / max(brightness, .0001);
+  return float4(min(value, 12.0), 1);
 }
 float4 bloomBlur(PostVarying v) : SV_TARGET {
   uint sourceWidth, sourceHeight;
@@ -165,7 +208,26 @@ float3 acesDisplay(float3 x) {
 }
 float4 officeComposite(PostVarying v) : SV_TARGET {
   const float2 uv = v.position.xy / outputSize;
-  const float3 linearColor = baseTexture.Load(int3(uint2(v.position.xy), 0)).rgb + emissionTexture.SampleLevel(postSampler, uv, 0).rgb * .24;
+  // Directional antialiasing detects luminance edges in display space before
+  // filtering linear HDR; interior texture detail remains untouched.
+  const float2 pixel = 1.0 / outputSize;
+  const float3 center = baseTexture.SampleLevel(postSampler, uv, 0).rgb;
+  const float3 north = baseTexture.SampleLevel(postSampler, uv + float2(0, -pixel.y), 0).rgb;
+  const float3 south = baseTexture.SampleLevel(postSampler, uv + float2(0, pixel.y), 0).rgb;
+  const float3 west = baseTexture.SampleLevel(postSampler, uv + float2(-pixel.x, 0), 0).rgb;
+  const float3 east = baseTexture.SampleLevel(postSampler, uv + float2(pixel.x, 0), 0).rgb;
+  const float3 luma = float3(.299, .587, .114);
+  const float lc = dot(acesDisplay(center), luma);
+  const float ln = dot(acesDisplay(north), luma), ls = dot(acesDisplay(south), luma);
+  const float lw = dot(acesDisplay(west), luma), le = dot(acesDisplay(east), luma);
+  const float lo = min(lc, min(min(ln, ls), min(lw, le)));
+  const float hi = max(lc, max(max(ln, ls), max(lw, le)));
+  const float edge = smoothstep(.045, .16, hi - lo);
+  const float2 direction = float2(-(ln - ls), le - lw);
+  const float2 step = direction / max(abs(direction.x) + abs(direction.y), .001) * pixel * .5;
+  const float3 edgeColor = (baseTexture.SampleLevel(postSampler, uv + step, 0).rgb + baseTexture.SampleLevel(postSampler, uv - step, 0).rgb) * .5;
+  float3 linearColor = lerp(center, edgeColor, edge * .72);
+  linearColor += emissionTexture.SampleLevel(postSampler, uv, 0).rgb * .48 + materialTexture.SampleLevel(postSampler, uv, 0).rgb * .38;
   const float3 mapped = acesDisplay(linearColor);
   const float3 encoded = float3(
       mapped.r <= .0031308 ? mapped.r * 12.92 : 1.055 * pow(mapped.r, 1.0 / 2.4) - .055,

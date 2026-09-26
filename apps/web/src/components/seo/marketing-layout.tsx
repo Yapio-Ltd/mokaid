@@ -1,55 +1,14 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { SiteFooter } from "@/components/landing/site-footer";
+import { SiteHeader } from "@/components/landing/site-header";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/cn";
-import { useAuthStore } from "@/stores/auth-store";
 import type { BreadcrumbItem, FaqItem } from "@/lib/seo";
-import { accountEntryPath, DESKTOP_ONLY_WEB } from "@/lib/desktop-rollout";
+import { DESKTOP_ONLY_WEB } from "@/lib/desktop-rollout";
 
-const navLinks = [
-  { href: "/ai-employees", label: "AI Employees" },
-  { href: "/use-cases", label: "Use Cases" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/download", label: "Download" },
-  { href: "/compare", label: "Compare" },
-  { href: "/blog", label: "Blog" },
-  { href: "/glossary", label: "Glossary" },
-] as const;
-
-function MarketingLogo() {
-  return (
-    <span className="flex items-center gap-2.5">
-      <span className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
-        <picture>
-          <source srcSet="/branding/logo-without-bg.webp" type="image/webp" />
-          <img
-            src="/branding/logo-without-bg.png"
-            alt="mokaid"
-            className="h-6 w-6 object-contain"
-            width={28}
-            height={28}
-            decoding="async"
-          />
-        </picture>
-      </span>
-      <span className="mk-brand-wordmark text-[15px] tracking-tight text-text sm:text-[17px]">
-        mokaid
-      </span>
-    </span>
-  );
-}
-
-/**
- * Shared shell for the public SEO/content pages. Mirrors the landing page's
- * header design (glass, same logo/nav/CTA styles) but stays always visible,
- * and reuses the landing SiteFooter for a consistent look.
- */
+/** Shared public shell for the SEO and editorial pages. */
 export function MarketingLayout({ children }: { children: ReactNode }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const token = useAuthStore((s) => s.token);
-
   useEffect(() => {
     // These pages use document scroll like the landing (app shell uses inner scroll).
     document.documentElement.style.overflowY = "auto";
@@ -61,89 +20,7 @@ export function MarketingLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="mk-landing min-h-full overflow-x-clip bg-bg-deep text-text">
-      <header className="mk-glass sticky top-0 z-50 border-b border-primary/15 pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto grid h-14 max-w-7xl grid-cols-[1fr_auto] items-center gap-3 px-4 sm:h-16 sm:grid-cols-[1fr_auto_1fr] sm:px-6 lg:px-10">
-          <Link to="/" className="mk-focus-ring w-fit rounded-xl" aria-label="mokaid home">
-            <MarketingLogo />
-          </Link>
-
-          <nav className="hidden items-center justify-center gap-1 md:flex" aria-label="Primary">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="mk-focus-ring rounded-md px-3.5 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:text-text"
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
-
-          <div className="flex items-center justify-end gap-1.5 sm:gap-2.5">
-            {token ? (
-              <Link to={accountEntryPath()}>
-                <Button size="sm" className="min-h-9 px-3.5 sm:min-h-9">
-                  {DESKTOP_ONLY_WEB ? "My account" : "Open app"} <ArrowRight size={14} />
-                </Button>
-              </Link>
-            ) : (
-              <>
-                <Link to="/login" className="hidden min-[400px]:block">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-9 text-text-secondary hover:text-text sm:min-h-9"
-                  >
-                    Sign in
-                  </Button>
-                </Link>
-                <Link to="/signup">
-                  <Button size="sm" className="min-h-9 px-3.5 shadow-glow sm:min-h-9 sm:px-4">
-                    <span className="sm:hidden">Start</span>
-                    <span className="hidden sm:inline">Get started</span>
-                    <ArrowRight size={14} />
-                  </Button>
-                </Link>
-              </>
-            )}
-
-            <button
-              type="button"
-              className="mk-focus-ring inline-flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-colors hover:border-white/10 hover:bg-surface/50 hover:text-text md:hidden"
-              aria-expanded={menuOpen}
-              aria-controls="marketing-mobile-nav"
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
-              onClick={() => setMenuOpen((v) => !v)}
-            >
-              {menuOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
-          </div>
-        </div>
-
-        <div
-          id="marketing-mobile-nav"
-          className={cn(
-            "border-t border-primary/10 bg-bg-deep/90 backdrop-blur-xl md:hidden",
-            menuOpen ? "block" : "hidden",
-          )}
-        >
-          <nav
-            className="mx-auto flex max-w-7xl flex-col gap-0.5 px-4 py-3 sm:px-6"
-            aria-label="Mobile"
-          >
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="rounded-lg px-3 py-3 text-[15px] font-medium text-text-secondary transition-colors hover:bg-surface/40 hover:text-text"
-                onClick={() => setMenuOpen(false)}
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main>{children}</main>
 

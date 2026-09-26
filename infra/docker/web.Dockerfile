@@ -24,10 +24,12 @@ RUN npm run build --workspace=apps/web \
 # --- Shared runtime: patched distro package on the pinned nginx base ---
 FROM nginx:1.30.4-alpine@sha256:dc5069ad14f19660b141b21236140b91656bf89bbc3e2417c70ae650cd66104c AS nginx-runtime
 
-# The base contains util-linux/libuuid 2.42.1. Keep the distro's signed
-# security update in both runtime targets; fail if the patch is unavailable.
-RUN apk add --no-cache --upgrade 'libuuid>=2.42.3-r1' \
-    && apk info --exists 'libuuid>=2.42.3-r1'
+# Keep the distro's signed libuuid and libexpat security fixes in both
+# runtime targets. CVE-2026-93990 requires libexpat 2.8.5-r0 or newer.
+# Fail if either patched package is unavailable from the signed repository.
+RUN apk add --no-cache --upgrade 'libuuid>=2.42.3-r1' 'libexpat>=2.8.5-r0' \
+    && apk info --exists 'libuuid>=2.42.3-r1' \
+    && apk info --exists 'libexpat>=2.8.5-r0'
 
 # --- CI runtime: SPA shell only (no Playwright pull / prerender) ---
 FROM nginx-runtime AS runtime-ci

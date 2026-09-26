@@ -1,121 +1,97 @@
 defmodule Mokaid.Mail.ImapProbe do
-  @moduledoc """
-  Minimal IMAP LOGIN probe used to validate credentials before persisting an
-  IMAP account. Speaks just enough IMAP over TLS: read the server greeting,
-  attempt `LOGIN`, then `LOGOUT`.
-  """
+  @moduledoc "Verifies an IMAP login and read-only INBOX access over authenticated TLS."
+  alias Mokaid.Mail.ProbeSocket
 
-  @connect_timeout 8_000
-  @response_timeout 8_000
-
-  @doc """
-  Attempts a TLS connection + LOGIN. Returns `:ok` or `{:error, reason}`
-  where reason is `:connect_failed`, `:auth_failed` or `:protocol_error`.
-  """
   def check(host, port, username, password, opts \\ [])
 
   def check(host, port, username, password, opts)
-      when is_binary(host) and is_binary(username) and is_binary(password) do
-    port = normalize_port(port)
-    ssl? = Keyword.get(opts, :ssl, true)
+      when is_binary(host) and is_integer(port) and port in 1..65_535 and
+             is_binary(username) and is_binary(password) do
+    security =
+      Keyword.get(opts, :security, if(Keyword.get(opts, :ssl, true), do: "tls", else: "starttls"))
 
-    if ssl? do
-      check_ssl(host, port, username, password)
-    else
-      {:error, :plaintext_not_supported}
-    end
-  end
+    transport = Keyword.get(opts, :transport, ProbeSocket)
 
-  def check(_host, _port, _username, _password, _opts), do: {:error, :invalid_params}
-
-  defp check_ssl(host, port, username, password) do
-    ssl_opts = [
-      :binary,
-      active: false,
-      verify: :verify_peer,
-      cacerts: :public_key.cacerts_get(),
-      server_name_indication: String.to_charlist(host),
-      customize_hostname_check: [
-        match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
-      ]
-    ]
-
-    case :ssl.connect(String.to_charlist(host), port, ssl_opts, @connect_timeout) do
-      {:ok, socket} ->
+    if security in ["tls", "starttls"] and safe_credentials?(username, password) do
+      with {:ok, socket} <- transport.connect(host, port, security, opts) do
         try do
-          with {:ok, _greeting} <- recv_line(socket),
-               :ok <-
-                 send_line(socket, ~s(A1 LOGIN #{quote_imap(username)} #{quote_imap(password)})),
-               {:ok, response} <- recv_until_tag(socket, "A1") do
-            send_line(socket, "A2 LOGOUT")
-
-            if String.contains?(response, "A1 OK") do
-              :ok
-            else
-              {:error, :auth_failed}
+          with {:ok, greeting} <- transport.recv_line(socket),
+               true <- Regex.match?(~r/^\* OK(?: |\r?\n)/i, greeting),
+               {:ok, secured} <- secure(socket, host, security, transport, opts) do
+            try do
+              with :ok <-
+                     command(
+                       transport,
+                       secured,
+                       "A1",
+                       "LOGIN #{quote_imap(username)} #{quote_imap(password)}",
+                       :auth_failed
+                     ),
+                   :ok <- command(transport, secured, "A2", "EXAMINE INBOX", :inbox_unavailable) do
+                transport.send_line(secured, "A3 LOGOUT")
+                :ok
+              end
+            after
+              transport.close(secured)
             end
           else
+            {:error, reason} -> {:error, reason}
             _ -> {:error, :protocol_error}
           end
         after
-          :ssl.close(socket)
+          transport.close(socket)
+        end
+      end
+    else
+      {:error, :invalid_params}
+    end
+  end
+
+  def check(_, _, _, _, _), do: {:error, :invalid_params}
+
+  defp secure(socket, _host, "tls", _transport, _opts), do: {:ok, socket}
+
+  defp secure(socket, host, "starttls", transport, opts) do
+    with :ok <- command(transport, socket, "S1", "STARTTLS", :starttls_unavailable) do
+      transport.starttls(socket, host, opts)
+    end
+  end
+
+  defp command(transport, socket, tag, command, rejected) do
+    with :ok <- transport.send_line(socket, "#{tag} #{command}") do
+      completion(transport, socket, tag, rejected, 0)
+    end
+  end
+
+  defp completion(_transport, _socket, _tag, _rejected, rounds) when rounds >= 40,
+    do: {:error, :protocol_error}
+
+  defp completion(transport, socket, tag, rejected, rounds) do
+    case transport.recv_line(socket) do
+      {:ok, line} ->
+        case String.split(String.trim(line), " ", parts: 3) do
+          [^tag, status | _] ->
+            if String.upcase(status) == "OK", do: :ok, else: {:error, rejected}
+
+          ["*", "BYE" | _] ->
+            {:error, :protocol_error}
+
+          _ ->
+            completion(transport, socket, tag, rejected, rounds + 1)
         end
 
-      {:error, _reason} ->
-        {:error, :connect_failed}
+      _ ->
+        {:error, :protocol_error}
     end
   end
 
-  defp send_line(socket, line), do: :ssl.send(socket, line <> "\r\n")
-
-  defp recv_line(socket) do
-    case :ssl.recv(socket, 0, @response_timeout) do
-      {:ok, data} -> {:ok, data}
-      {:error, _} -> {:error, :recv_failed}
-    end
+  defp safe_credentials?(username, password) do
+    username != "" and password != "" and
+      not String.contains?(username <> password, ["\r", "\n", <<0>>])
   end
 
-  # Accumulates responses until the tagged completion line shows up.
-  defp recv_until_tag(socket, tag, acc \\ "", rounds \\ 0)
-
-  defp recv_until_tag(_socket, _tag, _acc, rounds) when rounds > 10,
-    do: {:error, :too_many_rounds}
-
-  defp recv_until_tag(socket, tag, acc, rounds) do
-    case :ssl.recv(socket, 0, @response_timeout) do
-      {:ok, data} ->
-        acc = acc <> data
-
-        if String.contains?(acc, "#{tag} OK") or String.contains?(acc, "#{tag} NO") or
-             String.contains?(acc, "#{tag} BAD") do
-          {:ok, acc}
-        else
-          recv_until_tag(socket, tag, acc, rounds + 1)
-        end
-
-      {:error, _} ->
-        {:error, :recv_failed}
-    end
-  end
-
-  # IMAP quoted string: escape backslash and double quote.
   defp quote_imap(value) do
-    escaped =
-      value
-      |> String.replace("\\", "\\\\")
-      |> String.replace("\"", "\\\"")
-
+    escaped = value |> String.replace("\\", "\\\\") |> String.replace("\"", "\\\"")
     ~s("#{escaped}")
   end
-
-  defp normalize_port(port) when is_integer(port), do: port
-
-  defp normalize_port(port) when is_binary(port) do
-    case Integer.parse(port) do
-      {int, _} -> int
-      :error -> 993
-    end
-  end
-
-  defp normalize_port(_), do: 993
 end

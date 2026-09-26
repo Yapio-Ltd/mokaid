@@ -234,18 +234,21 @@ defmodule Mokaid.MCP do
 
   @doc """
   Connected MCP servers this agent is allowed to use, with decrypted
-  credentials — used to build the AI worker dispatch payload.
+  credentials — used to build the AI worker dispatch payload. An optional key
+  resolves only that server for a live tool call, including rotated credentials.
   """
-  def authorized_servers_for_agent(workspace_id, agent_id) do
-    grants =
-      Repo.all(
-        from g in AgentGrant,
-          join: i in assoc(g, :installation),
-          where:
-            g.workspace_id == ^workspace_id and g.agent_id == ^agent_id and g.granted and
-              i.status == "connected",
-          preload: [installation: :server]
-      )
+  def authorized_servers_for_agent(workspace_id, agent_id, key \\ nil) do
+    query =
+      from g in AgentGrant,
+        join: i in assoc(g, :installation),
+        join: s in assoc(i, :server),
+        where:
+          g.workspace_id == ^workspace_id and g.agent_id == ^agent_id and g.granted and
+            i.workspace_id == ^workspace_id and i.status == "connected" and s.enabled,
+        preload: [installation: :server]
+
+    query = if is_binary(key), do: from([g, i, s] in query, where: s.key == ^key), else: query
+    grants = Repo.all(query)
 
     Enum.flat_map(grants, fn grant ->
       installation = grant.installation

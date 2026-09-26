@@ -16,6 +16,7 @@ defmodule MokaidWeb.MailController do
 
   def create_imap_account(conn, params) do
     with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),
+         :ok <- allow_connection_attempt(conn),
          {:ok, account} <-
            Mail.create_imap_account(workspace_id(conn), current_member(conn), params) do
       enqueue_sync(account)
@@ -24,29 +25,104 @@ defmodule MokaidWeb.MailController do
       |> put_status(:created)
       |> json(%{data: Serializer.mail_account(account)})
     else
-      {:error, {:imap_probe_failed, reason}} ->
+      {:error, :mail_connection_rate_limited} ->
         conn
-        |> put_status(:unprocessable_entity)
+        |> put_status(:too_many_requests)
         |> json(%{
           error: %{
-            code: "imap_connection_failed",
-            message: imap_error_message(reason)
+            code: "rate_limited",
+            message: "Too many connection attempts. Wait one minute and try again."
           }
         })
+
+      {:error, {probe, reason}} when probe in [:imap_probe_failed, :smtp_probe_failed] ->
+        connection_error(conn, probe, reason)
 
       other ->
         other
     end
   end
 
-  defp imap_error_message(:auth_failed),
-    do: "The IMAP server rejected the username or password."
+  def update_imap_account(conn, %{"id" => id} = params) do
+    with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),
+         :ok <- allow_connection_attempt(conn),
+         %{provider: "imap"} = account <- Mail.get_account(workspace_id(conn), id),
+         {:ok, updated} <- Mail.update_imap_account(account, current_member(conn), params) do
+      enqueue_sync(updated)
+      json(conn, %{data: Serializer.mail_account(updated)})
+    else
+      nil ->
+        not_found(conn)
 
-  defp imap_error_message(:connect_failed),
-    do: "Could not reach the IMAP server. Check the host and port."
+      %{provider: _} ->
+        not_found(conn)
 
-  defp imap_error_message(_),
-    do: "The IMAP connection could not be verified. Check the settings and try again."
+      {:error, :mail_connection_rate_limited} ->
+        conn
+        |> put_status(:too_many_requests)
+        |> json(%{
+          error: %{
+            code: "rate_limited",
+            message: "Too many connection attempts. Wait one minute and try again."
+          }
+        })
+
+      {:error, {probe, reason}} when probe in [:imap_probe_failed, :smtp_probe_failed] ->
+        connection_error(conn, probe, reason)
+
+      other ->
+        other
+    end
+  end
+
+  defp allow_connection_attempt(conn) do
+    case Hammer.check_rate("mail-connect:#{current_member(conn).id}", 60_000, 10) do
+      {:allow, _} -> :ok
+      {:deny, _} -> {:error, :mail_connection_rate_limited}
+    end
+  end
+
+  defp connection_error(conn, probe, reason) do
+    protocol = if probe == :smtp_probe_failed, do: "SMTP", else: "IMAP"
+
+    conn
+    |> put_status(:unprocessable_entity)
+    |> json(%{
+      error: %{
+        code: String.downcase(protocol) <> "_connection_failed",
+        message: connection_error_message(protocol, reason)
+      }
+    })
+  end
+
+  defp connection_error_message(protocol, :auth_failed),
+    do:
+      "The #{protocol} server rejected the login. Check your username and use an app password if your provider requires one."
+
+  defp connection_error_message(protocol, :connect_failed),
+    do: "Could not reach the #{protocol} server. Check the server name and port."
+
+  defp connection_error_message(protocol, :tls_failed),
+    do:
+      "The #{protocol} server's secure connection could not be verified. Check its certificate and TLS settings."
+
+  defp connection_error_message(protocol, :starttls_unavailable),
+    do: "This #{protocol} server does not accept STARTTLS. Check the security mode and port."
+
+  defp connection_error_message(protocol, :private_host),
+    do:
+      "The #{protocol} server must be reachable from the internet. Local and private network addresses are not supported."
+
+  defp connection_error_message(_protocol, :inbox_unavailable),
+    do:
+      "The login worked, but the server did not allow access to INBOX. Enable IMAP access for this mailbox."
+
+  defp connection_error_message(_protocol, :auth_unsupported),
+    do:
+      "This SMTP server requires another authentication method. Use the provider's OAuth connection when available."
+
+  defp connection_error_message(protocol, _),
+    do: "The #{protocol} connection could not be verified. Check the settings and try again."
 
   def delete_account(conn, %{"id" => id}) do
     with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),

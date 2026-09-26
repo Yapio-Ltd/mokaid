@@ -1,0 +1,24 @@
+{
+  "fixtureOnly": false,
+  "testMode": "prerender-nojs",
+  "disclaimer": "Existing dist/index.html with JavaScript disabled. No video or fixture is loaded.",
+  "timestamp": "2026-09-25T13:06:18.580Z",
+  "engine": "firefox",
+  "origin": "http://127.0.0.1:5173",
+  "passed": [
+    "existing prerender without JavaScript: three visible moments, CTA, no film layers or MP4 requests"
+  ],
+  "samples": [],
+  "version": "153.0",
+  "prerender": {
+    "status": "passed",
+    "source": "apps/web/dist/index.html",
+    "sha256": "e5ebc89b30fa55820dd064be6bf15e5c5547b931ffde11667dafca28b57277ec",
+    "javaScriptEnabled": false,
+    "illustratedMoments": 3,
+    "filmLayers": 0,
+    "videoElements": 0,
+    "mp4Requests": 0
+  },
+  "status": "passed"
+}

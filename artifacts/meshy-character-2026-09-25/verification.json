@@ -1,0 +1,30 @@
+{
+  "feature_pr": "https://github.com/Yapio-Ltd/mokaid/pull/18",
+  "libexpat_pr": "https://github.com/Yapio-Ltd/mokaid/pull/19",
+  "preserve_deployed_mail_pr": "https://github.com/Yapio-Ltd/mokaid/pull/20",
+  "formatter_pr": "https://github.com/Yapio-Ltd/mokaid/pull/21",
+  "production_sha": "857c644c33a22f5caa65de13cedfbcb2a991e2b9",
+  "combined_api_tests_passed": 346,
+  "mail_worker_tests_passed": 16,
+  "webhook_secret_current_version": "0d139670-8a9f-4099-a348-d5d3fe71a8fa",
+  "local_desktop_build": "/Users/olimservice/mokaid/apps/desktop/build/macos-debug/app/Mokaid.app",
+  "production_deployment_verified": true,
+  "real_meshy_generations": [
+    "text",
+    "image"
+  ],
+  "expected_character_height_meters": 1.75,
+  "signature_verification_implemented": false,
+  "webhook_strategy": "untrusted hint followed by authenticated Meshy GET; independent polling",
+  "ci_run": 36124860899,
+  "ci_conclusion": "success",
+  "deployment_run": 36126042678,
+  "deployment_conclusion": "success",
+  "api_revision": 55,
+  "api_image_digest": "sha256:b24f2a6cb0802dcb5b4fdb0540eb1b2c769938593bf0661c8f70a0a0d82170cc",
+  "public_http_smoke_passed": true,
+  "runtime_smoke_passed": true,
+  "probe_cleanup_verified": true,
+  "runtime_smoke_task": "arn:aws:ecs:il-central-1:660601648321:task/mokaid-prod/e961589912344dfc96209d91aa274885",
+  "verified_at": "2026-09-25T11:14:22.446770+00:00"
+}

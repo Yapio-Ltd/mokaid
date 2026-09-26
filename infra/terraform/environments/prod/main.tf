@@ -79,6 +79,21 @@ variable "worker_image_tag" {
   default = "latest"
 }
 
+variable "managed_runtime_enabled" {
+  type    = bool
+  default = false
+}
+
+variable "managed_runtime_verified_models" {
+  type    = list(string)
+  default = []
+}
+
+variable "managed_runtime_allowed_domains" {
+  type    = list(string)
+  default = []
+}
+
 variable "db_snapshot_identifier" {
   description = "Optional RDS snapshot to restore from (used once when migrating from a previous environment)."
   type        = string
@@ -115,10 +130,13 @@ module "stack" {
 
   gmail_pubsub_topic = "projects/mokaid/topics/gmail-push"
 
-  api_image_tag    = var.api_image_tag
-  web_image_tag    = var.web_image_tag
-  crm_image_tag    = var.crm_image_tag
-  worker_image_tag = var.worker_image_tag
+  api_image_tag                   = var.api_image_tag
+  web_image_tag                   = var.web_image_tag
+  crm_image_tag                   = var.crm_image_tag
+  worker_image_tag                = var.worker_image_tag
+  managed_runtime_enabled         = var.managed_runtime_enabled
+  managed_runtime_verified_models = var.managed_runtime_verified_models
+  managed_runtime_allowed_domains = var.managed_runtime_allowed_domains
 
   alarm_email        = var.alarm_email
   monthly_budget_usd = 100

@@ -1,0 +1,35 @@
+[
+  {
+    "file": "mokaid-social-16x9-74s.mp4",
+    "width": 1920,
+    "height": 1080,
+    "frames": "1776",
+    "duration": "74.000000",
+    "fps": "24/1",
+    "audio": "aac",
+    "audioSampleRate": "48000",
+    "audioSummary": "Summary:\n\n  Integrated loudness:\n    I:         -20.9 LUFS\n    Threshold: -33.7 LUFS\n\n  Loudness range:\n    LRA:        19.6 LU\n    Threshold: -43.7 LUFS\n    LRA low:   -37.8 LUFS\n    LRA high:  -18.2 LUFS\n\n  True peak:\n    Peak:       -1.0 dBFS\n[out#0/null @ 0xa8d00c900] video:0KiB audio:13876KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown\nsize=N/A time=00:01:14.00 bitrate=N/A speed=2.17x    \n"
+  },
+  {
+    "file": "mokaid-social-4x5-74s.mp4",
+    "width": 1080,
+    "height": 1350,
+    "frames": "1776",
+    "duration": "74.000000",
+    "fps": "24/1",
+    "audio": "aac",
+    "audioSampleRate": "48000",
+    "audioSummary": "Summary:\n\n  Integrated loudness:\n    I:         -22.1 LUFS\n    Threshold: -34.5 LUFS\n\n  Loudness range:\n    LRA:        19.2 LU\n    Threshold: -44.6 LUFS\n    LRA low:   -37.8 LUFS\n    LRA high:  -18.5 LUFS\n\n  True peak:\n    Peak:       -0.4 dBFS\n[out#0/null @ 0x9510643c0] video:0KiB audio:13876KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown\nsize=N/A time=00:01:14.00 bitrate=N/A speed=2.68x    \n"
+  },
+  {
+    "file": "mokaid-social-9x16-74s.mp4",
+    "width": 1080,
+    "height": 1920,
+    "frames": "1776",
+    "duration": "74.000000",
+    "fps": "24/1",
+    "audio": "aac",
+    "audioSampleRate": "48000",
+    "audioSummary": "Summary:\n\n  Integrated loudness:\n    I:         -19.5 LUFS\n    Threshold: -31.8 LUFS\n\n  Loudness range:\n    LRA:        20.3 LU\n    Threshold: -41.8 LUFS\n    LRA low:   -37.6 LUFS\n    LRA high:  -17.3 LUFS\n\n  True peak:\n    Peak:       -0.9 dBFS\n[out#0/null @ 0xc330703c0] video:0KiB audio:13876KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown\nsize=N/A time=00:01:14.00 bitrate=N/A speed=  24x    \n"
+  }
+]

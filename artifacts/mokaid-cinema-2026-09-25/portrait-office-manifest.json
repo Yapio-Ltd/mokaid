@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-09-25T13:25:40.139Z",
+  "scope": "9:16 social export only, replacement for accepted 04-office",
+  "status": "completed",
+  "authorizedCredits": 24,
+  "estimatedCredits": 24,
+  "jobId": "13e485d2-6bea-4f6e-83a9-7856c34a4b68",
+  "model": "cinematic_studio_video_v2",
+  "sourceClips": {
+    "start": {
+      "file": "clips/03-portal.mp4",
+      "jobId": "5a9f8e45-1c18-4b74-93d6-13e37f1ccf43",
+      "frameIndex": 192
+    },
+    "end": {
+      "file": "clips/04-office.mp4",
+      "jobId": "325148f5-0361-4ca4-bdcb-3e07d141cc29",
+      "frameIndex": 288
+    }
+  },
+  "referenceCrop": {
+    "aspectRatio": "9:16",
+    "focusX": 0.5,
+    "width": 1080,
+    "height": 1920
+  },
+  "referenceImages": [
+    {
+      "role": "start_image",
+      "mediaId": "444d5cb3-cec0-4d5c-86f8-69cebf5adb84",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/444d5cb3-cec0-4d5c-86f8-69cebf5adb84.png",
+      "localPath": "references/office-04-portrait-start.png",
+      "uploadPutHttpStatus": 200,
+      "confirmed": true
+    },
+    {
+      "role": "end_image",
+      "mediaId": "dad3c4cd-a1b7-4a2a-8e4b-065ad4747055",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/dad3c4cd-a1b7-4a2a-8e4b-065ad4747055.png",
+      "localPath": "references/office-04-portrait-end.png",
+      "uploadPutHttpStatus": 200,
+      "confirmed": true
+    }
+  ],
+  "params": {
+    "model": "cinematic_studio_video_v2",
+    "aspect_ratio": "9:16",
+    "duration": 12,
+    "mode": "pro",
+    "sound": "on",
+    "speedramp": "custom",
+    "multi_shots": false,
+    "cfg_scale": 0.7,
+    "use_unlim": false,
+    "count": 1,
+    "medias": [
+      {
+        "role": "start_image",
+        "value": "444d5cb3-cec0-4d5c-86f8-69cebf5adb84"
+      },
+      {
+        "role": "end_image",
+        "value": "dad3c4cd-a1b7-4a2a-8e4b-065ad4747055"
+      }
+    ],
+    "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions.\n\n\nSHOT 04 — PORTRAIT OFFICE EXPLORATION, ONE CONTINUOUS 12-SECOND TAKE.\nStrictly 9:16 vertical composition. Use the supplied start image as the exact first frame and supplied end image as the exact last frame. Preserve these two poses, camera angles, architecture and lighting at the endpoints for seamless edits into adjacent shots.\n\nContinue from the same Mokaid office. The violet overshirt male employee visible behind the ivory-knit woman is the main subject. He completes a small interaction at his workstation, naturally stands, and walks toward the electric-blue illuminated meeting room. The camera makes a smooth, physically plausible short forward and rightward tracking move to follow him. Keep his recognizable face and head fully inside the portrait frame throughout his movement, with comfortable headroom. Keep the main subject near the central vertical axis while allowing the camera to finish at the exact supplied end-frame composition.\n\n0–2 seconds: gently leave the supplied starting composition, with the ivory-knit woman calmly typing in the foreground.\n2–5 seconds: follow the violet overshirt employee as he naturally rises from the same workstation.\n5–10 seconds: smoothly track his short walk between desks toward the blue meeting room, with subtle foreground parallax from furniture and plants. Other employees stay naturally seated, continuing to type.\n10–12 seconds: slow down into the exact supplied end composition, with the violet employee near the meeting room and the amber-sweater employee in the lower foreground.\n\nThe dramatic purpose is an active office, not empty furniture. The main worker must remain legible in this narrow frame throughout the middle of the shot. Do not crop off his face, do not drift into an empty corridor. Maintain the same charcoal furniture, violet floor paths, electric-blue room border and warm amber desk lamps. Preserve each person's face, hair, clothes and body proportions. Natural feet contact with the floor, coherent chair and desk positions. No teleporting, duplicated workers, furniture changes, disappearing body parts, or camera cuts. No readable screen text, subtitles, logos or overlays.\n\nCAMERA: one elegant stabilized travelling, restrained acceleration and deceleration, smooth ease-in/ease-out, normal human eye-level perspective, no abrupt reframing, no zoom jumps, no orbit around the face.\n\nSOUND: quiet office keyboards, soft chair movement and subtle footfalls, low office room tone. No intelligible dialogue, no voiceover, no music."
+  },
+  "appliedAdjustments": {
+    "params.genre": {
+      "requested": "(unset)",
+      "used": "auto",
+      "reason": "default for model"
+    },
+    "params.multi_shot_mode": {
+      "requested": "(unset)",
+      "used": "custom",
+      "reason": "default for model"
+    }
+  },
+  "output": {
+    "localPath": "clips/04-office-portrait.mp4",
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_132517_13e485d2-6bea-4f6e-83a9-7856c34a4b68.mp4",
+    "width": 1080,
+    "height": 1920,
+    "frameRate": "24/1",
+    "frameCount": 289,
+    "videoDuration": 12.041667,
+    "fileDuration": 12.041995,
+    "sha256": "c99ca2ba8c681ae203b780e07820be218d724fb7c656da469ef5869d5d4d8c4f",
+    "fileBytes": 22559010,
+    "audioStreamCount": 1
+  },
+  "qa": {
+    "status": "accepted_for_9x16_export",
+    "method": "Visual inspection with view_image of 13 sampled frames (each integer second from0 to12) plus paired endpoint references; no claim of exhaustive frame-by-frame or audio validation.",
+    "sampleFrames": [
+      0,
+      24,
+      48,
+      72,
+      96,
+      120,
+      144,
+      168,
+      192,
+      216,
+      240,
+      264,
+      288
+    ],
+    "contactSheet": "production/review/portrait-office-contact.jpg",
+    "endpointSheet": "production/review/portrait-office-endpoints.jpg",
+    "probe": "production/review/portrait-office-probe.json",
+    "observations": [
+      "The violet overshirt worker stays clearly visible during the stand and walk, including the previously weak middle section.",
+      "His complete head stays inside the portrait frame in all13 inspected frames; as he walks away, the back of his head replaces the side profile naturally.",
+      "Charcoal desks, violet pathways, blue meeting room border and amber lighting remain coherent across inspected samples.",
+      "No disappearing or duplicated principal character, abrupt cut, or obvious furniture mutation is visible in these samples.",
+      "Generated first and last frames match their supplied portrait reference compositions closely."
+    ],
+    "endpointImageDifferences": {
+      "start": {
+        "meanAbsoluteRGBDifference255": 2.435,
+        "note": "Compression/model variation; visual side-by-side also inspected."
+      },
+      "end": {
+        "meanAbsoluteRGBDifference255": 6.347,
+        "note": "Compression/model variation; visual side-by-side also inspected."
+      }
+    },
+    "integration": "Replace clip04 only in9:16 social export; keep16:9 and4:5 accepted source unchanged. Use clip05 crop focusX0.50 at entry and ease to0.68 during its first2seconds, then hold0.68, as confirmed by root.",
+    "limitations": [
+      "This is sampled visual review and does not certify all intermediate frames or detailed finger anatomy.",
+      "An audio stream exists; speech, sound quality and audio transitions were not listened to or verified."
+    ],
+    "audioReview": "Not listened; metadata only."
+  },
+  "sharedProductionManifestModified": false
+}

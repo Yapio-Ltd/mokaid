@@ -31,6 +31,7 @@ qt_add_resources(mokaid_desktop desktop_ui PREFIX "/ui" BASE "${CMAKE_SOURCE_DIR
     "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-byte.png"
     "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-nyx.png"
     "${CMAKE_SOURCE_DIR}/presentation/assets/portrait-moss.png"
+    "${CMAKE_SOURCE_DIR}/presentation/assets/marketplace-hero.png"
     "${CMAKE_SOURCE_DIR}/presentation/assets/brand-orb.png"
     "${CMAKE_SOURCE_DIR}/presentation/assets/workforce-energy-orb.png")
 include("${CMAKE_SOURCE_DIR}/distribution/DesktopBundle.cmake")

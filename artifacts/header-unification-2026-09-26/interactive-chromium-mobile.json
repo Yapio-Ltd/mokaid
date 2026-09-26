@@ -1,0 +1,47 @@
+{
+  "origin": "http://127.0.0.1:5181",
+  "engine": "chromium",
+  "nojs": false,
+  "status": "passed",
+  "checks": [
+    "320px /: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "320px /pricing: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "320px /download: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "320px /privacy: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "390px /: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "390px /pricing: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "390px /download: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "390px /privacy: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "767px /: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "767px /pricing: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "767px /download: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "767px /privacy: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "768px breakpoint restores desktop nav and closes disclosure",
+    "Synthetic local auth: My account desktop/mobile; stubbed account route and Back",
+    "Actual MP4: ready cinematic → keyboard Experience at72px → reverse scroll zero → history Back home"
+  ],
+  "defects": [],
+  "geometry": [],
+  "screenshots": [
+    "interactive-chromium-mobile-mobile-320-pricing-open.png",
+    "interactive-chromium-mobile-mobile-390-pricing-open.png",
+    "interactive-chromium-mobile-mobile-767-pricing-open.png",
+    "interactive-chromium-mobile-mobile-authenticated.png"
+  ],
+  "apiReads": [
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "authenticatedFixture": true
+    }
+  ],
+  "errors": [],
+  "setup": "Isolated browser contexts. Film requests aborted; release.json returns404. Auth uses only a synthetic browser: marker in localStorage and a stubbed /api/me read. No login, downloads or API writes.",
+  "version": "151.0.7922.34",
+  "actualMedia": {
+    "mode": "cinematic",
+    "top": 72,
+    "currentTime": 0,
+    "paused": true
+  }
+}

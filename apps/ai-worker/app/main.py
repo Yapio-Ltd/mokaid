@@ -1,20 +1,23 @@
 import asyncio
+import json
 import os
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 
 import app.tools.files  # noqa: F401 — registers file-processing tools
 import app.tools.site_delivery  # noqa: F401 — HTML vs codebase choice gate
 import app.tools.web  # noqa: F401 — registers web_search
 import app.tools.webapp  # noqa: F401 — registers Next/React webapp scaffold tool
 import app.tools.website  # noqa: F401 — registers the website generator tool
+from app import runtime_dispatch
 from app.agents import converse as converse_agent
 from app.agents import direct_chat, dispatcher, orchestrator_chat, runner, schedule_parser
 from app.config import get_settings
 from app.memory.ingestion import ingest_document
 from app.queue.consumer import consume_forever
+from app.runtime_store import OwnershipConflict, UnknownSession, get_store
 from app.schemas import ResumeRequest, RunRequest
 from app.tools.registry import list_tools
 
@@ -37,12 +40,19 @@ def _configure_langsmith() -> None:
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     _configure_langsmith()
+    from app.agents.runtime_cleanup import cleanup_sessions
+    runtime_dispatch.register_session_cleanup(cleanup_sessions)
+    recovery = asyncio.create_task(runtime_dispatch.startup())
     consumer: asyncio.Task | None = None
     if get_settings().ai_runs_queue_url:
         consumer = asyncio.create_task(consume_forever())
     yield
     if consumer:
         consumer.cancel()
+        await asyncio.gather(consumer, return_exceptions=True)
+    recovery.cancel()
+    await asyncio.gather(recovery, return_exceptions=True)
+    await runtime_dispatch.shutdown()
 
 
 app = FastAPI(title="mokaid AI worker", version="0.1.0", lifespan=lifespan)
@@ -70,19 +80,16 @@ async def start_run(
 ) -> dict:
     _check_auth(authorization)
 
-    if runner.get_run(request.run_id) is not None:
-        raise HTTPException(status_code=409, detail="run already exists")
-
-    # Runs can pause for human approval, so they execute as independent
-    # asyncio tasks created on the running loop (BackgroundTasks would run
-    # in a threadpool without an event loop).
-    task = asyncio.create_task(runner.execute_run(request))
-    _background_runs.add(task)
-    task.add_done_callback(_background_runs.discard)
-    runner.register_run_task(request.run_id, task)
+    try:
+        created = await runtime_dispatch.accept_run(request)
+    except OwnershipConflict as exc:
+        raise HTTPException(status_code=409, detail="run identity conflict") from exc
+    except Exception as exc:
+        log.warning("run_acceptance_failed", error=type(exc).__name__)
+        raise HTTPException(status_code=503, detail="run was not durably accepted") from exc
 
     log.info("run_accepted", run_id=request.run_id)
-    return {"accepted": True, "run_id": request.run_id}
+    return {"accepted": True, "run_id": request.run_id, "duplicate": not created}
 
 
 @app.post("/runs/{run_id}/cancel")
@@ -93,13 +100,15 @@ async def cancel_run(
     """Aborts an in-flight run (including one paused for approval)."""
     _check_auth(authorization)
 
-    if not runner.cancel_run_task(run_id):
-        # Nothing running here (already finished, or worker restarted) —
-        # cancellation is idempotent from the caller's point of view.
-        return {"canceled": False, "reason": "run not in flight"}
+    try:
+        await runtime_dispatch.submit_command(run_id, "cancel", command_id=f"cancel:{run_id}")
+    except LookupError:
+        return {"canceled": False, "reason": "run not found"}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="cancel command was not persisted") from exc
 
     log.info("run_cancel_requested", run_id=run_id)
-    return {"canceled": True}
+    return {"canceled": True, "queued": True}
 
 
 @app.post("/converse")
@@ -107,13 +116,14 @@ async def converse(
     payload: dict,
     authorization: str | None = Header(default=None),
 ) -> dict:
-    """Chat reply in a task thread while the agent is idle. The reply is
-    posted back as a task comment by the worker itself."""
+    """Apply an idle-thread decision before acknowledging delivery to Oban."""
     _check_auth(authorization)
 
-    task = asyncio.create_task(converse_agent.converse(payload))
-    _background_runs.add(task)
-    task.add_done_callback(_background_runs.discard)
+    # Unlike long missions this is one short classification + callback. An
+    # asynchronous 202 used to lose instructions when the worker/callback
+    # failed after acceptance. The anchored callback is safe to retry.
+    if not await converse_agent.converse(payload):
+        raise HTTPException(status_code=503, detail="task follow-up was not applied")
     return {"accepted": True}
 
 
@@ -195,19 +205,87 @@ async def resume(
 
     if request.run_id != run_id:
         raise HTTPException(status_code=400, detail="run_id mismatch")
-    if not await runner.resume_run(request):
-        raise HTTPException(status_code=404, detail="no run waiting for a decision")
-    return {"resumed": True}
+    try:
+        await runtime_dispatch.submit_command(run_id, "resume", request.model_dump(mode="json"),
+                                               command_id=getattr(request, "command_id", None))
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="run not found") from exc
+    except OwnershipConflict as exc:
+        raise HTTPException(status_code=409, detail="decision identity conflict") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="resume command was not persisted") from exc
+    return {"resumed": True, "queued": True}
 
 
 @app.get("/runs/{run_id}")
 async def run_status(run_id: str, authorization: str | None = Header(default=None)) -> dict:
     _check_auth(authorization)
-
+    try:
+        saved = await (await get_store()).get_run(run_id)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="run status unavailable") from exc
+    if saved is not None:
+        state = runtime_dispatch.locally_owned_state(run_id, saved)
+        if state is not None:
+            return state.model_dump(mode="json")
+        return {key: saved.get(key) for key in ("run_id", "status", "error", "output")}
+    # Direct, in-process dev executions may predate durable admission.
     state = runner.get_run(run_id)
-    if state is None:
-        raise HTTPException(status_code=404, detail="run not found")
-    return state.model_dump(mode="json")
+    if state is not None:
+        return state.model_dump(mode="json")
+    raise HTTPException(status_code=404, detail="run not found")
+
+
+@app.post("/webhooks/openai/agents", status_code=202)
+async def openai_agents_webhook(request: Request) -> dict:
+    """Verify the original signed body before resolving durable ownership."""
+    from openai import InvalidWebhookSignatureError, OpenAI
+
+    settings = get_settings()
+    secret = getattr(settings, "openai_agents_webhook_secret", "")
+    if not getattr(settings, "openai_agents_enabled", False) or not secret:
+        raise HTTPException(status_code=503, detail="agents webhook is not configured")
+    chunks = bytearray()
+    async for chunk in request.stream():
+        chunks.extend(chunk)
+        if len(chunks) > 1024 * 1024:
+            raise HTTPException(status_code=413, detail="webhook payload too large")
+    try:
+        # Signature verification is local; constructing this SDK client never
+        # sends an API request and does not require a billable API operation.
+        with OpenAI(api_key=settings.openai_api_key or "webhook-verification") as client:
+            client.webhooks.unwrap(bytes(chunks), request.headers, secret=secret)
+        payload = json.loads(chunks)
+    except InvalidWebhookSignatureError as exc:
+        raise HTTPException(status_code=400, detail="invalid webhook signature") from exc
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=400, detail="invalid webhook payload") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="invalid webhook envelope")
+    event_id, event_type = payload.get("id"), payload.get("type")
+    data = payload.get("data")
+    if not isinstance(event_id, str) or not event_id or not isinstance(event_type, str) or not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="incomplete webhook envelope")
+    session_id = data.get("session_id")
+    if not session_id and isinstance(data.get("session"), dict):
+        session_id = data["session"].get("id")
+    if not session_id and event_type.startswith(("agent.session.", "agents.session.")):
+        session_id = data.get("id")
+    if not isinstance(session_id, str) or not session_id:
+        # Non-agent events are unrelated; do not infer ownership from metadata.
+        return {"accepted": False, "reason": "no agent session"}
+    try:
+        store = await get_store(require_durable=True)
+        inserted = await store.record_event(event_id, session_id, event_type, payload)
+    except UnknownSession as exc:
+        # The provider may deliver faster than its create response is persisted.
+        # A retry can resolve that race; never bind using untrusted run metadata.
+        raise HTTPException(status_code=503, detail="session ownership is not yet registered") from exc
+    except OwnershipConflict as exc:
+        raise HTTPException(status_code=409, detail="event identity conflict") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="webhook event was not persisted") from exc
+    return {"accepted": True, "duplicate": not inserted}
 
 
 @app.post("/ingest")

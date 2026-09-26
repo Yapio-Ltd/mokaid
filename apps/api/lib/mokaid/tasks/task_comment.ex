@@ -14,6 +14,8 @@ defmodule Mokaid.Tasks.TaskComment do
 
     field :body, :string
     field :deleted_at, :utc_datetime_usec
+    # Internal receipt for idle-thread routing; never accepted from user attrs.
+    field :ai_handled_at, :utc_datetime_usec
 
     timestamps()
   end

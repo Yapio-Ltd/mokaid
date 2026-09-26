@@ -1,0 +1,142 @@
+{
+  "fixtureOnly": true,
+  "disclaimer": "Synthetic 320×180 H.264 decoder fixture. Does not validate Higgsfield footage, 1080p performance, native Safari or real mobile hardware.",
+  "timestamp": "2026-09-25T12:49:23.384Z",
+  "engine": "chromium",
+  "origin": "http://127.0.0.1:5173",
+  "fixture": {
+    "duration": 74,
+    "fps": 24,
+    "width": 320,
+    "height": 180,
+    "gopFrames": 6,
+    "bFrames": 0,
+    "audio": false,
+    "bytes": 5165282,
+    "rangeResponses": true
+  },
+  "passed": [
+    "first presented frame + full seekable range before promotion",
+    "all scroll milestones, reversal to zero, large jumps",
+    "latest target coalescing",
+    "paused/muted/inline throughout",
+    "five notifications + fully visible final CTA",
+    "exit has no captions",
+    "mobile viewport: no video request, three readable moments, CTA, no horizontal overflow",
+    "reduced motion: no video request, three readable moments, CTA, no horizontal overflow",
+    "failed video request retains static fallback",
+    "visitor enters before readiness: static layout locked, no late promotion",
+    "without requestVideoFrameCallback: loadeddata/seeked compatibility path"
+  ],
+  "samples": [
+    {
+      "requestedTime": 7,
+      "presentedTime": 7,
+      "settledMs": 44
+    },
+    {
+      "requestedTime": 13,
+      "presentedTime": 13,
+      "settledMs": 40
+    },
+    {
+      "requestedTime": 20,
+      "presentedTime": 20,
+      "settledMs": 39
+    },
+    {
+      "requestedTime": 32,
+      "presentedTime": 32,
+      "settledMs": 39
+    },
+    {
+      "requestedTime": 42,
+      "presentedTime": 42,
+      "settledMs": 114
+    },
+    {
+      "requestedTime": 51,
+      "presentedTime": 51,
+      "settledMs": 43
+    },
+    {
+      "requestedTime": 61,
+      "presentedTime": 61,
+      "settledMs": 38
+    },
+    {
+      "requestedTime": 67,
+      "presentedTime": 67,
+      "settledMs": 58
+    },
+    {
+      "requestedTime": 74,
+      "presentedTime": 73.917,
+      "settledMs": 28
+    },
+    {
+      "requestedTime": 0,
+      "presentedTime": 0,
+      "settledMs": 33
+    },
+    {
+      "requestedTime": 72,
+      "presentedTime": 71.958,
+      "settledMs": 29
+    },
+    {
+      "requestedTime": 2,
+      "presentedTime": 2,
+      "settledMs": 52
+    },
+    {
+      "requestedTime": 55,
+      "presentedTime": 55,
+      "settledMs": 35
+    },
+    {
+      "requestedTime": 18,
+      "presentedTime": 17.958,
+      "settledMs": 38
+    },
+    {
+      "requestedTime": 65,
+      "presentedTime": 65,
+      "settledMs": 26
+    },
+    {
+      "requestedTime": 74,
+      "presentedTime": 73.917,
+      "settledMs": 28
+    }
+  ],
+  "version": "151.0.7922.34",
+  "readiness": {
+    "mode": "cinematic",
+    "top": 1620,
+    "height": 11700,
+    "viewport": 900,
+    "scroll": 0,
+    "hidden": false,
+    "currentTime": 0,
+    "presentedTime": 0,
+    "readyState": 4,
+    "duration": 74,
+    "seeking": false,
+    "paused": true,
+    "muted": true,
+    "playsInline": true,
+    "playsInlineProperty": true,
+    "hasVideoFrameCallback": true,
+    "seekable": [
+      [
+        0,
+        74
+      ]
+    ]
+  },
+  "rangeRequests": [
+    "bytes=0-"
+  ],
+  "status": "passed"
+}

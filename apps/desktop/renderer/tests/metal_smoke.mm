@@ -38,6 +38,24 @@ void benchmarkPoses(const mokaid::engine::Frame &frame) {
   }
 }
 
+// Explicit GPU fixture only: distinct tiles reveal wrong seat mapping, while
+// alternating immutable images stress resource lifetime across in-flight frames.
+std::shared_ptr<const mokaid::engine::Texture> screenAtlasFixture(unsigned phase) {
+  auto atlas = std::make_shared<mokaid::engine::Texture>();
+  mokaid::engine::TextureMip mip{1536, 864, {}};
+  mip.rgba.resize(static_cast<std::size_t>(mip.width) * mip.height * 4);
+  for (unsigned y = 0; y < mip.height; ++y) for (unsigned x = 0; x < mip.width; ++x) {
+    const unsigned tile = (y / 288) * 3 + x / 512;
+    const auto offset = (static_cast<std::size_t>(y) * mip.width + x) * 4;
+    mip.rgba[offset] = static_cast<std::uint8_t>(30 + tile * 19);
+    mip.rgba[offset + 1] = static_cast<std::uint8_t>(45 + phase * 75);
+    mip.rgba[offset + 2] = static_cast<std::uint8_t>(210 - tile * 15);
+    mip.rgba[offset + 3] = 255;
+  }
+  atlas->mips.push_back(std::move(mip));
+  return atlas;
+}
+
 // Verification-only readback. Production rendering never copies frames to CPU.
 int main(int argc, char **argv) {
   @autoreleasepool {
@@ -69,6 +87,9 @@ int main(int argc, char **argv) {
       for(int step=0;step<static_cast<int>(std::ceil(tourSeconds*60));++step)
         office->advance(1.F / 60);
       benchmarkPoses(*office->snapshot(1.5F));
+      const bool atlasTest = std::getenv("MOKAID_SCREEN_ATLAS_TEST") != nullptr;
+      const auto atlasA = atlasTest ? screenAtlasFixture(0) : nullptr;
+      const auto atlasB = atlasTest ? screenAtlasFixture(1) : nullptr;
       std::vector<id<MTLCommandBuffer>> submitted;
       std::vector<double> cpuTimes;
       for (int i=0;i<12;++i) {
@@ -93,8 +114,13 @@ int main(int argc, char **argv) {
                    <<" position="<<instance.transform.m[12]<<","<<instance.transform.m[13]<<","<<instance.transform.m[14]
                    <<" posed Y="<<min.y<<".."<<max.y<<"; seated pelvis="<<scene.sittingPelvisHeight<<'\n';
         }
-        if(screenTime) {
-          auto timedFrame=*frame;timedFrame.sceneSeconds=*screenTime;
+        if(screenTime || atlasTest) {
+          auto timedFrame = *frame;
+          if (screenTime) timedFrame.sceneSeconds = *screenTime;
+          if (atlasTest) {
+            timedFrame.screenAtlas = i % 5 == 3 ? nullptr : i % 5 == 2 ? atlasB : atlasA;
+            timedFrame.screenActivity.fill(1.F);
+          }
           renderer->render(context,timedFrame);
         } else renderer->render(context,*frame);
         cpuTimes.push_back(renderer->statistics().cpuMilliseconds);
@@ -138,6 +164,7 @@ int main(int argc, char **argv) {
       CFRelease(destination);CGImageRelease(image);CGContextRelease(bitmap);CGColorSpaceRelease(colorSpace);
       if(!written)throw std::runtime_error("PNG output failed");
       std::cout<<"Metal GPU: "<<device.name.UTF8String<<"; "<<stats.drawCalls<<" draws; "<<stats.triangles<<" triangles; last encode "<<stats.cpuMilliseconds<<" ms\n";
+      if (atlasTest) std::cout << "Live screen atlas replacement, reuse and removal passed during in-flight resize\n";
       std::cout<<"12 unretained command buffers, in-flight resize and renderer destruction passed\n";
       return 0;
     } catch(const std::exception&e) {std::cerr<<e.what()<<'\n';return 1;}

@@ -407,19 +407,60 @@ defmodule MokaidWeb.WorkerResourceController do
   """
   def save_output(
         conn,
-        %{
-          "id" => id,
-          "workspace_id" => workspace_id,
-          "filename" => filename,
-          "content" => content
-        } =
-          params
+        %{"artifact_key" => _key, "id" => id, "workspace_id" => workspace_id} = params
       ) do
+    case Mokaid.AI.RuntimeOutputs.publish(workspace_id, id, params, fn ->
+           do_save_output(conn, params)
+         end) do
+      {:ok, {:existing, item}} ->
+        json(conn, %{data: %{id: item.id, name: item.name, task_id: id}})
+
+      {:ok, {:created, response}} ->
+        response
+
+      {:error, :not_found} ->
+        {:error, :not_found}
+
+      {:error, _reason} ->
+        {:error, :forbidden}
+    end
+  end
+
+  def save_output(
+        conn,
+        %{"run_id" => run_id, "workspace_id" => workspace_id, "id" => task_id} = params
+      ) do
+    with {:ok, _} <- Ecto.UUID.cast(run_id),
+         %{workspace_id: ^workspace_id, task_id: ^task_id} <- Tasks.get_run(run_id),
+         {:ok, _} <- Mokaid.AI.ManagedRuntime.authorize_output(workspace_id, run_id, params) do
+      do_save_output(conn, params)
+    else
+      _ -> {:error, :forbidden}
+    end
+  end
+
+  def save_output(conn, params), do: do_save_output(conn, params)
+
+  defp do_save_output(
+         conn,
+         %{
+           "id" => id,
+           "workspace_id" => workspace_id,
+           "filename" => filename,
+           "content" => content
+         } =
+           params
+       ) do
     with %{} = task <- Tasks.get_task(workspace_id, id),
          {:ok, binary} <- decode_content(content, params["encoding"]),
          {:ok, stored} <-
            Mokaid.Storage.upload_content(workspace_id, filename, binary, params["mime_type"]) do
-      agent = task.assigned_agent_id && Agents.get_agent(workspace_id, task.assigned_agent_id)
+      author_id =
+        if params["run_id"],
+          do: params["agent_id"] || task.assigned_agent_id,
+          else: task.assigned_agent_id
+
+      agent = author_id && Agents.get_agent(workspace_id, author_id)
       outputs_folder = Drive.ensure_system_folder(workspace_id, "Agent Outputs")
 
       case Drive.create_file(
@@ -432,6 +473,14 @@ defmodule MokaidWeb.WorkerResourceController do
                "size_bytes" => stored.size_bytes,
                "storage_key" => stored.storage_key,
                "checksum" => stored.checksum,
+               "metadata" =>
+                 if(params["artifact_key"],
+                   do: %{
+                     "runtime_artifact_key" => params["artifact_key"],
+                     "runtime_run_id" => params["run_id"]
+                   },
+                   else: %{}
+                 ),
                "linked_task_id" => task.id,
                "linked_project_id" => task.project_id,
                "is_ai_readable" => true

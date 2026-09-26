@@ -1,0 +1,214 @@
+{
+  "version": 1,
+  "duration": 74,
+  "fps": 24,
+  "logoAt": 71.2,
+  "cta": {
+    "text": "Build your team",
+    "href": "/download"
+  },
+  "video": "/assets/mokaid-office-journey.adac1c365481.mp4",
+  "poster": "/assets/mokaid-cafe.f62fa55fc5e6.webp",
+  "stills": {
+    "entry": "/assets/office-entry.ef8a91f3c674.webp",
+    "work": "/assets/office-work.f5aa756aac65.webp",
+    "life": "/assets/office-life.76b959bb6a26.webp"
+  },
+  "scrollMap": [
+    {
+      "progress": 0,
+      "time": 0
+    },
+    {
+      "progress": 0.1,
+      "time": 7
+    },
+    {
+      "progress": 0.18,
+      "time": 13
+    },
+    {
+      "progress": 0.27,
+      "time": 20
+    },
+    {
+      "progress": 0.43,
+      "time": 32
+    },
+    {
+      "progress": 0.57,
+      "time": 42
+    },
+    {
+      "progress": 0.69,
+      "time": 51
+    },
+    {
+      "progress": 0.84,
+      "time": 61
+    },
+    {
+      "progress": 0.92,
+      "time": 67
+    },
+    {
+      "progress": 1,
+      "time": 74
+    }
+  ],
+  "scenes": [
+    {
+      "id": "cafe",
+      "start": 0,
+      "end": 7,
+      "label": "The real world"
+    },
+    {
+      "id": "approach",
+      "start": 7,
+      "end": 13,
+      "label": "A little closer"
+    },
+    {
+      "id": "portal",
+      "start": 13,
+      "end": 20,
+      "label": "Enter Mokaid"
+    },
+    {
+      "id": "office",
+      "start": 20,
+      "end": 32,
+      "label": "A world at work"
+    },
+    {
+      "id": "collaboration",
+      "start": 32,
+      "end": 42,
+      "label": "Better together"
+    },
+    {
+      "id": "life",
+      "start": 42,
+      "end": 51,
+      "label": "Room to be human"
+    },
+    {
+      "id": "execution",
+      "start": 51,
+      "end": 61,
+      "label": "Work in motion"
+    },
+    {
+      "id": "return",
+      "start": 61,
+      "end": 67,
+      "label": "Back to reality"
+    },
+    {
+      "id": "completed",
+      "start": 67,
+      "end": 74,
+      "label": "Already done"
+    }
+  ],
+  "cues": [
+    {
+      "id": "closer",
+      "start": 0.8,
+      "end": 12.5,
+      "text": "Your AI team is closer than you think.",
+      "secondary": "A complete AI team, inside your desktop.",
+      "position": "left"
+    },
+    {
+      "id": "enter",
+      "start": 17.5,
+      "end": 20,
+      "text": "Enter your AI office.",
+      "secondary": "Give every specialist a role, tools and context.",
+      "position": "center"
+    },
+    {
+      "id": "prompts",
+      "start": 21,
+      "end": 26.5,
+      "text": "They don't wait for prompts.",
+      "position": "left"
+    },
+    {
+      "id": "work",
+      "start": 27,
+      "end": 31.5,
+      "text": "They work.",
+      "secondary": "Assign a goal. Follow their progress.",
+      "position": "left"
+    },
+    {
+      "id": "workflow",
+      "start": 32.5,
+      "end": 36.7,
+      "text": "One task becomes a workflow.",
+      "position": "left"
+    },
+    {
+      "id": "collaborate",
+      "start": 37.2,
+      "end": 41.5,
+      "text": "Your agents collaborate.",
+      "secondary": "Specialists coordinate to deliver the result.",
+      "position": "left"
+    },
+    {
+      "id": "coffee",
+      "start": 43,
+      "end": 50.5,
+      "text": "Even AI needs a coffee break.",
+      "secondary": "Fortunately, they don't need payroll.",
+      "position": "left"
+    },
+    {
+      "id": "working",
+      "start": 52,
+      "end": 60.5,
+      "text": "While you scroll, they're already working.",
+      "secondary": "Connected tools turn tasks into actions.",
+      "position": "left"
+    },
+    {
+      "id": "payoff",
+      "start": 70.8,
+      "end": 74,
+      "text": "Your AI employees are already at work.",
+      "position": "left",
+      "cta": true
+    }
+  ],
+  "notifications": [
+    {
+      "id": "report",
+      "time": 67.2,
+      "text": "Client report completed"
+    },
+    {
+      "id": "leads",
+      "time": 68,
+      "text": "42 leads qualified"
+    },
+    {
+      "id": "meeting",
+      "time": 68.8,
+      "text": "Meeting scheduled"
+    },
+    {
+      "id": "campaign",
+      "time": 69.6,
+      "text": "Campaign published"
+    },
+    {
+      "id": "inbox",
+      "time": 70.4,
+      "text": "Inbox processed"
+    }
+  ]
+}

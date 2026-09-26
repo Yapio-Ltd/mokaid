@@ -12,9 +12,12 @@
 #include <mokaid/updates/update_service.hpp>
 #include <native_viewport.hpp>
 #include <QCommandLineParser>
+#include <QCryptographicHash>
+#include <QDebug>
 #include <QDir>
 #include <QGuiApplication>
 #include <QIcon>
+#include <QLockFile>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -57,8 +60,26 @@ int main(int argc, char* argv[]) {
         if (!QDir(assets).exists()) assets = QStringLiteral(MOKAID_DEV_ASSETS);
     }
     ApiClient api{QUrl(QStringLiteral(MOKAID_API_ORIGIN))};
+    const auto dataDirectory = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    if (dataDirectory.isEmpty() || !QDir().mkpath(dataDirectory)) {
+        qCritical("Mokaid could not create its session lock directory.");
+        return 1;
+    }
+    // Each OS credential must have one owner: two app copies would otherwise
+    // rotate the same saved refresh token independently and invalidate it.
+    const auto identityKey = QString::fromLatin1(QCryptographicHash::hash(api.origin().toEncoded(), QCryptographicHash::Sha256).toHex());
+    QLockFile instanceLock(QDir(dataDirectory).filePath(QCoreApplication::organizationDomain() + "." + identityKey + ".lock"));
+    instanceLock.setStaleLockTime(0);
+    if (!instanceLock.tryLock(0)) {
+        if (instanceLock.error() == QLockFile::LockFailedError) {
+            qWarning("Mokaid is already running for this server. Please use the existing window.");
+            return 0;
+        }
+        qCritical("Mokaid could not protect its saved session from another app instance.");
+        return 1;
+    }
     PhoenixClient realtime;
-    CacheStore cache(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/cache");
+    CacheStore cache(dataDirectory + "/cache");
     SessionController session(api, realtime, nullptr, QUrl(QStringLiteral(MOKAID_WEB_ORIGIN)));
     OfficeController office(api, session, realtime, cache);
     ActivityController activity(api, session, realtime, cache);

@@ -45,37 +45,54 @@ defmodule MokaidWeb.IntegrationOAuthController do
 
   def google_callback(conn, %{"code" => code, "state" => state} = params) do
     redirect_uri = params["redirect_uri"] || default_google_redirect_uri()
+    member = current_member(conn)
 
-    with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),
-         {:ok, result} <- GoogleOAuth.exchange_code(code, state, redirect_uri),
-         :ok <- ensure_same_workspace(conn, result.workspace_id),
-         {:ok, connections} <-
-           Integrations.connect_google_providers(
-             result.workspace_id,
-             current_member(conn),
-             result.credentials,
-             result.account
-           ),
-         {:ok, _} <-
-           Integrations.sync_google_mcp_installations(
-             result.workspace_id,
-             current_member(conn),
-             result.credentials,
-             result.account
-           ) do
-      ensure_mail_account(conn, result, connections, "gmail")
+    with :ok <- Permissions.authorize(member, "integrations.connect"),
+         {:ok, result} <-
+           GoogleOAuth.exchange_code(code, state, redirect_uri, {workspace_id(conn), member.id}),
+         {:ok, completed} <- Integrations.complete_google_connection(result, member) do
+      Integrations.sync_google_mcp_installations(
+        result.workspace_id,
+        member,
+        result.credentials,
+        result.account,
+        result.provider_key
+      )
 
       json(conn, %{
         data: %{
-          connections: Enum.map(connections, &Serializer.integration_connection/1),
+          connections: Enum.map(completed.connections, &Serializer.integration_connection/1),
           connected_account: result.account,
-          provider_key: result.provider_key
+          provider_key: result.provider_key,
+          mail_account_id: completed.mail_account && completed.mail_account.id
         }
       })
     else
-      {:error, :invalid_state} -> invalid_state(conn)
-      {:error, {:token_exchange_failed, _, _}} -> token_exchange_failed(conn, "Google")
-      other -> other
+      {:error, :invalid_state} ->
+        invalid_state(conn)
+
+      {:error, {:token_exchange_failed, _, _}} ->
+        token_exchange_failed(conn, "Google")
+
+      {:error, reason}
+      when reason in [
+             :missing_required_scopes,
+             :missing_refresh_token,
+             :account_fetch_failed,
+             :unverified_account
+           ] ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{
+          error: %{
+            code: Mokaid.Integrations.MailOAuthFlow.public_error(reason),
+            message:
+              "Google mailbox authorization is incomplete. Connect again and allow mail access."
+          }
+        })
+
+      other ->
+        other
     end
   end
 

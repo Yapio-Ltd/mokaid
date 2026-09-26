@@ -25,7 +25,7 @@ defmodule Mokaid.Mail.Account do
     field :provider, :string
     field :email_address, :string
     field :display_name, :string
-    field :encrypted_credentials, :binary
+    field :encrypted_credentials, :binary, redact: true
     field :settings, :map, default: %{}
     field :status, :string, default: "active"
     field :error_message, :string

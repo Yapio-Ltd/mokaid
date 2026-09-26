@@ -438,7 +438,21 @@ export function advanceAgentAnimation(avatar: AgentAnimPlayer, dt: number) {
 
 export function playAgentAnimation(avatar: AgentAnimPlayer, next: AgentAnimName) {
   const { state, group } = resolveClip(avatar, next);
-  if (!group || avatar.currentAnim === state) return;
+  if (avatar.currentAnim === state) return;
+  // Generated characters may only contain a walking clip. Arriving at a desk
+  // must stop the old gait even when no matching idle/activity clip exists.
+  if (!group) {
+    blends.delete(avatar);
+    const groups = new Set([...Object.values(avatar.anims), avatar.idleAnim, avatar.walkAnim]);
+    for (const animation of groups) {
+      if (animation?.isPlaying) {
+        animation.reset();
+        animation.stop();
+      }
+    }
+    avatar.currentAnim = state;
+    return;
+  }
   const groups = new Set([...Object.values(avatar.anims), avatar.idleAnim, avatar.walkAnim]);
   const weights = new Map<AnimationGroup, number>();
   for (const ag of groups) {

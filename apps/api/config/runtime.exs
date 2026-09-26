@@ -39,6 +39,9 @@ config :mokaid, :figma_oauth,
 config :mokaid, :google_oauth,
   client_id: System.get_env("GOOGLE_CLIENT_ID"),
   client_secret: System.get_env("GOOGLE_CLIENT_SECRET"),
+  desktop_redirect_uri:
+    System.get_env("GOOGLE_DESKTOP_REDIRECT_URI") ||
+      "https://mokaid.com/api/mail/oauth/google/callback",
   redirect_uris:
     Enum.uniq([
       System.get_env("GOOGLE_REDIRECT_URI") || "https://mokaid.com/oauth/google/callback",
@@ -107,7 +110,8 @@ config :mokaid, :resend,
 # GCP Pub/Sub topic used by Gmail users.watch push notifications.
 config :mokaid, :gmail_pubsub,
   topic: System.get_env("GMAIL_PUBSUB_TOPIC"),
-  audience: System.get_env("GMAIL_PUBSUB_AUDIENCE")
+  audience: System.get_env("GMAIL_PUBSUB_AUDIENCE"),
+  service_account: System.get_env("GMAIL_PUBSUB_SERVICE_ACCOUNT")
 
 config :mokaid, :notion_oauth,
   client_id: System.get_env("NOTION_CLIENT_ID"),
@@ -233,6 +237,11 @@ marketplace_fee =
 
 config :mokaid, :marketplace, fee_percent: marketplace_fee
 
+# Provision only model IDs verified for the deployed Agents API project.
+config :mokaid, :managed_runtime,
+  verified_models:
+    String.split(System.get_env("MANAGED_RUNTIME_VERIFIED_MODELS", ""), ",", trim: true)
+
 # Provider Admin keys for cost/usage sync (platform CRM). Distinct from
 # worker inference keys — never use sk-admin / sk-ant-admin for chat.
 config :mokaid, :provider_costs,
@@ -250,3 +259,14 @@ config :mokaid, :provider_costs,
       ",",
       trim: true
     )
+
+# Meshy credentials are injected server-side from AWS Secrets Manager.
+meshy_secret = System.get_env("MESHY_WEBHOOK_SECRET")
+
+config :mokaid, :meshy,
+  api_key: System.get_env("MESHY_API_KEY"),
+  webhook_secret: if(meshy_secret in [nil, "", "CHANGE_ME"], do: nil, else: meshy_secret)
+
+if bucket = System.get_env("S3_BUCKET_ASSETS_3D") do
+  config :mokaid, :storage, bucket_assets_3d: bucket
+end

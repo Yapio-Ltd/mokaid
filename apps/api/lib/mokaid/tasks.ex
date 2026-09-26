@@ -210,8 +210,14 @@ defmodule Mokaid.Tasks do
 
   defp maybe_celebrate_agent(%Task{} = task) do
     case Agents.get_agent(task.workspace_id, task.assigned_agent_id) do
-      nil -> :ok
-      agent -> Agents.change_status(agent, "idle", reason: "task_completed")
+      nil ->
+        :ok
+
+      %{current_task_id: current} = agent when current == nil or current == task.id ->
+        Agents.change_status(agent, "idle", reason: "task_completed")
+
+      _agent_working_on_another_task ->
+        :ok
     end
   end
 
@@ -320,14 +326,15 @@ defmodule Mokaid.Tasks do
       # the thread is a real conversation (the run's own comments cover the
       # rest). Agent-authored comments never trigger replies (no loops).
       if match?(%Mokaid.Members.Member{}, actor) and task.assigned_agent_id != nil and
-           active_runs_for_task(task.workspace_id, task.id) == [] do
+           (active_runs_for_task(task.workspace_id, task.id) == [] or
+              not is_nil(Mokaid.AI.TaskFollowup.waiting_managed_run(task.workspace_id, task.id))) do
         # Typing indicator in the thread right away, before the LLM round-trip.
         Realtime.broadcast_workspace(task.workspace_id, "task.agent_typing", %{
           task_id: task.id,
           agent_id: task.assigned_agent_id
         })
 
-        %{workspace_id: task.workspace_id, task_id: task.id}
+        %{workspace_id: task.workspace_id, task_id: task.id, comment_id: comment.id}
         |> Mokaid.AI.Workers.ConverseWorker.new()
         |> Oban.insert()
       end
@@ -358,9 +365,12 @@ defmodule Mokaid.Tasks do
   def active_runs_for_task(workspace_id, task_id) do
     Repo.all(
       from r in TaskExecutionRun,
+        left_join: runtime in Mokaid.AI.RuntimeRun,
+        on: runtime.run_id == r.id,
         where:
           r.workspace_id == ^workspace_id and r.task_id == ^task_id and
-            r.status in ^@active_run_statuses
+            (r.status in ^@active_run_statuses or
+               (r.status == "waiting_for_user_input" and runtime.status == "reserved"))
     )
   end
 
@@ -409,11 +419,27 @@ defmodule Mokaid.Tasks do
   per-tool stream never triggers full task refetches.
   """
   def append_run_activity(%TaskExecutionRun{} = run, event) when is_map(event) do
-    activity = upsert_activity(run.tool_activity || [], event)
+    # Parallel contributors report against the same run. Serialize the merge
+    # on the current row so stale callback snapshots cannot erase a teammate's
+    # event or restore an earlier version of another tool's progress.
+    Repo.transaction(fn ->
+      current =
+        Repo.one(
+          from r in TaskExecutionRun,
+            where: r.id == ^run.id and r.workspace_id == ^run.workspace_id,
+            lock: "FOR UPDATE"
+        )
 
-    run
-    |> TaskExecutionRun.progress_changeset(%{"tool_activity" => activity})
-    |> Repo.update()
+      if current == nil, do: Repo.rollback(:run_not_found)
+      activity = upsert_activity(current.tool_activity || [], event)
+
+      case current
+           |> TaskExecutionRun.progress_changeset(%{"tool_activity" => activity})
+           |> Repo.update() do
+        {:ok, updated} -> updated
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
   end
 
   defp upsert_activity(activity, event) do
@@ -433,6 +459,8 @@ defmodule Mokaid.Tasks do
       |> Repo.update()
 
     with {:ok, updated} <- result do
+      Mokaid.AI.ManagedRuntime.terminal(updated)
+
       Realtime.broadcast_workspace(run.workspace_id, "task.progress_changed", %{
         task_id: run.task_id,
         run_id: run.id,

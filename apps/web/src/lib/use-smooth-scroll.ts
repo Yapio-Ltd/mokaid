@@ -2,16 +2,9 @@ import { useEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
+import "lenis/dist/lenis.css";
 
 gsap.registerPlugin(ScrollTrigger);
-
-function prefersNativeScroll() {
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return true;
-  // Touch / coarse pointers feel better with native momentum scrolling + pin sections.
-  if (window.matchMedia("(pointer: coarse)").matches) return true;
-  if (navigator.maxTouchPoints > 0 && window.matchMedia("(hover: none)").matches) return true;
-  return false;
-}
 
 /**
  * Lenis smooth scrolling wired into the GSAP ticker so ScrollTrigger
@@ -19,68 +12,76 @@ function prefersNativeScroll() {
  */
 export function useSmoothScroll() {
   useEffect(() => {
-    if (prefersNativeScroll()) {
-      let resizeTimer = 0;
-      const onResize = () => {
-        window.clearTimeout(resizeTimer);
-        resizeTimer = window.setTimeout(() => ScrollTrigger.refresh(), 160);
-      };
-      window.addEventListener("resize", onResize);
-      // Address bar show/hide changes visual viewport on mobile.
-      const vv = window.visualViewport;
-      vv?.addEventListener("resize", onResize);
-      return () => {
-        window.clearTimeout(resizeTimer);
-        window.removeEventListener("resize", onResize);
-        vv?.removeEventListener("resize", onResize);
-      };
-    }
-
-    // Softer damping than default landing feel (was ~1.1 + exponential ease).
-    const lenis = new Lenis({
-      duration: 0.65,
-      easing: (t) => 1 - Math.pow(1 - t, 3),
-      wheelMultiplier: 1.05,
-      touchMultiplier: 1.15,
-      smoothWheel: true,
-    });
-
-    lenis.on("scroll", ScrollTrigger.update);
-
-    const tick = (time: number) => {
-      lenis.raf(time * 1000);
-    };
-    gsap.ticker.add(tick);
-    gsap.ticker.lagSmoothing(0);
-
-    // Keep Lenis document bounds in sync after GSAP pin spacers / lazy sections.
-    const onStRefresh = () => {
-      lenis.resize();
-    };
-    ScrollTrigger.addEventListener("refresh", onStRefresh);
-
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const coarsePointer = window.matchMedia("(pointer: coarse)");
+    const noHover = window.matchMedia("(hover: none)");
+    const mediaQueries = [desktop, reducedMotion, coarsePointer, noHover];
+    let lenis: Lenis | null = null;
     let resizeTimer = 0;
+    const tick = (time: number) => {
+      lenis?.raf(time * 1000);
+    };
+    const resizeLenis = () => lenis?.resize();
+    const configureScroll = () => {
+      // A media change and React StrictMode must never leave two scroll owners.
+      gsap.ticker.remove(tick);
+      lenis?.destroy();
+      lenis = null;
+      const native =
+        !desktop.matches ||
+        reducedMotion.matches ||
+        coarsePointer.matches ||
+        (navigator.maxTouchPoints > 0 && noHover.matches);
+      if (native) return;
+
+      lenis = new Lenis({
+        autoRaf: false,
+        duration: 0.65,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+        wheelMultiplier: 1.05,
+        smoothWheel: true,
+        // Lenis already honors the target's CSS scroll-margin-top.
+        anchors: true,
+      });
+      lenis.on("scroll", ScrollTrigger.update);
+      gsap.ticker.add(tick);
+      gsap.ticker.lagSmoothing(0);
+    };
+
     const onResize = () => {
       window.clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(() => {
-        lenis.resize();
+        resizeLenis();
         ScrollTrigger.refresh();
       }, 160);
     };
-    window.addEventListener("resize", onResize);
+    const onMediaChange = () => {
+      configureScroll();
+      onResize();
+    };
 
-    // Initial measure after first paint (pin/lazy layouts settle).
-    requestAnimationFrame(() => {
-      lenis.resize();
+    configureScroll();
+    ScrollTrigger.addEventListener("refresh", resizeLenis);
+    mediaQueries.forEach((query) => query.addEventListener("change", onMediaChange));
+    window.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("resize", onResize);
+
+    // Initial measure after first paint; cancel it if StrictMode remounts us.
+    const initialFrame = requestAnimationFrame(() => {
+      resizeLenis();
       ScrollTrigger.refresh();
     });
 
     return () => {
+      cancelAnimationFrame(initialFrame);
       window.clearTimeout(resizeTimer);
       window.removeEventListener("resize", onResize);
-      ScrollTrigger.removeEventListener("refresh", onStRefresh);
+      window.visualViewport?.removeEventListener("resize", onResize);
+      mediaQueries.forEach((query) => query.removeEventListener("change", onMediaChange));
+      ScrollTrigger.removeEventListener("refresh", resizeLenis);
       gsap.ticker.remove(tick);
-      lenis.destroy();
+      lenis?.destroy();
     };
   }, []);
 }

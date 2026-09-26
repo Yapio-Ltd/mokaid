@@ -1,0 +1,6 @@
+{"method": "POST", "path": "/api/mail/oauth/google/start", "status": 401, "expected": 401, "pass": true}
+{"method": "POST", "path": "/api/webhooks/gmail", "status": 401, "expected": 401, "pass": true}
+{"method": "GET", "path": "/api/health", "status": 200, "expected": 200, "pass": true}
+{"method": "GET", "path": "/api/avatar-generations", "status": 401, "expected": 401, "pass": true}
+{"method": "POST", "path": "/api/webhooks/meshy", "status": 202, "expected": 202, "pass": true}
+{"method": "GET", "path": "/api/avatar-assets/00000000-0000-0000-0000-000000000000/invalid/model.glb", "status": 404, "expected": 404, "pass": true}

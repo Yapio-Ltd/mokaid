@@ -81,6 +81,7 @@ class PhoenixClient:
         tool_input: dict[str, Any],
         risk: str,
         proposed_action: str | None = None,
+        operation_key: str | None = None,
     ) -> dict[str, Any] | None:
         # Field names match Mokaid.Tasks.TaskApprovalRequest; the legacy
         # tool/input/risk keys are kept for older API builds.
@@ -91,6 +92,7 @@ class PhoenixClient:
                 "input_payload": tool_input,
                 "risk_level": risk,
                 "proposed_action": proposed_action,
+                "operation_key": operation_key,
                 "tool": tool,
                 "input": tool_input,
                 "risk": risk,
@@ -111,6 +113,35 @@ class PhoenixClient:
 
     async def fail_run(self, run_id: str, error: str) -> None:
         await self._post(f"/api/worker/runs/{run_id}/fail", {"error": error})
+
+    async def runtime_call(
+        self, run_id: str, workspace_id: str, action: str, **payload: Any
+    ) -> dict[str, Any]:
+        """Fail closed for managed-runtime authority and accounting callbacks."""
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(
+                f"{self.base_url}/api/worker/runs/{run_id}/runtime/{action}",
+                json=_sanitize({**payload, "workspace_id": workspace_id}), headers=self.headers,
+            )
+            result = response.json()
+            if response.status_code >= 500:
+                raise RuntimeError("Mokaid runtime authority is unavailable.")
+        if not isinstance(result, dict) or not isinstance(result.get("data"), dict):
+            raise RuntimeError("Mokaid runtime authority is unavailable.")
+        return result["data"]
+
+    async def finalize_runtime(
+        self, run_id: str, status: str, output: dict[str, Any], cost_cents: int = 0
+    ) -> None:
+        """Terminal delivery must be acknowledged before remote state is deleted."""
+        suffix = "complete" if status == "completed" else "status"
+        payload = {"status": status, "output": output, "cost_cents": cost_cents}
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(
+                f"{self.base_url}/api/worker/runs/{run_id}/{suffix}",
+                json=_sanitize(payload), headers=self.headers,
+            )
+            response.raise_for_status()
 
     async def report_usage(
         self,
@@ -140,9 +171,7 @@ class PhoenixClient:
 
     # ---------- Mail sync ----------
 
-    async def ingest_mail_messages(
-        self, account_id: str, messages: list[dict[str, Any]]
-    ) -> bool:
+    async def ingest_mail_messages(self, account_id: str, messages: list[dict[str, Any]]) -> bool:
         """Posts a batch of normalized + analyzed messages for one account."""
         result = await self._post(
             f"/api/worker/mail/accounts/{account_id}/messages",
@@ -153,20 +182,15 @@ class PhoenixClient:
 
     async def update_mail_sync_state(self, account_id: str, attrs: dict[str, Any]) -> bool:
         """Reports sync cursors, push-channel expiry and error status."""
-        result = await self._post(
-            f"/api/worker/mail/accounts/{account_id}/sync-state", attrs
-        )
+        result = await self._post(f"/api/worker/mail/accounts/{account_id}/sync-state", attrs)
         return result is not None
 
     async def fetch_mail_credentials(self, account_id: str) -> dict[str, Any] | None:
         """Fetches a fresh account payload (Phoenix refreshes OAuth tokens)."""
-        result = await self._post(
-            f"/api/worker/mail/accounts/{account_id}/credentials", {}
-        )
+        result = await self._post(f"/api/worker/mail/accounts/{account_id}/credentials", {})
         return (result or {}).get("data")
 
     # ---------- Workspace resources ----------
-
 
     async def load_domain_skill(
         self,
@@ -345,6 +369,31 @@ class PhoenixClient:
         result = await self._post(f"/api/worker/tasks/{task_id}/comment", payload)
         return result is not None
 
+    async def apply_task_followup(
+        self,
+        workspace_id: str,
+        task_id: str,
+        comment_id: str,
+        *,
+        agent_id: str | None,
+        kind: str,
+        reply: str = "",
+        language: str = "en",
+    ) -> dict[str, Any] | None:
+        """Apply an anchored task-thread decision; Phoenix authorizes/deduplicates."""
+        result = await self._post(
+            f"/api/worker/tasks/{task_id}/followup",
+            {
+                "workspace_id": workspace_id,
+                "comment_id": comment_id,
+                "agent_id": agent_id,
+                "kind": kind,
+                "reply": reply,
+                "language": language,
+            },
+        )
+        return (result or {}).get("data")
+
     async def post_agent_chat_message(
         self,
         workspace_id: str,
@@ -385,9 +434,7 @@ class PhoenixClient:
             payload["stream_id"] = stream_id
         if conversation_id:
             payload["conversation_id"] = conversation_id
-        result = await self._post(
-            f"/api/worker/agents/{agent_id}/chat-message", payload
-        )
+        result = await self._post(f"/api/worker/agents/{agent_id}/chat-message", payload)
         return result is not None
 
     async def stream_agent_chat_chunk(
@@ -444,6 +491,9 @@ class PhoenixClient:
         content: str,
         mime_type: str | None = None,
         encoding: str | None = None,
+        artifact_key: str | None = None,
+        agent_id: str | None = None,
+        run_id: str | None = None,
     ) -> dict[str, Any] | None:
         """Persists an agent-produced artifact as a Drive file linked to the task."""
         payload: dict[str, Any] = {
@@ -454,8 +504,12 @@ class PhoenixClient:
         }
         if encoding:
             payload["encoding"] = encoding
+        if artifact_key:
+            payload["artifact_key"] = artifact_key
+        if run_id:
+            payload["run_id"] = run_id
+        if agent_id:
+            payload["agent_id"] = agent_id
         # HTML landings are large — give the upload more than the default 15s.
-        result = await self._post(
-            f"/api/worker/tasks/{task_id}/output", payload, timeout=60
-        )
+        result = await self._post(f"/api/worker/tasks/{task_id}/output", payload, timeout=60)
         return (result or {}).get("data")

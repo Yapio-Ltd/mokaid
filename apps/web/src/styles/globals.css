@@ -2394,6 +2394,12 @@ table tbody tr {
   -webkit-backdrop-filter: blur(18px) saturate(1.35);
 }
 
+/* The native mobile disclosure also needs a readable surface without JavaScript. */
+.mk-site-header:has(details[open]) {
+  background: rgba(12, 12, 20, 0.98);
+  border-color: rgb(124 92 255 / 0.15);
+}
+
 /* Why mokaid — editorial, brand-colored, minimal */
 .mk-why {
   background: #09090f;

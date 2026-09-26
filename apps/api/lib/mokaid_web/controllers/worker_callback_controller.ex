@@ -4,7 +4,12 @@ defmodule MokaidWeb.WorkerCallbackController do
   alias Mokaid.AI
 
   def progress(conn, %{"run_id" => run_id} = params) do
-    with {:ok, run} <- AI.handle_progress(run_id, Map.drop(params, ["run_id"])) do
+    progress =
+      if Mokaid.AI.ManagedRuntime.reserved?(run_id),
+        do: &Mokaid.AI.ManagedRuntime.progress/2,
+        else: &AI.handle_progress/2
+
+    with {:ok, run} <- progress.(run_id, Map.drop(params, ["run_id"])) do
       json(conn, %{data: %{run_id: run.id, status: run.status}})
     end
   end
@@ -26,8 +31,13 @@ defmodule MokaidWeb.WorkerCallbackController do
   end
 
   def complete(conn, %{"run_id" => run_id} = params) do
+    completion =
+      if Mokaid.AI.ManagedRuntime.reserved?(run_id),
+        do: &Mokaid.AI.ManagedRuntime.complete/4,
+        else: &AI.handle_completion/4
+
     with {:ok, run} <-
-           AI.handle_completion(
+           completion.(
              run_id,
              params["output"] || %{},
              params["token_usage"] || %{},
@@ -38,7 +48,12 @@ defmodule MokaidWeb.WorkerCallbackController do
   end
 
   def fail(conn, %{"run_id" => run_id} = params) do
-    with {:ok, run} <- AI.handle_failure(run_id, params["error"] || "unknown error") do
+    result =
+      if Mokaid.AI.ManagedRuntime.reserved?(run_id),
+        do: Mokaid.AI.ManagedRuntime.progress(run_id, Map.put(params, "status", "failed")),
+        else: AI.handle_failure(run_id, params["error"] || "unknown error")
+
+    with {:ok, run} <- result do
       json(conn, %{data: %{run_id: run.id, status: run.status}})
     end
   end

@@ -1,13 +1,18 @@
 #include "native_viewport.hpp"
 #include <QCoreApplication>
 #include <QDir>
+#include <QFocusEvent>
+#include <QGuiApplication>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPointer>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
 #include <QSGSimpleTextureNode>
 #include <QSGTexture>
+#include <QStyleHints>
 #include <QtQml>
+#include <cmath>
 #include <mokaid/renderer/renderer.hpp>
 #ifdef Q_OS_MACOS
 #import <Metal/Metal.h>
@@ -170,23 +175,112 @@ public:
 NativeViewport::NativeViewport(QQuickItem *parent)
     : QQuickItem(parent), office_(std::make_shared<engine::Office>()) {
   setFlag(ItemHasContents, true);
+  connect(&customAvatars_, &CustomAvatarLoader::ready, this,
+          [this](QString key, std::shared_ptr<const engine::Scene> scene) {
+    if (!activeCustomAvatars_.contains(key)) return;
+    office_->setCustomAvatar(key.toStdString(), std::move(scene));
+    loadedCustomAvatars_.insert(key);
+    avatarError_.clear(); emit avatarErrorChanged(); update();
+  });
+  connect(&customAvatars_, &CustomAvatarLoader::failed, this, [this](const QString &message) {
+    avatarError_ = message; emit avatarErrorChanged();
+  });
   setAcceptedMouseButtons(Qt::LeftButton);
   timer_.setInterval(16);
   timer_.setTimerType(Qt::PreciseTimer);
   connect(&timer_, &QTimer::timeout, this, [this] {
     if (!paused_ && error_.isEmpty() && isVisible() && window() &&
         window()->isVisible()) {
+      updateTourState();
       if(++indicatorTick_%2==0) updateIndicators();
       update();
     }
   });
   connect(this,&QQuickItem::widthChanged,this,&NativeViewport::updateIndicators);
   connect(this,&QQuickItem::heightChanged,this,&NativeViewport::updateIndicators);
+  connect(this, &QQuickItem::visibleChanged, this, [this] {
+    if (!isVisible())
+      stopWalking();
+  });
+  connect(this, &QQuickItem::windowChanged, this, [this](QQuickWindow *w) {
+    disconnect(windowActiveConnection_);
+    stopWalking();
+    if (w)
+      windowActiveConnection_ = connect(w, &QWindow::activeChanged, this, [this, w] {
+        if (!w->isActive())
+          stopWalking();
+      });
+  });
   timer_.start();
 }
+void NativeViewport::updateTourState(bool refreshRoutes) {
+  // Office owns the simulation clock. Read its completed tour state here;
+  // advancing it from the GUI timer would double the walking speed.
+  const auto state = office_->tourState();
+  const bool available = state.available && !loading_ && error_.isEmpty();
+  const bool active = available && state.active;
+  const bool moving = active && state.moving;
+  const bool settling = active && state.settling;
+  const auto current = QString::fromStdString(state.currentStop);
+  const auto destination = QString::fromStdString(state.destination);
+  const QPointF position(state.position.x, state.position.z);
+  if (tourAvailable_ != available || immersive_ != active ||
+      tourMoving_ != moving || tourSettling_ != settling || tourCurrentStop_ != current ||
+      tourDestination_ != destination || tourPosition_ != position ||
+      tourYaw_ != state.yaw || tourProgress_ != state.progress) {
+    const bool changedMode = immersive_ != active;
+    tourAvailable_ = available;
+    immersive_ = active;
+    tourMoving_ = moving;
+    tourSettling_ = settling;
+    tourCurrentStop_ = current;
+    tourDestination_ = destination;
+    tourPosition_ = position;
+    tourYaw_ = state.yaw;
+    tourProgress_ = state.progress;
+    if (changedMode)
+      resetInput();
+    emit tourStateChanged();
+  }
+  if (!refreshRoutes)
+    return;
+  QVariantList stops, edges;
+  if (available) {
+    for (const auto &stop : office_->tourStops())
+      stops.append(QVariantMap{{"id", QString::fromStdString(stop.id)},
+                               {"label", QString::fromStdString(stop.label)},
+                               {"seat", stop.seat},
+                               {"x", stop.position.x},
+                               {"z", stop.position.z}});
+    for (const auto &edge : office_->tourEdges()) {
+      QVariantList points;
+      for (const auto &point : edge.points)
+        points.append(QVariantMap{{"x", point.x}, {"z", point.z}});
+      edges.append(QVariantMap{{"from", QString::fromStdString(edge.from)},
+                               {"to", QString::fromStdString(edge.to)},
+                               {"points", points}});
+    }
+  }
+  if (tourStops_ != stops) {
+    tourStops_ = std::move(stops);
+    emit tourStopsChanged();
+  }
+  if (tourEdges_ != edges) {
+    tourEdges_ = std::move(edges);
+    emit tourEdgesChanged();
+  }
+}
 void NativeViewport::updateIndicators() {
-  if(loading_||!error_.isEmpty()||width()<1||height()<1){indicators_.clear();return;}
-  indicators_.sync(*office_->snapshot(static_cast<float>(width()/height())),QSizeF(width(),height()));
+  if(loading_||!error_.isEmpty()||width()<1||height()<1){indicators_.clear();anchors_.clear();return;}
+  const auto frame = office_->snapshot(static_cast<float>(width()/height()));
+  indicators_.sync(*frame,QSizeF(width(),height()));
+  anchors_.sync(*frame, office_->tourStops(), office_->visibleTourStops(), office_->tourState(), QSizeF(width(), height()));
+}
+void NativeViewport::setConversationAgentId(const QString &id) {
+  if (conversationAgentId_ == id) return;
+  conversationAgentId_ = id;
+  office_->setConversationAgent(id.toStdString());
+  emit conversationAgentIdChanged();
 }
 NativeViewport::~NativeViewport() {
   loader_.request_stop();
@@ -196,6 +290,9 @@ NativeViewport::~NativeViewport() {
 void NativeViewport::setAssetRoot(const QString &path) {
   if (assetRoot_ == path)
     return;
+  leaveOffice();
+  customAvatars_.reset();
+  loadedCustomAvatars_.clear();
   assetRoot_ = path;
   emit assetRootChanged();
   loading_ = true;
@@ -203,6 +300,7 @@ void NativeViewport::setAssetRoot(const QString &path) {
   error_.clear();
   emit loadingChanged();
   emit errorChanged();
+  updateTourState(true);
   const auto generation = ++generation_;
   const QPointer<NativeViewport> guard(this);
   const auto office = office_;
@@ -226,8 +324,11 @@ void NativeViewport::setAssetRoot(const QString &path) {
                 emit guard->loadingChanged();
                 if (!error.isEmpty())
                   guard->reportError(error);
-                else
+                else {
                   ++guard->rendererGeneration_;
+                  guard->retryCustomAvatars();
+                }
+                guard->updateTourState(true);
                 guard->update();
               },
               Qt::QueuedConnection);
@@ -235,12 +336,18 @@ void NativeViewport::setAssetRoot(const QString &path) {
 }
 void NativeViewport::setAgents(const QVariantList &list) {
   agents_ = list;
+  screens_.sync(list);
+  QSet<QString> activeCustom;
+  QSet<int> occupiedSeats;
   std::vector<engine::Agent> agents;
   agents.reserve(static_cast<std::size_t>(list.size()));
   for (const auto &v : list) {
     auto m = v.toMap();
     const auto status = m.value("status").toString().toStdString();
     if (status == "archived") continue;
+    const auto seat = m.value("seat_index", -1).toInt();
+    if (m.value("id").toString().isEmpty() || seat < 0 || seat >= 9 || occupiedSeats.contains(seat)) continue;
+    occupiedSeats.insert(seat);
     const auto presence = m.value("kind").toString() == "human_linked"
         ? m.value("presence_status").toString().toStdString() : std::string("online");
     const auto animation = engine::agentVisualState(status, presence,
@@ -248,24 +355,55 @@ void NativeViewport::setAgents(const QVariantList &list) {
     auto type = m.value("asset_type").toString();
     if (type.startsWith("avatar_"))
       type = type.mid(7);
+    if (type.startsWith("custom:")) activeCustom.insert(type);
     agents.push_back({m.value("id").toString().toStdString(),
                       m.value("name").toString().toStdString(),
                       std::string(animation),
                       type.toStdString(), m.value("seat_index", -1).toInt(),
                       std::max(0,m.value("level",0).toInt())});
   }
+  // Native renderer scene caches retain GPU resources; replacing a custom
+  // roster rebuilds the renderer and releases models no longer in this office.
+  if (!(activeCustomAvatars_ - activeCustom).isEmpty()) ++rendererGeneration_;
+  activeCustomAvatars_ = activeCustom;
+  loadedCustomAvatars_.intersect(activeCustom);
   office_->setAgents(std::move(agents));
+  office_->setConversationAgent(conversationAgentId_.toStdString());
+  if (activeCustom.isEmpty()) {
+    customAvatars_.reset();
+    avatarError_.clear(); emit avatarErrorChanged();
+  } else if (!loading_) {
+    for (const auto &value : agents_) {
+      const auto agent = value.toMap();
+      const auto key = agent.value("asset_type").toString();
+      if (activeCustom.contains(key) && !loadedCustomAvatars_.contains(key))
+        customAvatars_.load(key, QUrl(agent.value("avatar_native_cdn_path").toString()));
+    }
+  }
   emit agentsChanged();
   updateIndicators();
   update();
+}
+void NativeViewport::retryCustomAvatars() {
+  avatarError_.clear(); emit avatarErrorChanged();
+  setAgents(agents_);
 }
 void NativeViewport::setPaused(bool v) {
   if (paused_ == v)
     return;
   paused_ = v;
+  if (paused_)
+    stopWalking();
   office_->setPaused(v);
   emit pausedChanged();
   update();
+}
+void NativeViewport::setReducedMotion(bool v) {
+  if (reducedMotion_ == v)
+    return;
+  reducedMotion_ = v;
+  office_->setTourReducedMotion(v);
+  emit reducedMotionChanged();
 }
 void NativeViewport::setQuality(const QString &v) {
   if (quality_ == v)
@@ -276,8 +414,11 @@ void NativeViewport::setQuality(const QString &v) {
 }
 void NativeViewport::reportError(QString e) {
   error_ = std::move(e);
+  office_->exitTour();
+  resetInput();
   indicators_.clear();
   emit errorChanged();
+  updateTourState(true);
 }
 void NativeViewport::reportDiagnostics(QVariantMap d) {
   d["assetBytes"] = QVariant::fromValue(office_->residentBytes());
@@ -288,7 +429,63 @@ void NativeViewport::retryRenderer() {
   ++rendererGeneration_;
   error_.clear();
   emit errorChanged();
+  updateTourState(true);
   update();
+}
+bool NativeViewport::enterOffice() {
+  if (loading_ || paused_ || !error_.isEmpty() || !office_->enterTour())
+    return false;
+  updateTourState();
+  forceActiveFocus(Qt::OtherFocusReason);
+  updateIndicators();
+  update();
+  return true;
+}
+void NativeViewport::leaveOffice() {
+  office_->exitTour();
+  resetInput();
+  updateTourState();
+  updateIndicators();
+  update();
+}
+bool NativeViewport::travelTo(const QString &stopId) {
+  if (!immersive_ || loading_ || paused_ || !error_.isEmpty())
+    return false;
+  // Complete the control-to-scene focus handoff before starting movement, so
+  // focus cleanup from the previous control cannot cancel the new route.
+  forceActiveFocus(Qt::OtherFocusReason);
+  if (!office_->travelTourTo(stopId.toStdString()))
+    return false;
+  updateTourState();
+  update();
+  return true;
+}
+void NativeViewport::lookAround(qreal yawDelta, qreal pitchDelta) {
+  if (!immersive_ || loading_ || paused_ || !error_.isEmpty() ||
+      !std::isfinite(yawDelta) || !std::isfinite(pitchDelta))
+    return;
+  const auto before = office_->tourState();
+  if (!before.moving && before.settling)
+    emit navigationInterrupted();
+  office_->lookTour(static_cast<float>(yawDelta), static_cast<float>(pitchDelta));
+  updateTourState();
+  updateIndicators();
+  update();
+}
+void NativeViewport::stopWalking() {
+  const auto before = office_->tourState();
+  if (before.active && (before.moving || before.settling))
+    emit navigationInterrupted();
+  office_->stopTour();
+  resetInput();
+  updateTourState();
+  update();
+}
+bool NativeViewport::faceCurrentStop() {
+  if (!immersive_ || loading_ || paused_ || !error_.isEmpty() || !office_->faceCurrentTourStop())
+    return false;
+  updateTourState(); updateIndicators(); update();
+  return true;
 }
 QSGNode *NativeViewport::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
   if (!window() || width() < 1 || height() < 1)
@@ -303,12 +500,15 @@ QSGNode *NativeViewport::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
       node.reset();
     if (!node)
       node = std::make_unique<TextureNode>(window(), this, rendererGeneration_);
-    const qreal scale = quality_ == "low" ? .65 : quality_ == "high" ? 1. : .85;
+    // Eye-level conversations expose facial detail. Auto uses native pixel
+    // density there while retaining the cheaper overview and explicit low mode.
+    const qreal scale = quality_ == "low" ? .65 : quality_ == "high" || immersive_ ? 1. : .85;
     const qreal dpr = window()->effectiveDevicePixelRatio();
     const QSize size(qBound(1, qRound(width() * dpr * scale), 3840),
                      qBound(1, qRound(height() * dpr * scale), 2160));
-    node->sync(office_->snapshot(static_cast<float>(width() / height())), size,
-               paused_);
+    auto displayFrame = std::make_shared<engine::Frame>(*office_->snapshot(static_cast<float>(width() / height())));
+    screens_.apply(*displayFrame, reducedMotion_);
+    node->sync(displayFrame, size, paused_);
     node->setRect(boundingRect());
   } catch (const std::exception &e) {
     if (node)
@@ -323,18 +523,110 @@ QSGNode *NativeViewport::updatePaintNode(QSGNode *old, UpdatePaintNodeData *) {
   // A QSGSimpleTextureNode without a texture must never enter Qt's renderer.
   return node && node->hasTexture() ? node.release() : nullptr;
 }
-void NativeViewport::mousePressEvent(QMouseEvent *e) {
-  if (width() <= 0 || height() <= 0)
-    return;
+bool NativeViewport::selectAgent(const QPointF &position) {
+  if (loading_ || paused_ || !error_.isEmpty() || width() <= 0 || height() <= 0)
+    return false;
   const auto id =
-      office_->pick(static_cast<float>(e->position().x() / width()),
-                    static_cast<float>(e->position().y() / height()),
+      office_->pick(static_cast<float>(position.x() / width()),
+                    static_cast<float>(position.y() / height()),
                     static_cast<float>(width() / height()));
   if (!id.empty()) {
+    if (immersive_)
+      stopWalking();
     emit agentSelected(QString::fromStdString(id));
+    return true;
+  }
+  return false;
+}
+void NativeViewport::resetInput() {
+  pointerPressed_ = false;
+  pointerDragged_ = false;
+  setKeepMouseGrab(false);
+  if (immersive_)
+    setCursor(Qt::OpenHandCursor);
+  else
+    unsetCursor();
+}
+void NativeViewport::mousePressEvent(QMouseEvent *e) {
+  if (loading_ || paused_ || !error_.isEmpty() || width() <= 0 || height() <= 0) {
+    e->ignore();
+    return;
+  }
+  if (immersive_) {
+    forceActiveFocus(Qt::MouseFocusReason);
+    pressPosition_ = lastPointerPosition_ = e->position();
+    pointerPressed_ = true;
+    pointerDragged_ = false;
+    setKeepMouseGrab(true);
+    setCursor(Qt::ClosedHandCursor);
+    e->accept();
+  } else if (selectAgent(e->position())) {
     e->accept();
   } else
     e->ignore();
+}
+void NativeViewport::mouseMoveEvent(QMouseEvent *e) {
+  if (!immersive_ || !pointerPressed_) {
+    e->ignore();
+    return;
+  }
+  if (!pointerDragged_ &&
+      (e->position() - pressPosition_).manhattanLength() >=
+          QGuiApplication::styleHints()->startDragDistance())
+    pointerDragged_ = true;
+  if (pointerDragged_) {
+    const auto delta = e->position() - lastPointerPosition_;
+    lookAround(delta.x() * .006, -delta.y() * .006);
+  }
+  lastPointerPosition_ = e->position();
+  e->accept();
+}
+void NativeViewport::mouseReleaseEvent(QMouseEvent *e) {
+  if (!pointerPressed_) {
+    e->ignore();
+    return;
+  }
+  const bool clicked = !pointerDragged_ && boundingRect().contains(e->position());
+  resetInput();
+  if (clicked)
+    selectAgent(e->position());
+  e->accept();
+}
+void NativeViewport::mouseUngrabEvent() {
+  resetInput();
+  QQuickItem::mouseUngrabEvent();
+}
+void NativeViewport::keyPressEvent(QKeyEvent *e) {
+  if (!immersive_ || loading_ || paused_ || !error_.isEmpty()) {
+    QQuickItem::keyPressEvent(e);
+    return;
+  }
+  constexpr qreal step = .10;
+  switch (e->key()) {
+  case Qt::Key_Escape:
+    leaveOffice();
+    break;
+  case Qt::Key_Left:
+    lookAround(-step, 0);
+    break;
+  case Qt::Key_Right:
+    lookAround(step, 0);
+    break;
+  case Qt::Key_Up:
+    lookAround(0, step);
+    break;
+  case Qt::Key_Down:
+    lookAround(0, -step);
+    break;
+  default:
+    QQuickItem::keyPressEvent(e);
+    return;
+  }
+  e->accept();
+}
+void NativeViewport::focusOutEvent(QFocusEvent *e) {
+  stopWalking();
+  QQuickItem::focusOutEvent(e);
 }
 } // namespace mokaid
 

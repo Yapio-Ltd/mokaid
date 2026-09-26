@@ -1,0 +1,64 @@
+[
+  {
+    "id": "life-portrait-reverse",
+    "jobId": "fc8b84f0-b326-4d44-a33a-66320ecc02c3",
+    "status": "pending",
+    "estimatedCredits": 24,
+    "params": {
+      "model": "cinematic_studio_video_v2",
+      "aspect_ratio": "9:16",
+      "duration": 12,
+      "count": 1,
+      "mode": "pro",
+      "sound": "on",
+      "speedramp": "custom",
+      "multi_shots": false,
+      "cfg_scale": 0.7,
+      "use_unlim": false,
+      "medias": [
+        {
+          "role": "start_image",
+          "value": "5f2a04ce-0dc9-4cd9-903b-8a46a490d5d0"
+        },
+        {
+          "role": "end_image",
+          "value": "7eeb5eb2-c1e9-4518-addf-07c4d4722ffe"
+        }
+      ],
+      "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions.\n\n\nREVERSE CAMERA TAKE, one physical uninterrupted shot. Start EXACTLY on supplied foosball frame. The real graphite foosball table has a DARK playing field and red players. Exactly TWO adults: violet-shirt man LEFT and amber-sweater man RIGHT, normal proportions, both heads and four hands visible. They remain planted at the SAME table for the ENTIRE take, quiet tiny wrist gestures only; no walking and no extra players. The table never changes shape, color, scale or location.\n\nCamera starts still for one second, then very slowly moves BACKWARD away from the short end of the table along the EXISTING violet floor aisle. The existing blue glass meeting room remains fixed on right, coffee counter at back-left. Modest arc toward the warm coffee counter, not a spin: around seconds4-7 show a ceramic cup resting under the espresso machine, gentle warm steam, sage-blouse auburn woman remains still at the counter or offscreen, no pouring coffee and no drinking. Do not bring players to the coffee counter. Coffee counter and foosball table occupy fixed separate locations in one compact office.\n\nThen camera continues drifting smoothly to the already open blue-glass meeting-room entrance. End by slowly arriving at the EXACT supplied final image of the graphite meeting table, auburn woman in sage blouse seated and violet-shirt colleague standing. If they are visible in the final frame, show them only as existing people inside the room; do not show any person walking between stations, do not duplicate anyone within a frame. Use framing and foreground occlusion to transition spatial visibility naturally. Keep all architecture firmly fixed, floorplan compact and passage unobstructed. No new rooms or desk rows. Finish perfectly steady. No text, no logos, no notifications. No hard cut, no dissolve, no fading people, no moving furniture, no green football surface. Camera is the ONLY significant movement. SOUND: quiet office ambience, no intelligible speech, no voiceover, no music.\n\nEDITORIAL NOTE FOR VISUAL ACTION: This picture will be reversed later, so avoid directional human actions, no walking, no coffee stream, no celebration, no opening doors. Small reversible hand gestures and ambient steam only. The final normal playback follows meeting to coffee to two stable table players."
+    },
+    "reverseVideo": true,
+    "useDefaultAudio": true
+  },
+  {
+    "id": "life-square-reverse",
+    "jobId": "b427076e-5060-419a-8f30-ad2cfdc14814",
+    "status": "pending",
+    "estimatedCredits": 24,
+    "params": {
+      "model": "cinematic_studio_video_v2",
+      "aspect_ratio": "1:1",
+      "duration": 12,
+      "count": 1,
+      "mode": "pro",
+      "sound": "on",
+      "speedramp": "custom",
+      "multi_shots": false,
+      "cfg_scale": 0.7,
+      "use_unlim": false,
+      "medias": [
+        {
+          "role": "start_image",
+          "value": "b96abfcc-b415-483f-aeb9-e4d921c8d60b"
+        },
+        {
+          "role": "end_image",
+          "value": "daf10bb4-599f-4830-85ed-31cf0375de36"
+        }
+      ],
+      "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions.\n\n\nREVERSE CAMERA TAKE, one physical uninterrupted shot. Start EXACTLY on supplied foosball frame. The real graphite foosball table has a DARK playing field and red players. Exactly TWO adults: violet-shirt man LEFT and amber-sweater man RIGHT, normal proportions, both heads and four hands visible. They remain planted at the SAME table for the ENTIRE take, quiet tiny wrist gestures only; no walking and no extra players. The table never changes shape, color, scale or location.\n\nCamera starts still for one second, then very slowly moves BACKWARD away from the short end of the table along the EXISTING violet floor aisle. The existing blue glass meeting room remains fixed on right, coffee counter at back-left. Modest arc toward the warm coffee counter, not a spin: around seconds4-7 show a ceramic cup resting under the espresso machine, gentle warm steam, sage-blouse auburn woman remains still at the counter or offscreen, no pouring coffee and no drinking. Do not bring players to the coffee counter. Coffee counter and foosball table occupy fixed separate locations in one compact office.\n\nThen camera continues drifting smoothly to the already open blue-glass meeting-room entrance. End by slowly arriving at the EXACT supplied final image of the graphite meeting table, auburn woman in sage blouse seated and violet-shirt colleague standing. If they are visible in the final frame, show them only as existing people inside the room; do not show any person walking between stations, do not duplicate anyone within a frame. Use framing and foreground occlusion to transition spatial visibility naturally. Keep all architecture firmly fixed, floorplan compact and passage unobstructed. No new rooms or desk rows. Finish perfectly steady. No text, no logos, no notifications. No hard cut, no dissolve, no fading people, no moving furniture, no green football surface. Camera is the ONLY significant movement. SOUND: quiet office ambience, no intelligible speech, no voiceover, no music.\n\nEDITORIAL NOTE FOR VISUAL ACTION: This picture will be reversed later, so avoid directional human actions, no walking, no coffee stream, no celebration, no opening doors. Small reversible hand gestures and ambient steam only. The final normal playback follows meeting to coffee to two stable table players.\nFORMAT: Keep important faces/hands/cup in central80% width (x10%-90%) for4:5 final crop. The square borders are protected overscan."
+    },
+    "reverseVideo": true,
+    "useDefaultAudio": true
+  }
+]

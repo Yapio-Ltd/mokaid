@@ -18,6 +18,10 @@ public:
     mutable QByteArray value;
     mutable int reads{}, writes{}, erases{};
     bool writable{true}, erasable{true};
+    QByteArray token() const {
+        return value.startsWith('{') ? QJsonDocument::fromJson(value).object().value("refresh_token").toString().toUtf8() : value;
+    }
+    QString requestId() const { return QJsonDocument::fromJson(value).object().value("refresh_request_id").toString(); }
     std::optional<QByteArray> read(const QString&) const override { ++reads; return value; }
     bool write(const QString&, const QByteArray& next) const override {
         ++writes; if (!writable) return false; value = next; return true;
@@ -51,7 +55,7 @@ public:
                     if (handler && handler(socket, request)) return;
                     if (request.path == "/api/desktop/auth/requests") reply(socket, {{"data", QJsonObject{
                         {"authorization_url", "https://mokaid.test/desktop/authorize?request_id=ababcabc-0000-4000-8000-000000000001"}}}}, 201);
-                    else if (request.path == "/api/desktop/auth/token") reply(socket, tokens());
+                    else if (request.path == "/api/desktop/auth/token" || request.path == "/api/desktop/auth/refresh") reply(socket, tokens());
                     else if (request.path == "/api/me") reply(socket, {{"user", QJsonObject{{"id", "alice"}, {"is_platform_admin", false}}},
                         {"workspaces", QJsonArray{QJsonObject{{"id", "workspace-a"}}}}});
                     else reply(socket, {}, request.path == "/api/desktop/auth/revoke" ? 204 : 404);
@@ -131,7 +135,7 @@ private slots:
         QCOMPARE(challenge, initial.body.value("code_challenge").toString().toLatin1());
         QCOMPARE(exchange.body.value("redirect_uri"), initial.body.value("redirect_uri"));
         QVERIFY(!exchange.headers.contains("Authorization:"));
-        QCOMPARE(f.vault.value, QByteArray("fixture-refresh-next"));
+        QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-next"));
         QCOMPARE(f.api.accessToken(), QByteArray("fixture-access"));
         const auto preferences = QSettings().value(QSettings().allKeys().first()).toByteArray();
         QVERIFY(!preferences.contains("fixture-refresh")); QVERIFY(!preferences.contains("fixture-access"));
@@ -151,77 +155,261 @@ private slots:
     void renewalIsSerializedAndReplacesTheSavedCredential() {
         Fixture f; f.vault.value = "fixture-refresh-old"; QPointer<QTcpSocket> exchange;
         f.remote.handler = [&](QTcpSocket* socket, const Request& request) {
-            if (request.path != "/api/desktop/auth/token") return false; exchange = socket; return true;
+            if (request.path != "/api/desktop/auth/refresh") return false; exchange = socket; return true;
         };
         f.session.restore(); QTRY_VERIFY(exchange);
         emit f.api.sessionExpired(); emit f.api.sessionExpired(); emit f.realtime.authenticationExpired();
-        QTest::qWait(30); QCOMPARE(f.remote.matching("/api/desktop/auth/token").size(), 1);
+        QTest::qWait(30); QCOMPARE(f.remote.matching("/api/desktop/auth/refresh").size(), 1);
         SessionApi::reply(exchange, SessionApi::tokens()); QTRY_VERIFY(f.session.authenticated()); QTRY_VERIFY(!f.session.busy());
-        QCOMPARE(f.vault.value, QByteArray("fixture-refresh-next")); QCOMPARE(f.vault.writes, 1);
+        QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-next")); QCOMPARE(f.vault.writes, 2);
     }
-    void interruptedRotationRequiresNewSignIn_data() {
+    void interruptedRotationResumesTheSameOperation_data() {
         QTest::addColumn<bool>("serverError");
         QTest::newRow("truncated-token-response") << false;
         QTest::newRow("server-error-after-possible-commit") << true;
     }
-    void interruptedRotationRequiresNewSignIn() {
+    void interruptedRotationResumesTheSameOperation() {
         QFETCH(bool, serverError);
         Fixture f; f.vault.value = "fixture-refresh-old";
         f.remote.handler = [&](QTcpSocket* socket, const Request& request) {
-            if (request.path != "/api/desktop/auth/token") return false;
+            if (request.path != "/api/desktop/auth/refresh") return false;
             if (serverError) { SessionApi::reply(socket, {{"error", "Unavailable"}}, 500); return true; }
             socket->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 1000\r\nConnection: close\r\n\r\n{\"data\":");
             socket->disconnectFromHost(); return true;
         };
         f.session.restore(); QTRY_VERIFY(!f.session.busy());
-        QVERIFY(f.vault.value.isEmpty()); QVERIFY(!f.session.authenticated());
+        QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-old")); QVERIFY(f.session.canResume());
+        QVERIFY(f.session.error().contains("session is saved"));
+        QVERIFY(f.remote.matching("/api/desktop/auth/revoke").isEmpty());
+        const auto first = f.remote.matching("/api/desktop/auth/refresh").first().body;
+        QCOMPARE(first.value("refresh_request_id").toString(), f.vault.requestId());
+        QCOMPARE(f.vault.requestId().size(), 43);
+        f.remote.handler = {}; f.session.retry();
+        QTRY_VERIFY(f.session.authenticated()); QTRY_VERIFY(!f.session.busy());
+        QCOMPARE(f.remote.matching("/api/desktop/auth/refresh").size(), 2);
+        QCOMPARE(f.remote.matching("/api/desktop/auth/refresh").last().body, first);
+        QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-next"));
+        QVERIFY(f.vault.requestId() != first.value("refresh_request_id").toString());
+        QVERIFY(browserUrls_.isEmpty());
+    }
+    void restartAfterLostResponseResumesThePersistedOperation() {
+        SessionApi remote; MemoryCredentials vault; vault.value = "fixture-refresh-old";
+        remote.handler = [](QTcpSocket* socket, const Request& request) {
+            if (request.path != "/api/desktop/auth/refresh") return false;
+            socket->disconnectFromHost(); return true;
+        };
+        {
+            ApiClient api(remote.origin()); PhoenixClient realtime;
+            SessionController session(api, realtime, nullptr, QUrl("https://mokaid.test"), &vault);
+            session.restore(); QTRY_VERIFY(!session.busy()); QVERIFY(session.canResume());
+        }
+        const auto original = remote.matching("/api/desktop/auth/refresh").first().body;
+        remote.handler = {};
+        ApiClient api(remote.origin()); PhoenixClient realtime;
+        SessionController restarted(api, realtime, nullptr, QUrl("https://mokaid.test"), &vault);
+        restarted.restore(); QTRY_VERIFY(restarted.authenticated()); QTRY_VERIFY(!restarted.busy());
+        QCOMPARE(remote.matching("/api/desktop/auth/refresh").last().body, original);
+        QVERIFY(remote.matching("/api/desktop/auth/revoke").isEmpty()); QVERIFY(browserUrls_.isEmpty());
+    }
+    void backgroundRenewalFailureKeepsTheWorkspaceOpen() {
+        Fixture f; f.vault.value = "fixture-refresh-old";
+        f.session.restore(); QTRY_VERIFY(f.session.authenticated()); QTRY_VERIFY(!f.session.busy());
+        QVERIFY(f.session.connected());
+        const auto saved = f.vault.value;
+        f.remote.handler = [](QTcpSocket* socket, const Request& request) {
+            if (request.path != "/api/desktop/auth/refresh") return false;
+            SessionApi::reply(socket, {{"error", "Unavailable"}}, 503); return true;
+        };
+        emit f.api.sessionExpired(); QTRY_VERIFY(!f.session.busy());
+        QVERIFY(f.session.authenticated()); QCOMPARE(f.session.workspaceId(), QString("workspace-a"));
+        QVERIFY(!f.session.connected()); QVERIFY(f.session.reconnecting());
+        QCOMPARE(f.vault.value, saved); QVERIFY(f.remote.matching("/api/desktop/auth/revoke").isEmpty());
+        f.remote.handler = {}; f.session.retry(); QTRY_VERIFY(!f.session.busy()); QVERIFY(f.session.error().isEmpty());
+        QVERIFY(f.session.connected()); QVERIFY(!f.session.reconnecting());
+    }
+    void oldServerCannotSilentlyDowngradeToUnsafeRotation() {
+        Fixture f; f.vault.value = "fixture-refresh-old";
+        f.remote.handler = [](QTcpSocket* socket, const Request& request) {
+            if (request.path != "/api/desktop/auth/refresh") return false;
+            SessionApi::reply(socket, {}, 404); return true;
+        };
+        f.session.restore(); QTRY_VERIFY(!f.session.busy());
+        QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-old")); QVERIFY(f.session.canResume());
+        QVERIFY(f.remote.matching("/api/desktop/auth/token").isEmpty());
+        QVERIFY(f.remote.matching("/api/desktop/auth/revoke").isEmpty());
+    }
+    void cachedIdentityCannotReportConnectedUntilRecoveryIsValidated() {
+        Fixture f; f.vault.value = "fixture-refresh-old";
+        const auto key = QString::fromLatin1(QCryptographicHash::hash(f.api.origin().toEncoded(), QCryptographicHash::Sha256).toHex());
+        QSettings().setValue(key + "/identity", QJsonDocument(QJsonObject{
+            {"user", QJsonObject{{"id", "alice"}}}, {"workspace", "workspace-a"},
+            {"workspaces", QJsonArray{QJsonObject{{"id", "workspace-a"}}}}}).toJson(QJsonDocument::Compact));
+        bool reportedConnected = false;
+        connect(&f.session, &SessionController::changed, this, [&] { reportedConnected |= f.session.connected(); });
+        f.remote.handler = [](QTcpSocket* socket, const Request& request) {
+            if (request.path != "/api/desktop/auth/refresh") return false;
+            SessionApi::reply(socket, {}, 404); return true;
+        };
+        f.session.restore();
+        QVERIFY(f.session.authenticated()); QVERIFY(!f.session.online()); QVERIFY(!f.session.connected());
+        QTRY_VERIFY(!f.session.busy());
+        QVERIFY(f.api.context().online); QVERIFY(!f.api.context().authenticated);
+        QVERIFY(!f.session.online()); QVERIFY(!reportedConnected); QVERIFY(f.session.reconnecting());
+        QCOMPARE(f.session.workspaceId(), QString("workspace-a"));
+        QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-old"));
+        QVERIFY(f.remote.matching("/api/desktop/auth/revoke").isEmpty());
+
+        QPointer<QTcpSocket> identity;
+        f.remote.handler = [&](QTcpSocket* socket, const Request& request) {
+            if (request.path != "/api/me") return false;
+            identity = socket; return true;
+        };
+        f.session.retry(); QTRY_VERIFY(identity);
+        QVERIFY(f.api.context().authenticated); QVERIFY(!f.session.connected());
+        QVERIFY(!reportedConnected); QVERIFY(f.session.reconnecting());
+        SessionApi::reply(identity, {{"user", QJsonObject{{"id", "alice"}}},
+            {"workspaces", QJsonArray{QJsonObject{{"id", "workspace-a"}}}}});
+        QTRY_VERIFY(!f.session.busy());
+        QVERIFY(f.session.online()); QVERIFY(f.session.connected()); QVERIFY(reportedConnected);
+        QVERIFY(!f.session.reconnecting()); QVERIFY(browserUrls_.isEmpty());
+    }
+    void failedIdentityValidationKeepsCredentialsWithoutReportingConnected_data() {
+        QTest::addColumn<bool>("malformed");
+        QTest::newRow("server-failure") << false;
+        QTest::newRow("incomplete-identity") << true;
+    }
+    void failedIdentityValidationKeepsCredentialsWithoutReportingConnected() {
+        QFETCH(bool, malformed);
+        Fixture f; f.vault.value = "fixture-refresh-old";
+        f.remote.handler = [&](QTcpSocket* socket, const Request& request) {
+            if (request.path != "/api/me") return false;
+            SessionApi::reply(socket, {}, malformed ? 200 : 503); return true;
+        };
+        f.session.restore(); QTRY_VERIFY(!f.session.busy());
+        QVERIFY(f.api.context().online); QVERIFY(f.api.context().authenticated);
+        QVERIFY(f.session.authenticated()); QVERIFY(f.session.canResume());
+        QVERIFY(!f.session.connected()); QVERIFY(f.session.reconnecting());
+        QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-next"));
+        QVERIFY(f.remote.matching("/api/desktop/auth/revoke").isEmpty());
+        f.remote.handler = {}; f.session.retry(); QTRY_VERIFY(!f.session.busy());
+        QVERIFY(f.session.connected()); QVERIFY(!f.session.reconnecting());
+    }
+    void revokedSessionsRequireSignIn() {
+        Fixture f; f.vault.value = "fixture-refresh-old";
+        f.remote.handler = [](QTcpSocket* socket, const Request& request) {
+            if (request.path != "/api/desktop/auth/refresh") return false;
+            SessionApi::reply(socket, {{"error", QJsonObject{{"code", "invalid_grant"}}}}, 400); return true;
+        };
+        f.session.restore(); QTRY_VERIFY(!f.session.busy());
+        QVERIFY(f.vault.value.isEmpty()); QVERIFY(!f.session.canResume()); QVERIFY(!f.session.authenticated());
         QVERIFY(f.session.error().contains("Sign in again"));
-        QTRY_COMPARE(f.remote.matching("/api/desktop/auth/revoke").size(), 1);
-        f.session.restore(); emit f.api.sessionExpired(); QTest::qWait(30);
-        QCOMPARE(f.remote.matching("/api/desktop/auth/token").size(), 1);
+    }
+    void renewalWaitsForIdentityReload_data() {
+        QTest::addColumn<bool>("expired");
+        QTest::newRow("workspace-change") << false;
+        QTest::newRow("identity-access-expired") << true;
+    }
+    void renewalWaitsForIdentityReload() {
+        QFETCH(bool, expired);
+        Fixture f; f.vault.value = "fixture-refresh-old";
+        f.session.restore(); QTRY_VERIFY(f.session.authenticated()); QTRY_VERIFY(!f.session.busy());
+        QPointer<QTcpSocket> identity;
+        f.remote.handler = [&](QTcpSocket* socket, const Request& request) {
+            if (request.path != "/api/me") return false;
+            identity = socket; return true;
+        };
+        f.session.reloadIdentity(); QTRY_VERIFY(identity);
+        emit f.api.sessionExpired(); QTest::qWait(50);
+        QCOMPARE(f.remote.matching("/api/desktop/auth/refresh").size(), 1);
+        f.remote.handler = {};
+        if (expired) SessionApi::reply(identity, {{"error", "Expired"}}, 401);
+        else SessionApi::reply(identity, {{"user", QJsonObject{{"id", "alice"}}},
+            {"workspaces", QJsonArray{QJsonObject{{"id", "workspace-b"}}}}});
+        QTRY_COMPARE_WITH_TIMEOUT(f.remote.matching("/api/desktop/auth/refresh").size(), 2, 4000);
+        QTRY_VERIFY(!f.session.busy()); QVERIFY(f.session.authenticated()); QVERIFY(f.session.error().isEmpty());
+    }
+    void temporaryServerFailureRetriesAutomatically() {
+        Fixture f; f.vault.value = "fixture-refresh-old";
+        f.remote.handler = [&](QTcpSocket* socket, const Request& request) {
+            if (request.path != "/api/desktop/auth/refresh" || f.remote.matching(request.path).size() != 1) return false;
+            SessionApi::reply(socket, {{"error", "Unavailable"}}, 503); return true;
+        };
+        f.session.restore(); QTRY_VERIFY(!f.session.busy()); QVERIFY(f.session.canResume());
+        QTRY_VERIFY_WITH_TIMEOUT(f.session.authenticated(), 35000);
+        QTRY_VERIFY(!f.session.busy());
+        const auto attempts = f.remote.matching("/api/desktop/auth/refresh");
+        QCOMPARE(attempts.size(), 2); QCOMPARE(attempts.first().body, attempts.last().body);
+        QVERIFY(browserUrls_.isEmpty());
     }
     void connectionRefusalRetainsTheUnspentCredentialForRetry() {
         Fixture f; f.vault.value = "fixture-refresh-old";
         const auto port = f.remote.server.serverPort(); f.remote.server.close();
         f.session.restore(); QTRY_VERIFY(!f.session.busy());
-        QCOMPARE(f.vault.value, QByteArray("fixture-refresh-old")); QVERIFY(!f.session.online());
+        QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-old")); QVERIFY(!f.session.online());
+        QVERIFY(!f.session.connected()); QVERIFY(!f.session.reconnecting());
         QVERIFY(f.remote.server.listen(QHostAddress::LocalHost, port));
         f.session.retry(); QTRY_VERIFY(f.session.authenticated()); QTRY_VERIFY(!f.session.busy());
-        QCOMPARE(f.vault.value, QByteArray("fixture-refresh-next")); QCOMPARE(f.remote.matching("/api/desktop/auth/token").size(), 1);
+        QVERIFY(f.session.connected()); QVERIFY(!f.session.reconnecting());
+        QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-next")); QCOMPARE(f.remote.matching("/api/desktop/auth/refresh").size(), 1);
     }
     void shortLivedAccessCredentialsRenewBeforeTheyExpire() {
         Fixture f; f.vault.value = "fixture-refresh-old";
         f.remote.handler = [&](QTcpSocket* socket, const Request& request) {
-            if (request.path != "/api/desktop/auth/token" || f.remote.matching(request.path).size() != 1) return false;
+            if (request.path != "/api/desktop/auth/refresh" || f.remote.matching(request.path).size() != 1) return false;
             auto tokens = SessionApi::tokens().value("data").toObject(); tokens["expires_in"] = 2;
             SessionApi::reply(socket, {{"data", tokens}}); return true;
         };
         f.session.restore(); QTRY_VERIFY(f.session.authenticated()); QTRY_VERIFY(!f.session.busy());
-        QTRY_COMPARE_WITH_TIMEOUT(f.remote.matching("/api/desktop/auth/token").size(), 2, 4000);
+        QTRY_COMPARE_WITH_TIMEOUT(f.remote.matching("/api/desktop/auth/refresh").size(), 2, 4000);
         QTRY_VERIFY(!f.session.busy());
-        QCOMPARE(f.remote.matching("/api/desktop/auth/token").last().body.value("refresh_token").toString(), QString("fixture-refresh-next"));
+        QCOMPARE(f.remote.matching("/api/desktop/auth/refresh").last().body.value("refresh_token").toString(), QString("fixture-refresh-next"));
     }
     void rateLimitKeepsTheUnspentCredential() {
         Fixture f; f.vault.value = "fixture-refresh-old";
         f.remote.handler = [](QTcpSocket* socket, const Request& request) {
-            if (request.path != "/api/desktop/auth/token") return false;
+            if (request.path != "/api/desktop/auth/refresh") return false;
             SessionApi::reply(socket, {{"error", "Try later"}}, 429); return true;
         };
-        f.session.restore(); QTRY_VERIFY(!f.session.busy()); QCOMPARE(f.vault.value, QByteArray("fixture-refresh-old"));
+        f.session.restore(); QTRY_VERIFY(!f.session.busy()); QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-old"));
         f.remote.handler = {}; f.session.retry(); QTRY_VERIFY(f.session.authenticated());
-        QCOMPARE(f.remote.matching("/api/desktop/auth/token").size(), 2);
+        QCOMPARE(f.remote.matching("/api/desktop/auth/refresh").size(), 2);
     }
-    void secureStorageFailureRevokesIssuedCredentialsAndClearsIdentity() {
+    void storageFailureBeforeRotationDoesNotSendOrEraseCredentials() {
         Fixture f; f.vault.value = "fixture-refresh-old"; f.vault.writable = false;
         f.session.restore(); QTRY_VERIFY(!f.session.busy());
-        QVERIFY(!f.session.authenticated()); QVERIFY(f.api.accessToken().isEmpty()); QVERIFY(f.vault.value.isEmpty());
-        QVERIFY(f.session.error().contains("securely save"));
-        QTRY_COMPARE(f.remote.matching("/api/desktop/auth/revoke").size(), 2);
-        QSet<QString> revoked;
-        for (const auto& request : f.remote.matching("/api/desktop/auth/revoke")) revoked.insert(request.body.value("refresh_token").toString());
-        QVERIFY(revoked.contains("fixture-refresh-old")); QVERIFY(revoked.contains("fixture-refresh-next"));
+        QVERIFY(f.session.canResume()); QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-old"));
+        QVERIFY(f.remote.matching("/api/desktop/auth/refresh").isEmpty());
+        QVERIFY(f.remote.matching("/api/desktop/auth/revoke").isEmpty());
+        f.vault.writable = true; f.session.retry(); QTRY_VERIFY(f.session.authenticated());
     }
-    void invalidTokenResponsesFailClosed_data() {
+    void storageFailureAfterRotationKeepsRecoveryCredentialsAcrossRestart() {
+        SessionApi remote; MemoryCredentials vault; vault.value = "fixture-refresh-old";
+        remote.handler = [&](QTcpSocket* socket, const Request& request) {
+            if (request.path != "/api/desktop/auth/refresh") return false;
+            vault.writable = false; SessionApi::reply(socket, SessionApi::tokens()); return true;
+        };
+        {
+            ApiClient api(remote.origin()); PhoenixClient realtime;
+            SessionController session(api, realtime, nullptr, QUrl("https://mokaid.test"), &vault);
+            session.restore(); QTRY_VERIFY(!session.busy()); QVERIFY(session.canResume());
+            QCOMPARE(vault.token(), QByteArray("fixture-refresh-old"));
+        }
+        vault.writable = true; remote.handler = {};
+        ApiClient api(remote.origin()); PhoenixClient realtime;
+        SessionController restarted(api, realtime, nullptr, QUrl("https://mokaid.test"), &vault);
+        restarted.restore(); QTRY_VERIFY(restarted.authenticated()); QTRY_VERIFY(!restarted.busy());
+        const auto attempts = remote.matching("/api/desktop/auth/refresh");
+        QCOMPARE(attempts.size(), 2); QCOMPARE(attempts.first().body, attempts.last().body);
+        QCOMPARE(vault.token(), QByteArray("fixture-refresh-next"));
+        QVERIFY(remote.matching("/api/desktop/auth/revoke").isEmpty());
+    }
+    void initialSignInStorageFailureRevokesIssuedCredentials() {
+        Fixture f; f.vault.writable = false;
+        f.session.signIn(); QTRY_COMPARE(browserUrls_.size(), 1); callback(f);
+        QTRY_VERIFY(!f.session.busy()); QVERIFY(!f.session.authenticated()); QVERIFY(f.vault.value.isEmpty());
+        QTRY_COMPARE(f.remote.matching("/api/desktop/auth/revoke").size(), 1);
+    }
+    void invalidTokenResponsesKeepSavedCredentialsWithoutAcceptingTokens_data() {
         QTest::addColumn<QString>("field"); QTest::addColumn<QJsonValue>("value");
         QTest::newRow("expired") << QString("expires_in") << QJsonValue(0);
         QTest::newRow("overflow") << QString("expires_in") << QJsonValue(2147483647);
@@ -229,22 +417,23 @@ private slots:
         QTest::newRow("wrong-token-type") << QString("token_type") << QJsonValue("Basic");
         QTest::newRow("header-injection") << QString("access_token") << QJsonValue("unsafe\r\nInjected: value");
     }
-    void invalidTokenResponsesFailClosed() {
+    void invalidTokenResponsesKeepSavedCredentialsWithoutAcceptingTokens() {
         QFETCH(QString, field); QFETCH(QJsonValue, value);
         Fixture f; f.vault.value = "fixture-refresh-old";
         f.remote.handler = [&](QTcpSocket* socket, const Request& request) {
-            if (request.path != "/api/desktop/auth/token") return false;
+            if (request.path != "/api/desktop/auth/refresh") return false;
             auto tokens = SessionApi::tokens().value("data").toObject(); tokens[field] = value;
             SessionApi::reply(socket, {{"data", tokens}}); return true;
         };
         f.session.restore(); QTRY_VERIFY(!f.session.busy()); QVERIFY(!f.session.authenticated());
-        QVERIFY(f.api.accessToken().isEmpty()); QVERIFY(f.vault.value.isEmpty()); QCOMPARE(f.vault.writes, 0);
+        QVERIFY(f.api.accessToken().isEmpty()); QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-old"));
+        QCOMPARE(f.vault.writes, 1); QVERIFY(f.session.canResume());
         QVERIFY(f.remote.matching("/api/me").isEmpty());
     }
     void logoutDuringRenewalCannotRestoreTheSession() {
         Fixture f; f.vault.value = "fixture-refresh-old"; QPointer<QTcpSocket> exchange;
         f.remote.handler = [&](QTcpSocket* socket, const Request& request) {
-            if (request.path != "/api/desktop/auth/token") return false; exchange = socket; return true;
+            if (request.path != "/api/desktop/auth/refresh") return false; exchange = socket; return true;
         };
         f.session.restore(); QTRY_VERIFY(exchange); f.session.signOut();
         if (exchange && exchange->state() == QAbstractSocket::ConnectedState) SessionApi::reply(exchange, SessionApi::tokens());
@@ -256,7 +445,7 @@ private slots:
         Fixture f; f.vault.value = "fixture-refresh-old";
         f.session.restore(); QTRY_VERIFY(f.session.authenticated()); QTRY_VERIFY(!f.session.busy());
         f.vault.erasable = false; f.session.signOut();
-        QCOMPARE(f.vault.value, QByteArray("fixture-refresh-next"));
+        QCOMPARE(f.vault.token(), QByteArray("fixture-refresh-next"));
         SessionController restarted(f.api, f.realtime, nullptr, QUrl("https://mokaid.test"), &f.vault);
         const auto reads = f.vault.reads; restarted.restore();
         QCOMPARE(f.vault.reads, reads); QVERIFY(!restarted.authenticated()); QVERIFY(!restarted.busy());

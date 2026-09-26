@@ -84,7 +84,7 @@ const QList<FeatureDescriptor>& featureCatalog() {
         const QVariantList taskFields{field("title","Title","text",true),field("description","Description","multiline"),
             field("priority","Priority","enum",false,{"low","medium","high","urgent"}),
             field("status","Status","enum",false,{"to_do","in_progress","in_review","waiting","blocked","completed","canceled","overdue"}),
-            field("due_at","Due date","datetime"),field("assigned_agent_id","Assigned agent ID"),field("project_id","Project ID"),field("requires_approval","Requires approval","bool")};
+            field("due_at","Due date","datetime"),field("assigned_agent_id","Assigned agent ID"),field("project_id","Project ID")};
         const QVariantList projectFields{field("name","Name","text",true),field("description","Description","multiline"),
             field("status","Status","enum",false,{"planning","active","in_review","on_hold","completed","archived"}),
             field("priority","Priority","enum",false,{"low","medium","high","urgent"}),field("due_at","Due date","datetime")};
@@ -96,6 +96,7 @@ const QList<FeatureDescriptor>& featureCatalog() {
             page("agents","Agents","agents","/api/agents","/api/agents/{id}",agentActions()),
             page("marketplace","Marketplace","marketplace","/api/marketplace/listings","",{
                 action("mine","My agents","GET","/api/marketplace/mine"),
+                action("purchases","My purchases","GET","/api/marketplace/purchases"),
                 action("earnings","Earnings","GET","/api/marketplace/earnings"),
                 action("checkout","Buy or rent","POST","/api/marketplace/checkout",true,true,
                     {field("listing_id","Listing ID","text",true)}),
@@ -120,10 +121,14 @@ const QList<FeatureDescriptor>& featureCatalog() {
                 action("delete","Delete task","DELETE","/api/tasks/{id}",true,true),
                 action("run","Run agent","POST","/api/tasks/{id}/execute-ai",true,true),
                 action("stop","Stop agent","POST","/api/tasks/{id}/stop-ai",true,true),
+                action("runtime-budget","Continue with more credits","POST","/api/tasks/{id}/runtime-budget",true,false,
+                    {field("run_id","Execution","text",true),field("additional_credits","Additional credits","int",true)}),
                 action("runs","Execution history","GET","/api/tasks/{id}/runs",true),
                 action("comment","Add comment","POST","/api/tasks/{id}/comments",true,false,{field("body","Comment","multiline",true)}),
-                action("approve","Review requested action","POST","/api/tasks/{id}/approve-action",true,true,
-                    {field("approval_request_id","Approval request ID","text",true),field("decision","Decision","enum",true,{"approved","rejected"}),field("payload","Approved parameters","json")})}),
+                action("respond","Respond to agent","POST","/api/tasks/{id}/approve-action",true,false,
+                    {field("approval_request_id","Request","text",true),field("decision","Decision","enum",true,{"approved","rejected","edited"}),field("payload","Response","json")}),
+                action("feedback","Response feedback","POST","/api/tasks/{id}/feedback",true,false,
+                    {field("rating","Rating","enum",true,{"good","needs_improvement"}),field("prompt","What should the agent improve?","multiline"),field("run_id","Response","text")})}),
             page("projects","Projects","projects","/api/projects","/api/projects/{id}",{
                 action("create","Create project","POST","/api/projects",false,false,projectFields),
                 action("edit","Edit project","PATCH","/api/projects/{id}",true,false,projectFields),

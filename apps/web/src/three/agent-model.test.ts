@@ -21,6 +21,19 @@ function player() {
 afterEach(() => { engines.splice(0).forEach(engine => engine.dispose()); });
 
 describe("avatar animation transitions", () => {
+  it("stops a generated walk-only character at rest and restarts it when moving", () => {
+    const { avatar, walking } = player();
+    avatar.anims = { walking };
+    avatar.idleAnim = null;
+    playAgentAnimation(avatar, "walking");
+    expect(walking.isPlaying).toBe(true);
+    playAgentAnimation(avatar, "working");
+    advanceAgentAnimation(avatar, 0.05);
+    expect(walking.isPlaying).toBe(false);
+    expect(avatar.currentAnim).toBe("working");
+    playAgentAnimation(avatar, "walking");
+    expect(walking.isPlaying).toBe(true);
+  });
   it("retains both poses during a transition, then retires the old clip", () => {
     const { avatar, idle, walking } = player();
     playAgentAnimation(avatar, "idle"); playAgentAnimation(avatar, "walking");

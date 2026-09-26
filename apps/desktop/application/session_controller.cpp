@@ -23,6 +23,11 @@ bool validCredential(const QByteArray& value, qsizetype limit) {
     return !value.isEmpty() && value.size() <= limit
         && std::all_of(value.cbegin(), value.cend(), [](unsigned char c) { return c >= 0x21 && c <= 0x7e; });
 }
+bool validRequestId(const QByteArray& value) {
+    return value.size() == 43 && std::all_of(value.cbegin(), value.cend(), [](unsigned char c) {
+        return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_';
+    });
+}
 }
 SessionController::SessionController(ApiClient& api, PhoenixClient& realtime, QObject* parent, QUrl trustedWebOrigin,
                                      CredentialStorage* credentials)
@@ -34,19 +39,22 @@ SessionController::SessionController(ApiClient& api, PhoenixClient& realtime, QO
     connect(&expiration_, &QTimer::timeout, this, &SessionController::renew);
     connect(&loginTimeout_, &QTimer::timeout, this, [this] { cancelSignIn(); fail("Sign-in expired. Please try again."); });
     connect(&callback_, &QTcpServer::newConnection, this, &SessionController::receiveCallback);
-    connect(&api_, &ApiClient::sessionExpired, this, &SessionController::renew);
+    const auto renewExpiredSession = [this] {
+        sessionReady_ = false; realtime_.stop(); emit changed(); renew();
+    };
+    connect(&api_, &ApiClient::sessionExpired, this, renewExpiredSession);
     connect(&api_, &ApiClient::administratorDenied, this, [this] { user_["is_platform_admin"] = false; emit changed(); });
     connect(&api_, &ApiClient::onlineChanged, this, [this](bool connected) {
-        if (!connected) realtime_.stop();
+        if (!connected) { sessionReady_ = false; realtime_.stop(); }
         else QTimer::singleShot(0, this, [this] {
-            if (authenticated_ && online() && !refreshing_ && !busy_) reloadIdentity();
+            if (authenticated_ && api_.context().online && api_.context().authenticated && !refreshing_ && !busy_) reloadIdentity();
         });
         emit changed();
     });
-    connect(&realtime_, &PhoenixClient::authenticationExpired, this, &SessionController::renew);
+    connect(&realtime_, &PhoenixClient::authenticationExpired, this, renewExpiredSession);
     connect(&connectivity_, &QTimer::timeout, this, [this] {
         // Recovery may renew a saved session, never start browser sign-in without a user action.
-        if (!online() && !busy_ && !refreshing_ && !refreshToken_.isEmpty()) renew();
+        if (!connected() && !busy_ && !refreshing_ && !refreshToken_.isEmpty()) renew();
     });
     connectivity_.start();
 }
@@ -58,7 +66,20 @@ void SessionController::restore() {
     if (busy() || authenticated_ || settings_.value(identityKey() + "/signedOut", false).toBool()) return;
     const auto saved = credentials_.read(identityKey());
     if (!saved || saved->isEmpty()) return;
-    refreshToken_ = *saved;
+    // Keep the operation identifier beside its token in one atomic vault entry.
+    // A crash after server-side rotation can then repeat the same operation.
+    if (saved->startsWith('{')) {
+        const auto record = QJsonDocument::fromJson(*saved).object();
+        const auto refresh = record.value("refresh_token").toString().toUtf8();
+        const auto requestId = record.value("refresh_request_id").toString().toLatin1();
+        if (record.value("version").toInt() != 1 || !validCredential(refresh, 512) || !validRequestId(requestId)) {
+            fail("The saved session could not be read. Please sign in again."); return;
+        }
+        refreshToken_ = refresh; refreshRequestId_ = requestId;
+    } else {
+        if (!validCredential(*saved, 512)) { fail("The saved session could not be read. Please sign in again."); return; }
+        refreshToken_ = *saved; // Upgrade existing installations before sending a renewal.
+    }
     const auto stored = QJsonDocument::fromJson(settings_.value(identityKey() + "/identity").toByteArray()).object();
     user_ = stored.value("user").toObject(); user_["is_platform_admin"] = false;
     workspaces_ = stored.value("workspaces").toArray(); workspace_ = stored.value("workspace").toString();
@@ -66,6 +87,16 @@ void SessionController::restore() {
     renew();
 }
 void SessionController::fail(const QString& message) { busy_ = false; error_ = message; emit changed(); }
+bool SessionController::persistCredentials(const QByteArray& refresh, const QByteArray& requestId) {
+    return credentials_.write(identityKey(), QJsonDocument(QJsonObject{
+        {"version", 1}, {"refresh_token", QString::fromUtf8(refresh)},
+        {"refresh_request_id", QString::fromLatin1(requestId)}}).toJson(QJsonDocument::Compact));
+}
+void SessionController::retryRenewal(const QString& message) {
+    sessionReady_ = false; realtime_.stop();
+    expiration_.start(30000);
+    fail(message);
+}
 void SessionController::signIn() {
     if (refreshing_ || identityLoading_) return;
     cancelSignIn(); error_.clear();
@@ -134,14 +165,17 @@ void SessionController::acceptTokens(const ApiResponse& response, bool renewal) 
     refreshing_ = false;
     if (!renewal) signingIn_ = false;
     if (!response.ok()) {
-        if (!response.networkError && (response.status == 400 || response.status == 401 || response.status == 403)) {
+        const auto code = response.json.value("error").toObject().value("code").toString();
+        if (!response.networkError && ((!renewal && (response.status == 400 || response.status == 401 || response.status == 403))
+            || (renewal && (response.status == 400 || response.status == 401 || response.status == 403) && code == "invalid_grant"))) {
             signOut(); fail("Your session has expired. Sign in again.");
-        } else if (renewal && !response.requestNotSent && response.status != 429) {
-            // A timeout, interrupted response or server failure may occur after
-            // rotation committed. Replaying that credential revokes the family.
-            signOut(); fail("Your session could not be renewed safely. Sign in again.");
+        } else if (renewal) {
+            // The persisted operation ID makes an interrupted rotation repeatable.
+            // Do not erase credentials for network failures or deployment outages.
+            retryRenewal(response.status == 404 || response.status == 405
+                ? "Your session is saved. Session recovery is temporarily unavailable on the server. Mokaid will retry automatically."
+                : "Your session is saved. Mokaid will reconnect automatically. You can also retry now.");
         } else {
-            if (renewal) expiration_.start(30000);
             fail(response.error);
         }
         return;
@@ -153,15 +187,26 @@ void SessionController::acceptTokens(const ApiResponse& response, bool renewal) 
     const auto expires = payload.value("expires_in").toInt(-1);
     if (!validCredential(token, 8192) || !validCredential(refresh, 512) || user.value("id").toString().isEmpty()
         || payload.value("token_type").toString().compare("Bearer", Qt::CaseInsensitive) != 0 || expires < 1 || expires > 86400) {
-        signOut(); revoke(refresh); fail("Invalid session response. Sign in again."); return;
+        if (renewal) retryRenewal("Your session is saved. Mokaid will retry after an incomplete server response.");
+        else { signOut(); revoke(refresh); fail("Invalid session response. Sign in again."); }
+        return;
     }
-    if (!credentials_.write(identityKey(), refresh)) {
-        signOut(); revoke(refresh);
-        fail("Your operating system could not securely save this session. Please try again."); return;
+    const auto nextRequestId = randomUrlToken();
+    if (!persistCredentials(refresh, nextRequestId)) {
+        if (renewal) {
+            // The old token and operation ID still recover this exact successor.
+            retryRenewal("Your session is saved. Mokaid will retry when secure storage is available.");
+        } else {
+            signOut(); revoke(refresh);
+            fail("Your operating system could not securely save this session. Please try again.");
+        }
+        return;
     }
-    refreshToken_ = refresh;
+    refreshToken_ = refresh; refreshRequestId_ = nextRequestId;
     settings_.remove(identityKey() + "/signedOut");
+    settings_.sync();
     user_ = user;
+    sessionReady_ = false;
     api_.setSession(token, user.value("id").toString(), user.value("is_platform_admin").toBool());
     authenticated_ = true; error_.clear();
     const auto lifetimeMs = expires * 1000;
@@ -171,9 +216,22 @@ void SessionController::acceptTokens(const ApiResponse& response, bool renewal) 
 void SessionController::renew() {
     if (refreshing_ || refreshToken_.isEmpty()) { if (refreshToken_.isEmpty()) signOut(); return; }
     if (signingIn_) return;
+    // Identity reload can change workspace and cancel requests. Let it finish
+    // before rotating; /me itself can request renewal when it returns 401.
+    if (identityLoading_) { expiration_.start(1000); return; }
+    if (refreshRequestId_.isEmpty()) {
+        const auto requestId = randomUrlToken();
+        if (!persistCredentials(refreshToken_, requestId)) {
+            retryRenewal("Your session is saved. Mokaid will retry when secure storage is available."); return;
+        }
+        refreshRequestId_ = requestId;
+    }
     refreshing_ = true; busy_ = true; emit changed();
     const auto generation = sessionGeneration_;
-    api_.request("POST", "/api/desktop/auth/token", {{"grant_type", "refresh_token"}, {"refresh_token", QString::fromUtf8(refreshToken_)}}, core::Scope::public_api, this,
+    // A dedicated endpoint prevents an older server silently ignoring the ID
+    // and performing a non-repeatable rotation during a rolling deployment.
+    api_.request("POST", "/api/desktop/auth/refresh", {{"refresh_token", QString::fromUtf8(refreshToken_)},
+        {"refresh_request_id", QString::fromLatin1(refreshRequestId_)}}, core::Scope::public_api, this,
         [this, generation](ApiResponse r) {
             if (generation != sessionGeneration_) { revoke(r.json.value("data").toObject().value("refresh_token").toString().toUtf8()); return; }
             acceptTokens(r, true);
@@ -184,8 +242,9 @@ void SessionController::reloadIdentity() {
     identityLoading_ = true; busy_ = true; emit changed();
     api_.request("GET", "/api/me", {}, core::Scope::identity, this, [this](ApiResponse r) {
         identityLoading_ = false;
-        if (!r.ok()) { fail(r.error); return; }
+        if (!r.ok()) { sessionReady_ = false; realtime_.stop(); fail(r.error); return; }
         if (r.json.value("user").toObject().value("id").toString().isEmpty() || !r.json.value("workspaces").isArray()) {
+            sessionReady_ = false; realtime_.stop();
             fail("The server returned an invalid workspace session. Please reconnect."); return;
         }
         user_ = r.json.value("user").toObject(); workspaces_ = r.json.value("workspaces").toArray();
@@ -194,6 +253,7 @@ void SessionController::reloadIdentity() {
         if (!member) workspace_ = workspaces_.isEmpty() ? QString{} : workspaces_.first().toObject().value("id").toString();
         api_.setSession(api_.accessToken(), user_.value("id").toString(), user_.value("is_platform_admin").toBool());
         api_.setWorkspace(workspace_); persistIdentity();
+        sessionReady_ = true;
         realtime_.start(api_.origin(), api_.accessToken(), workspace_, user_.value("id").toString());
         busy_ = false; error_.clear(); emit changed(); emit established();
     });
@@ -220,9 +280,10 @@ void SessionController::signOut() {
     expiration_.stop(); cancelSignIn(); realtime_.stop();
     const auto oldRefresh = refreshToken_;
     api_.reset(); refreshToken_.fill('\0'); refreshToken_.clear();
+    refreshRequestId_.fill('\0'); refreshRequestId_.clear();
     settings_.setValue(identityKey() + "/signedOut", true); settings_.sync();
     const bool erased = credentials_.erase(identityKey()); settings_.remove(identityKey() + "/identity");
-    user_ = {}; workspaces_ = {}; workspace_.clear(); authenticated_ = false; refreshing_ = false; busy_ = false; identityLoading_ = false;
+    user_ = {}; workspaces_ = {}; workspace_.clear(); authenticated_ = false; refreshing_ = false; busy_ = false; identityLoading_ = false; sessionReady_ = false;
     emit cleared(); emit changed();
     revoke(oldRefresh);
     if (!erased) fail("Signed out. Your operating system could not remove the saved credential; automatic sign-in is disabled.");

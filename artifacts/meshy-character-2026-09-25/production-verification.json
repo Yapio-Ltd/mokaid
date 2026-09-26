@@ -1,0 +1,90 @@
+{
+  "verified_at": "2026-09-25T11:14:22.446770+00:00",
+  "production_sha": "857c644c33a22f5caa65de13cedfbcb2a991e2b9",
+  "deployment_run": 36126042678,
+  "deployment_conclusion": "success",
+  "services": [
+    {
+      "service": "mokaid-prod-api",
+      "task_definition": "arn:aws:ecs:il-central-1:660601648321:task-definition/mokaid-prod-api:55",
+      "running": 1,
+      "desired": 1,
+      "rollout": "COMPLETED",
+      "image_digest": "sha256:b24f2a6cb0802dcb5b4fdb0540eb1b2c769938593bf0661c8f70a0a0d82170cc",
+      "image_matches_production_commit": true
+    },
+    {
+      "service": "mokaid-prod-ai-worker",
+      "task_definition": "arn:aws:ecs:il-central-1:660601648321:task-definition/mokaid-prod-ai-worker:48",
+      "running": 1,
+      "desired": 1,
+      "rollout": "COMPLETED",
+      "image_digest": "sha256:b255cb78435a7696d17d7d626299ff84497384e9ca145a4a94df99ad68df90c0",
+      "image_matches_production_commit": true
+    },
+    {
+      "service": "mokaid-prod-web",
+      "task_definition": "arn:aws:ecs:il-central-1:660601648321:task-definition/mokaid-prod-web:53",
+      "running": 1,
+      "desired": 1,
+      "rollout": "COMPLETED",
+      "image_digest": "sha256:e38b8fe0468cdc26f2e43bace9b53a120ad7553442214e65608efafa4eb6918b",
+      "image_matches_production_commit": true
+    },
+    {
+      "service": "mokaid-prod-crm",
+      "task_definition": "arn:aws:ecs:il-central-1:660601648321:task-definition/mokaid-prod-crm:13",
+      "running": 1,
+      "desired": 1,
+      "rollout": "COMPLETED",
+      "image_digest": "sha256:732f956b4cb2b186755ccd4bfb602b63567674994d5e3fb4e94d4d1fa801008a",
+      "image_matches_production_commit": true
+    }
+  ],
+  "http_checks": [
+    {
+      "method": "POST",
+      "path": "/api/mail/oauth/google/start",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/webhooks/gmail",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/avatar-generations",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "method": "POST",
+      "path": "/api/webhooks/meshy",
+      "status": 202,
+      "expected": 202,
+      "pass": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/avatar-assets/00000000-0000-0000-0000-000000000000/invalid/model.glb",
+      "status": 404,
+      "expected": 404,
+      "pass": true
+    }
+  ],
+  "runtime_smoke_passed": true,
+  "probe_cleanup_verified": true
+}
