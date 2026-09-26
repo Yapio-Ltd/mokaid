@@ -313,6 +313,8 @@ void assets(const char *root) {
 }
 } // namespace
 int main(int argc, char **argv) {
+  // Preserve per-asset progress when CTest stops a slow instrumented process.
+  std::cout << std::unitbuf;
   try {
     mathTests();
     animationTests();

@@ -31,6 +31,8 @@ if(BUILD_TESTING)
   add_test(NAME desktop-project-runtime COMMAND mokaid_project_runtime_tests)
   set_tests_properties(desktop-project-runtime PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
   qt_add_executable(mokaid_office_tour_qml_tests ../tests/office_tour_qml_tests.cpp)
+  # Keep QtTest/progress output attached to CTest's pipes on Windows.
+  set_target_properties(mokaid_office_tour_qml_tests PROPERTIES WIN32_EXECUTABLE FALSE)
   target_link_libraries(mokaid_office_tour_qml_tests PRIVATE mokaid_viewport Qt6::Quick Qt6::QuickControls2 Qt6::Test mokaid_options)
   target_compile_definitions(mokaid_office_tour_qml_tests PRIVATE
       MOKAID_OFFICE_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/qml"
@@ -53,6 +55,11 @@ if(BUILD_TESTING)
   endif()
   add_test(NAME desktop-office-tour-qml COMMAND mokaid_office_tour_qml_tests)
   set_tests_properties(desktop-office-tour-qml PROPERTIES RUN_SERIAL TRUE TIMEOUT 90 LABELS "gpu;integration")
+  if(WIN32)
+    # Allow the native Direct3D integration scenario to finish or report its
+    # bounded assertions on CI; a stalled renderer still fails within 4 minutes.
+    set_tests_properties(desktop-office-tour-qml PROPERTIES TIMEOUT 240)
+  endif()
 endif()
 set(MOKAID_QML_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/AgentDetailPanel.qml"

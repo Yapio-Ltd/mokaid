@@ -13,7 +13,17 @@
 #include <QTemporaryDir>
 #include <QtTest>
 #include <algorithm>
+#include <cstdio>
 #include <memory>
+
+namespace {
+void tourProgress(const char* stage) {
+    static QElapsedTimer elapsed;
+    if (!elapsed.isValid()) elapsed.start();
+    std::fprintf(stdout, "[office-tour +%lldms] %s\n", static_cast<long long>(elapsed.elapsed()), stage);
+    std::fflush(stdout);
+}
+}
 
 // This executable loads the production office QML and native GPU viewport. Its
 // synthetic roster and replies are confined to this test executable; it never
@@ -173,6 +183,7 @@ public:
     QString failure;
 
     OfficeTourView() {
+        tourProgress("constructing production QML fixture");
         const auto source = QStringLiteral(MOKAID_OFFICE_QML_DIRECTORY);
         for (const auto& name : QDir(source).entryList({"*.qml", "*.js"}, QDir::Files))
             QFile::copy(source + "/" + name, staging.path() + "/" + name);
@@ -213,12 +224,15 @@ Rectangle {
         resize(1440, 900);
         window.setTitle("Office tour interface test — synthetic agents");
         window.show(); window.requestActivate();
+        tourProgress("native window shown");
     }
     ~OfficeTourView() {
+        tourProgress("releasing native fixture");
         if (viewport) viewport->setPaused(true);
         if (item) item->setParentItem(nullptr);
         root.reset();
         window.releaseResources();
+        tourProgress("native fixture released");
     }
     void resize(int width, int height) { window.resize(width, height); if (item) item->setSize(window.size()); }
     QList<QQuickItem*> children() const {
@@ -417,6 +431,7 @@ private slots:
         QVERIFY(view.viewport->error().isEmpty()); QVERIFY(view.viewport->avatarError().isEmpty());
     }
     void entersFollowsPathsLooksAroundChatsAndReturns() {
+        tourProgress("starting interactive tour scenario");
         const auto assets = qEnvironmentVariable("MOKAID_OFFICE_ASSETS", QStringLiteral(MOKAID_OFFICE_ASSET_DIRECTORY));
         if (!QFile::exists(assets + "/manifest.json")) QSKIP("Cooked native office assets are required for the real-renderer tour test");
         OfficeTourView view;
@@ -424,10 +439,12 @@ private slots:
         QVERIFY2(view.viewport, "OfficePage must expose the production officeViewport object");
         QVERIFY(QTest::qWaitForWindowExposed(&view.window));
         QTRY_VERIFY_WITH_TIMEOUT(!view.viewport->loading(), 30000);
+        tourProgress("office assets loaded");
         QVERIFY2(view.viewport->error().isEmpty(), qPrintable(view.viewport->error()));
         // Synchronize the first loaded scene even when a CLI-launched native
         // window is occluded by another application on the test machine.
         QVERIFY(!view.window.grabWindow().isNull());
+        tourProgress("initial GPU frame synchronized");
         QTRY_VERIFY2_WITH_TIMEOUT(view.viewport->diagnostics().value("triangles").toInt() > 0,
             qPrintable(view.bounds("officeViewport")+"; renderer="+view.viewport->error()+"; warnings="+view.warnings.join(';')),15000);
         QTRY_VERIFY(view.viewport->property("tourAvailable").toBool());
@@ -455,6 +472,7 @@ private slots:
         QVERIFY(view.click("agentDetailClose"));
         QTRY_VERIFY(view.office.selectedAgent.isEmpty());
         QVERIFY(view.features.selectedId.isEmpty());
+        tourProgress("agent drawer opened and closed");
         QVERIFY(view.click("officeEnter"));
         QTRY_VERIFY(view.viewport->property("immersive").toBool());
         QTRY_VERIFY(view.inside(view.find("officeOverview")));
@@ -521,6 +539,7 @@ private slots:
         QTest::qWait(180);
         QTest::keyRelease(&view.window, Qt::Key_Left);
         QTRY_VERIFY(view.viewport->property("tourYaw").toReal() != yawBeforeKey);
+        tourProgress("walking, pointer and keyboard navigation verified");
 
         // Turn in place until a real projected agent badge can be selected.
         for (int turn = 0; turn < 12 && !view.visibleAgentBadge(); ++turn) {
@@ -537,6 +556,7 @@ private slots:
                     view.find("officePageUnderTest")->property("approachingAgentId").toString(),
                     view.viewport->tourDestination(), view.viewport->tourCurrentStop())
                 .arg(view.viewport->tourMoving()).arg(view.viewport->tourSettling()).arg(view.window.isActive())), 25000);
+        tourProgress("agent approached and conversation opened");
         QTRY_VERIFY(view.inside(view.find("officeImmersiveChat")));
         QVERIFY(view.find("officeImmersiveChat")->property("compact").toBool());
         auto* composer = view.find("officeChatComposer");
@@ -557,6 +577,7 @@ private slots:
         QVERIFY(view.office.draft.isEmpty());
         QTest::qWait(700); // Let the seated gaze settle for the conversation capture.
         QVERIFY(view.capture("office-tour-chat-wide"));
+        tourProgress("chat send and reply verified");
 
         view.resize(1000, 680);
         QTest::qWait(180);
@@ -581,6 +602,7 @@ private slots:
         const QRectF destinationBounds(destination->mapToScene({}), QSizeF(destination->width(), destination->height()));
         QVERIFY(!chatBounds.intersects(destinationBounds));
         QVERIFY(view.capture("office-tour-chat-shell-minimum"));
+        tourProgress("compact layouts verified");
         // Closing the chat and exiting are independent controls. A fresh draft
         // survives leaving immersion through the same production chat binding.
         composer->forceActiveFocus();
@@ -648,16 +670,21 @@ private slots:
         QTRY_COMPARE(view.office.selectedAgent.value("id").toString(), priorAgent);
         QVERIFY2(view.viewport->error().isEmpty(), qPrintable(view.viewport->error()));
         QVERIFY2(view.warnings.isEmpty(), qPrintable(view.warnings.join('\n')));
+        tourProgress("interactive tour scenario complete");
     }
 };
 
 int main(int argc, char** argv) {
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
+    std::setvbuf(stderr, nullptr, _IONBF, 0);
+    tourProgress("process started");
 #ifdef Q_OS_MACOS
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Metal);
 #elif defined(Q_OS_WIN)
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Direct3D11);
 #endif
     QGuiApplication app(argc, argv);
+    tourProgress("Qt application initialized");
     QCoreApplication::setApplicationName("Mokaid office tour tests — synthetic data");
     QQuickStyle::setStyle("Basic");
     QFontDatabase::addApplicationFont(QStringLiteral(MOKAID_OFFICE_QML_DIRECTORY) + "/../assets/fonts/Manrope.ttf");
