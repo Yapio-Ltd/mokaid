@@ -1,0 +1,312 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-25",
+  "focusConvention": "Normalized fraction of excess cover-scaled dimension: crop x=(iw-ow)*focusX. panX uses output seconds and smoothstep.",
+  "status": "All9scenes reviewed; portrait variations accepted with explicit composition limits.",
+  "overrides": [
+    {
+      "index": 4,
+      "framing": {
+        "social-9x16": {
+          "localPath": "clips/04-office-portrait.mp4",
+          "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_132517_13e485d2-6bea-4f6e-83a9-7856c34a4b68.mp4",
+          "jobId": "13e485d2-6bea-4f6e-83a9-7856c34a4b68",
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        },
+        "social-4x5": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        }
+      }
+    },
+    {
+      "index": 5,
+      "audioGainDb": -15,
+      "framing": {
+        "social-9x16": {
+          "focusX": 0.68,
+          "focusY": 0.5,
+          "panX": {
+            "from": 0.5,
+            "to": 0.68,
+            "start": 0,
+            "end": 2
+          },
+          "reviewed": true
+        },
+        "social-4x5": {
+          "focusX": 0.6,
+          "focusY": 0.5,
+          "panX": {
+            "from": 0.5,
+            "to": 0.6,
+            "start": 0,
+            "end": 2
+          },
+          "reviewed": true
+        }
+      }
+    },
+    {
+      "index": 1,
+      "framing": {
+        "social-9x16": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        },
+        "social-4x5": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        }
+      }
+    },
+    {
+      "index": 2,
+      "framing": {
+        "social-9x16": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        },
+        "social-4x5": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        }
+      }
+    },
+    {
+      "index": 3,
+      "framing": {
+        "social-9x16": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        },
+        "social-4x5": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        }
+      }
+    },
+    {
+      "index": 6,
+      "framing": {
+        "social-9x16": {
+          "localPath": "clips/06-life-portrait-reverse.mp4",
+          "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_140158_fc8b84f0-b326-4d44-a33a-66320ecc02c3.mp4",
+          "jobId": "fc8b84f0-b326-4d44-a33a-66320ecc02c3",
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reverseVideo": true,
+          "useDefaultAudio": true,
+          "reviewed": true
+        },
+        "social-4x5": {
+          "localPath": "clips/06-life-square-reverse.mp4",
+          "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_140159_b427076e-5060-419a-8f30-ad2cfdc14814.mp4",
+          "jobId": "b427076e-5060-419a-8f30-ad2cfdc14814",
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reverseVideo": true,
+          "useDefaultAudio": true,
+          "reviewed": true
+        }
+      }
+    },
+    {
+      "index": 8,
+      "framing": {
+        "social-9x16": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "panX": {
+            "from": 0.65,
+            "to": 0.5,
+            "start": 0,
+            "end": 2
+          },
+          "reviewed": true
+        },
+        "social-4x5": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "panX": {
+            "from": 0.65,
+            "to": 0.5,
+            "start": 0,
+            "end": 2
+          },
+          "reviewed": true
+        }
+      }
+    },
+    {
+      "index": 7,
+      "framing": {
+        "social-9x16": {
+          "localPath": "clips/07-execution-portrait.mp4",
+          "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_141928_1254b527-037e-4ce6-8b9c-76caa2b23c95.mp4",
+          "jobId": "1254b527-037e-4ce6-8b9c-76caa2b23c95",
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        },
+        "social-4x5": {
+          "localPath": "clips/07-execution-square.mp4",
+          "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_141928_e27cf9f0-b299-4773-803b-abe8055fd872.mp4",
+          "jobId": "e27cf9f0-b299-4773-803b-abe8055fd872",
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        }
+      }
+    },
+    {
+      "index": 9,
+      "framing": {
+        "social-9x16": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        },
+        "social-4x5": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "reviewed": true
+        }
+      }
+    }
+  ],
+  "clipReviews": [
+    {
+      "index": 1,
+      "sourceReviewed": true,
+      "focusX": 0.5,
+      "focusY": 0.5,
+      "portraitStatus": "Conditional: laptop display central, cup and laptop sides cropped. Required full cafe geography is shown by horizontal version."
+    },
+    {
+      "index": 2,
+      "sourceReviewed": true,
+      "focusX": 0.5,
+      "focusY": 0.5,
+      "portraitStatus": "Central screen depth survives approach; macro frame increasingly fills view. No arbitrary lateral pan."
+    },
+    {
+      "index": 3,
+      "sourceReviewed": true,
+      "portraitStatus": "Actual accepted portal center crop preserves laptop transition, illuminated office and foreground working woman.",
+      "evidence": [
+        "production/review/03-portal-9x16-actual.jpg"
+      ]
+    },
+    {
+      "index": 4,
+      "portraitStatus": "Dedicated portrait source reviewed by landing_audit. Start/end center0.5, heads retained during colleague walking.",
+      "fourByFiveStatus": "Actual horizontal center crop retains worker walking into room, plus active desks, at all12 sampled seconds."
+    },
+    {
+      "index": 5,
+      "sourceReviewed": true,
+      "sourceJobId": "e0ad540e-ccd4-4ae7-a3bd-a487b820bf55",
+      "sourceDimensions": [
+        1916,
+        1080
+      ],
+      "sourceFrames": 241,
+      "sourceDuration": 10.041667,
+      "portraitStatus": "Main duo and tablet visible after settling on0.68. Third man intentionally outside portrait framing near end; impossible to include750px span in607px source width.",
+      "evidence": [
+        "production/review/05-crop-68.jpg",
+        "production/review/05-collaboration-4x5-60.jpg"
+      ],
+      "boundary6": "Frame240 actual end cropped0.68 provided to portrait6. Square6 input x523.2,w1080 yields standard4:5 cover focus0.6 when center cropped."
+    },
+    {
+      "index": 6,
+      "sourceReviewed": true,
+      "sourceJobId": "be06d542-080d-4693-9cf9-fc02891e1857",
+      "portraitStatus": "Inverse takes accepted by root: stable graphite table/two players, meeting end matches. Reverse picture only, forward horizontal audio. Cafe remains background detail; no portrait espresso close-up.",
+      "evidence": [
+        "production/review/06-life-portrait-reverse-sheet.jpg",
+        "production/review/06-life-square-reverse-sheet.jpg",
+        "production/review/06-portrait-forward-review.jpg"
+      ]
+    },
+    {
+      "index": 7,
+      "portraitStatus": "Both adapted sources accepted with2stable players/table, actual endpoints compared by landing_audit.",
+      "evidence": [
+        "production/review/7-adaptive-qa.json"
+      ]
+    },
+    {
+      "index": 8,
+      "portraitStatus": "Accepted by landing_audit. Laptop sides cropped in9:16 consistently with opening;4:5 retains whole laptop.",
+      "evidence": [
+        "production/review/8-9-framing-qa.json"
+      ]
+    },
+    {
+      "index": 9,
+      "portraitStatus": "Accepted by landing_audit. Laptop sides cropped in9:16 consistently with opening;4:5 retains whole laptop.",
+      "evidence": [
+        "production/review/8-9-framing-qa.json"
+      ]
+    }
+  ],
+  "referenceReview": {
+    "note": "Preproduction only; these crops never substitute for review of actual clips.",
+    "meeting": {
+      "portrait": {
+        "focusX": 0.8,
+        "focusY": 0.5
+      },
+      "fourByFive": {
+        "focusX": 0.85,
+        "focusY": 0.5
+      },
+      "finding": "Three faces/tablet in reference, actual clip5 has different poses and uses own reviewed framing."
+    },
+    "foosball": {
+      "finding": "Horizontal reference crops lose one player; dedicated9:16 and1:1 protected references generated.",
+      "portraitReferenceJobId": "5f2a04ce-0dc9-4cd9-903b-8a46a490d5d0",
+      "squareReferenceJobId": "b96abfcc-b415-483f-aeb9-e4d921c8d60b"
+    },
+    "coffee": {
+      "portrait": {
+        "focusX": 0.53,
+        "focusY": 0.5
+      },
+      "finding": "Individual operator action can survive, second person dropped."
+    },
+    "work": {
+      "portrait": {
+        "focusX": 0.83,
+        "focusY": 0.5
+      },
+      "fourByFive": {
+        "focusX": 0.86,
+        "focusY": 0.5
+      },
+      "finding": "Reference worker and screens survive but actual clip4 needed dedicated generation."
+    }
+  },
+  "audio": {
+    "analysis": "production/review/audio-review.json",
+    "heard": false,
+    "approvedCorrection": {
+      "index": 5,
+      "gainDb": -15,
+      "reason": "Its first-second and last-second RMS are15-21dB louder than surrounding office ambience."
+    },
+    "policy": "Preserve clip2 transition envelope. Normalize complete edited film only; do not independently loudness-match each generated clip."
+  }
+}

@@ -1,0 +1,660 @@
+{
+  "date": "2026-09-25",
+  "tool": "Native Higgsedit",
+  "format": "1080x1920",
+  "fps": 24,
+  "duration": 74,
+  "fixture": "Nine still-image cuts at approved scene times, using the generated portrait foosball reference for scene 6 and the generated café reference for other scenes. This checks typography composition, not final-video continuity.",
+  "builder": "../build-film.mjs",
+  "check": "clean",
+  "font": {
+    "localSource": "apps/web/public/fonts/Manrope.ttf",
+    "publicSource": "https://mokaid.com/fonts/Manrope.ttf",
+    "sha256": "3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6",
+    "nativeAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd",
+    "all22TextNodesUseFont": true,
+    "weights": [
+      400,
+      700
+    ]
+  },
+  "logo": {
+    "localSource": "apps/web/public/branding/logo-without-bg.png",
+    "publicSource": "https://mokaid.com/branding/logo-without-bg.png",
+    "sha256": "6cfabfcd8745df498252dd77265b589693e6e9d3b480a08f1d484ad9101d0fc2",
+    "matchesLocalSource": true
+  },
+  "frames": [
+    {
+      "time": 48,
+      "bytes": 48375,
+      "base64Length": 64500,
+      "sha256": "00b2be519ec09fa76197e44d2cddeba5b66656d13992fb84000893cd40e131f4",
+      "file": "native-manrope-9x16-48s.jpg",
+      "nativeRenderSize": [
+        1080,
+        1920
+      ],
+      "reviewImageSize": [
+        432,
+        768
+      ],
+      "diagnostics": [],
+      "visualReview": "Title and secondary copy above both players; neither face, hands nor foosball table obscured."
+    },
+    {
+      "time": 73,
+      "bytes": 27320,
+      "base64Length": 36428,
+      "sha256": "9024bc9d5e14051ae0f6751eee3ebb90603849cae7acfc55dd368f0b8e47200e",
+      "file": "native-manrope-9x16-73s.jpg",
+      "nativeRenderSize": [
+        1080,
+        1920
+      ],
+      "reviewImageSize": [
+        432,
+        768
+      ],
+      "diagnostics": [],
+      "visualReview": "Five notifications, original logo, Mokaid wordmark, full two-line payoff and CTA visible without clipping; 76px side-safe margins; CTA bottom bound 1634.9 leaves 285.1px bottom."
+    }
+  ],
+  "nativeTextNodes": [
+    {
+      "text": "Your AI team is closer than you think.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 146.89999999999998
+      },
+      "transform": {
+        "x": 76,
+        "y": 96,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "A complete AI team, inside your desktop.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 100
+      },
+      "transform": {
+        "x": 76,
+        "y": 258.9,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Enter your AI office.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 92
+      },
+      "transform": {
+        "x": 76,
+        "y": 96,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Give every specialist a role, tools and context.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 100
+      },
+      "transform": {
+        "x": 76,
+        "y": 204,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "They don't wait for prompts.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 146.89999999999998
+      },
+      "transform": {
+        "x": 76,
+        "y": 96,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "They work.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 92
+      },
+      "transform": {
+        "x": 76,
+        "y": 96,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Assign a goal. Follow their progress.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 100
+      },
+      "transform": {
+        "x": 76,
+        "y": 204,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "One task becomes a workflow.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 146.89999999999998
+      },
+      "transform": {
+        "x": 76,
+        "y": 96,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Your agents collaborate.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 92
+      },
+      "transform": {
+        "x": 76,
+        "y": 96,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Specialists coordinate to deliver the result.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 100
+      },
+      "transform": {
+        "x": 76,
+        "y": 204,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Even AI needs a coffee break.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 146.89999999999998
+      },
+      "transform": {
+        "x": 76,
+        "y": 96,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Fortunately, they don't need payroll.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 100
+      },
+      "transform": {
+        "x": 76,
+        "y": 258.9,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "While you scroll, they're already working.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 146.89999999999998
+      },
+      "transform": {
+        "x": 76,
+        "y": 96,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Connected tools turn tasks into actions.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 100
+      },
+      "transform": {
+        "x": 76,
+        "y": 258.9,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Your AI employees are already at work.",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 146.89999999999998
+      },
+      "transform": {
+        "x": 76,
+        "y": 1390,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Build your team →",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 928,
+        "height": 62
+      },
+      "transform": {
+        "x": 76,
+        "y": 1572.9,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Client report completed",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 843,
+        "height": 44
+      },
+      "transform": {
+        "x": 67,
+        "y": 25,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "42 leads qualified",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 843,
+        "height": 44
+      },
+      "transform": {
+        "x": 67,
+        "y": 25,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Meeting scheduled",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 843,
+        "height": 44
+      },
+      "transform": {
+        "x": 67,
+        "y": 25,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Campaign published",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 843,
+        "height": 44
+      },
+      "transform": {
+        "x": 67,
+        "y": 25,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Inbox processed",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 843,
+        "height": 44
+      },
+      "transform": {
+        "x": 67,
+        "y": 25,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    },
+    {
+      "text": "Mokaid",
+      "fontFamily": "Manrope",
+      "size": {
+        "width": 410,
+        "height": 76
+      },
+      "transform": {
+        "x": 186,
+        "y": 1274,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      },
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      }
+    }
+  ],
+  "verdict": "PASS for sampled portrait typography. No builder changes necessary. Actual source clips and the other social aspect ratios still require final-film visual review."
+}

@@ -93,6 +93,9 @@ async function stopPreviewServer(server) {
 }
 
 async function renderRoute(page, route) {
+  // The homepage snapshot is the complete static story, never a stopped video
+  // or a stack of overlays whose animation styles are stripped below.
+  await page.emulateMedia({ reducedMotion: route === "/" ? "reduce" : "no-preference" });
   const response = await page.goto(`${ORIGIN}${route}`, { waitUntil: "load", timeout: 60_000 });
   if (response?.status() !== 200) throw new Error(`Unexpected HTTP status ${response?.status()}`);
   // Wait for React to mount real content (the raw shell has an empty #root).
@@ -144,6 +147,9 @@ async function main() {
   try {
     browser = await chromium.launch();
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await page.addInitScript(() => {
+      window.__MOKAID_PRERENDER__ = true;
+    });
     page.on("pageerror", (err) => console.warn(`  page error: ${err.message}`));
 
     const queue = ["/", ...PUBLIC_ROOTS];

@@ -1,0 +1,244 @@
+{
+  "origin": "http://127.0.0.1:5173",
+  "compiledOrigin": "http://127.0.0.1:4173",
+  "media": "/assets/mokaid-office-journey.adac1c365481.mp4",
+  "startedAt": "2026-09-25T15:10:46.556Z",
+  "checks": [
+    {
+      "name": "loading stage skip is excluded from keyboard focus",
+      "hiddenLink": {
+        "tabIndex": -1,
+        "stageHidden": "true"
+      },
+      "initialTab": {
+        "text": "mokaid",
+        "hiddenAncestor": false
+      }
+    },
+    {
+      "name": "source hero and primary navigation",
+      "hero": {
+        "count": 1,
+        "heading": "mokaid",
+        "top": 0,
+        "height": 900,
+        "opacity": "1"
+      },
+      "nav": [
+        {
+          "text": "Experience",
+          "href": "#product"
+        },
+        {
+          "text": "Pricing",
+          "href": "/pricing"
+        }
+      ],
+      "state": {
+        "mode": "cinematic",
+        "videoCount": 1,
+        "src": "/assets/mokaid-office-journey.adac1c365481.mp4",
+        "scrollY": 0,
+        "scrollHeight": 13454,
+        "sectionTop": 1620,
+        "sectionHeight": 11700,
+        "endTop": 13319,
+        "presentedTime": "0.000",
+        "activeElement": "<body>\n    <div id=\"root\"><div class=\"mk-landing min-h-full overflow-x-clip bg-bg-deep text-text\"><header data-landing-header=\"true\" class=\"fixed inset-x-0 top-0 z-50 border-b pt-[env(safe-area-inset-top)] transition-[background-color,backdrop-filter",
+        "lenisCount": 1
+      }
+    },
+    {
+      "name": "keyboard Experience, Tab to skip, Enter to end, footer and payoff download links",
+      "entryTop": 74,
+      "tabTrace": [
+        {
+          "text": "Skip the tour",
+          "href": "#cinematic-story-end",
+          "hiddenAncestor": false,
+          "skip": true
+        }
+      ],
+      "beforeSkip": {
+        "mode": "cinematic",
+        "videoCount": 1,
+        "src": "/assets/mokaid-office-journey.adac1c365481.mp4",
+        "scrollY": 1548,
+        "scrollHeight": 13454,
+        "sectionTop": 72,
+        "sectionHeight": 11700,
+        "endTop": 11771,
+        "presentedTime": "0.000",
+        "activeElement": "<a href=\"#cinematic-story-end\" class=\"mk-cinema-skip mk-focus-ring\" tabindex=\"0\">Skip the tour <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round",
+        "lenisCount": 1
+      },
+      "afterSkip": {
+        "text": "mokaid",
+        "href": "/",
+        "cta": false,
+        "hiddenAncestor": false
+      },
+      "footerDownload": {
+        "text": "Download",
+        "href": "/download"
+      },
+      "state": {
+        "mode": "cinematic",
+        "videoCount": 1,
+        "src": "/assets/mokaid-office-journey.adac1c365481.mp4",
+        "scrollY": 12554,
+        "scrollHeight": 13454,
+        "sectionTop": -10934,
+        "sectionHeight": 11700,
+        "endTop": 765,
+        "presentedTime": "73.917",
+        "activeElement": "<a href=\"/download\" class=\"mk-focus-ring rounded transition-colors hover:text-text\">Download</a>",
+        "lenisCount": 1
+      }
+    },
+    {
+      "name": "SPA download and browser Back 1",
+      "away": {
+        "src": null,
+        "scrollY": 0,
+        "scrollHeight": 900,
+        "activeElement": "<body>\n    <div id=\"root\"><div class=\"flex h-full min-h-[40vh] items-center justify-center text-sm text-text-muted\">Loading…</div><div role=\"dialog\" aria-label=\"Cookie preferences\" class=\"fixed inset-x-0 bottom-0 z-[100] p-4 sm:bottom-4 sm:left-4 sm:",
+        "lenisCount": 0
+      },
+      "back": {
+        "mode": "static",
+        "videoCount": 0,
+        "src": null,
+        "scrollY": 2959,
+        "scrollHeight": 3859,
+        "sectionTop": -1339,
+        "sectionHeight": 2105.171875,
+        "endTop": 765.171875,
+        "activeElement": "<body>\n    <div id=\"root\"><div class=\"mk-landing min-h-full overflow-x-clip bg-bg-deep text-text\"><header data-landing-header=\"true\" class=\"fixed inset-x-0 top-0 z-50 border-b pt-[env(safe-area-inset-top)] transition-[background-color,backdrop-filter",
+        "lenisCount": 1
+      }
+    },
+    {
+      "name": "SPA download and browser Back 2",
+      "away": {
+        "src": null,
+        "scrollY": 145,
+        "scrollHeight": 1045,
+        "activeElement": "<body>\n    <div id=\"root\"><main class=\"min-h-screen bg-bg-deep text-text\"><div class=\"mx-auto max-w-5xl px-6 py-10 sm:px-10 sm:py-16\"><a href=\"/\" class=\"mk-focus-ring inline-flex items-center gap-2 rounded-md text-sm text-text-secondary hover:text-te",
+        "lenisCount": 0
+      },
+      "back": {
+        "mode": "static",
+        "videoCount": 0,
+        "src": null,
+        "scrollY": 2959,
+        "scrollHeight": 3859,
+        "sectionTop": -1339,
+        "sectionHeight": 2105.171875,
+        "endTop": 765.171875,
+        "activeElement": "<body>\n    <div id=\"root\"><div class=\"mk-landing min-h-full overflow-x-clip bg-bg-deep text-text\"><header data-landing-header=\"true\" class=\"fixed inset-x-0 top-0 z-50 border-b pt-[env(safe-area-inset-top)] transition-[background-color,backdrop-filter",
+        "lenisCount": 1
+      }
+    },
+    {
+      "name": "reduced-motion change releases video and retains stable fallback",
+      "reduced": {
+        "mode": "static",
+        "videoCount": 0,
+        "src": null,
+        "scrollY": 0,
+        "scrollHeight": 3139,
+        "sectionTop": 900,
+        "sectionHeight": 2105.171875,
+        "endTop": 3004.171875,
+        "activeElement": "<body>\n    <div id=\"root\"><div class=\"mk-landing min-h-full overflow-x-clip bg-bg-deep text-text\"><header data-landing-header=\"true\" class=\"fixed inset-x-0 top-0 z-50 border-b pt-[env(safe-area-inset-top)] transition-[background-color,backdrop-filter",
+        "lenisCount": 0
+      },
+      "restored": {
+        "mode": "static",
+        "videoCount": 0,
+        "src": null,
+        "scrollY": 0,
+        "scrollHeight": 3859,
+        "sectionTop": 1620,
+        "sectionHeight": 2105.171875,
+        "endTop": 3724.171875,
+        "activeElement": "<body>\n    <div id=\"root\"><div class=\"mk-landing min-h-full overflow-x-clip bg-bg-deep text-text\"><header data-landing-header=\"true\" class=\"fixed inset-x-0 top-0 z-50 border-b pt-[env(safe-area-inset-top)] transition-[background-color,backdrop-filter",
+        "lenisCount": 1
+      }
+    },
+    {
+      "name": "viewport change releases video; mobile menu supports Enter/Escape",
+      "mobile": {
+        "mode": "static",
+        "videoCount": 0,
+        "src": null,
+        "scrollY": 0,
+        "scrollHeight": 2843,
+        "sectionTop": 844,
+        "sectionHeight": 1797.8125,
+        "endTop": 2640.8125,
+        "activeElement": "<body>\n    <div id=\"root\"><div class=\"mk-landing min-h-full overflow-x-clip bg-bg-deep text-text\"><header data-landing-header=\"true\" class=\"fixed inset-x-0 top-0 z-50 border-b pt-[env(safe-area-inset-top)] transition-[background-color,backdrop-filter",
+        "lenisCount": 0
+      },
+      "restored": {
+        "mode": "static",
+        "videoCount": 0,
+        "src": null,
+        "scrollY": 0,
+        "scrollHeight": 3859,
+        "sectionTop": 1620,
+        "sectionHeight": 2105.171875,
+        "endTop": 3724.171875,
+        "activeElement": "<body>\n    <div id=\"root\"><div class=\"mk-landing min-h-full overflow-x-clip bg-bg-deep text-text\"><header data-landing-header=\"true\" class=\"fixed inset-x-0 top-0 z-50 border-b pt-[env(safe-area-inset-top)] transition-[background-color,backdrop-filter",
+        "lenisCount": 1
+      }
+    },
+    {
+      "name": "compiled hero/nav preserved and footer destinations valid",
+      "compiledHero": "mokaid",
+      "compiledNav": [
+        "#product",
+        "/pricing"
+      ],
+      "footerLinks": [
+        {
+          "text": "Pricing",
+          "href": "/pricing"
+        },
+        {
+          "text": "Download",
+          "href": "/download"
+        },
+        {
+          "text": "Privacy",
+          "href": "/privacy"
+        },
+        {
+          "text": "Terms",
+          "href": "/terms"
+        },
+        {
+          "text": "Cookies",
+          "href": "/cookies"
+        },
+        {
+          "text": "Refunds",
+          "href": "/refund"
+        },
+        {
+          "text": "Legal",
+          "href": "/legal"
+        },
+        {
+          "text": "Contact",
+          "href": "mailto:contact@yapio.io"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "sourceChecksStartedAt": "2026-09-25T15:05:31.549Z",
+  "status": "passed",
+  "finishedAt": "2026-09-25T15:10:48.207Z"
+}

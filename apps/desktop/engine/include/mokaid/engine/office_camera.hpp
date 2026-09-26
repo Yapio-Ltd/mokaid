@@ -50,19 +50,13 @@ inline OfficeCamera fitOfficeGeometry(OfficeCamera camera, std::span<const Vec3>
     minY = std::min(minY, p.y / p.w); maxY = std::max(maxY, p.y / p.w);
   }
   const float wide = std::clamp((aspect - 1.45F) / .65F, 0.F, 1.F);
-  // Narrow and square panes need a slightly gentler crop so a standing person
-  // at the screen-left lounge stays inside the frame. The wide office view
-  // keeps the same tightness as before.
-  const float span = 2.135F + .325F * wide;
+  // Keep the authored office dominant while showing the connected circulation
+  // and adjacent workspaces at its perimeter. Only the overview uses this fit;
+  // the immersive camera retains its human-height field of view.
+  const float span = (2.135F + .325F * wide) * .80F;
   const float scale = span / std::max({maxX - minX, maxY - minY, .01F});
   const float cx = (minX + maxX) * .5F, cy = (minY + maxY) * .5F;
-  // Aim left of the room's silhouette center to keep the lounge sofa whole
-  // and spend the wide-view crop on the empty floor to the right.
-  const float horizontalOffset = .19F * wide;
-  // Tighten the wide office view around the desks; retain the gentler crop
-  // in the narrow pane beside chat.
-  // The outer plinth may extend slightly beyond the viewport edge;
-  // workstations and activity positions stay inside the usable view.
+  const float horizontalOffset = .05F * wide;
   for (int c = 0; c < 4; ++c) {
     camera.viewProjection.m[c * 4] = scale * (camera.viewProjection.m[c * 4] - cx * camera.viewProjection.m[c * 4 + 3])
         + horizontalOffset * camera.viewProjection.m[c * 4 + 3];

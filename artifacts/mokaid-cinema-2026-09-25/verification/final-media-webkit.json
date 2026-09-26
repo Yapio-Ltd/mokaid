@@ -1,0 +1,413 @@
+{
+  "fixtureOnly": false,
+  "testMode": "final-media",
+  "disclaimer": "Actual fingerprinted 1080p media through the supplied server. Automated browser/decoder checks do not establish creative continuity, native Safari or real mobile hardware performance.",
+  "timestamp": "2026-09-25T15:26:29.863Z",
+  "engine": "webkit",
+  "origin": "http://127.0.0.1:4173",
+  "media": {
+    "source": "/assets/mokaid-office-journey.adac1c365481.mp4",
+    "sha256": "adac1c36548182a4b68137fdba12dbe084290d6729ff75f5be6adc1a87281ff3",
+    "bytes": 70724025,
+    "width": 1920,
+    "height": 1080,
+    "duration": 74,
+    "fps": 24,
+    "codec": "h264",
+    "audio": false
+  },
+  "passed": [
+    "existing prerender without JavaScript: three visible moments, CTA, no film layers or MP4 requests",
+    "first presented frame + full seekable range before promotion",
+    "all scroll milestones, reversal to zero, large jumps",
+    "latest target coalescing",
+    "paused/muted/inline throughout",
+    "five notifications + fully visible final CTA",
+    "exit has no captions",
+    "mobile viewport: no video request, three readable moments, CTA, no horizontal overflow",
+    "reduced motion: no video request, three readable moments, CTA, no horizontal overflow",
+    "failed video request retains static fallback",
+    "visitor enters before readiness: static layout locked, no late promotion",
+    "actual media with 3-second response latency: safe readiness, forward and reverse seeks",
+    "without requestVideoFrameCallback: loadeddata/seeked compatibility path"
+  ],
+  "samples": [
+    {
+      "requestedTime": 7,
+      "targetTime": 7,
+      "presentedTime": 7,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 121
+    },
+    {
+      "requestedTime": 13,
+      "targetTime": 13,
+      "presentedTime": 13,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 59
+    },
+    {
+      "requestedTime": 20,
+      "targetTime": 20,
+      "presentedTime": 20,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 664
+    },
+    {
+      "requestedTime": 32,
+      "targetTime": 32,
+      "presentedTime": 32,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 227
+    },
+    {
+      "requestedTime": 42,
+      "targetTime": 42,
+      "presentedTime": 41.958,
+      "errorSeconds": 0.04200000000000159,
+      "errorFrames": 1.0080000000000382,
+      "settledMs": 107
+    },
+    {
+      "requestedTime": 51,
+      "targetTime": 51,
+      "presentedTime": 51,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 45
+    },
+    {
+      "requestedTime": 61,
+      "targetTime": 61,
+      "presentedTime": 61,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 55
+    },
+    {
+      "requestedTime": 67,
+      "targetTime": 67,
+      "presentedTime": 67,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 45
+    },
+    {
+      "requestedTime": 74,
+      "targetTime": 73.95833333333333,
+      "presentedTime": 73.917,
+      "errorSeconds": 0.041333333333327005,
+      "errorFrames": 0.9919999999998481,
+      "settledMs": 60
+    },
+    {
+      "requestedTime": 0,
+      "targetTime": 0,
+      "presentedTime": 0,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 377
+    },
+    {
+      "requestedTime": 72,
+      "targetTime": 72,
+      "presentedTime": 71.958,
+      "errorSeconds": 0.04200000000000159,
+      "errorFrames": 1.0080000000000382,
+      "settledMs": 63
+    },
+    {
+      "requestedTime": 2,
+      "targetTime": 2,
+      "presentedTime": 1.958,
+      "errorSeconds": 0.04200000000000004,
+      "errorFrames": 1.008000000000001,
+      "settledMs": 50
+    },
+    {
+      "requestedTime": 55,
+      "targetTime": 55,
+      "presentedTime": 55,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 210
+    },
+    {
+      "requestedTime": 18,
+      "targetTime": 18,
+      "presentedTime": 17.958,
+      "errorSeconds": 0.04200000000000159,
+      "errorFrames": 1.0080000000000382,
+      "settledMs": 57
+    },
+    {
+      "requestedTime": 65,
+      "targetTime": 65,
+      "presentedTime": 65,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 304
+    },
+    {
+      "requestedTime": 74,
+      "targetTime": 73.95833333333333,
+      "presentedTime": 73.917,
+      "errorSeconds": 0.041333333333327005,
+      "errorFrames": 0.9919999999998481,
+      "settledMs": 49
+    }
+  ],
+  "version": "26.5",
+  "prerender": {
+    "status": "passed",
+    "source": "apps/web/dist/index.html",
+    "sha256": "ff00843b76a7d3bcf7f045a57217279ec7442d02aeac20c32410847f1f9ac4a9",
+    "javaScriptEnabled": false,
+    "illustratedMoments": 3,
+    "filmLayers": 0,
+    "videoElements": 0,
+    "mp4Requests": 0
+  },
+  "readiness": {
+    "mode": "cinematic",
+    "top": 1620,
+    "height": 11700,
+    "viewport": 900,
+    "scroll": 0,
+    "hidden": false,
+    "currentTime": 0,
+    "presentedTime": 0,
+    "readyState": 4,
+    "duration": 74,
+    "seeking": false,
+    "paused": true,
+    "muted": true,
+    "playsInline": true,
+    "playsInlineProperty": true,
+    "hasVideoFrameCallback": true,
+    "seekable": [
+      [
+        0,
+        74
+      ]
+    ]
+  },
+  "rangeProbe": {
+    "status": 206,
+    "contentRange": "bytes 0-1023/70724025",
+    "contentType": "video/mp4",
+    "bytes": 1024
+  },
+  "rangeRequests": [
+    "bytes=0-1",
+    "bytes=0-70724024",
+    "bytes=32440320-39059455",
+    "bytes=37289984-39059455",
+    "bytes=39518208-70724024",
+    "bytes=43253760-70724024",
+    "bytes=51183616-70724024",
+    "bytes=63242240-70724024",
+    "bytes=65536-31326207",
+    "bytes=69140480-70724024",
+    "bytes=1048576-1703935",
+    "bytes=1245184-1310719",
+    "bytes=1310720-1376255",
+    "bytes=53280768-69140479",
+    "bytes=54132736-54198271",
+    "bytes=54198272-54263807",
+    "bytes=54263808-54329343",
+    "bytes=54329344-54394879",
+    "bytes=69337088-70385663",
+    "bytes=16777216-17891327",
+    "bytes=31391744-53280767",
+    "bytes=63438848-70724024",
+    "bytes=64159744-64225279",
+    "bytes=64225280-64290815",
+    "bytes=64290816-64356351",
+    "bytes=48955392-54198271",
+    "bytes=54394880-63438847"
+  ],
+  "mediaResponses": [
+    {
+      "status": 206,
+      "contentRange": "bytes 0-1/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 0-70724024/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 32440320-39059455/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 37289984-39059455/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 39518208-70724024/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 43253760-70724024/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 51183616-70724024/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 63242240-70724024/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 65536-31326207/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 69140480-70724024/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 1048576-1703935/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 1245184-1310719/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 1310720-1376255/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 53280768-69140479/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 54132736-54198271/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 54198272-54263807/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 54263808-54329343/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 54329344-54394879/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 69337088-70385663/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 16777216-17891327/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 31391744-53280767/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 63438848-70724024/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 64159744-64225279/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 64225280-64290815/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 64290816-64356351/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 48955392-54198271/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 54394880-63438847/70724025",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    }
+  ],
+  "slowResponse": {
+    "status": "passed",
+    "injectedResponseLatencyMs": 3000,
+    "readyAfterMs": 4689,
+    "mode": "cinematic",
+    "caveat": "Response latency test; not a sustained bandwidth throttle."
+  },
+  "seekSummary": {
+    "count": 16,
+    "medianMs": 63,
+    "p95Ms": 664,
+    "maxMs": 664,
+    "maxErrorFrames": 1.0080000000000382
+  },
+  "status": "passed"
+}

@@ -1,0 +1,48 @@
+[
+  {
+    "index": 4,
+    "id": "office",
+    "sourceDuration": 12,
+    "outputDuration": 12,
+    "description": "SCENE 4 — THE OFFICE IS ALIVE. Start EXACTLY in the provided over-shoulder office view behind the woman in ivory knit. Camera glides past her desk, then follows a slow elegant S-curve through the central working aisle toward the blue-lit meeting room on the RIGHT. Multiple distinct AI employees actively work: violet-shirt man reviews a chart; slate-blue-shirt woman reads a document; amber-sweater man types; spectacles man briefly shares a tablet. Short authentic gestures, no exaggerated acting, nobody notices camera. Foreground desks, plants and chairs pass close with natural parallax. Fixed furniture and lighting, physically plausible eye-to-waist-height dolly. Preserve office geography: coffee bar rear center, lounge left, meeting room right. Screens show abstract bars and task cards, NO readable text. END just OUTSIDE the glass meeting-room entrance looking toward the violet-shirt man walking toward it, preparing next collaboration scene. Never enter or show any tunnel. End with gentle deceleration; no hard cuts or objects morphing. SOUND: natural keyboards, mouse clicks, low room ambience, very quiet indistinct murmur; no music, no dialogue, no voiceover."
+  },
+  {
+    "index": 5,
+    "id": "collaboration",
+    "sourceDuration": 10,
+    "outputDuration": 10,
+    "endImage": "0bd1d762-bca6-403e-a711-f617740f4057",
+    "description": "SCENE 5 — THEY WORK TOGETHER. Continue EXACTLY from the supplied workstation first frame in the same digital office. Camera follows the violet-overshirt man as he walks naturally toward the blue glass meeting room on the RIGHT. He carries a thin dark tablet showing abstract task shapes, hands it to the woman with slate-blue shirt. Follow through the existing glass entrance into the meeting room. Three coworkers sit around graphite table: violet-shirt man, slate-blue-shirt woman, dark-spectacles man in charcoal jacket. They look at shared tablet, subtly point at abstract business analytics on wall display and agree on next action. No readable text. End matching the provided meeting-room keyframe. Smooth physical tracking and modest orbital movement, foreground glass and desk parallax, no cuts, no teleportation, no impossible doors, no duplicate people. Other work continues through glass background. SOUND: quiet human murmur without intelligible speech, small chair movements, gentle digital confirmation, office ambience. No voiceover."
+  },
+  {
+    "index": 6,
+    "id": "life",
+    "sourceDuration": 12,
+    "outputDuration": 9,
+    "endImage": "1eafd92f-dd7e-4f83-ba4c-ad24c503dfe5",
+    "description": "SCENE 6 — THEY ALSO HAVE A LIFE. Begin at the exact meeting room frame. One uninterrupted physical camera track through the SAME office. First glide OUT through the blue meeting-room entrance and toward the warm coffee bar at BACK CENTER, passing the violet paths and desks. Around seconds 3-6, pass close to the espresso machine where auburn-haired woman in sage blouse takes a ceramic cup: espresso pouring and delicate steam in amber light, a brief beautiful coffee detail. She briefly smiles toward nearby coworker, understated adult acting. Then follow the floor path toward the foosball table FRONT RIGHT. Around seconds 8-12 arrive near two adult coworkers (violet-shirt man and amber-sweater man) casually playing foosball; one scores a small point and gets a subtle playful smile. End matching the supplied foosball composition. Never exaggerated cartoon reactions. Coffee and foosball are TWO different moments in one camera travel; camera smoothly speeds between stations and slows near action. Keep desks, blue meeting-room position, coffee bar, chairs and plants fixed. Some workers still type in background. SOUND: short espresso machine pour, cup touch, low indistinct friendly murmur, foosball rods and soft ball impact, persistent distant keyboards. No intelligible dialogue, no voiceover."
+  },
+  {
+    "index": 7,
+    "id": "execution",
+    "sourceDuration": 10,
+    "outputDuration": 10,
+    "endImage": "e6d0c76c-c1de-48c3-9f55-e8570bbfc8f9",
+    "description": "SCENE 7 — THE OFFICE ACCELERATES. Begin exactly at foosball table first frame. Camera flows past table, back toward working desks in this same office. Activity progressively increases. The ivory-knit woman completes a report; violet-shirt man finishes an analysis; slate-blue-shirt woman completes a scheduling task; spectacles man publishes content; amber-shirt man validates a request. Do not show readable UI. Indicate finished tasks through small green confirmation lights on screens, abstract task cards resolving and screens calmly changing to completed. Avoid floating text or labels. The violet floor pathways brighten very subtly as work completes in parallel. Camera initially glides slowly between desks, then speeds along one glowing floor line. Finally arcs smoothly outward and slightly upward toward the ORIGINAL entrance perspective looking BACK INTO the entire office, ending exactly on the supplied wide reference. This positions us to retreat out of the laptop in next scene. No sudden reversal, no cut, no spinning, no geometry morph. Main focus productive workers and elegant parallax. SOUND: rhythmic typing, several tasteful soft success chimes, subtle rising low electronic musical pulse (very restrained), energetic office ambience, no voiceover or intelligible dialogue."
+  },
+  {
+    "index": 8,
+    "id": "return",
+    "sourceDuration": 8,
+    "outputDuration": 6,
+    "endImage": "53b1e0e4-1963-47d4-8da8-e5b7d5056ee2",
+    "description": "SCENE 8 — EXIT THE WORLD. Start exactly at supplied wide office first frame, facing INTO the office. Camera now retreats smoothly BACKWARD while continuing to look into the room. The glowing violet floor paths converge visually as the room recedes. Within first two seconds, a thin luminous rectangular boundary appears at edges of the view: we are retreating backward through the SAME laptop screen plane. The digital office becomes a miniature world within that screen. Camera emerges BACKWARD into the EXACT original real-world cafe supplied as end reference. Reveal the same graphite laptop, same ivory ceramic cup to RIGHT, walnut table, morning sunlight through LEFT windows, barista and customers softened behind. Do not invent a different cafe. The miniature office fades only INSIDE screen into its original navy/violet resting glow after crossing, without changing laptop. Fast controlled backward track then elegant strong deceleration, end EXACTLY on original cafe keyframe, camera completely still final second. Physically coherent scale change, no separate cut, no unrelated tunnel, no robot motion. SOUND: digital office collapses into short spatial whoosh, original real cafe ambience returns, rising electronic pulse resolves gently. No voiceover, no dialogue, no text, no logo, no notifications (added natively later)."
+  },
+  {
+    "index": 9,
+    "id": "completed",
+    "sourceDuration": 8,
+    "outputDuration": 7,
+    "description": "SCENE 9 — THE PAYOFF. This shot is the final resting point. Start EXACTLY from supplied last frame of return to cafe. Camera is COMPLETELY LOCKED OFF, no dolly, no zoom, no pan. Same graphite laptop centered on same walnut table, ivory cup to its right, warm morning cafe, people softly defocused. Very subtle coffee steam and tiny natural background life. Laptop screen remains dark navy/violet empty clean, planar and stable. Keep all foreground objects completely fixed. Do NOT generate any notifications, UI text, logo, captions or checkmarks. These will be added as clean native graphic layers later; leave laptop and its surrounding negative space clear. Premium commercial calm finish, soft light, no cuts. SOUND: quiet coffee-shop ambience; five delicate isolated success chimes spaced across first four seconds, then a very restrained short musical resolution, finish calm. No intelligible speech and no voiceover."
+  }
+]

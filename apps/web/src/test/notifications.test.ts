@@ -54,12 +54,12 @@ describe("formatNotificationBody", () => {
 
 describe("notification helpers", () => {
   it("picks tone and CTA by kind", () => {
-    expect(notificationTone("ai_run_completed")).toBe("warning");
+    expect(notificationTone("ai_run_completed")).toBe("success");
     expect(notificationTone("ai_run_failed")).toBe("error");
     expect(notificationCta(base)).toBe("Voir conversation");
     expect(
       notificationCta({ ...base, kind: "ai_run_completed", title: "Ready for review: X" }),
-    ).toBe("Approve");
+    ).toBe("View response");
   });
 
   it("reflects resolved task status on completed reviews", () => {
@@ -72,10 +72,10 @@ describe("notification helpers", () => {
     };
     expect(notificationTone(approved.kind, approved.resource_status)).toBe("success");
     expect(formatNotificationTitle(approved)).toEqual({
-      eyebrow: "Approved",
+      eyebrow: "Completed",
       headline: "Qui a signer",
     });
     expect(notificationCta(approved)).toBe("View task");
-    expect(formatNotificationBody(approved)).toBe("This task was approved.");
+    expect(formatNotificationBody(approved)).toBe("This task is complete.");
   });
 });

@@ -26,6 +26,8 @@ defmodule MokaidWeb.Endpoint do
   plug MokaidWeb.Plugs.TrustedProxy
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  plug MokaidWeb.Plugs.RuntimeWebhookBody
+
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],

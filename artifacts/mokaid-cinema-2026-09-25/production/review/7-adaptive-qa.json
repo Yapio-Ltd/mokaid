@@ -1,0 +1,121 @@
+{
+  "review": "scene-7-adaptive-framing-and-continuity",
+  "reviewDate": "2026-09-25",
+  "status": "accepted_for_social_exports",
+  "method": {
+    "visualInspection": "view_image on 11 sampled frames per clip at integer seconds 0 through 10, square original plus the centered 4:5 crop, and paired first/last endpoint sheets.",
+    "sampleFrames": [
+      0,
+      24,
+      48,
+      72,
+      96,
+      120,
+      144,
+      168,
+      192,
+      216,
+      240
+    ],
+    "limits": [
+      "Sampled visual inspection does not certify every intervening frame or detailed finger anatomy.",
+      "Audio was not listened to; only presence of one audio stream per source was verified."
+    ],
+    "noGenerationOrSandboxUsed": true,
+    "noSharedManifestModified": true
+  },
+  "commonObservations": [
+    "Exactly two main foosball players remain visible during sampled frames; no disappearing or duplicated player observed.",
+    "The graphite foosball table keeps its dark field, red/black figures, straight rods and recognizable legs across the sampled travelling; no switch to a green field or transformation into a desk.",
+    "Both complete heads and interacting hands remain legible in 9:16 and centered 4:5. Peripheral body/table edges are tighter in 9:16, especially at the endpoints, but the main action is retained.",
+    "Blue glass meeting room remains behind/right, amber coffee counter behind/left; the camera retreat reveals more existing office without an obvious location change in the samples.",
+    "Green confirmation graphics become visible on office displays later in the shot; some are stylized angled marks rather than a perfectly identical glyph.",
+    "First frames closely match the first frames of the accepted scene 6 reverse sources (which become scene 6 final frames during export).",
+    "Last frames closely match the true accepted horizontal scene 7 final frame cropped at focusX 0.65."
+  ],
+  "integration": {
+    "portrait": "Use07-execution-portrait.mp4 for 9:16, normal forward picture/audio; match scene 8 initial focusX 0.65 before its approved smooth return to 0.50.",
+    "square": "Use07-execution-square.mp4 for 4:5, centered crop of its 1440×1440 image to 1152×1440 before scaling 1080×1350; match scene 8 initial focusX 0.65.",
+    "endReference": "Accepted07-execution.mp4 frame 240 at 10s, 1916×1080 source, cover crop focusX 0.65 / focusY 0.50. The square end target had source 1080×1080 at x575.8 then centered 4:5, equivalent to horizontal 4:5 cover crop.",
+    "source6Portrait": "clips/06-life-portrait-reverse.mp4 frame 0, normalized portrait center cover, job fc8b84f0-b326-4d44-a33a-66320ecc02c3",
+    "source6Square": "clips/06-life-square-reverse.mp4 frame 0, centered 4:5crop, job b427076e-5060-419a-8f30-ad2cfdc14814"
+  },
+  "clips": [
+    {
+      "variant": "portrait",
+      "jobId": "1254b527-037e-4ce6-8b9c-76caa2b23c95",
+      "file": "clips/07-execution-portrait.mp4",
+      "sha256": "71de5dcd77e3aead6e03cefc6d3550a4518136d8c13826cd0729c4e121a55e15",
+      "fileBytes": 20484872,
+      "width": 1080,
+      "height": 1920,
+      "frames": 241,
+      "frameRate": "24/1",
+      "videoDuration": "10.041667",
+      "audioStreams": 1,
+      "sampleFrames": [
+        0,
+        24,
+        48,
+        72,
+        96,
+        120,
+        144,
+        168,
+        192,
+        216,
+        240
+      ],
+      "endpointMeanAbsoluteRGBDifference255": {
+        "start": 2.64,
+        "end": 4.938
+      },
+      "verdict": "accepted",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_141928_1254b527-037e-4ce6-8b9c-76caa2b23c95.mp4",
+      "contactSheet": "production/review/7-adaptive-portrait-contact.jpg",
+      "endpointSheet": "production/review/7-adaptive-portrait-joins.jpg"
+    },
+    {
+      "variant": "square",
+      "jobId": "e27cf9f0-b299-4773-803b-abe8055fd872",
+      "file": "clips/07-execution-square.mp4",
+      "sha256": "b678aa0d107c4b387699d0863a81caee08950d8c5a3341a7a3cb9101de1db604",
+      "fileBytes": 23504201,
+      "width": 1440,
+      "height": 1440,
+      "frames": 241,
+      "frameRate": "24/1",
+      "videoDuration": "10.041667",
+      "audioStreams": 1,
+      "sampleFrames": [
+        0,
+        24,
+        48,
+        72,
+        96,
+        120,
+        144,
+        168,
+        192,
+        216,
+        240
+      ],
+      "endpointMeanAbsoluteRGBDifference255": {
+        "start": 2.938,
+        "end": 3.429
+      },
+      "verdict": "accepted",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_141928_e27cf9f0-b299-4773-803b-abe8055fd872.mp4",
+      "contactSheet": "production/review/7-adaptive-square-contact.jpg",
+      "endpointSheet": "production/review/7-adaptive-square-joins.jpg"
+    }
+  ],
+  "evidence": [
+    "production/review/7-adaptive-portrait-contact.jpg",
+    "production/review/7-adaptive-square-contact.jpg",
+    "production/review/7-adaptive-square-raw-contact.jpg",
+    "production/review/7-adaptive-portrait-joins.jpg",
+    "production/review/7-adaptive-square-joins.jpg"
+  ],
+  "audioReview": "Not listened; no assertion about dialogue, music, artifacts or sound transitions."
+}

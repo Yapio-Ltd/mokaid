@@ -1,0 +1,18 @@
+{
+  "asset": "apps/desktop/presentation/assets/marketplace-hero.png",
+  "generated_on": "2026-09-25",
+  "tool": "image_gen",
+  "mode": "built-in",
+  "purpose": "Marketplace hero background matching the supplied native Marketplace design reference.",
+  "reference": {
+    "path": "/Users/olimservice/Downloads/ChatGPT Image Sep 25, 2026, 10_54_54 AM.png",
+    "role": "User-supplied style and subject reference; top-left page hero banner."
+  },
+  "prompt": "Use case: stylized-concept.\nAsset type: production marketplace hero raster background for a dark native desktop app.\nInput image 1 is a style and subject reference only: a multi-screen marketplace UI sheet. Extract inspiration ONLY from its top-left page hero banner (the purple cute robot at far right with dark purple cosmic energy behind), not the entire UI.\nPrimary request: a polished wide hero illustration recreating the visual art direction of that banner. Aspect ratio 3:1, ideally 1536x512; will be displayed at ~1200x300 with mild vertical crop.\nComposition: keep the left 55% very dark navy purple #090b13, with extremely subtle smooth violet ambient haze suitable for legible overlaid white heading. All main detail on right half. At x=79% y=53% place one charming small pale-lilac 3D cartoon robot facing viewer, big smooth rounded head, two shiny dark purple friendly eyes, tiny smile, purple fin tuft at crown, rounded floating hands, small cylindrical violet body with a simple white four-point sparkle on chest, short rounded feet, beautiful soft toy material. Robot fills about 65% of image height and stays fully within the middle vertical 75%, leaving safe crop space.\nBackdrop: a luminous violet curved planetary arc behind the robot, flowing electric violet smoke and silk-like waves, subtle small glowing stars, near-black dark navy edges. Attractive dramatic but soft purple rim lighting, subtle glossy highlights, refined premium 3D render matching the reference.\nConstraints: standalone background art only; no text, no typography, no letters, no UI, no borders, no card frames, no buttons, no logos, no watermark. Left half must stay mostly empty and dark. Reference image must not appear literally in the output.",
+  "source_output": "/Users/olimservice/.codex/generated_images/01a0d792-d346-7620-b650-544d03557367/exec-6770ed6d-bcd3-4bc1-8346-2cc5e3d3cd87.png",
+  "dimensions": {
+    "width": 2172,
+    "height": 724
+  },
+  "processing": "Copied unchanged from the generated PNG to the project asset directory."
+}

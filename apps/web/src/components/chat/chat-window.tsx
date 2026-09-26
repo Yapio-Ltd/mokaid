@@ -8,8 +8,6 @@ import {
   Plus,
   Send,
   ShieldAlert,
-  ThumbsDown,
-  ThumbsUp,
   Upload,
   X,
 } from "lucide-react";
@@ -17,11 +15,9 @@ import type { Agent, AgentChatConversation } from "@/api/types";
 import {
   useAgentChatMessages,
   useAgentConversations,
-  useApproveTaskAction,
   useMarkAgentChatRead,
   useNewConversation,
   useSendAgentChatMessage,
-  useTask,
   useUploadDriveFile,
 } from "@/api/hooks";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
@@ -74,71 +70,21 @@ function LiveActivityChip({ taskId }: { taskId: string }) {
     [feed],
   );
   if (!current) return null;
+  const exportingPdf = current.tool === "export_pdf" && current.status === "awaiting_approval";
 
   return (
     <div className="flex items-center gap-2 px-1">
       <span className="flex max-w-full items-center gap-1.5 rounded-full border border-info/25 bg-info/8 px-2.5 py-1">
-        {current.status === "awaiting_approval" ? (
+        {current.status === "awaiting_approval" && !exportingPdf ? (
           <ShieldAlert size={11} className="shrink-0 text-warning" />
         ) : (
           <Loader2 size={11} className="shrink-0 animate-spin text-info" />
         )}
         <span className="min-w-0 truncate text-[11px] text-text-secondary">
-          {current.description || current.tool}
+          {exportingPdf ? "Exporting PDF…" : current.description || current.tool}
         </span>
       </span>
     </div>
-  );
-}
-
-/**
- * Inline approval: when the agent's current mission (born in or delivered to
- * this chat) pauses on a risky action, decide without leaving the thread.
- */
-function InlineApprovalCard({ agent }: { agent: Agent }) {
-  const { data } = useTask(agent.current_task_id);
-  const approveAction = useApproveTaskAction();
-  const task = data?.data;
-  const pending = task?.pending_approval;
-
-  // Only surface missions anchored to this agent's chat — others live in the
-  // global review gate.
-  if (!task || !pending || task.chat_agent_id !== agent.id) return null;
-
-  const decide = (decision: "approved" | "rejected") =>
-    approveAction.mutate({ taskId: task.id, approvalRequestId: pending.id, decision });
-
-  return (
-    <FadeSlide className="flex items-end gap-2">
-      <AgentAvatar agent={agent} size="xs" showRing={false} showBadge={false} />
-      <div className="max-w-[85%] rounded-2xl rounded-bl-sm border border-warning/30 bg-warning/8 px-3 py-2.5">
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold text-text">
-          <ShieldAlert size={12} className="shrink-0 text-warning" />
-          I need your go-ahead
-        </p>
-        <p className="mt-1 text-[12px] leading-snug text-text-secondary">
-          {pending.proposed_action}
-        </p>
-        <div className="mt-2 flex gap-1.5">
-          <button
-            type="button"
-            disabled={approveAction.isPending}
-            onClick={() => decide("approved")}
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            <ThumbsUp size={11} /> Approve
-          </button>
-          <button
-            type="button"
-            disabled={approveAction.isPending}
-            onClick={() => decide("rejected")}
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-[11px] font-medium text-text transition-colors hover:bg-surface-hover disabled:opacity-50"
-          >
-            <ThumbsDown size={11} /> Reject
-          </button>
-        </div>
-      </div>
-    </FadeSlide>
   );
 }
 
@@ -516,13 +462,9 @@ export function ChatWindow({ agent }: { agent: Agent }) {
               </div>
             )}
 
-            {/* Mission activity: live tool chip + inline approval when the
-                agent's current mission is anchored to this chat. */}
+            {/* Live activity for the agent's current mission. */}
             {agent.kind === "ai" && agent.current_task_id && (
-              <>
-                <LiveActivityChip taskId={agent.current_task_id} />
-                <InlineApprovalCard agent={agent} />
-              </>
+              <LiveActivityChip taskId={agent.current_task_id} />
             )}
           </div>
 

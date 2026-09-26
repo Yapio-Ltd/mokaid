@@ -36,10 +36,19 @@ def test_policy_default_matches_balanced_mode():
     assert policy.decision("send_email") == "ask"
 
 
-def test_policy_supervised_gates_medium_risk():
+def test_supervision_reviews_results_without_interrupting_content_generation():
     policy = ApprovalPolicy({"mode": "supervised"})
-    assert policy.decision("draft_document") == "ask"
+    assert policy.decision("draft_document") == "auto"
+    assert policy.decision("generate_report") == "auto"
+    assert policy.decision("export_pdf") == "auto"
     assert policy.decision("web_search") == "auto"
+    assert policy.decision("send_email") == "ask"
+
+
+def test_pdf_export_is_an_internal_deliverable():
+    assert risk_for_tool("export_pdf") == RiskLevel.MEDIUM
+    assert not requires_approval("export_pdf")
+    assert ApprovalPolicy().decision("export_pdf") == "auto"
 
 
 def test_policy_autonomous_only_gates_critical():

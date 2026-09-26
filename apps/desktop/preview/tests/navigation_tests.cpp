@@ -56,7 +56,7 @@ public:
                     const auto path = QString::fromUtf8(bytes.split(' ').value(1));
                     QByteArray body, mime = "application/json";
                     int status = 200;
-                    if (path == "/api/desktop/auth/token") body = R"({"data":{"access_token":"fixture-access","refresh_token":"fixture-refresh-next","token_type":"Bearer","expires_in":600,"user":{"id":"preview-user"}}})";
+                    if (path == "/api/desktop/auth/refresh") body = R"({"data":{"access_token":"fixture-access","refresh_token":"fixture-refresh-next","token_type":"Bearer","expires_in":600,"user":{"id":"preview-user"}}})";
                     else if (path == "/api/me") body = R"({"user":{"id":"preview-user"},"workspaces":[{"id":"preview-workspace","name":"Preview fixture"}]})";
                     else if (path.endsWith("/raw")) {
                         rawRequests.append(path);

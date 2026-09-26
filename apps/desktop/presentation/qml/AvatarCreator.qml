@@ -48,7 +48,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true; spacing: 8
         Repeater {
-            model: [{ key: "catalog", label: "Characters", icon: "agents" }, { key: "image", label: "From a photo", icon: "image" }, { key: "text", label: "Describe it", icon: "file" }]
+            model: [{ key: "catalog", label: "Characters", icon: "agents" }, { key: "image", label: "From a photo", icon: "image" }, { key: "text", label: "Describe it", icon: "pen" }]
             MokaidButton {
                 required property var modelData
                 objectName: "avatarSource_" + modelData.key

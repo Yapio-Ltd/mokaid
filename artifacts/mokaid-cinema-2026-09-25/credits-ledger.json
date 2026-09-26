@@ -1,0 +1,221 @@
+{
+  "initialBalance": 933.5,
+  "budgetCeiling": 933.5,
+  "verifiedRemainingBalance": 466,
+  "verifiedSpent": 467.5,
+  "verifiedAt": "2026-09-25T14:33:00Z",
+  "generationCount": 32,
+  "entries": [
+    {
+      "jobId": "53b1e0e4-1963-47d4-8da8-e5b7d5056ee2",
+      "type": "reference-image",
+      "credits": 2.75,
+      "status": "completed"
+    },
+    {
+      "jobId": "ba78de97-b905-4412-9712-c82cb9eb6d73",
+      "type": "reference-image",
+      "credits": 2.75,
+      "status": "completed"
+    },
+    {
+      "jobId": "e6d0c76c-c1de-48c3-9f55-e8570bbfc8f9",
+      "type": "reference-image",
+      "credits": 2.75,
+      "status": "completed"
+    },
+    {
+      "jobId": "59c354fd-7b64-44dd-985e-24dc01b0fb75",
+      "type": "reference-image",
+      "credits": 2.75,
+      "status": "completed"
+    },
+    {
+      "jobId": "0bd1d762-bca6-403e-a711-f617740f4057",
+      "type": "reference-image",
+      "credits": 2.75,
+      "status": "completed"
+    },
+    {
+      "jobId": "5ffc47ca-e2ee-4f65-ab0a-6516bdbc7f32",
+      "type": "reference-image",
+      "credits": 2.75,
+      "status": "completed"
+    },
+    {
+      "jobId": "1eafd92f-dd7e-4f83-ba4c-ad24c503dfe5",
+      "type": "reference-image",
+      "credits": 2.75,
+      "status": "completed"
+    },
+    {
+      "jobId": "dc0eafe1-ce4e-4eab-96fd-816e19e5f3f1",
+      "type": "reference-image",
+      "credits": 2.75,
+      "status": "completed"
+    },
+    {
+      "jobId": "0829f57d-0623-4322-a658-b2658f1b1b3c",
+      "type": "main-video",
+      "scene": 1,
+      "credits": 16,
+      "status": "completed"
+    },
+    {
+      "jobId": "7cde95ba-1496-491d-a290-a7c8fe5f8ee6",
+      "type": "main-video",
+      "scene": 2,
+      "credits": 16,
+      "status": "completed"
+    },
+    {
+      "jobId": "5a9f8e45-1c18-4b74-93d6-13e37f1ccf43",
+      "type": "main-video",
+      "scene": 3,
+      "credits": 16,
+      "status": "completed"
+    },
+    {
+      "jobId": "325148f5-0361-4ca4-bdcb-3e07d141cc29",
+      "type": "main-video",
+      "scene": 4,
+      "credits": 24,
+      "status": "completed"
+    },
+    {
+      "jobId": "e0ad540e-ccd4-4ae7-a3bd-a487b820bf55",
+      "type": "main-video",
+      "scene": 5,
+      "credits": 20,
+      "status": "completed"
+    },
+    {
+      "jobId": "be06d542-080d-4693-9cf9-fc02891e1857",
+      "type": "main-video",
+      "scene": 6,
+      "credits": 24,
+      "status": "completed"
+    },
+    {
+      "jobId": "497ccc5f-f8c4-4234-8998-ec022d3f2bf1",
+      "type": "main-video",
+      "scene": 7,
+      "credits": 20,
+      "status": "completed"
+    },
+    {
+      "jobId": "2da36446-b47a-4223-bbb0-a758e17c6617",
+      "type": "main-video",
+      "scene": 8,
+      "credits": 16,
+      "status": "completed"
+    },
+    {
+      "jobId": "412037b3-d90a-4db6-abdd-3dd6003cc5de",
+      "type": "main-video",
+      "scene": 9,
+      "credits": 16,
+      "status": "completed"
+    },
+    {
+      "jobId": "a6668512-6dbb-4733-ba9f-b12322b33003",
+      "type": "main-video",
+      "scene": 3,
+      "credits": 16,
+      "status": "rejected"
+    },
+    {
+      "jobId": "3135dd2b-b53d-4133-8b2b-cda69a1f6728",
+      "type": "main-video",
+      "scene": 3,
+      "credits": 16,
+      "status": "rejected"
+    },
+    {
+      "jobId": "86573a80-1b09-46f0-b5e6-b00faf7cde84",
+      "type": "main-video",
+      "scene": 7,
+      "credits": 20,
+      "status": "rejected"
+    },
+    {
+      "jobId": "8449a9ca-c2a4-457e-b68d-dd610fef3c84",
+      "type": "main-video",
+      "scene": 7,
+      "credits": 20,
+      "status": "rejected"
+    },
+    {
+      "jobId": "cf1155e7-6d12-4382-9725-7f7621ac01fb",
+      "type": "main-video",
+      "scene": 9,
+      "credits": 16,
+      "status": "rejected"
+    },
+    {
+      "jobId": "5f2a04ce-0dc9-4cd9-903b-8a46a490d5d0",
+      "type": "portrait-reference",
+      "credits": 2.75,
+      "status": "completed"
+    },
+    {
+      "jobId": "10cc591a-7b6f-4a43-bafe-00bf83cb266c",
+      "type": "portrait-video",
+      "credits": 24,
+      "status": "rejected"
+    },
+    {
+      "jobId": "b96abfcc-b415-483f-aeb9-e4d921c8d60b",
+      "type": "portrait-reference",
+      "credits": 2.75,
+      "status": "completed"
+    },
+    {
+      "jobId": "6a2ce31f-d688-47bd-8ee9-b2b342e7e937",
+      "type": "portrait-video",
+      "credits": 24,
+      "status": "rejected"
+    },
+    {
+      "jobId": "4335058d-9845-4563-b957-2a71edf56ee4",
+      "type": "portrait-video",
+      "credits": 24,
+      "status": "rejected"
+    },
+    {
+      "jobId": "fc8b84f0-b326-4d44-a33a-66320ecc02c3",
+      "type": "portrait-video",
+      "credits": 24,
+      "status": "completed"
+    },
+    {
+      "jobId": "b427076e-5060-419a-8f30-ad2cfdc14814",
+      "type": "portrait-video",
+      "credits": 24,
+      "status": "completed"
+    },
+    {
+      "jobId": "1254b527-037e-4ce6-8b9c-76caa2b23c95",
+      "type": "portrait-video",
+      "credits": 20,
+      "status": "completed"
+    },
+    {
+      "jobId": "e27cf9f0-b299-4773-803b-abe8055fd872",
+      "type": "portrait-video",
+      "credits": 20,
+      "status": "completed"
+    },
+    {
+      "jobId": "13e485d2-6bea-4f6e-83a9-7856c34a4b68",
+      "type": "portrait-video",
+      "credits": 24,
+      "status": "completed"
+    }
+  ],
+  "finalBalanceCheck": {
+    "at": "2026-09-25T15:28:34Z",
+    "credits": 466,
+    "additionalGenerationSpend": 0
+  }
+}

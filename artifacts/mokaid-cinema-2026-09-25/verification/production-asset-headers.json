@@ -1,0 +1,182 @@
+{
+  "image": "mokaid-meshy-web-runtime:libexpat-fix",
+  "config": "/Users/olimservice/mokaid/infra/docker/nginx.conf",
+  "media": "/assets/mokaid-office-journey.adac1c365481.mp4",
+  "bytes": 70724025,
+  "requests": [
+    {
+      "path": "/assets/mokaid-office-journey.adac1c365481.mp4",
+      "request": {
+        "method": "HEAD"
+      },
+      "status": 200,
+      "headers": {
+        "accept-ranges": "bytes",
+        "cache-control": "public, max-age=31536000, immutable",
+        "connection": "close",
+        "content-length": "70724025",
+        "content-security-policy": "base-uri 'self'; object-src 'none'; frame-ancestors 'self'",
+        "content-type": "video/mp4",
+        "date": "Fri, 25 Sep 2026 15:14:57 GMT",
+        "etag": "\"6ab68d13-43729b9\"",
+        "last-modified": "Fri, 25 Sep 2026 15:02:43 GMT",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "nginx",
+        "strict-transport-security": "max-age=31536000",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN"
+      },
+      "responseBytes": 0
+    },
+    {
+      "path": "/assets/mokaid-office-journey.adac1c365481.mp4",
+      "request": {
+        "method": "HEAD",
+        "headers": {
+          "If-None-Match": "\"6ab68d13-43729b9\""
+        }
+      },
+      "status": 304,
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable",
+        "connection": "close",
+        "content-security-policy": "base-uri 'self'; object-src 'none'; frame-ancestors 'self'",
+        "date": "Fri, 25 Sep 2026 15:14:57 GMT",
+        "etag": "\"6ab68d13-43729b9\"",
+        "last-modified": "Fri, 25 Sep 2026 15:02:43 GMT",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "nginx",
+        "strict-transport-security": "max-age=31536000",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN"
+      },
+      "responseBytes": 0
+    },
+    {
+      "path": "/assets/mokaid-office-journey.adac1c365481.mp4",
+      "request": {
+        "headers": {
+          "Range": "bytes=0-1023"
+        }
+      },
+      "status": 206,
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable",
+        "connection": "keep-alive",
+        "content-length": "1024",
+        "content-range": "bytes 0-1023/70724025",
+        "content-security-policy": "base-uri 'self'; object-src 'none'; frame-ancestors 'self'",
+        "content-type": "video/mp4",
+        "date": "Fri, 25 Sep 2026 15:14:57 GMT",
+        "etag": "\"6ab68d13-43729b9\"",
+        "last-modified": "Fri, 25 Sep 2026 15:02:43 GMT",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "nginx",
+        "strict-transport-security": "max-age=31536000",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN"
+      },
+      "responseBytes": 1024
+    },
+    {
+      "path": "/assets/mokaid-office-journey.adac1c365481.mp4",
+      "request": {
+        "headers": {
+          "Range": "bytes=-1024"
+        }
+      },
+      "status": 206,
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable",
+        "connection": "keep-alive",
+        "content-length": "1024",
+        "content-range": "bytes 70723001-70724024/70724025",
+        "content-security-policy": "base-uri 'self'; object-src 'none'; frame-ancestors 'self'",
+        "content-type": "video/mp4",
+        "date": "Fri, 25 Sep 2026 15:14:57 GMT",
+        "etag": "\"6ab68d13-43729b9\"",
+        "last-modified": "Fri, 25 Sep 2026 15:02:43 GMT",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "nginx",
+        "strict-transport-security": "max-age=31536000",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN"
+      },
+      "responseBytes": 1024
+    },
+    {
+      "path": "/assets/mokaid-office-journey.adac1c365481.mp4",
+      "request": {
+        "headers": {
+          "Range": "bytes=70724026-"
+        }
+      },
+      "status": 416,
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable, no-store",
+        "connection": "keep-alive",
+        "content-length": "190",
+        "content-range": "bytes */70724025",
+        "content-security-policy": "base-uri 'self'; object-src 'none'; frame-ancestors 'self', base-uri 'self'; object-src 'none'; frame-ancestors 'self'",
+        "content-type": "text/html",
+        "date": "Fri, 25 Sep 2026 15:14:57 GMT",
+        "referrer-policy": "strict-origin-when-cross-origin, strict-origin-when-cross-origin",
+        "server": "nginx",
+        "strict-transport-security": "max-age=31536000, max-age=31536000",
+        "x-content-type-options": "nosniff, nosniff",
+        "x-frame-options": "SAMEORIGIN, SAMEORIGIN"
+      },
+      "responseBytes": 190
+    },
+    {
+      "path": "/assets/cinematic-deliberately-missing.mp4",
+      "request": {
+        "method": "HEAD"
+      },
+      "status": 404,
+      "headers": {
+        "cache-control": "no-store",
+        "connection": "close",
+        "content-encoding": "gzip",
+        "content-security-policy": "base-uri 'self'; object-src 'none'; frame-ancestors 'self'",
+        "content-type": "text/html",
+        "date": "Fri, 25 Sep 2026 15:14:57 GMT",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "nginx",
+        "strict-transport-security": "max-age=31536000",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN"
+      },
+      "responseBytes": 0
+    },
+    {
+      "path": "/",
+      "request": {
+        "method": "HEAD"
+      },
+      "status": 200,
+      "headers": {
+        "cache-control": "no-cache, must-revalidate",
+        "connection": "close",
+        "content-encoding": "gzip",
+        "content-security-policy": "base-uri 'self'; object-src 'none'; frame-ancestors 'self'",
+        "content-type": "text/html",
+        "date": "Fri, 25 Sep 2026 15:14:57 GMT",
+        "etag": "W/\"6ab68d1d-5170\"",
+        "last-modified": "Fri, 25 Sep 2026 15:02:53 GMT",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "nginx",
+        "strict-transport-security": "max-age=31536000",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN"
+      },
+      "responseBytes": 0
+    }
+  ],
+  "deployment": false,
+  "status": "passed",
+  "configChangeNeeded": false,
+  "configChangeApplied": "Final response cache map sets no-store on 4xx/5xx; 2xx/3xx retain the existing URI-based policy.",
+  "lateRangeErrorNote": "This Nginx build retains successful-response cache directives from the first header pass on 416; the volatile status map adds no-store on the final pass, which forbids storage. The ordinary404 returns only no-store.",
+  "productionCaveat": "This verifies the repository config and local compiled files in Nginx, not the deployed CDN/origin. Deployment must preserve206, Content-Range, Accept-Ranges and fingerprinted asset cache headers."
+}

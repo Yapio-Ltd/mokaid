@@ -1,4 +1,6 @@
 add_library(mokaid_viewport STATIC native_viewport.cpp native_viewport.hpp
+  office_screen_content.cpp office_screen_content.hpp
+  office_anchor_model.cpp office_anchor_model.hpp
   agent_indicator_model.cpp agent_indicator_model.hpp
   custom_avatar_loader.cpp custom_avatar_loader.hpp)
 set_target_properties(mokaid_viewport PROPERTIES AUTOMOC ON)
@@ -32,4 +34,25 @@ if(BUILD_TESTING)
   target_link_libraries(mokaid_agent_indicator_tests PRIVATE Qt6::Core mokaid_engine)
   add_test(NAME desktop.agent_indicators COMMAND mokaid_agent_indicator_tests)
   set_tests_properties(desktop.agent_indicators PROPERTIES TIMEOUT 15)
+endif()
+
+if(BUILD_TESTING)
+  add_executable(mokaid_office_screen_tests office_screen_content_tests.cpp office_screen_content.cpp)
+  target_link_libraries(mokaid_office_screen_tests PRIVATE Qt6::Gui mokaid_engine)
+  target_compile_definitions(mokaid_office_screen_tests PRIVATE MOKAID_SCREEN_FONT="${CMAKE_SOURCE_DIR}/presentation/assets/fonts/Manrope.ttf")
+  add_test(NAME desktop.office_screens COMMAND mokaid_office_screen_tests "${CMAKE_SOURCE_DIR}/build/assets")
+  set_tests_properties(desktop.office_screens PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 20)
+endif()
+
+if(BUILD_TESTING)
+  add_executable(mokaid_office_anchor_tests office_anchor_model_tests.cpp office_anchor_model.cpp office_anchor_model.hpp)
+  target_link_libraries(mokaid_office_anchor_tests PRIVATE Qt6::Core mokaid_engine)
+  add_test(NAME desktop.office_anchors COMMAND mokaid_office_anchor_tests)
+endif()
+
+if(BUILD_TESTING)
+  add_executable(mokaid_native_navigation_tests native_viewport_navigation_tests.cpp)
+  target_link_libraries(mokaid_native_navigation_tests PRIVATE mokaid_viewport)
+  add_test(NAME desktop.native_navigation_cancellation COMMAND mokaid_native_navigation_tests "${CMAKE_SOURCE_DIR}/build/assets")
+  set_tests_properties(desktop.native_navigation_cancellation PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 45)
 endif()

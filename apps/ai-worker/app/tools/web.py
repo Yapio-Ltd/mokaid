@@ -34,6 +34,9 @@ async def web_search(params: dict[str, Any], ctx: RunContext) -> Any:
     max_results = max(1, min(max_results, 10))
 
     try:
+        settings = get_settings()
+        if settings.tavily_api_key:
+            ctx.usage.cost_usd += settings.tavily_search_cost_usd
         results = await _search(query, max_results)
     except Exception as exc:  # noqa: BLE001
         log.warning("web_search_failed", query=query[:120], error=str(exc))

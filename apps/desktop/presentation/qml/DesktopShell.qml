@@ -4,6 +4,8 @@ import QtQuick.Layouts
 
 Item {
     id: root
+    readonly property bool taskDrafts: !!tasksLoader.item && tasksLoader.item.hasDrafts
+    readonly property bool agentDrafts: (!!officeLoader.item && officeLoader.item.hasDrafts) || (!!agentsLoader.item && agentsLoader.item.hasDrafts)
     property bool adminMode: false
     property bool protectedWork: false
     property bool minimized: false
@@ -285,17 +287,18 @@ Item {
                 }
                 AbstractButton {
                     id: connectionButton
-                    Layout.preferredWidth: session.online ? 132 : 160
+                    readonly property string statusText: session.connected ? "Connected" : session.reconnecting ? "Reconnecting…" : "Offline · read only"
+                    Layout.preferredWidth: session.connected ? 132 : 160
                     Layout.preferredHeight: 44
                     hoverEnabled: true
-                    Accessible.name: (session.online ? "Connected" : "Offline, read only") + ". Refresh connection and data."
-                    onClicked: session.online ? features.refresh() : session.retry()
+                    Accessible.name: statusText + ". Refresh connection and data."
+                    onClicked: session.connected ? features.refresh() : session.retry()
                     background: Rectangle { radius: 22; color: connectionButton.hovered ? Theme.hover : "#10111d"; border.color: connectionButton.visualFocus ? Theme.focusBorder : "#2b293e" }
                     contentItem: Item {
                         Row {
                             anchors.centerIn: parent; spacing: 10
-                            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 8; height: 8; radius: 4; color: session.online ? Theme.success : Theme.warning }
-                            MokaidLabel { text: session.online ? "Connected" : "Offline · read only"; color: Theme.text; font.pixelSize: 11; font.weight: Font.Medium }
+                            Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 8; height: 8; radius: 4; color: session.connected ? Theme.success : Theme.warning }
+                            MokaidLabel { text: connectionButton.statusText; color: Theme.text; font.pixelSize: 11; font.weight: Font.Medium }
                         }
                     }
                     ToolTip.visible: hovered; ToolTip.delay: 650; ToolTip.text: "Refresh connection and data"
@@ -323,12 +326,12 @@ Item {
                     id: officeLoader; anchors.fill: parent
                     active: session.authenticated && !!session.workspaceId
                     visible: features.currentPage === "office"
-                    sourceComponent: OfficePage { active: officeLoader.visible && !preview.visible && !root.minimized }
+                    sourceComponent: OfficePage { active: officeLoader.visible && !preview.visible && !root.minimized; onActionRequested: function(action) { root.actionRequested(action) } }
                 }
                 Loader {
                     id: agentsLoader; anchors.fill: parent
-                    active: features.currentPage === "agents" && !!session.workspaceId
-                    visible: active
+                    active: !!session.workspaceId && (features.currentPage === "agents" || (!!item && item.hasDrafts))
+                    visible: features.currentPage === "agents"
                     sourceComponent: AgentsPage { onActionRequested: function(action) { root.actionRequested(action) } }
                 }
                 Loader {
@@ -344,9 +347,15 @@ Item {
                     visible: active
                     sourceComponent: AgentPerformancePage {}
                 }
+                Loader {
+                    id: tasksLoader; anchors.fill: parent
+                    active: session.authenticated && !!session.workspaceId
+                    visible: features.currentPage === "tasks"
+                    sourceComponent: TasksPage { onActionRequested: function(action) { root.actionRequested(action) } }
+                }
                 FeaturePage {
                     anchors.fill: parent
-                    visible: features.currentPage !== "office" && features.currentPage !== "agents" && features.currentPage !== "marketplace" && features.currentPage !== "agent-performance"
+                    visible: features.currentPage !== "tasks" && features.currentPage !== "office" && features.currentPage !== "agents" && features.currentPage !== "marketplace" && features.currentPage !== "agent-performance"
                     onActionRequested: function(action) { root.actionRequested(action) }
                 }
                 ColumnLayout {

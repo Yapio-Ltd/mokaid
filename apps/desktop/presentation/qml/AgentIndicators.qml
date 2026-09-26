@@ -9,6 +9,8 @@ Item {
     property var model: null
     property string selectedAgentId: ""
     property bool reducedMotion: false
+    property bool motionActive: true
+    property var agents: []
     signal agentSelected(string agentId)
 
     Repeater {
@@ -39,9 +41,19 @@ Item {
 
             readonly property real tetherX: Math.max(badge.x + 6, Math.min(anchorX, badge.x + badge.width - 6))
             readonly property real tetherY: Math.max(badge.y + 4, Math.min(anchorY, badge.y + badge.height - 4))
+            readonly property var agentRecord: root.agents.find(function(agent) { return agent.id === indicator.agentId }) || ({})
+            readonly property var task: agentRecord.screen_task || ({})
+            readonly property var run: task.latest_run || ({})
+            readonly property bool working: !!agentRecord.current_task_id
+                && (agentRecord.screen_connection === "live" || agentRecord.screen_connection === "synced")
+                && task.status === "in_progress"
+                && ["waiting_for_user_input", "awaiting_approval", "failed", "completed", "canceled"].indexOf(run.status) < 0
+            readonly property string workLabel: working ? "Working" + (task.progress_percent !== undefined && task.progress_percent !== null
+                ? " · " + Math.round(Math.max(0, Math.min(100, Number(task.progress_percent)))) + "%" : "") : activityText
             readonly property string description: agentName
                 + (agentLevel > 0 ? qsTr(", level %1").arg(agentLevel) : "")
-                + ", " + activityDetail
+                + ", " + (working ? workLabel : activityDetail)
+                + (task.title ? ". " + task.title : "")
 
             Rectangle {
                 id: tether
@@ -84,11 +96,37 @@ Item {
 
                 background: Rectangle {
                     radius: 6
+                    Rectangle {
+                        anchors.fill: parent; anchors.margins: -3
+                        radius: 9; color: "transparent"; border.color: "#55cfb5"; border.width: 1
+                        visible: indicator.working; opacity: .2
+                        SequentialAnimation on opacity {
+                            running: indicator.working && indicator.visible && root.visible && root.motionActive && !root.reducedMotion
+                            loops: Animation.Infinite
+                            NumberAnimation { to: .5; duration: 1200; easing.type: Easing.InOutSine }
+                            NumberAnimation { to: .2; duration: 1200; easing.type: Easing.InOutSine }
+                        }
+                    }
+                    Item {
+                        anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
+                        anchors.margins: 3; height: 2; clip: true; visible: indicator.working
+                        Rectangle { anchors.fill: parent; color: "#243f3a"; radius: 1 }
+                        Rectangle {
+                            id: activitySweep
+                            width: parent.width * .32; height: 2; radius: 1; color: "#78e9cd"
+                            x: root.reducedMotion ? 0 : -width
+                            NumberAnimation on x {
+                                running: indicator.working && indicator.visible && root.visible && root.motionActive && !root.reducedMotion
+                                from: -activitySweep.width; to: badge.width; duration: 1800; loops: Animation.Infinite
+                                easing.type: Easing.Linear
+                            }
+                        }
+                    }
                     color: badge.hovered || badge.down ? "#f0221d31" : "#ed14121e"
                     border.width: 1
                     border.color: badge.activeFocus ? "#c5b4ff"
                         : root.selectedAgentId === indicator.agentId ? "#9a82da"
-                        : badge.hovered ? "#70665387" : "#544b425f"
+                        : indicator.working ? "#628cbaaa" : badge.hovered ? "#70665387" : "#544b425f"
                 }
 
                 contentItem: Item {
@@ -131,7 +169,7 @@ Item {
                         width: 3
                         height: 3
                         radius: 1.5
-                        color: indicator.activityTone
+                        color: indicator.working ? "#78e9cd" : indicator.activityTone
                     }
 
                     MokaidLabel {
@@ -140,8 +178,8 @@ Item {
                         anchors.right: parent.right
                         y: 14
                         height: 12
-                        text: indicator.activityText
-                        color: "#b6aec8"
+                        text: indicator.workLabel
+                        color: indicator.working ? "#9ee6d5" : "#b6aec8"
                         font.pixelSize: 9
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight

@@ -45,6 +45,19 @@ defmodule MokaidWeb.MarketplaceController do
     end
   end
 
+  def purchases(conn, _params) do
+    with :ok <- Permissions.authorize(current_member(conn), "agents.view") do
+      data =
+        Marketplace.list_purchases(workspace_id(conn))
+        |> Enum.map(fn order ->
+          order_json(order)
+          |> Map.put(:listing, if(order.listing, do: listing_json(order.listing)))
+        end)
+
+      json(conn, %{data: data})
+    end
+  end
+
   def pause_listing(conn, %{"id" => id}) do
     with :ok <- Permissions.authorize(current_member(conn), "agents.update"),
          {:ok, listing} <- Marketplace.pause_listing(workspace_id(conn), id) do

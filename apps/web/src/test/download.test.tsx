@@ -7,6 +7,8 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, ...props }: ComponentProps<"a"> & { to: string }) => <a href={to} {...props} />,
 }));
 vi.mock("@/lib/use-seo", () => ({ useSeo: () => undefined }));
+// Release-state tests isolate the public navigation, covered by browser checks.
+vi.mock("@/components/landing/site-header", () => ({ SiteHeader: () => null }));
 
 const release = {
   schemaVersion: 1,

@@ -22,6 +22,35 @@ defmodule Mokaid.AI do
   immediately when the agent is free, otherwise when its current run ends.
   """
   def start_run(%WorkTask{} = task, input \\ %{}) do
+    # The Run button, pipeline hooks and task-thread follow-ups share this
+    # lock. A retried or simultaneous start returns the current execution
+    # rather than charging/enqueueing the same task twice.
+    Repo.transaction(fn ->
+      current =
+        Repo.one(
+          from t in WorkTask,
+            where: t.id == ^task.id and t.workspace_id == ^task.workspace_id,
+            lock: "FOR UPDATE"
+        )
+
+      cond do
+        is_nil(current) ->
+          {:error, :not_found}
+
+        true ->
+          case Tasks.active_runs_for_task(current.workspace_id, current.id) do
+            [run | _] -> {:ok, run}
+            [] -> start_new_run(current, input)
+          end
+      end
+    end)
+    |> case do
+      {:ok, result} -> result
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp start_new_run(%WorkTask{} = task, input) do
     instruction = resolve_run_instruction(task, input)
 
     cond do
@@ -196,7 +225,7 @@ defmodule Mokaid.AI do
           :ok
 
         agent ->
-          if agent.status in ["busy", "waiting"] do
+          if agent.status in ["busy", "waiting"] and agent.current_task_id in [nil, run.task_id] do
             Agents.change_status(agent, "idle", current_task_id: nil, reason: "run_canceled")
           end
       end
@@ -264,6 +293,167 @@ defmodule Mokaid.AI do
       "drive_item_ids" => task.metadata["drive_item_ids"] || [],
       "conversation" => conversation_entries(task)
     }
+  end
+
+  @doc "Records response feedback and, when requested, continues the same task with corrections."
+  def review_response(%WorkTask{} = task, attrs, reviewer) do
+    rating = attrs["rating"]
+    prompt = if is_binary(attrs["prompt"]), do: String.trim(attrs["prompt"]), else: ""
+
+    with :ok <- validate_response_feedback(rating, prompt) do
+      Repo.transaction(fn ->
+        # Serialize double-clicks and feedback from multiple clients. A supplied
+        # run id also prevents a stale result from completing newer work.
+        Repo.one!(from t in WorkTask, where: t.id == ^task.id, lock: "FOR UPDATE")
+        task = Tasks.get_task(task.workspace_id, task.id)
+        previous_run = List.first(task.execution_runs)
+
+        case validate_reviewed_run(previous_run, attrs["run_id"], rating) do
+          :ok -> :ok
+          {:error, reason} -> Repo.rollback(reason)
+        end
+
+        if rating == "needs_improvement" do
+          with :ok <- validate_ai_assignable(task),
+               :ok <- validate_credits(task.workspace_id) do
+            if get_in(task.metadata || %{}, ["composite"]), do: Repo.rollback(:composite_parent)
+          else
+            {:error, reason} -> Repo.rollback(reason)
+          end
+        end
+
+        feedback = %{
+          "rating" => rating,
+          "prompt" => if(prompt == "", do: nil, else: prompt),
+          "run_id" => previous_run.id,
+          "submitted_by_member_id" => reviewer.id,
+          "submitted_at" => DateTime.to_iso8601(DateTime.utc_now())
+        }
+
+        # Feedback is about the response, never permission to execute a
+        # previously proposed action. Retire old requests without resuming them.
+        Enum.each(task.approval_requests, fn request ->
+          case Tasks.decide_approval(request, "expired", reviewer) do
+            {:ok, _} -> :ok
+            {:error, reason} -> Repo.rollback(reason)
+          end
+        end)
+
+        cancel_active_runs_for_task(task, "Superseded by response feedback")
+
+        if previous_run.status == "waiting_for_user_input" do
+          # This worker turn already ended and released its agent's queue.
+          # Retire the old run without interrupting a different current task.
+          Tasks.update_run_progress(previous_run, %{
+            "status" => "canceled",
+            "error" => "Superseded by response feedback"
+          })
+        end
+
+        run =
+          if rating == "needs_improvement" do
+            input = continuation_input(task, previous_run, prompt)
+
+            case do_start_run(task, input) do
+              {:ok, run} -> run
+              {:error, reason} -> Repo.rollback(reason)
+            end
+          end
+
+        task_attrs = %{
+          "status" => if(run, do: "in_progress", else: "completed"),
+          "metadata" => Map.put(task.metadata || %{}, "response_feedback", feedback)
+        }
+
+        task_attrs =
+          if run,
+            do: Map.merge(task_attrs, %{"completed_at" => nil, "progress_percent" => 0}),
+            else: task_attrs
+
+        case Tasks.update_task(task, task_attrs, reviewer) do
+          {:ok, updated} ->
+            if run do
+              # The run already exists, so this comment is context for that run
+              # and does not enqueue an unrelated conversational reply.
+              case Tasks.create_comment(updated, %{"body" => prompt}, reviewer) do
+                {:ok, _} -> :ok
+                {:error, reason} -> Repo.rollback(reason)
+              end
+            end
+
+            Tasks.record_activity(updated, reviewer, "task.response_feedback", feedback)
+            %{task: Tasks.get_task(task.workspace_id, task.id), run: run}
+
+          {:error, reason} ->
+            Repo.rollback(reason)
+        end
+      end)
+    end
+  end
+
+  defp validate_response_feedback("good", _prompt), do: :ok
+
+  defp validate_response_feedback("needs_improvement", prompt) do
+    cond do
+      prompt == "" -> {:error, :feedback_prompt_required}
+      String.length(prompt) > 10_000 -> {:error, :feedback_prompt_too_long}
+      true -> :ok
+    end
+  end
+
+  defp validate_response_feedback(_, _), do: {:error, :invalid_feedback_rating}
+
+  defp validate_reviewed_run(nil, _, _), do: {:error, :no_response_to_review}
+
+  defp validate_reviewed_run(run, expected_id, rating) do
+    cond do
+      expected_id != nil and expected_id != run.id -> {:error, :stale_response_feedback}
+      run.status in ["queued", "running"] -> {:error, :response_still_running}
+      rating == "good" and not delivered_response?(run) -> {:error, :no_response_to_review}
+      true -> :ok
+    end
+  end
+
+  defp delivered_response?(%{status: "completed", output: output}) when is_map(output) do
+    summary = output["summary"]
+    (is_binary(summary) and String.trim(summary) != "") or List.wrap(output["artifacts"]) != []
+  end
+
+  defp delivered_response?(_), do: false
+
+  defp continuation_input(task, previous_run, prompt) do
+    previous_output = previous_run.output || %{}
+    previous_summary = previous_output["summary"]
+    input = Map.merge(previous_run.input || %{}, default_input(task))
+
+    original_instruction =
+      previous_run.input["original_instruction"] || previous_run.input["instruction"] ||
+        input["instruction"]
+
+    drive_item_ids =
+      Enum.uniq(
+        List.wrap(previous_run.input["drive_item_ids"]) ++ List.wrap(input["drive_item_ids"])
+      )
+
+    conversation =
+      if is_binary(previous_summary) and String.trim(previous_summary) != "" do
+        input["conversation"] ++ [%{"author" => "agent", "body" => previous_summary}]
+      else
+        input["conversation"]
+      end
+
+    Map.merge(input, %{
+      "instruction" =>
+        "Continue the existing task and improve its previous result. Use the previous output " <>
+          "and attached files as context. Follow this latest feedback:\n#{prompt}\n\n" <>
+          "Original task:\n#{original_instruction}",
+      "original_instruction" => original_instruction,
+      "drive_item_ids" => drive_item_ids,
+      "conversation" => conversation ++ [%{"author" => "teammate", "body" => prompt}],
+      "continuation_of_run_id" => previous_run.id,
+      "previous_output" => previous_output,
+      "feedback" => prompt
+    })
   end
 
   defp conversation_entries(%WorkTask{comments: %Ecto.Association.NotLoaded{}}), do: []
@@ -347,7 +537,7 @@ defmodule Mokaid.AI do
   end
 
   def handle_progress(run_id, attrs) do
-    with %{} = run <- Tasks.get_run(run_id),
+    with %{status: status} = run when status != "canceled" <- Tasks.get_run(run_id),
          {:ok, updated_run} <- Tasks.update_run_progress(run, attrs) do
       # Deep-agent plan update (todo checklist) — broadcast so the task panel
       # and chat can render live mission progress.
@@ -387,6 +577,7 @@ defmodule Mokaid.AI do
 
       {:ok, updated_run}
     else
+      %{status: "canceled"} = run -> {:ok, run}
       nil -> {:error, :run_not_found}
     end
   end
@@ -449,8 +640,46 @@ defmodule Mokaid.AI do
     end
   end
 
-  def handle_approval_request(run_id, attrs) do
-    attrs = normalize_approval_attrs(attrs)
+  def handle_approval_request(run_id, %{"operation_key" => key} = attrs)
+      when is_binary(key) and byte_size(key) in 1..200 do
+    Repo.transaction(fn ->
+      case Repo.one(
+             from r in Mokaid.Tasks.TaskExecutionRun, where: r.id == ^run_id, lock: "FOR UPDATE"
+           ) do
+        nil ->
+          Repo.rollback(:run_not_found)
+
+        run ->
+          case Repo.get_by(Mokaid.Tasks.TaskApprovalRequest, run_id: run.id, operation_key: key) do
+            nil ->
+              if run.status in ["completed", "failed", "canceled"],
+                do: Repo.rollback(:run_stopped)
+
+              case do_handle_approval_request(run_id, attrs) do
+                {:ok, request} -> request
+                {:error, reason} -> Repo.rollback(reason)
+              end
+
+            request ->
+              normalized = normalize_approval_attrs(attrs)
+
+              if request.tool_name != normalized["tool_name"] or
+                   request.input_payload != normalized["input_payload"],
+                 do: Repo.rollback(:idempotency_conflict)
+
+              request
+          end
+      end
+    end)
+  end
+
+  def handle_approval_request(_run_id, %{"operation_key" => _}),
+    do: {:error, :invalid_operation_key}
+
+  def handle_approval_request(run_id, attrs), do: do_handle_approval_request(run_id, attrs)
+
+  defp do_handle_approval_request(run_id, attrs) do
+    attrs = Map.put(normalize_approval_attrs(attrs), "operation_key", attrs["operation_key"])
 
     # Create the approval request BEFORE flipping the run status: if the
     # insert fails the run keeps running instead of waiting on an approval
@@ -537,7 +766,7 @@ defmodule Mokaid.AI do
              "token_usage" => token_usage,
              "cost_cents" => cost_cents
            }) do
-      if cost_cents > 0 do
+      if cost_cents > 0 and not Mokaid.AI.ManagedRuntime.reserved?(run.id) do
         # Meter real cost AND charge the workspace's AI credits (live balance).
         Billing.record_usage(run.workspace_id, "agent", run.agent_id, "ai_cost", 1, "run",
           cost_cents: cost_cents,
@@ -560,11 +789,20 @@ defmodule Mokaid.AI do
       task = Tasks.get_task(run.workspace_id, run.task_id)
 
       if task do
-        # Only hand to human review when there is something to review. A producer
-        # run that somehow completed without files stays in_progress so the UI
-        # offers retry instead of a fake "Ready for review".
+        # Written answers are reviewable results too. Producer missions still
+        # need their promised file before they can be considered delivered.
         artifacts = (output || %{})["artifacts"] || []
-        has_output = length(List.wrap(artifacts)) > 0
+        summary = (output || %{})["summary"]
+
+        kind =
+          (output || %{})["mission_kind"] || run.input["mission_kind"] ||
+            task.metadata["mission_kind"]
+
+        producer = kind in ~w(website webapp document image analysis)
+
+        has_output =
+          length(List.wrap(artifacts)) > 0 or
+            (not producer and is_binary(summary) and String.trim(summary) != "")
 
         new_status =
           cond do
@@ -894,8 +1132,11 @@ defmodule Mokaid.AI do
          {:ok, run} <-
            Tasks.update_run_progress(run, %{"status" => "failed", "error" => error_message}) do
       case Agents.get_agent(run.workspace_id, run.agent_id) do
-        nil -> :ok
-        agent -> Agents.change_status(agent, "idle", current_task_id: nil, reason: "run_failed")
+        %{current_task_id: task_id} = agent when task_id in [nil, run.task_id] ->
+          Agents.change_status(agent, "idle", current_task_id: nil, reason: "run_failed")
+
+        _ ->
+          :ok
       end
 
       task = Tasks.get_task(run.workspace_id, run.task_id)
@@ -952,11 +1193,18 @@ defmodule Mokaid.AI do
   run is marked failed and — when the decision was an approval — a fresh run
   is dispatched automatically so the user's decision still takes effect.
   """
-  def resume_after_approval(run_id, decision, payload \\ nil) do
+  def resume_after_approval(run_id, decision, payload \\ nil, tool_name \\ nil) do
+    case Tasks.get_run(run_id) do
+      %{status: status} when status in ["completed", "failed", "canceled"] -> :ok
+      _ -> do_resume_after_approval(run_id, decision, payload, tool_name)
+    end
+  end
+
+  defp do_resume_after_approval(run_id, decision, payload, tool_name) do
     config = Application.fetch_env!(:mokaid, :ai_worker)
 
     body =
-      %{run_id: run_id, decision: decision, type: "resume"}
+      %{run_id: run_id, decision: decision, type: "resume", tool_name: tool_name}
       |> then(fn b ->
         if is_map(payload), do: Map.put(b, :payload, payload), else: b
       end)
@@ -972,9 +1220,15 @@ defmodule Mokaid.AI do
   end
 
   defp recover_lost_run(run_id, decision, payload) do
-    with %{} = run <- Tasks.get_run(run_id) do
+    # The HTTP request may have taken long enough for a teammate to stop the
+    # task. Re-read after that request; its preflight state is no longer valid.
+    with %{status: status} = run when status not in ["completed", "failed", "canceled"] <-
+           Tasks.get_run(run_id) do
       task = Tasks.get_task(run.workspace_id, run.task_id)
-      restart? = decision in ["approved", "edited"] and task != nil
+
+      restart? =
+        decision in ["approved", "edited"] and task != nil and
+          task.status in ["waiting", "in_progress"]
 
       error_note =
         if restart?,

@@ -1,0 +1,44 @@
+{
+  "date": "2026-09-25",
+  "renderer": "Metal",
+  "gpu": "Apple M4 Pro",
+  "capture": "surroundings-wide.png",
+  "viewport": [
+    1807,
+    835
+  ],
+  "actors": 9,
+  "simulationSeconds": 11,
+  "overviewFitFactor": 0.8,
+  "surroundings": {
+    "draws": 26,
+    "triangles": 98844,
+    "residentBytes": 17591944,
+    "textureMaxDimension": 256,
+    "workstations": 12,
+    "plants": 6,
+    "overviewDraws": 23,
+    "addedLiveMonitorSeats": [
+      4,
+      5
+    ],
+    "immersionOnlyCeiling": true
+  },
+  "tests": {
+    "desktop.surrounding_offices": "passed",
+    "desktop.real_surrounding_offices": "passed",
+    "metalApiValidation": "passed",
+    "unretainedCommandBuffers": 12,
+    "inFlightResizeAndDestruction": "passed",
+    "standaloneFinalSourceValidation": "passed"
+  },
+  "wholeSceneSmoke": {
+    "drawsIncludingExtraPasses": 318,
+    "trianglesIncludingExtraPasses": 1692888,
+    "cpuEncodeMeanMs": 11.2784,
+    "gpuMeanMs": 4.36558,
+    "sampledFrames": 6,
+    "sustainedFpsClaim": false
+  },
+  "captureNotes": "Capture precedes final inward placement, the two missing hero monitor assemblies, and the immersion-only canopy. Final full native capture is performed by the parent task."
+}

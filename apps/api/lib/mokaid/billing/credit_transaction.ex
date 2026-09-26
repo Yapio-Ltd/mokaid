@@ -44,7 +44,7 @@ defmodule Mokaid.Billing.CreditTransaction do
     |> validate_required([:workspace_id, :kind, :amount])
     |> validate_inclusion(
       :kind,
-      ~w(spend plan_grant purchase auto_recharge adjustment agent_boost)
+      ~w(spend plan_grant purchase auto_recharge adjustment agent_boost runtime_reserve runtime_settle)
     )
     |> unique_constraint(:idempotency_key)
   end

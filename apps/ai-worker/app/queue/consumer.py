@@ -16,45 +16,34 @@ from typing import Any
 import boto3
 import structlog
 
-from app.agents import runner
+from app import runtime_dispatch
 from app.config import get_settings
 from app.memory.ingestion import ingest_document
 from app.schemas import ResumeRequest, RunRequest
 
 log = structlog.get_logger()
 
-_background_runs: set[asyncio.Task] = set()
-
-
 async def _handle_message(body: dict[str, Any]) -> None:
     kind = body.get("type", "run")
 
     if kind == "run":
         request = RunRequest.model_validate(body)
-        if runner.get_run(request.run_id) is not None:
-            log.warning("sqs_duplicate_run", run_id=request.run_id)
-            return
-        # Runs block on approvals, so they execute as independent tasks
-        # and must not stall the polling loop.
-        task = asyncio.ensure_future(runner.execute_run(request))
-        _background_runs.add(task)
-        task.add_done_callback(_background_runs.discard)
-        runner.register_run_task(request.run_id, task)
+        await runtime_dispatch.accept_run(request)
 
     elif kind == "resume":
         request = ResumeRequest.model_validate(body)
-        if not await runner.resume_run(request):
-            log.warning("sqs_resume_no_waiting_run", run_id=request.run_id)
+        await runtime_dispatch.submit_command(request.run_id, "resume", request.model_dump(mode="json"),
+                                               command_id=body.get("command_id") or body.get("approval_request_id"))
 
     elif kind == "cancel":
         run_id = str(body.get("run_id") or "")
-        if not runner.cancel_run_task(run_id):
-            log.warning("sqs_cancel_no_running_task", run_id=run_id)
+        await runtime_dispatch.submit_command(run_id, "cancel", command_id=f"cancel:{run_id}")
 
     elif kind == "converse":
         from app.agents import converse as converse_agent
 
-        await converse_agent.converse(body)
+        if not await converse_agent.converse(body):
+            raise RuntimeError("task follow-up was not applied")
 
     elif kind == "agent_chat":
         from app.agents import direct_chat
@@ -75,7 +64,7 @@ async def _handle_message(body: dict[str, Any]) -> None:
         await mail_sync.renew_watch(body)
 
     else:
-        log.warning("sqs_unknown_message_type", type=kind)
+        raise ValueError("Unknown worker message type")
 
 
 async def consume_forever() -> None:
@@ -99,12 +88,15 @@ async def consume_forever() -> None:
                 try:
                     await _handle_message(json.loads(message["Body"]))
                 except Exception as exc:  # noqa: BLE001 — one bad message must not kill the loop
-                    log.error("sqs_message_failed", error=str(exc))
-                await asyncio.to_thread(
-                    sqs.delete_message,
-                    QueueUrl=queue_url,
-                    ReceiptHandle=message["ReceiptHandle"],
-                )
+                    log.error("sqs_message_failed", error=type(exc).__name__)
+                    # Leave the message visible for retry / the configured DLQ.
+                    continue
+                else:
+                    await asyncio.to_thread(
+                        sqs.delete_message,
+                        QueueUrl=queue_url,
+                        ReceiptHandle=message["ReceiptHandle"],
+                    )
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001 — transient AWS errors: back off and retry

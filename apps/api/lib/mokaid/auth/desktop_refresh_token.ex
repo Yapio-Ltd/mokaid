@@ -8,6 +8,7 @@ defmodule Mokaid.Auth.DesktopRefreshToken do
   schema "desktop_refresh_tokens" do
     belongs_to :session, Mokaid.Auth.DesktopSession
     field :token_hash, :binary, redact: true
+    field :refresh_request_id_hash, :binary, redact: true
     field :used_at, :utc_datetime_usec
     timestamps(type: :utc_datetime_usec, updated_at: false)
   end

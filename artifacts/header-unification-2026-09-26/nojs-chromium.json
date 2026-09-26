@@ -1,0 +1,289 @@
+{
+  "origin": "http://127.0.0.1:4173",
+  "engine": "chromium",
+  "nojs": true,
+  "status": "passed",
+  "checks": [
+    "Nine explicit prerender snapshots: one header, centered nav and correct hrefs; Vite extensionless fallback bypassed",
+    "320px /: native disclosure, links, no overflow without JS",
+    "320px /pricing: native disclosure, links, no overflow without JS",
+    "320px /download: native disclosure, links, no overflow without JS",
+    "320px /privacy: native disclosure, links, no overflow without JS",
+    "390px /: native disclosure, links, no overflow without JS",
+    "390px /pricing: native disclosure, links, no overflow without JS",
+    "390px /download: native disclosure, links, no overflow without JS",
+    "390px /privacy: native disclosure, links, no overflow without JS",
+    "767px /: native disclosure, links, no overflow without JS",
+    "767px /pricing: native disclosure, links, no overflow without JS",
+    "767px /download: native disclosure, links, no overflow without JS",
+    "767px /privacy: native disclosure, links, no overflow without JS"
+  ],
+  "defects": [],
+  "geometry": [
+    {
+      "path": "/",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/pricing",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/download",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/ai-employees",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/privacy",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/terms",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/cookies",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/legal",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/refund",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    }
+  ],
+  "screenshots": [
+    "nojs-chromium-desktop-home.png",
+    "nojs-chromium-desktop-pricing.png",
+    "nojs-chromium-desktop-download.png",
+    "nojs-chromium-desktop-privacy.png",
+    "nojs-chromium-mobile-320-pricing-open.png",
+    "nojs-chromium-mobile-390-pricing-open.png",
+    "nojs-chromium-mobile-767-pricing-open.png"
+  ],
+  "apiReads": [],
+  "errors": [],
+  "setup": "Isolated browser contexts. Film requests aborted; release.json returns404. Auth uses only a synthetic browser: marker in localStorage and a stubbed /api/me read. No login, downloads or API writes.",
+  "version": "151.0.7922.34"
+}

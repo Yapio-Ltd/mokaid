@@ -237,6 +237,11 @@ marketplace_fee =
 
 config :mokaid, :marketplace, fee_percent: marketplace_fee
 
+# Provision only model IDs verified for the deployed Agents API project.
+config :mokaid, :managed_runtime,
+  verified_models:
+    String.split(System.get_env("MANAGED_RUNTIME_VERIFIED_MODELS", ""), ",", trim: true)
+
 # Provider Admin keys for cost/usage sync (platform CRM). Distinct from
 # worker inference keys — never use sk-admin / sk-ant-admin for chat.
 config :mokaid, :provider_costs,

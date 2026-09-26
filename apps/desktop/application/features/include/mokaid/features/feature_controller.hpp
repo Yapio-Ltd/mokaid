@@ -5,6 +5,7 @@
 #include <mokaid/features/detail_browser.hpp>
 #include <mokaid/features/drive_download.hpp>
 #include <mokaid/features/avatar_generation_controller.hpp>
+#include <mokaid/features/mail_accounts_controller.hpp>
 #include <mokaid/storage/cache_store.hpp>
 #include <QHash>
 #include <QTimer>
@@ -29,8 +30,14 @@ class FeatureController final : public QObject {
     Q_PROPERTY(QVariantMap details READ details NOTIFY changed)
     Q_PROPERTY(QVariantList selectedAgentTasks READ selectedAgentTasks NOTIFY changed)
     Q_PROPERTY(QString selectedAgentTasksState READ selectedAgentTasksState NOTIFY changed)
+    Q_PROPERTY(QVariantList selectedAgentKnowledge READ selectedAgentKnowledge NOTIFY changed)
+    Q_PROPERTY(QString selectedAgentKnowledgeState READ selectedAgentKnowledgeState NOTIFY changed)
     Q_PROPERTY(QObject* detailView READ detailView CONSTANT)
     Q_PROPERTY(QString selectedId READ selectedId NOTIFY changed)
+    Q_PROPERTY(bool canMoveTasks READ canMoveTasks NOTIFY changed)
+    Q_PROPERTY(QString currentMemberId READ currentMemberId NOTIFY changed)
+    Q_PROPERTY(QString pendingTaskId READ pendingTaskId NOTIFY changed)
+    Q_PROPERTY(QString pendingTaskStatus READ pendingTaskStatus NOTIFY changed)
     Q_PROPERTY(QString pendingOfferAgentId READ pendingOfferAgentId NOTIFY changed)
     Q_PROPERTY(QString pendingOfferMode READ pendingOfferMode NOTIFY changed)
     Q_PROPERTY(bool hasMore READ hasMore NOTIFY changed)
@@ -41,6 +48,7 @@ class FeatureController final : public QObject {
     Q_PROPERTY(bool driveCanDownload READ driveCanDownload NOTIFY changed)
     Q_PROPERTY(QObject* driveDownload READ driveDownload CONSTANT)
     Q_PROPERTY(QObject* avatarCreator READ avatarCreator CONSTANT)
+    Q_PROPERTY(QObject* mailAccounts READ mailAccounts CONSTANT)
 public:
     FeatureController(ApiClient& api, SessionController& session, CacheStore& cache, QObject* parent = nullptr);
     QVariantList pages() const;
@@ -60,8 +68,14 @@ public:
     QVariantMap details() const { return details_; }
     QVariantList selectedAgentTasks() const { return selectedAgentTasks_; }
     QString selectedAgentTasksState() const { return selectedAgentTasksState_; }
+    QVariantList selectedAgentKnowledge() const;
+    QString selectedAgentKnowledgeState() const { return selectedAgentKnowledgeState_; }
     QObject* detailView() { return &detailView_; }
     QString selectedId() const { return selectedId_; }
+    bool canMoveTasks() const;
+    QString currentMemberId() const;
+    QString pendingTaskId() const { return pendingTaskId_; }
+    QString pendingTaskStatus() const { return pendingTaskStatus_; }
     QString pendingOfferAgentId() const { return pendingOfferAgentId_; }
     QString pendingOfferMode() const { return pendingOfferMode_; }
     bool hasMore() const { return nextPage_ > 0; }
@@ -72,6 +86,7 @@ public:
     bool driveCanDownload() const;
     QObject* driveDownload() { return &driveDownload_; }
     QObject* avatarCreator() { return &avatarCreator_; }
+    QObject* mailAccounts() { return &mailAccounts_; }
     Q_INVOKABLE void openDriveFolder(const QString& id);
     Q_INVOKABLE void navigateDriveBreadcrumb(int index);
     Q_INVOKABLE void driveBack();
@@ -84,6 +99,7 @@ public:
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void select(const QString& id);
     Q_INVOKABLE void submit(const QString& action, const QVariantMap& values);
+    Q_INVOKABLE bool moveTask(const QString& taskId, const QString& status);
     Q_INVOKABLE void search(const QString& query);
     Q_INVOKABLE void clearSelection();
     Q_INVOKABLE void showOverview();
@@ -96,6 +112,7 @@ signals:
     void openDelivery(QVariantMap delivery);
     void requestExternal(QUrl url);
     void actionSucceeded(QString context);
+    void actionResult(QString actionId, QVariantMap result);
 private:
     void sessionChanged();
     void clear();
@@ -113,6 +130,8 @@ private:
     void invalidateDriveCache(const QString& id, const QString& oldParent, const QString& newParent);
     void loadSelectedAgentTasks(const QString& agentId);
     void resetSelectedAgentTasks();
+    void loadSelectedAgentKnowledge(const QString& agentId);
+    void resetSelectedAgentKnowledge();
     bool agentTasksPage() const;
     ApiClient& api_;
     SessionController& session_;
@@ -121,9 +140,11 @@ private:
     DetailBrowser detailView_;
     DriveDownload driveDownload_;
     AvatarGenerationController avatarCreator_;
+    MailAccountsController mailAccounts_;
     QTimer searchTimer_;
     QString currentPage_{"office"}, selectedId_, error_, search_, contextTag_;
     QString pendingOfferAgentId_, pendingOfferMode_;
+    QString pendingTaskId_, pendingTaskStatus_;
     QString pendingSelection_, detailHeading_, detailCollection_;
     // Secondary reports may replace displayed details, but never edit defaults.
     QVariantMap details_, editDetails_, overview_;
@@ -131,10 +152,14 @@ private:
     QString selectedAgentTasksState_{QStringLiteral("idle")};
     QString selectedAgentTasksAgent_;
     quint64 agentTasksEpoch_{};
+    QVariantList selectedAgentKnowledge_;
+    QString selectedAgentKnowledgeState_{QStringLiteral("idle")};
+    QString selectedAgentKnowledgeAgent_;
+    quint64 agentKnowledgeEpoch_{};
     QVariantList driveBreadcrumbs_{{QVariantMap{{"id",QString{}},{"name","Drive"}}}};
     bool driveTrash_{};
     QHash<QByteArray, QString> retryKeys_;
-    quint64 epoch_{}, detailEpoch_{}, sessionGeneration_{}, viewGeneration_{};
+    quint64 epoch_{}, detailEpoch_{}, selectedRecordEpoch_{}, sessionGeneration_{}, viewGeneration_{};
     int nextPage_{};
     bool busy_{}, offline_{}, loadingMore_{};
 };

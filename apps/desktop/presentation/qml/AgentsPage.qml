@@ -17,6 +17,8 @@ Item {
     property string reportTitle: ""
     property string observedSelection: ""
     property bool initialSelectionMade: false
+    property var retainedAgent: ({})
+    readonly property bool hasDrafts: inspector.hasDrafts
     property double now: Date.now()
     readonly property var allAgents: features.allRecords
     readonly property var filteredAgents: {
@@ -26,6 +28,7 @@ Item {
         })
     }
     readonly property var selectedAgent: {
+        if (features.currentPage !== "agents") return retainedAgent
         if (!features.selectedId) return ({})
         const rows = allAgents
         let record = rows.find(function(agent) { return agent.id === features.selectedId }) || ({})
@@ -33,6 +36,7 @@ Item {
             record = Object.assign({}, record, features.selectedRecord)
         return record
     }
+    onSelectedAgentChanged: if (features.currentPage === "agents" && selectedAgent.id) retainedAgent = selectedAgent
     readonly property bool hasSelection: Boolean(selectedAgent.id)
     readonly property var inspectorTaskBars: activityBars(selectedAgent)
     readonly property var inspectorMissionBars: missionBars(selectedAgent)
@@ -178,8 +182,8 @@ Item {
         const next = action(id)
         if (!next.enabled) return
         if (["training", "progression", "permissions", "schedules"].indexOf(id) >= 0) {
-            reportOpen = true
-            reportTitle = next.title
+            inspector.openReport(id)
+            return
         }
         actionRequested(next)
     }
@@ -192,6 +196,8 @@ Item {
         initialSelectionMade = true
         reportOpen = false
         features.clearSelection()
+        if (root.gridMode) agentGrid.forceActiveFocus()
+        else agentList.forceActiveFocus()
     }
     function considerInitialSelection() {
         if (features.currentPage !== "agents" || initialSelectionMade || features.busy || allAgents.length === 0) return
@@ -741,195 +747,16 @@ Item {
                     }
                 }
             }
-            Rectangle {
+            AgentDetailPanel {
                 id: inspector
                 objectName: "agentInspector"
                 visible: root.hasSelection
-                Layout.preferredWidth: Math.max(330, Math.min(430, root.width * .35))
-                Layout.fillHeight: true; Layout.minimumWidth: 320
-                radius: 15; border.width: 1; border.color: "#4a3d72"
-                gradient: Gradient {
-                    GradientStop { position: 0; color: "#1c1733" }
-                    GradientStop { position: 0.42; color: "#141226" }
-                    GradientStop { position: 1; color: "#0e1018" }
-                }
-                ColumnLayout {
-                    anchors.fill: parent; spacing: 0
-                    RowLayout {
-                        Layout.fillWidth: true; Layout.margins: 16; Layout.bottomMargin: 10; spacing: 12
-                        WorkforcePortrait { agent: root.selectedAgent; size: inspector.width < 370 ? 60 : 70 }
-                        ColumnLayout {
-                            Layout.fillWidth: true; spacing: 6
-                            MokaidLabel { text: root.selectedAgent.display_name || "Agent"; font.pixelSize: 18; font.weight: Font.DemiBold; Layout.fillWidth: true; elide: Text.ElideRight }
-                            MokaidLabel { text: root.selectedAgent.role_title || "AI agent"; font.pixelSize: 11; color: root.supportingText; Layout.fillWidth: true; elide: Text.ElideRight }
-                            RowLayout { spacing: 5; Rectangle { implicitWidth: 6; implicitHeight: 6; radius: 3; color: root.statusColor(root.selectedAgent) } MokaidLabel { text: root.statusName(root.selectedAgent); color: root.statusColor(root.selectedAgent); font.pixelSize: 10 } }
-                        }
-                        ColumnLayout {
-                            spacing: 3; Layout.alignment: Qt.AlignTop
-                            MokaidButton { iconName: "close"; quiet: true; implicitWidth: 26; implicitHeight: 27; leftPadding: 4; rightPadding: 4; Accessible.name: "Close agent details"; onClicked: root.closeInspector() }
-                            MokaidButton { objectName: "selectedAgentActions"; iconName: "more"; quiet: true; implicitWidth: 26; implicitHeight: 27; leftPadding: 4; rightPadding: 4; Accessible.name: "Selected agent actions"; onClicked: agentActions.openFor(this) }
-                        }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true; Layout.leftMargin: 14; Layout.rightMargin: 14; spacing: 0
-                        Repeater {
-                            model: ["Overview", "Tasks", "Skills", "Settings"]
-                            AbstractButton {
-                                id: inspectorTabButton
-                                objectName: "agentTab_" + index
-                                required property string modelData
-                                required property int index
-                                Layout.fillWidth: true; implicitHeight: 40; hoverEnabled: true
-                                Accessible.name: modelData; Accessible.role: Accessible.PageTab; Accessible.selected: root.inspectorTab === index
-                                onClicked: { root.inspectorTab = index; root.reportOpen = false; features.showRecordDetails() }
-                                contentItem: MokaidLabel { text: inspectorTabButton.modelData; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; color: root.inspectorTab === inspectorTabButton.index ? "#f3eaff" : root.supportingText; font.pixelSize: 11; font.weight: root.inspectorTab === inspectorTabButton.index ? Font.DemiBold : Font.Normal }
-                                background: Rectangle {
-                                    color: inspectorTabButton.hovered ? "#191727" : "transparent"; radius: 6
-                                    border.color: inspectorTabButton.visualFocus ? Theme.focusBorder : "transparent"
-                                    Rectangle { visible: root.inspectorTab === inspectorTabButton.index; anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter; width: parent.width - 14; height: 2; radius: 1; color: "#ad79ff" }
-                                }
-                            }
-                        }
-                    }
-                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.panelBorder }
-                    ScrollView {
-                        id: inspectorScroll
-                        visible: !root.reportOpen
-                        Layout.fillWidth: true; Layout.fillHeight: true
-                        contentWidth: availableWidth; clip: true
-                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                        ColumnLayout {
-                            width: inspectorScroll.availableWidth; spacing: 15
-                            ColumnLayout {
-                                visible: root.inspectorTab === 0
-                                Layout.fillWidth: true; Layout.margins: 15; spacing: 14
-                                RowLayout {
-                                    Layout.fillWidth: true; spacing: 8
-                                    DetailMetric { value: root.scoreText(root.selectedAgent); label: "Performance"; chart: "meter"; meter: root.performanceMeter(root.selectedAgent); note: root.hasScore(root.selectedAgent) ? "Current score" : "Not rated yet"; accent: "#8eb7ff" }
-                                    DetailMetric { value: root.currentTaskText(root.selectedAgent); label: "Current task"; chart: "bars"; series: root.activityBars(root.selectedAgent); note: root.currentTaskNote(root.selectedAgent); accent: "#7ea6f2" }
-                                    DetailMetric { value: String(root.selectedAgent.missions_completed || 0); label: "Missions completed"; chart: "bars"; series: root.missionBars(root.selectedAgent); note: root.missionNote(root.selectedAgent); accent: "#b184ff" }
-                                }
-                                SmallHeading { text: "About" }
-                                MokaidLabel {
-                                    Layout.fillWidth: true; text: root.selectedAgent.instructions || "No instructions added yet. Edit this agent to describe how it should work."
-                                    color: root.supportingText; font.pixelSize: 12; wrapMode: Text.Wrap; lineHeight: 1.35; maximumLineCount: 6; elide: Text.ElideRight
-                                }
-                                ColumnLayout {
-                                    Layout.fillWidth: true; spacing: 8
-                                    MetaLine { label: "Role"; value: root.selectedAgent.role_title || "Not specified" }
-                                    MetaLine { label: "Model quality"; value: root.selectedAgent.model_quality ? root.selectedAgent.model_quality.charAt(0).toUpperCase() + root.selectedAgent.model_quality.slice(1) : "Not specified" }
-                                    MetaLine { label: "Last activity"; value: root.relativeDate(root.selectedAgent.last_active_at) }
-                                    MetaLine { label: "Created"; value: root.selectedAgent.inserted_at ? Qt.formatDateTime(new Date(root.selectedAgent.inserted_at), "MMM d, yyyy") : "Not available" }
-                                    MetaLine { label: "Department"; value: root.selectedAgent.department || "Not specified" }
-                                }
-                                SmallHeading { text: "Skills" }
-                                Flow {
-                                    Layout.fillWidth: true; spacing: 6
-                                    Repeater { model: root.skillNames(root.selectedAgent); SkillTag { required property string modelData; label: modelData; maximumWidth: inspector.width - 45 } }
-                                }
-                                MokaidLabel { visible: root.skillNames(root.selectedAgent).length === 0; text: "No skills recorded yet."; color: root.supportingText; font.pixelSize: 11; Layout.fillWidth: true }
-                                SmallHeading { text: "Workspace access" }
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    MokaidIcon { name: "shield"; size: 16; color: "#94a1e7" }
-                                    MokaidLabel { text: root.selectedAgent.autonomy_mode ? root.selectedAgent.autonomy_mode.charAt(0).toUpperCase() + root.selectedAgent.autonomy_mode.slice(1) + " autonomy" : "Not configured"; color: root.supportingText; font.pixelSize: 11; Layout.fillWidth: true }
-                                    MokaidButton { text: "Permissions"; quiet: true; implicitHeight: 31; implicitWidth: 95; font.pixelSize: 10; enabled: root.action("permissions").enabled; onClicked: root.runAction("permissions") }
-                                }
-                            }
-                            ColumnLayout {
-                                visible: root.inspectorTab === 1
-                                Layout.fillWidth: true; Layout.margins: 18; spacing: 15
-                                SmallHeading { text: "Current task" }
-                                MokaidLabel { Layout.fillWidth: true; text: root.selectedAgent.current_task_id ? "This agent has a current assigned task." : "No current task assigned."; color: root.supportingText; font.pixelSize: 12; wrapMode: Text.Wrap }
-                                MokaidButton { visible: Boolean(root.selectedAgent.current_task_id); text: "Open current task"; iconName: "arrow-right"; Layout.fillWidth: true; onClicked: features.openRecord("tasks", root.selectedAgent.current_task_id) }
-                                Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.panelBorder; Layout.topMargin: 8; Layout.bottomMargin: 8 }
-                                MetaLine { label: "Completed"; value: String(root.selectedAgent.missions_completed || 0) + " missions" }
-                                MokaidLabel { Layout.fillWidth: true; text: "Give your agent a new mission, or assign an existing workspace task."; color: root.supportingText; font.pixelSize: 12; wrapMode: Text.Wrap; lineHeight: 1.3 }
-                                MokaidButton { text: "New mission"; iconName: "plus"; highlighted: true; Layout.fillWidth: true; enabled: !features.offline && root.selectedAgent.kind !== "human_linked"; onClicked: missions.beginForAgent(root.selectedAgent.id) }
-                                MokaidButton { text: "Assign existing task"; Layout.fillWidth: true; enabled: root.action("assign-task").enabled; onClicked: root.runAction("assign-task") }
-                                MokaidButton { text: "View workspace tasks"; quiet: true; Layout.fillWidth: true; onClicked: features.navigate("tasks") }
-                            }
-                            ColumnLayout {
-                                visible: root.inspectorTab === 2
-                                Layout.fillWidth: true; Layout.margins: 18; spacing: 15
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    SmallHeading { text: "Skills & experience" }
-                                    MokaidLabel { text: "Level " + (root.selectedAgent.level || 1); color: "#be98ff"; font.pixelSize: 12; font.weight: Font.DemiBold }
-                                }
-                                Flow { Layout.fillWidth: true; spacing: 6; Repeater { model: root.skillNames(root.selectedAgent); SkillTag { required property string modelData; label: modelData; maximumWidth: inspector.width - 45 } } }
-                                MokaidLabel { visible: root.skillNames(root.selectedAgent).length === 0; Layout.fillWidth: true; text: "This agent hasn’t recorded any skills yet."; color: root.supportingText; font.pixelSize: 12; wrapMode: Text.Wrap }
-                                Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 5; radius: 3; color: "#28243b"; Rectangle { height: parent.height; radius: 3; width: parent.width * Math.max(0, Math.min(1, Number(root.selectedAgent.xp || 0) / Math.max(1, Number(root.selectedAgent.xp_for_next_level || 100)))); color: "#a17bea" } }
-                                MokaidLabel { text: (root.selectedAgent.xp || 0) + " / " + (root.selectedAgent.xp_for_next_level || 100) + " XP toward the next level"; color: root.supportingText; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                                MokaidButton { text: "View progression"; Layout.fillWidth: true; enabled: root.action("progression").enabled; onClicked: root.runAction("progression") }
-                                MokaidButton { text: "Training progress"; Layout.fillWidth: true; enabled: root.action("training").enabled; onClicked: root.runAction("training") }
-                            }
-                            ColumnLayout {
-                                visible: root.inspectorTab === 3
-                                Layout.fillWidth: true; Layout.margins: 18; spacing: 15
-                                SmallHeading { text: "Agent settings" }
-                                MetaLine { label: "Status"; value: root.statusName(root.selectedAgent) }
-                                MetaLine { label: "Autonomy"; value: root.selectedAgent.autonomy_mode || "Not configured" }
-                                MetaLine { label: "AI assistance"; value: root.selectedAgent.ai_enabled === false ? "Disabled" : root.selectedAgent.ai_enabled === true ? "Enabled" : "Not specified" }
-                                MetaLine { label: "Human takeover"; value: root.selectedAgent.human_takeover_enabled ? "Allowed" : "Not allowed" }
-                                MokaidButton { text: "Edit agent settings"; iconName: "settings"; Layout.fillWidth: true; enabled: root.action("edit").enabled; onClicked: root.runAction("edit") }
-                                MokaidButton { text: "Permission rules"; Layout.fillWidth: true; enabled: root.action("permissions").enabled; onClicked: root.runAction("permissions") }
-                                MokaidButton { text: "Schedules"; iconName: "calendar"; Layout.fillWidth: true; enabled: root.action("schedules").enabled; onClicked: root.runAction("schedules") }
-                                SmallHeading { text: "Instructions" }
-                                TextEdit { Layout.fillWidth: true; text: root.selectedAgent.instructions || "No instructions added."; readOnly: true; selectByMouse: true; wrapMode: TextEdit.Wrap; textFormat: TextEdit.PlainText; color: root.supportingText; font.family: Theme.fontFamily; font.pixelSize: 12; selectionColor: Theme.selection; selectedTextColor: Theme.text; Accessible.name: "Agent instructions" }
-                                MokaidButton { text: "Remove agent"; Layout.fillWidth: true; enabled: root.action("delete").enabled; onClicked: root.runAction("delete") }
-                            }
-                        }
-                    }
-                    ColumnLayout {
-                        visible: root.reportOpen
-                        Layout.fillWidth: true; Layout.fillHeight: true; Layout.margins: 16; spacing: 12
-                        MokaidButton { text: "Back to agent"; iconName: "chevron-left"; quiet: true; onClicked: { root.reportOpen = false; features.showRecordDetails() } }
-                        MokaidLabel { text: root.reportTitle; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                        BusyIndicator { running: features.busy; visible: running; implicitWidth: 24; implicitHeight: 24; Layout.alignment: Qt.AlignHCenter }
-                        ListView {
-                            id: reportRows
-                            Layout.fillWidth: true; Layout.fillHeight: true; model: features.busy ? null : features.detailView.rows; clip: true; spacing: 9
-                            delegate: Rectangle {
-                                id: reportRow
-                                required property string rowId
-                                required property string title
-                                required property var record
-                                width: reportRows.width; height: reportContent.implicitHeight + 22; radius: 10; color: "#161826"; border.color: "#29283c"
-                                ColumnLayout {
-                                    id: reportContent; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 11; spacing: 8
-                                    MokaidLabel { text: reportRow.title; color: root.supportingText; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                                    MokaidLabel { text: reportRow.record.text || ""; font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                                    MokaidButton { visible: reportRow.record.expandable; text: "View details"; implicitHeight: 32; onClicked: features.detailView.enter(reportRow.rowId) }
-                                }
-                            }
-                            MokaidLabel { anchors.centerIn: parent; width: parent.width; visible: reportRows.count === 0 && !features.busy; text: "No records to show."; color: root.supportingText; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter }
-                            ScrollBar.vertical: ScrollBar { }
-                        }
-                        MokaidButton { visible: features.detailView.canGoBack; text: "Back in report"; onClicked: features.detailView.goBack() }
-                    }
-                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.panelBorder }
-                    RowLayout {
-                        Layout.fillWidth: true; Layout.margins: 14; spacing: 10
-                        MokaidButton {
-                            objectName: "testSelectedAgent"
-                            text: "Test agent"; Layout.fillWidth: true; implicitHeight: 45
-                            enabled: !features.offline && root.selectedAgent.kind !== "human_linked"
-                            onClicked: missions.beginForAgent(root.selectedAgent.id)
-                        }
-                        MokaidButton {
-                            id: editButton
-                            text: "Edit agent"; Layout.fillWidth: true; implicitHeight: 45; highlighted: true
-                            enabled: root.action("edit").enabled
-                            onClicked: root.runAction("edit")
-                            background: Rectangle {
-                                radius: 10; opacity: editButton.enabled ? 1 : .5
-                                gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: editButton.hovered ? "#987bff" : "#8970f2" } GradientStop { position: 1; color: editButton.hovered ? "#8653fc" : "#7040ed" } }
-                                border.color: editButton.visualFocus ? "#e1ccff" : "#9a78ff"
-                            }
-                        }
-                    }
-                }
+                Layout.preferredWidth: Math.max(340, Math.min(450, root.width * .36))
+                Layout.fillHeight: true; Layout.minimumWidth: 330
+                agent: root.selectedAgent
+                onCurrentTabChanged: root.inspectorTab = currentTab
+                onClosed: root.closeInspector()
+                onActionRequested: function(action) { root.actionRequested(action) }
             }
         }
     }

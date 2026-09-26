@@ -109,9 +109,261 @@ struct DriveFixture {
     static QByteArray contents(const QString& path) { QFile file(path); return file.open(QIODevice::ReadOnly)?file.readAll():QByteArray{}; }
 };
 
+struct TaskFixture {
+    LocalApi remote;
+    QTemporaryDir directory;
+    CacheStore cache{directory.path()};
+    ApiClient api{remote.origin()};
+    PhoenixClient realtime;
+    SessionController session{api,realtime};
+    QMap<QString,QJsonObject> items{
+        {"task-a",{{"id","task-a"},{"title","Keep the SEO brief"},{"description","A detailed original brief"},
+            {"status","to_do"},{"assigned_agent_id","agent-a"},{"project_id","project-a"},{"priority","high"}}},
+        {"task-b",{{"id","task-b"},{"title","Another task"},{"status","blocked"},{"assigned_agent_id","agent-b"}}}};
+    bool canUpdate{true};
+    std::function<bool(QTcpSocket*,const QString&)> intercept;
+    std::unique_ptr<FeatureController> controller;
+    TaskFixture() {
+        remote.handler=[this](QTcpSocket* socket,const QString& path) {
+            if (intercept && intercept(socket,path)) return;
+            const auto id=path.section('/',3,3);
+            if (path=="/api/tasks") {
+                QJsonArray rows; for (const auto& item : items) rows.append(item);
+                LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",rows},{"meta",QJsonObject{
+                    {"current_member_id","member-alice"},{"can_update",canUpdate},
+                    {"counts",QJsonObject{{"to_do",1},{"blocked",1},{"in_progress",0}}}}}}).toJson());
+            } else if (path.endsWith("/runs")) {
+                LocalApi::reply(socket,R"({"data":[{"id":"run-a","status":"completed","result":"SEO report retained"}]})");
+            } else if (remote.methods.last()=="PATCH") {
+                const auto body=remote.bodies.last();
+                for (auto it=body.begin();it!=body.end();++it) items[id].insert(it.key(),it.value());
+                LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",items[id]}}).toJson());
+            } else if (items.contains(id)) {
+                auto item=items[id]; item.insert("comments",QJsonArray{QJsonObject{{"id","comment-a"},{"body","Retain this discussion"}}});
+                LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",item}}).toJson());
+            } else LocalApi::reply(socket,R"({"data":[]})");
+        };
+        api.setSession("test-alice","alice",false); api.setWorkspace("workspace-a");
+        controller=std::make_unique<FeatureController>(api,session,cache);
+        controller->navigate("tasks");
+    }
+    QVariantMap task(const QString& id) const {
+        for (const auto& item : controller->allRecords()) if (item.toMap().value("id")==id) return item.toMap();
+        return {};
+    }
+};
+
 class FeatureTests final : public QObject {
     Q_OBJECT
 private slots:
+    void mailOAuthCancellationWaitsForTheServerAndHonorsCompletionRace() {
+        LocalApi remote; QVERIFY(remote.server.isListening());
+        ApiClient api(remote.origin()); PhoenixClient realtime; SessionController session(api,realtime);
+        api.setSession("test-mail-session","user-a",false); api.setWorkspace("workspace-a");
+        MailAccountsController mail(api,session);
+        int cancellationAttempts=0; QString cancelStatus="failed";
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            if (path.endsWith("/google/start")) LocalApi::reply(socket,"{\"data\":{\"flow_id\":\"fixture-flow\",\"authorize_url\":\"https://accounts.google.com/o/oauth2/v2/auth?state=test-only\"}}");
+            else if (remote.methods.last()=="DELETE") {
+                if (++cancellationAttempts==1) LocalApi::reply(socket,"{\"error\":{\"message\":\"Temporary failure\"}}",503);
+                else LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",QJsonObject{{"status",cancelStatus},{"error","authorization_cancelled"}}}}).toJson());
+            } else LocalApi::reply(socket,"{\"data\":[]}");
+        };
+        QSignalSpy connected(&mail,&MailAccountsController::connected);
+        mail.connectGoogle(); QTRY_VERIFY(mail.oauthPending()); mail.cancelOAuth();
+        QTRY_VERIFY(!mail.submitting()); QVERIFY(mail.oauthPending()); QVERIFY(mail.error().contains("could not be cancelled"));
+        mail.cancelOAuth(); QTRY_VERIFY(!mail.oauthPending()); QCOMPARE(connected.count(),0); QVERIFY(mail.error().isEmpty());
+        mail.connectGoogle(); QTRY_VERIFY(mail.oauthPending()); cancelStatus="connected"; mail.cancelOAuth();
+        QTRY_COMPARE(connected.count(),1); QVERIFY(!mail.oauthPending());
+    }
+    void mailImapUsesValidatedTransportAndKeepsCredentialsOutOfAccounts() {
+        LocalApi remote; QVERIFY(remote.server.isListening());
+        ApiClient api(remote.origin()); PhoenixClient realtime; SessionController session(api,realtime);
+        api.setSession("test-mail-session","user-a",false); api.setWorkspace("workspace-a");
+        MailAccountsController mail(api,session);
+        const QJsonArray accounts{QJsonObject{{"id","mail-a"},{"email_address","alice@example.test"},{"provider","imap"},{"password","must-not-display"},
+            {"settings",QJsonObject{{"imap_host","imap.example.test"},{"password","must-not-display"},{"access_token","must-not-display"}}}}};
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            if (path=="/api/mail/accounts") LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",accounts}}).toJson());
+            else LocalApi::reply(socket,"{\"data\":{\"id\":\"mail-a\"}}",201);
+        };
+        mail.refresh(); QTRY_COMPARE(mail.accounts().size(),1);
+        const auto account=mail.accounts().first().toMap();
+        QVERIFY(!account.contains("password")); QVERIFY(!account.value("settings").toMap().contains("password"));
+        QVERIFY(!account.value("settings").toMap().contains("access_token"));
+        QCOMPARE(account.value("settings").toMap().value("imap_host").toString(),QString("imap.example.test"));
+        QVariantMap draft{{"email_address"," alice@example.test "},{"password","test-only-password"},{"username","  "},
+            {"imap_host","imap.example.test"},{"imap_port","993"},{"imap_security","tls"},
+            {"smtp_enabled",true},{"smtp_host","smtp.example.test"},{"smtp_port","587"},{"smtp_security","starttls"}};
+        QSignalSpy connected(&mail,&MailAccountsController::connected);
+        mail.connectImap(draft); QTRY_COMPARE(connected.count(),1);
+        const auto index=remote.paths.indexOf("/api/mail/accounts/imap"); QVERIFY(index>=0);
+        QCOMPARE(remote.methods.at(index),QString("POST"));
+        const auto body=remote.bodies.at(index);
+        QCOMPARE(body.value("username").toString(),QString("alice@example.test"));
+        QCOMPARE(body.value("email_address").toString(),QString("alice@example.test"));
+        QCOMPARE(body.value("smtp_security").toString(),QString("starttls"));
+        QCOMPARE(body.value("smtp_port").toInt(),587); QVERIFY(!body.contains("smtp_ssl"));
+        mail.connectImap(draft,"mail-a"); QTRY_COMPARE(connected.count(),2);
+        QCOMPARE(remote.methods.at(remote.paths.indexOf("/api/mail/accounts/mail-a/imap")),QString("PUT"));
+        const int before=remote.paths.size(); draft.insert("smtp_host",""); mail.connectImap(draft);
+        QVERIFY(mail.error().contains("SMTP")); QVERIFY(!mail.submitting()); QCOMPARE(remote.paths.size(),before);
+        draft.insert("smtp_enabled",false); draft.insert("imap_security","none"); mail.connectImap(draft);
+        QVERIFY(mail.error().contains("TLS")); QVERIFY(!mail.submitting());
+        draft.insert("imap_security","tls"); draft.insert("imap_port","70000"); mail.connectImap(draft);
+        QVERIFY(mail.error().contains("port")); QVERIFY(!mail.submitting());
+    }
+    void mailOAuthWaitsForServerCompletionAndResetsAcrossWorkspaces() {
+        LocalApi remote; QVERIFY(remote.server.isListening());
+        ApiClient api(remote.origin()); PhoenixClient realtime; SessionController session(api,realtime);
+        api.setSession("test-mail-session","user-a",false); api.setWorkspace("workspace-a");
+        MailAccountsController mail(api,session);
+        QString status="pending";
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            QJsonObject data;
+            if (path.endsWith("/google/start")) data={{"flow_id","fixture-flow"},{"authorize_url","https://accounts.google.com/o/oauth2/v2/auth?state=test-only"}};
+            else if (path.endsWith("/fixture-flow")) data={{"status",status}};
+            else { LocalApi::reply(socket,"{\"data\":[]}"); return; }
+            LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",data}}).toJson());
+        };
+        QSignalSpy browser(&mail,&MailAccountsController::requestExternal), connected(&mail,&MailAccountsController::connected), reset(&mail,&MailAccountsController::contextReset);
+        mail.connectGoogle(); QTRY_COMPARE(browser.count(),1); QVERIFY(mail.oauthPending()); QCOMPARE(connected.count(),0);
+        mail.checkOAuth(); QTRY_VERIFY(remote.paths.contains("/api/mail/oauth/fixture-flow")); QTest::qWait(20);
+        QVERIFY(mail.oauthPending()); QCOMPARE(connected.count(),0);
+        status="connected"; mail.checkOAuth(); QTRY_COMPARE(connected.count(),1); QVERIFY(!mail.oauthPending());
+        status="pending"; mail.connectGoogle(); QTRY_COMPARE(browser.count(),2); QVERIFY(mail.oauthPending());
+        api.setWorkspace("workspace-b"); mail.setActive(true);
+        QTRY_VERIFY(!mail.oauthPending()); QCOMPARE(reset.count(),1); QCOMPARE(mail.accounts().size(),0); QCOMPARE(mail.selectedId(),QString());
+        QVERIFY(!mail.submitting());
+    }
+    void mailRejectsUntrustedOAuthLinksAndShowsServerValidationErrors() {
+        LocalApi remote; QVERIFY(remote.server.isListening());
+        ApiClient api(remote.origin()); PhoenixClient realtime; SessionController session(api,realtime);
+        api.setSession("test-mail-session","user-a",false); api.setWorkspace("workspace-a");
+        MailAccountsController mail(api,session);
+        QString authorizeUrl="https://accounts.google.com.evil.test/login";
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            if (path.endsWith("/google/start")) LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",QJsonObject{{"flow_id","test-flow"},{"authorize_url",authorizeUrl}}}}).toJson());
+            else LocalApi::reply(socket,"{\"error\":{\"code\":\"smtp_connection_failed\",\"message\":\"SMTP authentication failed. Create an app password.\"}}",422);
+        };
+        QSignalSpy browser(&mail,&MailAccountsController::requestExternal);
+        for (const auto* candidate : {"https://accounts.google.com.evil.test/login", "https://accounts.google.com:8443/o/oauth2/v2/auth", "https://accounts.google.com/unexpected/path", "https://accounts.google.com/o/oauth2/v2/auth#fragment"}) {
+            authorizeUrl=candidate; mail.connectGoogle(); QTRY_VERIFY(!mail.submitting()); QVERIFY(!mail.oauthPending()); QCOMPARE(browser.count(),0); QVERIFY(!mail.error().isEmpty());
+        }
+        mail.connectImap({{"email_address","alice@example.test"},{"password","fixture-password"},{"imap_host","imap.example.test"},{"imap_port",993},{"imap_security","tls"}});
+        QTRY_VERIFY(!mail.submitting()); QCOMPARE(mail.error(),QString("SMTP authentication failed. Create an app password."));
+        QVERIFY(mail.accounts().isEmpty());
+    }
+    void mailAccountSelectionUsesServerFilterAndSyncUsesActualIds() {
+        LocalApi remote; QVERIFY(remote.server.isListening()); QTemporaryDir directory;
+        ApiClient api(remote.origin()); PhoenixClient realtime; SessionController session(api,realtime); CacheStore cache(directory.path());
+        api.setSession("test-mail-session","user-a",false); api.setWorkspace("workspace-a");
+        remote.handler=[](QTcpSocket* socket,const QString& path) {
+            if (path=="/api/mail/accounts") LocalApi::reply(socket,"{\"data\":[{\"id\":\"mail-a\",\"email_address\":\"a@example.test\"},{\"id\":\"mail-b\",\"email_address\":\"b@example.test\"}]}");
+            else LocalApi::reply(socket,"{\"data\":[]}");
+        };
+        FeatureController features(api,session,cache); features.navigate("mail");
+        auto& mail=*qobject_cast<MailAccountsController*>(features.mailAccounts());
+        QTRY_COMPARE(mail.accounts().size(),2); QTRY_VERIFY(!features.busy());
+        mail.select("mail-b"); QTRY_VERIFY(remote.paths.contains("/api/mail/messages?account_id=mail-b")); QTRY_VERIFY(!features.busy());
+        mail.synchronize(); QTRY_VERIFY(remote.paths.contains("/api/mail/accounts/mail-b/sync")); QTRY_VERIFY(!mail.syncing());
+        QVERIFY(!remote.paths.contains("/api/mail/accounts/mail-a/sync"));
+        mail.select(""); mail.synchronize(); QTRY_VERIFY(remote.paths.contains("/api/mail/accounts/mail-a/sync"));
+    }
+    void taskMovePatchesOnlyStatusWithoutChangingUnrelatedSelection() {
+        TaskFixture f; auto& c=*f.controller;
+        QTRY_COMPARE(c.allRecords().size(),2); QVERIFY(c.canMoveTasks());
+        QCOMPARE(c.currentMemberId(),QString("member-alice"));
+        c.select("task-b"); QTRY_VERIFY(c.selectedRecord().contains("comments"));
+        const auto selected=c.selectedRecord(); const auto requests=f.remote.paths.size();
+        QSignalSpy result(&c,&FeatureController::actionResult);
+        QVERIFY(c.moveTask("task-a","in_progress"));
+        QCOMPARE(c.pendingTaskId(),QString("task-a")); QCOMPARE(c.pendingTaskStatus(),QString("in_progress"));
+        QVERIFY(c.busy()); QVERIFY(!c.canMoveTasks());
+        QCOMPARE(f.task("task-a").value("status").toString(),QString("to_do"));
+        QTRY_VERIFY(!c.busy());
+        QCOMPARE(f.remote.paths.size(),requests+1);
+        QCOMPARE(f.remote.methods.last(),QString("PATCH")); QCOMPARE(f.remote.paths.last(),QString("/api/tasks/task-a"));
+        QCOMPARE(f.remote.bodies.last(),QJsonObject({{"status","in_progress"}}));
+        QCOMPARE(f.task("task-a").value("title").toString(),QString("Keep the SEO brief"));
+        QCOMPARE(f.task("task-a").value("description").toString(),QString("A detailed original brief"));
+        QCOMPARE(f.task("task-a").value("assigned_agent_id").toString(),QString("agent-a"));
+        QCOMPARE(f.task("task-a").value("project_id").toString(),QString("project-a"));
+        QCOMPARE(f.task("task-a").value("status").toString(),QString("in_progress"));
+        QCOMPARE(c.selectedId(),QString("task-b")); QCOMPARE(c.selectedRecord(),selected);
+        QVERIFY(c.pendingTaskId().isEmpty()); QVERIFY(c.pendingTaskStatus().isEmpty());
+        QCOMPARE(c.overview().value("meta").toMap().value("counts").toMap().value("to_do").toInt(),0);
+        QCOMPARE(c.overview().value("meta").toMap().value("counts").toMap().value("in_progress").toInt(),1);
+        QCOMPARE(result.size(),1); QCOMPARE(result.first().first().toString(),QString("move-task"));
+    }
+    void taskMoveFailureKeepsTaskInSourceColumn() {
+        TaskFixture f; auto& c=*f.controller;
+        QTRY_COMPARE(c.allRecords().size(),2); const auto original=f.task("task-a");
+        f.intercept=[&](QTcpSocket* socket,const QString&) {
+            if (f.remote.methods.last()!="PATCH") return false;
+            LocalApi::reply(socket,R"({"error":{"message":"This workspace is read-only."}})",403); return true;
+        };
+        QSignalSpy result(&c,&FeatureController::actionResult);
+        QVERIFY(c.moveTask("task-a","completed")); QTRY_VERIFY(!c.busy());
+        QCOMPARE(f.task("task-a"),original); QVERIFY(c.error().contains("read-only"));
+        QVERIFY(c.pendingTaskId().isEmpty()); QCOMPARE(result.size(),0);
+    }
+    void taskMoveRejectsReadOnlyOfflineUnknownAndUnchangedTasks() {
+        TaskFixture f; auto& c=*f.controller;
+        QTRY_COMPARE(c.allRecords().size(),2);
+        f.canUpdate=false; c.refresh(); QTRY_VERIFY(!c.busy());
+        auto requests=f.remote.paths.size(); QVERIFY(!c.canMoveTasks());
+        QVERIFY(!c.moveTask("task-a","completed")); QCOMPARE(f.remote.paths.size(),requests);
+        f.canUpdate=true; c.refresh(); QTRY_VERIFY(!c.busy());
+        f.api.setOnline(false); requests=f.remote.paths.size();
+        QVERIFY(!c.canMoveTasks()); QVERIFY(!c.moveTask("task-a","completed")); QCOMPARE(f.remote.paths.size(),requests);
+        f.api.setOnline(true); QVERIFY(c.canMoveTasks());
+        QVERIFY(!c.moveTask("unknown-task","completed")); QVERIFY(!c.moveTask("task-a","unknown-status"));
+        QVERIFY(!c.moveTask("task-a","to_do")); QCOMPARE(f.remote.paths.size(),requests);
+        QVERIFY(!c.moveTask("../task-a","completed")); QCOMPARE(f.remote.paths.size(),requests);
+        QCOMPARE(f.task("task-a").value("status").toString(),QString("to_do"));
+    }
+    void taskMoveSupportsEveryExplicitStatusAndPreservesSelectedDiscussion() {
+        TaskFixture f; auto& c=*f.controller;
+        QTRY_COMPARE(c.allRecords().size(),2); c.select("task-a");
+        QTRY_VERIFY(c.selectedRecord().contains("comments"));
+        for (const auto* status : {"in_progress","in_review","waiting","blocked","overdue","completed","canceled","to_do"}) {
+            QVERIFY(c.moveTask("task-a",status)); QTRY_VERIFY(!c.busy());
+            QCOMPARE(c.selectedRecord().value("status").toString(),QString::fromLatin1(status));
+            QCOMPARE(c.details().value("status").toString(),QString::fromLatin1(status));
+            QCOMPARE(c.selectedRecord().value("comments").toList().size(),1);
+        }
+        c.submit("runs",{}); QTRY_VERIFY(!c.busy());
+        const auto report=c.details(); QVERIFY(!c.showingRecordDetails());
+        QVERIFY(c.moveTask("task-a","in_progress")); QTRY_VERIFY(!c.busy());
+        QCOMPARE(c.details(),report); QCOMPARE(c.selectedRecord().value("status").toString(),QString("in_progress"));
+        c.showRecordDetails(); QCOMPARE(c.details().value("status").toString(),QString("in_progress"));
+    }
+    void taskMoveRejectsConcurrentMoveAndClearsPendingOnNavigation() {
+        TaskFixture f; auto& c=*f.controller; QPointer<QTcpSocket> pending;
+        QTRY_COMPARE(c.allRecords().size(),2);
+        f.intercept=[&](QTcpSocket* socket,const QString&) {
+            if (f.remote.methods.last()!="PATCH") return false;
+            pending=socket; return true;
+        };
+        QVERIFY(c.moveTask("task-a","in_progress")); QTRY_VERIFY(pending);
+        const auto requests=f.remote.paths.size();
+        QVERIFY(!c.moveTask("task-b","completed")); QCOMPARE(f.remote.paths.size(),requests);
+        c.navigate("projects"); QTRY_VERIFY(!c.busy());
+        QVERIFY(c.pendingTaskId().isEmpty()); QVERIFY(c.pendingTaskStatus().isEmpty());
+        QVERIFY(c.currentMemberId().isEmpty()); QVERIFY(!c.canMoveTasks());
+        QCOMPARE(c.currentPage(),QString("projects")); QVERIFY(c.allRecords().isEmpty());
+    }
+    void taskMoveRejectsMalformedConfirmationWithoutChangingRecord() {
+        TaskFixture f; auto& c=*f.controller;
+        QTRY_COMPARE(c.allRecords().size(),2); const auto original=f.task("task-a");
+        f.intercept=[&](QTcpSocket* socket,const QString&) {
+            if (f.remote.methods.last()!="PATCH") return false;
+            LocalApi::reply(socket,R"({"data":{"id":"task-b","status":"completed"}})"); return true;
+        };
+        QVERIFY(c.moveTask("task-a","completed")); QTRY_VERIFY(!c.busy());
+        QCOMPARE(f.task("task-a"),original); QVERIFY(c.error().contains("did not confirm"));
+    }
     void avatarGenerationTextPollsAndRetainsCompletedAsset() {
         LocalApi remote;
         remote.handler=[&](QTcpSocket* socket,const QString& path) {
@@ -210,11 +462,22 @@ private slots:
         QVERIFY(!changes.isEmpty());
         QVERIFY(controller.selectedRecord().isEmpty());
     }
+    void agentSelectionLoadsOnlyThatAgentsTasks_data() {
+        QTest::addColumn<QString>("page");
+        QTest::newRow("agents") << QString("agents");
+        QTest::newRow("office") << QString("office");
+        QTest::newRow("agent-detail") << QString("agent-detail");
+    }
     void agentSelectionLoadsOnlyThatAgentsTasks() {
+        QFETCH(QString,page);
         LocalApi remote;
         remote.handler=[](QTcpSocket* socket,const QString& path) {
             if (path.startsWith("/api/tasks?")) {
                 LocalApi::reply(socket,R"({"data":[{"id":"task-a","assigned_agent_id":"agent-a","status":"in_progress","progress_percent":40},{"id":"task-b","assigned_agent_id":"agent-b","status":"completed","progress_percent":100},{"id":"task-c","assigned_agent_id":"agent-a","status":"completed","progress_percent":100}]})");
+                return;
+            }
+            if (path.startsWith("/api/knowledge?")) {
+                LocalApi::reply(socket,R"({"data":[{"id":"file-a","agent_id":"agent-a","title":"Contract references","indexing_status":"ready","api_key":"private"},{"id":"file-b","agent_id":"agent-b","title":"Research"},{"id":"shared","agent_id":null,"title":"Workspace notes"}]})");
                 return;
             }
             if (path.startsWith("/api/agents/")) {
@@ -227,18 +490,28 @@ private slots:
         ApiClient api(remote.origin()); api.setSession("test-alice","alice",false); api.setWorkspace("workspace-a");
         PhoenixClient realtime; SessionController session(api,realtime); QTemporaryDir directory;
         CacheStore cache(directory.path()); FeatureController controller(api,session,cache);
-        controller.navigate("agents"); QTRY_COMPARE(controller.allRecords().size(),2);
+        controller.navigate(page); QTRY_COMPARE(controller.allRecords().size(),2);
         QCOMPARE(controller.selectedAgentTasksState(),QString("idle"));
+        QCOMPARE(controller.selectedAgentKnowledgeState(),QString("idle"));
         controller.select("agent-a");
         QTRY_COMPARE(controller.selectedAgentTasksState(),QString("ready"));
         QCOMPARE(controller.selectedAgentTasks().size(),2);
         QVERIFY(remote.paths.contains("/api/tasks?agent_id=agent-a"));
+        QTRY_COMPARE(controller.selectedAgentKnowledgeState(),QString("ready"));
+        QCOMPARE(controller.selectedAgentKnowledge().size(),1);
+        QCOMPARE(controller.selectedAgentKnowledge().first().toMap().value("title").toString(),QString("Contract references"));
+        QVERIFY(!controller.selectedAgentKnowledge().first().toMap().contains("api_key"));
+        QVERIFY(remote.paths.contains("/api/knowledge?agent_id=agent-a"));
         controller.select("agent-b");
         QTRY_COMPARE(controller.selectedAgentTasks().size(),1);
         QCOMPARE(controller.selectedAgentTasks().first().toMap().value("id").toString(),QString("task-b"));
+        QTRY_COMPARE(controller.selectedAgentKnowledgeState(),QString("ready"));
+        QCOMPARE(controller.selectedAgentKnowledge().first().toMap().value("id").toString(),QString("file-b"));
         controller.clearSelection();
         QCOMPARE(controller.selectedAgentTasksState(),QString("idle"));
         QVERIFY(controller.selectedAgentTasks().isEmpty());
+        QCOMPARE(controller.selectedAgentKnowledgeState(),QString("idle"));
+        QVERIFY(controller.selectedAgentKnowledge().isEmpty());
         controller.openRecord("agent-performance","agent-a");
         QTRY_COMPARE(controller.currentPage(),QString("agent-performance"));
         QTRY_COMPARE(controller.selectedAgentTasksState(),QString("ready"));
@@ -251,6 +524,106 @@ private slots:
         QTRY_COMPARE(controller.currentPage(),QString("marketplace"));
         QCOMPARE(controller.pendingOfferMode(),QString("sale"));
         QCOMPARE(controller.pendingOfferAgentId(),QString("agent-a"));
+    }
+    void agentPrimaryDetailsSurviveReportsAndSettingsRefresh() {
+        LocalApi remote;
+        QPointer<QTcpSocket> detailSocket;
+        QPointer<QTcpSocket> refreshSocket;
+        bool holdList=false;
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            if (path=="/api/agents") {
+                if (holdList) refreshSocket=socket;
+                else LocalApi::reply(socket,R"({"data":[{"id":"agent-a","display_name":"Avery"}]})");
+            } else if (path=="/api/agents/agent-a/progression") {
+                LocalApi::reply(socket,R"({"data":{"level":8,"missions_completed":42}})");
+            } else if (path=="/api/agents/agent-a" && remote.methods.last()=="PATCH") {
+                holdList=true;
+                LocalApi::reply(socket,R"({"data":{"id":"agent-a","display_name":"Avery","instructions":"Updated instructions","autonomy_mode":"supervised"}})");
+            } else if (path=="/api/agents/agent-a") detailSocket=socket;
+            else LocalApi::reply(socket,R"({"data":[]})");
+        };
+        ApiClient api(remote.origin()); api.setSession("test-alice","alice",false); api.setWorkspace("workspace-a");
+        PhoenixClient realtime; SessionController session(api,realtime); QTemporaryDir directory;
+        CacheStore cache(directory.path()); FeatureController controller(api,session,cache);
+        controller.navigate("office"); QTRY_COMPARE(controller.allRecords().size(),1);
+        controller.select("agent-a"); QTRY_VERIFY(detailSocket);
+        controller.submit("progression",{}); QTRY_VERIFY(!controller.busy());
+        QCOMPARE(controller.details().value("level").toInt(),8);
+        LocalApi::reply(detailSocket,R"({"data":{"id":"agent-a","display_name":"Avery","instructions":"Original instructions","autonomy_mode":"balanced","skills":["Legal research"]}})");
+        QTRY_COMPARE(controller.selectedRecord().value("instructions").toString(),QString("Original instructions"));
+        QCOMPARE(controller.details().value("level").toInt(),8);
+        QVERIFY(!controller.details().contains("instructions"));
+
+        QSignalSpy saved(&controller,&FeatureController::actionSucceeded);
+        controller.submit("edit",{{"display_name","Avery"},{"instructions","Updated instructions"},{"autonomy_mode","supervised"}});
+        QTRY_COMPARE(saved.size(),1);
+        QCOMPARE(controller.selectedRecord().value("instructions").toString(),QString("Updated instructions"));
+        QCOMPARE(controller.selectedRecord().value("skills").toList().size(),1);
+        QTRY_VERIFY(refreshSocket);
+        detailSocket=nullptr;
+        LocalApi::reply(refreshSocket,R"({"data":[{"id":"agent-a","display_name":"Avery"}]})");
+        QTRY_VERIFY(detailSocket);
+        QCOMPARE(controller.selectedRecord().value("instructions").toString(),QString("Updated instructions"));
+        QCOMPARE(controller.selectedRecord().value("autonomy_mode").toString(),QString("supervised"));
+        QCOMPARE(controller.selectedRecord().value("skills").toList().size(),1);
+        LocalApi::reply(detailSocket,R"({"data":{"id":"agent-a","display_name":"Avery","instructions":"Updated instructions"}})");
+        controller.clearSelection();
+    }
+    void agentResourceResponsesCannotCrossSelections() {
+        LocalApi remote;
+        QPointer<QTcpSocket> oldTasks,oldKnowledge;
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            if (path=="/api/tasks?agent_id=agent-a") oldTasks=socket;
+            else if (path=="/api/knowledge?agent_id=agent-a") oldKnowledge=socket;
+            else if (path=="/api/tasks?agent_id=agent-b") LocalApi::reply(socket,R"({"data":[{"id":"task-b","assigned_agent_id":"agent-b"}]})");
+            else if (path=="/api/knowledge?agent_id=agent-b") LocalApi::reply(socket,R"({"data":[{"id":"file-b","agent_id":"agent-b"}]})");
+            else if (path=="/api/agents") LocalApi::reply(socket,R"({"data":[{"id":"agent-a","display_name":"Avery"},{"id":"agent-b","display_name":"Orion"}]})");
+            else LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",QJsonObject{{"id",path.section('/',3,3)}}}}).toJson());
+        };
+        ApiClient api(remote.origin()); api.setSession("test-alice","alice",false); api.setWorkspace("workspace-a");
+        PhoenixClient realtime; SessionController session(api,realtime); QTemporaryDir directory;
+        CacheStore cache(directory.path()); FeatureController controller(api,session,cache);
+        controller.navigate("office"); QTRY_COMPARE(controller.allRecords().size(),2);
+        controller.select("agent-a"); QTRY_VERIFY(oldTasks && oldKnowledge);
+        controller.select("agent-b");
+        QTRY_COMPARE(controller.selectedAgentTasksState(),QString("ready"));
+        QTRY_COMPARE(controller.selectedAgentKnowledgeState(),QString("ready"));
+        LocalApi::reply(oldTasks,R"({"data":[{"id":"task-a","assigned_agent_id":"agent-a"}]})");
+        LocalApi::reply(oldKnowledge,R"({"data":[{"id":"file-a","agent_id":"agent-a"}]})");
+        QTRY_VERIFY(oldTasks.isNull() && oldKnowledge.isNull());
+        QCOMPARE(controller.selectedAgentTasks().first().toMap().value("id").toString(),QString("task-b"));
+        QCOMPARE(controller.selectedAgentKnowledge().first().toMap().value("id").toString(),QString("file-b"));
+    }
+    void marketplaceCheckoutReportsItsOrderAndPurchasesRemainASeparateRead() {
+        LocalApi remote;
+        remote.handler=[](QTcpSocket* socket,const QString& path) {
+            if (path=="/api/marketplace/checkout") {
+                LocalApi::reply(socket,R"({"data":{"order_id":"order-a","fulfilled":true,"sale_url":null,"checkout_url":null,"api_key":"not-displayable"}})");
+            } else if (path=="/api/marketplace/purchases") {
+                LocalApi::reply(socket,R"({"data":[{"id":"order-a","listing_id":"listing-a","status":"fulfilled","cloned_agent_id":"clone-a"}]})");
+            } else LocalApi::reply(socket,R"({"data":[{"id":"listing-a","title":"Legal specialist","mode":"rent","price_cents":2900}]})");
+        };
+        ApiClient api(remote.origin()); api.setSession("test-alice","alice",false); api.setWorkspace("workspace-a");
+        PhoenixClient realtime; SessionController session(api,realtime); QTemporaryDir directory;
+        CacheStore cache(directory.path()); FeatureController controller(api,session,cache);
+        QSignalSpy results(&controller,&FeatureController::actionResult);
+        QSignalSpy external(&controller,&FeatureController::requestExternal);
+        controller.navigate("marketplace"); QTRY_VERIFY(!controller.busy());
+        controller.submit("checkout",{{"_id","listing-a"},{"listing_id","listing-a"},{"_confirmed",true}});
+        QTRY_COMPARE(results.size(),1); QTRY_VERIFY(!controller.busy());
+        QCOMPARE(results.first().at(0).toString(),QString("checkout"));
+        const auto result=results.first().at(1).toMap();
+        QCOMPARE(result.value("order_id").toString(),QString("order-a"));
+        QVERIFY(result.value("fulfilled").toBool());
+        QVERIFY(!result.contains("api_key"));
+        QVERIFY(external.isEmpty());
+        QCOMPARE(remote.bodies.at(remote.paths.indexOf("/api/marketplace/checkout")).value("listing_id").toString(),QString("listing-a"));
+        controller.submit("purchases",{}); QTRY_VERIFY(!controller.busy());
+        QCOMPARE(controller.details().value("items").toList().first().toMap().value("cloned_agent_id").toString(),QString("clone-a"));
+        QCOMPARE(controller.allRecords().first().toMap().value("id").toString(),QString("listing-a"));
+        QCOMPARE(results.size(),2);
+        QCOMPARE(results.last().at(0).toString(),QString("purchases"));
+        QCOMPARE(results.last().at(1).toMap().value("items").toList().size(),1);
     }
     void actionFormContextCannotCrossFolderSelectionOrAccount() {
         DriveFixture f; auto& c=*f.controller;
@@ -708,6 +1081,20 @@ private slots:
         QCOMPARE(restored,fullText);
         QVERIFY(browser.canGoBack()); browser.goTo(0); QVERIFY(!browser.canGoBack());
         browser.enter(detailRow(browser,"latest_run")); browser.enter(detailRow(browser,"token_usage")); QCOMPARE(browser.rows()->rowCount(),2);
+    }
+    void managedRuntimeManifestUsesSavedDeliverablesAndDeduplicatesAttachments() {
+        DetailBrowser browser;
+        const QVariantMap file{{"id", "saved-report"}, {"filename", "audit.pdf"}, {"mime_type", "application/pdf"}};
+        const QVariantMap manifestFile{{"id", "saved-report"}, {"filename", "audit.pdf"}};
+        const QVariantMap runtime{{"engine", "openai_agents"}, {"manifest", QVariantList{manifestFile}},
+            {"participants", QVariantList{QVariantMap{{"agent_id", "sira"}, {"artifacts", QStringList{"audit.pdf"}}}}}};
+        browser.setDocument({{"attachments", QVariantList{file}}, {"latest_run", QVariantMap{{"output", QVariantMap{{"runtime", runtime}}}}}}, "task:runtime", "Task", "tasks");
+        const auto files = browser.deliverables();
+        QCOMPARE(files.size(), 1);
+        QCOMPARE(files.first().toMap().value("id").toString(), QString("saved-report"));
+        QCOMPARE(files.first().toMap().value("name").toString(), QString("audit.pdf"));
+        browser.setDocument({{"latest_run", QVariantMap{{"output", QVariantMap{{"runtime", runtime}}}}}}, "task:manifest", "Task", "tasks");
+        QCOMPARE(browser.deliverables().size(), 1);
     }
     void deliverablesAreCuratedDeduplicatedAndSeparateFromInputs() {
         DetailBrowser browser;

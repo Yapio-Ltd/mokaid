@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "duration": 74,
+  "fps": 24,
+  "tool": "Higgsedit native",
+  "createdAt": "2026-09-25T15:26:35.266Z",
+  "warnings": [],
+  "files": [
+    {
+      "format": "web",
+      "filename": "mokaid-web-74s.mp4",
+      "sha256": "adac1c36548182a4b68137fdba12dbe084290d6729ff75f5be6adc1a87281ff3",
+      "width": 1920,
+      "height": 1080,
+      "duration": 74,
+      "fps": "24/1",
+      "audio": false,
+      "maximumKeyframeGap": 0.25,
+      "bytes": 70724025,
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/5e53dc92-0c43-46e4-9ae6-4b45f7158be7.mp4"
+    },
+    {
+      "format": "social-16x9",
+      "filename": "mokaid-social-16x9-74s.mp4",
+      "sha256": "e6086ad03bf90b69ded4b1771f96ed236c0fd4bed6e13845d4892ac41dbd65b2",
+      "width": 1920,
+      "height": 1080,
+      "duration": 74,
+      "fps": "24/1",
+      "audio": true,
+      "maximumKeyframeGap": null,
+      "bytes": 112519122,
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/450f5975-3184-47e2-bbec-eb9da553132d.mp4"
+    },
+    {
+      "format": "social-4x5",
+      "filename": "mokaid-social-4x5-74s.mp4",
+      "sha256": "a1235fe655511bbb2dc1c5c5d4ff39c53731512c84be4c9cbf6951f6a442255d",
+      "width": 1080,
+      "height": 1350,
+      "duration": 74,
+      "fps": "24/1",
+      "audio": true,
+      "maximumKeyframeGap": null,
+      "bytes": 109360602,
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/cc7754f4-835f-4308-99b1-3c4bd6b3e086.mp4"
+    },
+    {
+      "format": "social-9x16",
+      "filename": "mokaid-social-9x16-74s.mp4",
+      "sha256": "37141bb8661305bd27c225a15d8339aa35f5dc97777c957daae8622404514e18",
+      "width": 1080,
+      "height": 1920,
+      "duration": 74,
+      "fps": "24/1",
+      "audio": true,
+      "maximumKeyframeGap": null,
+      "bytes": 111214416,
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/26e2920e-0017-4133-ad3a-89f8cbf73054.mp4"
+    }
+  ],
+  "archive": {
+    "filename": "mokaid-higgsedit-editable.zip",
+    "sha256": "6a0865668e52ec447df3057441095b180e6438aadd8cc6bb7834d43838aa67b7",
+    "bytes": 496908462,
+    "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/74fea888-b495-4c67-ad70-1a68a3372b06.zip"
+  }
+}

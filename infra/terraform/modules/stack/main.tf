@@ -28,6 +28,24 @@ variable "worker_image_tag" {
   default = "latest"
 }
 
+variable "managed_runtime_enabled" {
+  description = "Route eligible new missions to Agents API after internal acceptance tests. Workspace consent remains required."
+  type        = bool
+  default     = false
+}
+
+variable "managed_runtime_verified_models" {
+  description = "Models verified against this project's Agents API; never auto-populated."
+  type        = list(string)
+  default     = []
+}
+
+variable "managed_runtime_allowed_domains" {
+  description = "Sandbox egress domains. Empty keeps sandbox networking disabled."
+  type        = list(string)
+  default     = []
+}
+
 variable "web_image_tag" {
   type    = string
   default = "latest"
@@ -383,10 +401,11 @@ module "secrets" {
 
   name_prefix = local.name
   secrets = {
-    secret_key_base   = "CHANGE_ME"
-    worker_auth_token = "CHANGE_ME"
-    openai_api_key    = "CHANGE_ME"
-    anthropic_api_key = "CHANGE_ME"
+    secret_key_base              = "CHANGE_ME"
+    worker_auth_token            = "CHANGE_ME"
+    openai_api_key               = "CHANGE_ME"
+    openai_agents_webhook_secret = ""
+    anthropic_api_key            = "CHANGE_ME"
     # Admin API keys (costs/usage org only — never inference). Filled out-of-band.
     openai_admin_api_key     = "CHANGE_ME"
     anthropic_admin_api_key  = "CHANGE_ME"
@@ -603,33 +622,36 @@ module "api_service" {
     AWS_REGION = var.aws_region
     AUTH_MODE  = var.auth_mode
     # This API service accepts ingress only from alb_security_group_id above.
-    MOKAID_TRUSTED_ALB_CIDRS = join(",", module.vpc.public_subnet_cidrs)
-    COGNITO_USER_POOL_ID     = module.cognito.user_pool_id
-    COGNITO_CLIENT_ID        = module.cognito.web_client_id
-    S3_BUCKET_UPLOADS        = module.s3_uploads.bucket_id
-    S3_BUCKET_ASSETS_3D      = module.s3_assets.bucket_id
-    ASSETS_CDN_URL           = var.enable_cloudfront ? "https://${module.cloudfront[0].distribution_domain_name}" : ""
-    S3_BUCKET_PRIVATE        = module.s3_files.bucket_id
-    S3_BUCKET_OUTPUTS        = module.s3_exports.bucket_id
-    S3_BUCKET_EXPORTS        = module.s3_exports.bucket_id
-    AI_DISPATCH_QUEUE_URL    = module.sqs_ai_runs.queue_url
-    AI_WORKER_URL            = local.ai_worker_url
-    CORS_ORIGINS             = local.app_origin
-    FIGMA_REDIRECT_URI       = var.app_domain != "" ? "https://${var.app_domain}/oauth/figma/callback" : "https://mokaid.com/oauth/figma/callback"
-    GOOGLE_REDIRECT_URI      = var.app_domain != "" ? "https://${var.app_domain}/oauth/google/callback" : "https://mokaid.com/oauth/google/callback"
-    GITHUB_REDIRECT_URI      = var.app_domain != "" ? "https://${var.app_domain}/oauth/github/callback" : "https://mokaid.com/oauth/github/callback"
-    LINEAR_REDIRECT_URI      = var.app_domain != "" ? "https://${var.app_domain}/oauth/linear/callback" : "https://mokaid.com/oauth/linear/callback"
-    SLACK_REDIRECT_URI       = var.app_domain != "" ? "https://${var.app_domain}/oauth/slack/callback" : "https://mokaid.com/oauth/slack/callback"
-    NOTION_REDIRECT_URI      = var.app_domain != "" ? "https://${var.app_domain}/auth/notion/callback" : "https://mokaid.com/auth/notion/callback"
-    MICROSOFT_REDIRECT_URI   = var.app_domain != "" ? "https://${var.app_domain}/oauth/microsoft/callback" : "https://mokaid.com/oauth/microsoft/callback"
-    MICROSOFT_TENANT         = "common"
-    RESEND_FROM              = "mokaid <notifications@mokaid.com>"
+    MOKAID_TRUSTED_ALB_CIDRS        = join(",", module.vpc.public_subnet_cidrs)
+    COGNITO_USER_POOL_ID            = module.cognito.user_pool_id
+    COGNITO_CLIENT_ID               = module.cognito.web_client_id
+    S3_BUCKET_UPLOADS               = module.s3_uploads.bucket_id
+    S3_BUCKET_ASSETS_3D             = module.s3_assets.bucket_id
+    ASSETS_CDN_URL                  = var.enable_cloudfront ? "https://${module.cloudfront[0].distribution_domain_name}" : ""
+    S3_BUCKET_PRIVATE               = module.s3_files.bucket_id
+    S3_BUCKET_OUTPUTS               = module.s3_exports.bucket_id
+    S3_BUCKET_EXPORTS               = module.s3_exports.bucket_id
+    AI_DISPATCH_QUEUE_URL           = module.sqs_ai_runs.queue_url
+    AI_WORKER_URL                   = local.ai_worker_url
+    MANAGED_RUNTIME_VERIFIED_MODELS = join(",", var.managed_runtime_verified_models)
+    CORS_ORIGINS                    = local.app_origin
+    FIGMA_REDIRECT_URI              = var.app_domain != "" ? "https://${var.app_domain}/oauth/figma/callback" : "https://mokaid.com/oauth/figma/callback"
+    GOOGLE_REDIRECT_URI             = var.app_domain != "" ? "https://${var.app_domain}/oauth/google/callback" : "https://mokaid.com/oauth/google/callback"
+    GOOGLE_DESKTOP_REDIRECT_URI     = var.app_domain != "" ? "https://${var.app_domain}/api/mail/oauth/google/callback" : "https://mokaid.com/api/mail/oauth/google/callback"
+    GITHUB_REDIRECT_URI             = var.app_domain != "" ? "https://${var.app_domain}/oauth/github/callback" : "https://mokaid.com/oauth/github/callback"
+    LINEAR_REDIRECT_URI             = var.app_domain != "" ? "https://${var.app_domain}/oauth/linear/callback" : "https://mokaid.com/oauth/linear/callback"
+    SLACK_REDIRECT_URI              = var.app_domain != "" ? "https://${var.app_domain}/oauth/slack/callback" : "https://mokaid.com/oauth/slack/callback"
+    NOTION_REDIRECT_URI             = var.app_domain != "" ? "https://${var.app_domain}/auth/notion/callback" : "https://mokaid.com/auth/notion/callback"
+    MICROSOFT_REDIRECT_URI          = var.app_domain != "" ? "https://${var.app_domain}/oauth/microsoft/callback" : "https://mokaid.com/oauth/microsoft/callback"
+    MICROSOFT_TENANT                = "common"
+    RESEND_FROM                     = "mokaid <notifications@mokaid.com>"
     # Gmail users.watch pushes to this GCP Pub/Sub topic, which forwards to /api/webhooks/gmail.
-    GMAIL_PUBSUB_TOPIC    = var.gmail_pubsub_topic
-    GMAIL_PUBSUB_AUDIENCE = var.app_domain != "" ? "https://${var.app_domain}/api/webhooks/gmail" : "https://mokaid.com/api/webhooks/gmail"
-    API_BASE_URL          = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
-    WEB_BASE_URL          = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
-    MOKAID_LOG_GROUPS     = "/ecs/${local.name}-api,/ecs/${local.name}-ai-worker,/ecs/${local.name}-crm"
+    GMAIL_PUBSUB_TOPIC           = var.gmail_pubsub_topic
+    GMAIL_PUBSUB_AUDIENCE        = var.app_domain != "" ? "https://${var.app_domain}/api/webhooks/gmail" : "https://mokaid.com/api/webhooks/gmail"
+    GMAIL_PUBSUB_SERVICE_ACCOUNT = "mokaid-gmail-push@mokaid.iam.gserviceaccount.com"
+    API_BASE_URL                 = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
+    WEB_BASE_URL                 = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
+    MOKAID_LOG_GROUPS            = "/ecs/${local.name}-api,/ecs/${local.name}-ai-worker,/ecs/${local.name}-crm"
   }
 
   secrets = {
@@ -756,9 +778,11 @@ module "worker_service" {
   }
 
   environment = {
-    PHOENIX_API_URL   = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
-    AWS_REGION        = var.aws_region
-    AI_RUNS_QUEUE_URL = module.sqs_ai_runs.queue_url
+    PHOENIX_API_URL               = var.app_domain != "" ? "https://${var.app_domain}" : "http://${module.alb.alb_dns_name}"
+    AWS_REGION                    = var.aws_region
+    AI_RUNS_QUEUE_URL             = module.sqs_ai_runs.queue_url
+    OPENAI_AGENTS_ENABLED         = tostring(var.managed_runtime_enabled)
+    OPENAI_AGENTS_ALLOWED_DOMAINS = jsonencode(var.managed_runtime_allowed_domains)
     # LangSmith stays opt-in: set LANGSMITH_API_KEY as an SSM/Secrets override
     # out-of-band when you want tracing; the worker enables it only if present.
     LANGSMITH_PROJECT = "mokaid-ai-worker"
@@ -767,11 +791,12 @@ module "worker_service" {
   secrets = {
     # Same ecto:// DSN as the API — the Python worker rewrites the scheme to
     # postgresql:// for psycopg / LangGraph checkpoints (run persistence).
-    DATABASE_URL      = module.rds.database_url_secret_arn
-    WORKER_AUTH_TOKEN = module.secrets.secret_arns["worker_auth_token"]
-    OPENAI_API_KEY    = module.secrets.secret_arns["openai_api_key"]
-    ANTHROPIC_API_KEY = module.secrets.secret_arns["anthropic_api_key"]
-    DEEPSEEK_API_KEY  = module.secrets.secret_arns["deepseek_api_key"]
+    DATABASE_URL                 = module.rds.database_url_secret_arn
+    WORKER_AUTH_TOKEN            = module.secrets.secret_arns["worker_auth_token"]
+    OPENAI_API_KEY               = module.secrets.secret_arns["openai_api_key"]
+    OPENAI_AGENTS_WEBHOOK_SECRET = module.secrets.secret_arns["openai_agents_webhook_secret"]
+    ANTHROPIC_API_KEY            = module.secrets.secret_arns["anthropic_api_key"]
+    DEEPSEEK_API_KEY             = module.secrets.secret_arns["deepseek_api_key"]
   }
 
   task_policy_json   = data.aws_iam_policy_document.worker_task.json

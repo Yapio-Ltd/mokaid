@@ -113,6 +113,7 @@ config :phoenix, :filter_parameters, [
   "secret",
   "code",
   "state",
+  "refresh_request_id",
   "code_verifier",
   "code_challenge"
 ]

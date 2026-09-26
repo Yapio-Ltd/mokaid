@@ -1,0 +1,279 @@
+{
+  "origin": "http://127.0.0.1:5181",
+  "engine": "chromium",
+  "nojs": false,
+  "status": "failed",
+  "checks": [
+    "Nine public routes: exactly one header, identical desktop positions, centered nav, correct hrefs",
+    "Home → Pricing → Download → Back → Experience anchor → Back → Sign in → Back",
+    "320px /: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "320px /pricing: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes",
+    "320px /download: native disclosure, links, no overflow, Escape focus, keyboard Enter, navigation closes"
+  ],
+  "geometry": [
+    {
+      "path": "/",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/pricing",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/download",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/ai-employees",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/privacy",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/terms",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/cookies",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/legal",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    },
+    {
+      "path": "/refund",
+      "auth": false,
+      "nav": {
+        "x": 633.46875,
+        "y": 14.25,
+        "width": 173.0625,
+        "height": 35.5
+      },
+      "home": {
+        "x": 120,
+        "y": 12,
+        "width": 108.984375,
+        "height": 40
+      },
+      "download": {
+        "x": 1201.59375,
+        "y": 12,
+        "width": 118.40625,
+        "height": 40
+      },
+      "header": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 65
+      }
+    }
+  ],
+  "screenshots": [
+    "interactive-chromium-desktop-home.png",
+    "interactive-chromium-desktop-pricing.png",
+    "interactive-chromium-desktop-download.png",
+    "interactive-chromium-desktop-privacy.png"
+  ],
+  "apiReads": [],
+  "errors": [],
+  "setup": "Isolated browser contexts. Film requests aborted; release.json returns404. Auth uses only a synthetic browser: marker in localStorage and a stubbed /api/me read. No login, downloads or API writes.",
+  "version": "151.0.7922.34",
+  "error": "AssertionError [ERR_ASSERTION]: 320px /privacy: no horizontal overflow\n\nfalse !== true\n\n    at mobileMenu (file:///Users/olimservice/mokaid/artifacts/header-unification-2026-09-26/browser-check.mjs:85:10)\n    at async file:///Users/olimservice/mokaid/artifacts/header-unification-2026-09-26/browser-check.mjs:143:7",
+  "failureUrl": "http://127.0.0.1:5181/privacy"
+}

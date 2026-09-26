@@ -5,6 +5,7 @@ defmodule MokaidWeb.MarketplaceControllerTest do
   alias Mokaid.Billing
   alias Mokaid.Marketplace
   alias Mokaid.Marketplace.ConnectAccount
+  alias Mokaid.Marketplace.{Listing, Order}
   alias Mokaid.Repo
 
   setup %{conn: conn} do
@@ -75,5 +76,70 @@ defmodule MokaidWeb.MarketplaceControllerTest do
     assert [row] = body["data"]
     assert row["eligible"] == false
     assert row["levels_remaining"] == 9
+  end
+
+  test "GET purchases exposes persisted fulfillment only for the buyer workspace", %{
+    conn: conn,
+    workspace: buyer_workspace
+  } do
+    {seller_workspace, _seller} = workspace_fixture()
+    {other_workspace, _other} = workspace_fixture()
+
+    {:ok, source} =
+      Agents.create_agent(seller_workspace.id, %{
+        "kind" => "ai",
+        "display_name" => "Purchased legal agent",
+        "archetype_key" => "blank"
+      })
+
+    {:ok, clone} =
+      Agents.create_agent(buyer_workspace.id, %{
+        "kind" => "ai",
+        "display_name" => "Purchased legal agent",
+        "archetype_key" => "blank"
+      })
+
+    listing =
+      %Listing{}
+      |> Listing.changeset(%{
+        workspace_id: seller_workspace.id,
+        agent_id: source.id,
+        mode: "sale",
+        price_cents: 2_900,
+        title: "Legal agent"
+      })
+      |> Repo.insert!()
+
+    order_attrs = %{
+      listing_id: listing.id,
+      seller_workspace_id: seller_workspace.id,
+      buyer_workspace_id: buyer_workspace.id,
+      source_agent_id: source.id,
+      mode: "sale",
+      amount_cents: 2_900
+    }
+
+    pending = %Order{} |> Order.changeset(order_attrs) |> Repo.insert!()
+
+    completed =
+      %Order{}
+      |> Order.changeset(
+        Map.merge(order_attrs, %{status: "fulfilled", cloned_agent_id: clone.id})
+      )
+      |> Repo.insert!()
+
+    %Order{}
+    |> Order.changeset(%{order_attrs | buyer_workspace_id: other_workspace.id})
+    |> Repo.insert!()
+
+    rows = conn |> get("/api/marketplace/purchases") |> json_response(200) |> Map.fetch!("data")
+    assert length(rows) == 2
+    assert Enum.all?(rows, &(&1["buyer_workspace_id"] == buyer_workspace.id))
+    assert Enum.all?(rows, &(&1["listing"]["agent"]["id"] == source.id))
+    assert Enum.find(rows, &(&1["id"] == pending.id))["status"] == "pending"
+    assert Enum.find(rows, &(&1["id"] == pending.id))["cloned_agent_id"] == nil
+    fulfilled = Enum.find(rows, &(&1["id"] == completed.id))
+    assert fulfilled["status"] == "fulfilled"
+    assert fulfilled["cloned_agent_id"] == clone.id
   end
 end

@@ -1,0 +1,106 @@
+{
+  "date": "2026-09-25",
+  "tool": "Native Higgsedit",
+  "format": "social-4x5",
+  "nativeSize": [
+    1080,
+    1350
+  ],
+  "timeSeconds": 48,
+  "fps": 24,
+  "check": "clean",
+  "diagnostics": [],
+  "fixture": "Nine static reference cuts at approved scene times; square foosball image centered with native p.cut fit:cover. Not a final-video review.",
+  "source": {
+    "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_134412_b96abfcc-b415-483f-aeb9-e4d921c8d60b.png",
+    "sha256": "b94174d8f22809079c79750da0b892a97eb86b46c58681fbb99a512226696278"
+  },
+  "builderSha256": "2198568321540e35c1a745980e8d2590f840b2624f3c9ff229722690f3bdabac",
+  "font": {
+    "sha256": "3ae11c49db0455a3cc33e37d380f20fdb8c7f8b41dc07625c177e3d87a9d6ae6",
+    "family": "Manrope",
+    "nativeAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd",
+    "weights": [
+      400,
+      700
+    ]
+  },
+  "textNodes": [
+    {
+      "text": "Even AI needs a coffee break.",
+      "fontFamily": "Manrope",
+      "fontSize": 48,
+      "typography": {
+        "axes": {
+          "wght": 700
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      },
+      "size": {
+        "width": 928,
+        "height": 60
+      },
+      "transform": {
+        "x": 76,
+        "y": 48,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      }
+    },
+    {
+      "text": "Fortunately, they don't need payroll.",
+      "fontFamily": "Manrope",
+      "fontSize": 28,
+      "typography": {
+        "axes": {
+          "wght": 400
+        },
+        "fontAssetId": "3ae11c49-db04-55a3-cc33-e37d380f20fd"
+      },
+      "size": {
+        "width": 928,
+        "height": 100
+      },
+      "transform": {
+        "x": 76,
+        "y": 124,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "anchorX": 0,
+        "anchorY": 0,
+        "flipX": false,
+        "flipY": false,
+        "skewX": 0,
+        "skewY": 0
+      }
+    }
+  ],
+  "preview": {
+    "file": "native-manrope-4x5-48s.jpg",
+    "size": [
+      432,
+      540
+    ],
+    "bytes": 38419,
+    "base64Length": 51228,
+    "sha256": "bcbc47ff50e782c8b656879f9ec02b28e69147972278d482a1a519720356689e"
+  },
+  "visualReview": {
+    "result": "PASS",
+    "findings": [
+      "Single-line headline and secondary sentence fully visible.",
+      "Both faces and both sets of hands/foosball action clear of copy.",
+      "Compact title at y48/font48 and secondary at y124/font28 leave clear space above the players.",
+      "No clipping or unsupported-effect diagnostics."
+    ]
+  },
+  "modifications": "No builder or media edits performed; review-only render."
+}

@@ -388,7 +388,41 @@ defmodule Mokaid.AI.Orchestrator do
 
   defp detect_deliverables(instruction) do
     text = String.downcase(instruction || "")
-    Enum.filter(@deliverables, fn d -> Regex.match?(d.pattern, text) end)
+    deliverables = Enum.filter(@deliverables, fn d -> Regex.match?(d.pattern, text) end)
+
+    # A site's name is the subject of an SEO audit, not a request to build it.
+    # Keep website work when construction is explicitly requested, including
+    # briefs that combine an audit with a rebuild.
+    deliverables =
+      if existing_site_review?(text) and not explicit_site_build?(text) do
+        Enum.reject(deliverables, &(&1.key == "website"))
+      else
+        deliverables
+      end
+
+    # Research is how this one report is produced. Splitting the lookup and
+    # its synthesis loses the original brief and needlessly chains agents.
+    if MapSet.new(Enum.map(deliverables, & &1.key)) == MapSet.new(["research", "report"]) do
+      Enum.filter(deliverables, &(&1.key == "report"))
+    else
+      deliverables
+    end
+  end
+
+  defp existing_site_review?(text) do
+    Regex.match?(
+      ~r/\b(?:seo|audit|indexation|indexing|référencement|referencement|backlinks?|crawl)\b/u,
+      text
+    )
+  end
+
+  defp explicit_site_build?(text) do
+    # Link the verb to the website noun: "create a report about the website"
+    # must not accidentally authorize a website build.
+    Regex.match?(
+      ~r/\b(?:crée|créer|créez|creer|construis|construire|refais|refaire|reconstruis|refonte|création|creation|construction|build|rebuild|create|make|develop)[\s-]+(?:(?:moi|nous|un|une|le|la|du|de|mon|notre|ce|cet|cette|the|a|an|our|my|me|us|new|nouveau|nouvelle|complete|complet|entier|responsive|seo|optimisé|optimisée|optimized|optimised)\s+|d['’]){0,6}(?:site(?:\s+(?:web|internet|vitrine))?|website|landing\s?page|page\s?web|web\s?app)\b/u,
+      text
+    )
   end
 
   @french_markers ~w(le la les des une pour avec est sont notre votre je nous faut complet)

@@ -67,6 +67,7 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
           task_description: task && task.description,
           task_priority: task && task.priority,
           task_due_at: task && task.due_at,
+          runtime_policy: Mokaid.AI.RuntimePolicy.payload(run.workspace_id),
           input: run.input,
           attached_files: attached_files,
           mcp_servers: mcp_servers,
@@ -119,13 +120,21 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
     }
   end
 
-  # Other AI employees of the workspace (excluding the running one) that the
-  # deep agent may consult; the manager, when set, is listed first.
+  # Colleagues are scoped to the authenticated workspace. Their policies must
+  # travel with their persona so delegating work cannot bypass a tool denial.
+  # Status is a snapshot only: a contribution shares the lead's execution run,
+  # it does not reserve or enqueue a separate run on the colleague's queue.
   defp colleagues(workspace_id, agent_id) do
     workspace_id
-    |> Agents.list_agents(%{"kind" => "ai"})
-    |> Enum.reject(&(&1.id == agent_id or not &1.ai_enabled))
-    |> Enum.sort_by(&if(&1.manager_agent_id == nil, do: 0, else: 1))
+    |> Agents.list_agents()
+    |> Enum.filter(fn colleague ->
+      colleague.id != agent_id and colleague.kind in ["ai", "hybrid"] and
+        colleague.ai_enabled and colleague.status not in ["archived", "training", "offline"]
+    end)
+    |> Enum.sort_by(fn colleague ->
+      {if(colleague_status(colleague) == "idle", do: 0, else: 1),
+       if(colleague.manager_agent_id == nil, do: 0, else: 1)}
+    end)
     |> Enum.take(8)
     |> Enum.map(fn colleague ->
       %{
@@ -133,10 +142,19 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
         name: colleague.display_name,
         role_title: colleague.role_title,
         department: colleague.department,
-        skills: skill_names(colleague.skills)
+        skills: skill_names(colleague.skills),
+        status: colleague_status(colleague),
+        agent: agent_persona(colleague),
+        autonomy: Agents.autonomy_payload(colleague)
       }
     end)
   end
+
+  # Legacy active agents may be free or working; current_task_id disambiguates
+  # the same way the client presence model does. Team work accepts idle only.
+  defp colleague_status(%{status: "active", current_task_id: nil}), do: "idle"
+  defp colleague_status(%{status: "active"}), do: "busy"
+  defp colleague_status(colleague), do: colleague.status
 
   defp skill_names(skills) when is_list(skills) do
     Enum.map(skills, fn

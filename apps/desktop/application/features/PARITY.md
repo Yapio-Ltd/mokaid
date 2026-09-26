@@ -10,11 +10,11 @@ API; there are no example records or placeholder successes in the application.
 | Existing area | Native behavior backed by live APIs |
 |---|---|
 | Office / agents / profile / training / creation | Agent list/detail/catalog/training/progression; create, edit, remove, paid copy to another workspace, assign task and upload agent reference files; read schedules and permission rules |
-| Tasks | List/detail, create/edit/delete, execute/stop, comments, execution history and approval decisions |
+| Tasks | List/detail, create/edit/delete, execute/stop, comments, execution history and response feedback with prompted continuation |
 | Projects | List/detail, create/edit/delete and assign agents; scoped task list and existing project-folder contents |
 | Files | Native folder navigation, keyboard activation, breadcrumbs/back, trash view and selected-row restore; current-folder defaults for creation/upload; rename/move, preview and authenticated atomic native export up to 32 MiB |
 | Calendar | Event list and event creation; the existing API does not expose update/delete event routes |
-| Mail | Message list/body, connected accounts, rules, rule creation and mailbox synchronization |
+| Mail | Message list/body, multiple accounts, Gmail browser OAuth, verified IMAP/SMTP connection and reconnect, account filtering, status and synchronization, rules and rule creation |
 | Analytics | Overview and agent/task metric responses |
 | Members | List, invite, edit, remove, link human agent and read leave requests |
 | Integrations | MCP catalog merged with actual installation state; install/uninstall, read provider connections; browser handoff for existing OAuth management |
@@ -149,8 +149,8 @@ form retention, the full shell integration or Windows behavior.
   review. IDs required by advanced actions (including a move destination) are
   currently entered explicitly. Drive bulk actions, resumable transfers and
   exports larger than 32 MiB remain to be implemented.
-- Mailbox connection setup, rule update/delete and rich mail formatting.
-- OAuth provider transactions returning directly to the native client.
+- Mail rule update/delete and rich mail formatting.
+- Native OAuth provider transactions beyond the Gmail mailbox connection flow.
 - Full notification/search/conversation/streaming integration belongs to the
   shell's dedicated controllers, outside this generic registry.
 - Browser-layout parity, all copy, accessibility behavior and end-to-end human

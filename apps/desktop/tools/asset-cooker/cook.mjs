@@ -11,6 +11,9 @@ import { avatarKeys, parseAvatarCatalog, catalogEntry, validateAnimationValues }
 import { prepareOfficeMaterials } from './office-materials.mjs';
 import { activitySockets, overrideActivitySockets, chairDelta, removeVerifiedObstacles } from './activity-sockets.mjs';
 import { surfaceKind } from './surface-kinds.mjs';
+import { prepareCharacterNormals } from './character-normals.mjs';
+import { restoreCharacterTextures } from './character-textures.mjs';
+import { applyCharacterExpression } from './character-expressions.mjs';
 
 const here=dirname(fileURLToPath(import.meta.url));
 const repo=resolve(here,'../../../..');
@@ -54,6 +57,9 @@ for(const key of ['office',...avatarKeys,'avatar_female']) {
   const sourceSha256=createHash('sha256').update(inputBytes).digest('hex');
   if(expectedSha256&&sourceSha256!==expectedSha256)throw Error(`Source hash mismatch for catalog asset ${key}`);
   const document=await io.readBinary(inputBytes);
+  const characterTexture=await restoreCharacterTextures(document,key,{repoRoot:repo,sourceSha256});
+  const characterExpression=key.startsWith('avatar_')?applyCharacterExpression(document,key):null;
+  const characterNormals=key.startsWith('avatar_')?prepareCharacterNormals(document):null;
   // Keep accessor normalization and node transforms. Expand authored instance
   // transforms into draw nodes; the binary geometry remains the same glTF data.
   for(const node of [...document.getRoot().listNodes()]){
@@ -89,7 +95,9 @@ for(const key of ['office',...avatarKeys,'avatar_female']) {
   const w=new Writer();w.raw(Buffer.from('MOKASSET'));w.u(4);w.floats(min);w.floats(max);
   w.u(textures.length);
   for(const texture of textures){const image=texture.getImage();if(!image)throw Error('Missing embedded image');
-    const metadata=await sharp(image).metadata();let width=metadata.width,height=metadata.height;const maxSize=key==='office'?1024:1024;
+    // Preserve authored facial detail in the 2K character atlases. Smaller
+    // sources keep their original resolution; enlarging them invents no detail.
+    const metadata=await sharp(image).metadata();let width=metadata.width,height=metadata.height;const maxSize=key==='office'?1024:2048;
     const ratio=Math.min(1,maxSize/Math.max(width,height));width=Math.max(1,Math.round(width*ratio));height=Math.max(1,Math.round(height*ratio));
     const mips=[];while(true){const rgba=await sharp(image).resize(width,height).ensureAlpha().raw().toBuffer();mips.push({width,height,rgba});if(width===1&&height===1)break;width=Math.max(1,width>>1);height=Math.max(1,height>>1);}
     w.u(linearTextures.has(texture)?0:1);w.u(mips.length);for(const m of mips){w.u(m.width);w.u(m.height);w.u(m.rgba.length);w.raw(m.rgba);}
@@ -115,7 +123,7 @@ for(const key of ['office',...avatarKeys,'avatar_female']) {
     }
   }
   const bytes=w.finish(),file=`${key}.mokaidasset`;await writeFile(join(output,file),bytes);
-  const asset={id:key,file,sha256:createHash('sha256').update(bytes).digest('hex'),sourceSha256,sourcePath:relative(repo,input),bytes:bytes.length,meshes:meshes.length,vertices:meshes.reduce((n,m)=>n+m.primitive.getAttribute('POSITION').getCount(),0),animations:animations.map(a=>a.getName())};manifest.assets.push(asset);console.log(`${key}: ${asset.meshes} primitives, ${asset.vertices} vertices, ${(bytes.length/1048576).toFixed(1)} MiB`);
+  const asset={id:key,file,sha256:createHash('sha256').update(bytes).digest('hex'),sourceSha256,sourcePath:relative(repo,input),bytes:bytes.length,meshes:meshes.length,vertices:meshes.reduce((n,m)=>n+m.primitive.getAttribute('POSITION').getCount(),0),animations:animations.map(a=>a.getName()),...(characterNormals?{characterNormals}: {}),...(characterTexture?{characterTexture}: {}),...(characterExpression?{characterExpression}: {})};manifest.assets.push(asset);console.log(`${key}: ${asset.meshes} primitives, ${asset.vertices} vertices, ${(bytes.length/1048576).toFixed(1)} MiB`);
 }
 const navigationText=await readFile(join(repo,'apps/web/src/three/office-navdata.ts'),'utf8');
 const pathsText=await readFile(join(repo,'apps/web/src/three/office-paths.ts'),'utf8');

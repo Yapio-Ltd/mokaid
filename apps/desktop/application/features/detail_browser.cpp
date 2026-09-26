@@ -83,7 +83,17 @@ QVariantList DetailBrowser::deliverables() const {
                 if (map.contains(key)) file.insert(key,map.value(key));
             result.append(file);
         }
-        for (const auto& key : {"attachments","deliverables","artifacts","files","output","result","data","tool_calls"})
+        if (map.value("engine").toString()=="openai_agents") {
+            for (const auto& artifact : map.value("manifest").toList()) {
+                if (!object(artifact)) continue;
+                auto file=artifact.toMap();
+                // Runtime manifests identify imported Drive files even when
+                // the provider did not supply a MIME type.
+                if (!file.contains("mime_type")) file.insert("mime_type", "application/octet-stream");
+                self(self,file,depth+1);
+            }
+        }
+        for (const auto& key : {"attachments","deliverables","artifacts","files","output","result","data","tool_calls","runtime"})
             if (map.contains(key)) self(self,map.value(key),depth+1);
     };
     if (sourcePage_=="drive" && collectionHint_.isEmpty()) collect(collect,document_,0);

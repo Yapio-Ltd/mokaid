@@ -1,0 +1,10 @@
+{
+  "origin": "http://127.0.0.1:4173",
+  "status": "passed",
+  "checks": [
+    "/: immediate Escape closes native menu and restores focus",
+    "/download: immediate Escape closes native menu and restores focus",
+    "/privacy: immediate Escape closes native menu and restores focus"
+  ],
+  "setup": "Compiled header only. Isolated mobile browser; MP4 aborted; download release returns404; no login or API writes."
+}

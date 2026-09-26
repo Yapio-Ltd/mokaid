@@ -1,0 +1,62 @@
+[
+  {
+    "variant": "portrait",
+    "jobId": "1254b527-037e-4ce6-8b9c-76caa2b23c95",
+    "file": "clips/07-execution-portrait.mp4",
+    "sha256": "71de5dcd77e3aead6e03cefc6d3550a4518136d8c13826cd0729c4e121a55e15",
+    "fileBytes": 20484872,
+    "width": 1080,
+    "height": 1920,
+    "frames": 241,
+    "frameRate": "24/1",
+    "videoDuration": "10.041667",
+    "audioStreams": 1,
+    "sampleFrames": [
+      0,
+      24,
+      48,
+      72,
+      96,
+      120,
+      144,
+      168,
+      192,
+      216,
+      240
+    ],
+    "endpointMeanAbsoluteRGBDifference255": {
+      "start": 2.64,
+      "end": 4.938
+    }
+  },
+  {
+    "variant": "square",
+    "jobId": "e27cf9f0-b299-4773-803b-abe8055fd872",
+    "file": "clips/07-execution-square.mp4",
+    "sha256": "b678aa0d107c4b387699d0863a81caee08950d8c5a3341a7a3cb9101de1db604",
+    "fileBytes": 23504201,
+    "width": 1440,
+    "height": 1440,
+    "frames": 241,
+    "frameRate": "24/1",
+    "videoDuration": "10.041667",
+    "audioStreams": 1,
+    "sampleFrames": [
+      0,
+      24,
+      48,
+      72,
+      96,
+      120,
+      144,
+      168,
+      192,
+      216,
+      240
+    ],
+    "endpointMeanAbsoluteRGBDifference255": {
+      "start": 2.938,
+      "end": 3.429
+    }
+  }
+]

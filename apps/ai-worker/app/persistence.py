@@ -59,6 +59,7 @@ async def _ensure_initialized() -> bool:
     async with _init_lock:
         if _checkpointer is not None:
             return True
+        pool = None
         try:
             from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
             from psycopg.rows import dict_row
@@ -83,8 +84,14 @@ async def _ensure_initialized() -> bool:
             _checkpointer = saver
             log.info("run_persistence_ready")
             return True
+        except asyncio.CancelledError:
+            if pool is not None:
+                await pool.close()
+            raise
         except Exception as exc:  # noqa: BLE001 — degrade to in-memory
-            log.warning("run_persistence_unavailable", error=str(exc))
+            if pool is not None:
+                await pool.close()
+            log.warning("run_persistence_unavailable", error=type(exc).__name__)
             return False
 
 
@@ -93,6 +100,15 @@ async def get_checkpointer() -> Any | None:
     if not await _ensure_initialized():
         return None
     return _checkpointer
+
+
+async def get_pool(*, required: bool = False) -> Any | None:
+    """Share the worker pool; durable dispatch must fail closed on outages."""
+    if not await _ensure_initialized():
+        if required:
+            raise RuntimeError("Durable worker persistence is unavailable")
+        return None
+    return _pool
 
 
 async def save_run_request(run_id: str, payload: dict[str, Any]) -> None:
@@ -125,6 +141,32 @@ async def load_run_request(run_id: str) -> dict[str, Any] | None:
     except Exception as exc:  # noqa: BLE001
         log.warning("run_request_load_failed", run_id=run_id, error=str(exc))
         return None
+
+
+async def save_team_state(run_id: str, snapshot: dict[str, Any]) -> None:
+    """Update only the team's private resume state, preserving the run input.
+
+    The original RunRequest is already saved before execution. A partial JSON
+    update prevents concurrent notebook writes from reverting other input data.
+    """
+    if not await _ensure_initialized():
+        return
+    try:
+        async with _pool.connection() as conn:
+            await conn.execute(
+                """
+                UPDATE worker_run_requests
+                SET payload = jsonb_set(
+                    payload, '{input}',
+                    COALESCE(payload->'input', '{}'::jsonb)
+                        || jsonb_build_object('_team_state', %s::jsonb)
+                )
+                WHERE run_id = %s
+                """,
+                (json.dumps(snapshot), run_id),
+            )
+    except Exception as exc:  # noqa: BLE001 — persistence is best-effort
+        log.warning("team_state_save_failed", run_id=run_id, error=type(exc).__name__)
 
 
 async def delete_run_request(run_id: str) -> None:

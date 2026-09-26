@@ -8,6 +8,7 @@
 #include <QSet>
 #include <QUrlQuery>
 #include <QUuid>
+#include <algorithm>
 #include <limits>
 
 namespace mokaid::desktop {
@@ -70,9 +71,15 @@ bool externalUrlAllowed(const QUrl& url) {
 }
 
 FeatureController::FeatureController(ApiClient& api, SessionController& session, CacheStore& cache, QObject* parent)
-    : QObject(parent),api_(api),session_(session),cache_(cache),records_(this),detailView_(this),driveDownload_(api,this),avatarCreator_(api,session,this),searchTimer_(this) {
+    : QObject(parent),api_(api),session_(session),cache_(cache),records_(this),detailView_(this),driveDownload_(api,this),avatarCreator_(api,session,this),mailAccounts_(api,session,this),searchTimer_(this) {
     connect(this,&FeatureController::changed,this,[this] {
         detailView_.setDocument(details_,currentPage_+":"+selectedId_,detailHeading_.isEmpty()?QString("Overview"):detailHeading_,currentPage_,detailCollection_);
+    });
+    connect(&mailAccounts_, &MailAccountsController::requestExternal, this, &FeatureController::requestExternal);
+    connect(&mailAccounts_, &MailAccountsController::messagesChanged, this, [this] { if (currentPage_ == "mail") refresh(); });
+    connect(&mailAccounts_, &MailAccountsController::selectionChanged, this, [this] {
+        if (currentPage_ != "mail") return;
+        ++epoch_; api_.cancelRequests(this); busy_ = false; records_.setRecords({}); clearSelection(); refresh();
     });
     connect(&detailView_,&DetailBrowser::referenceRequested,this,&FeatureController::openRecord);
     connect(&detailView_,&DetailBrowser::deliveryRequested,this,&FeatureController::openDelivery);
@@ -157,6 +164,25 @@ QVariantList FeatureController::visibleRecords() const { return presentationReco
 QVariantList FeatureController::allRecords() const { return presentationRecords(records_.allRecords()); }
 QVariantMap FeatureController::overview() const { return presentationRecord(overview_); }
 QVariantMap FeatureController::selectedRecord() const { return selectedId_.isEmpty() ? QVariantMap{} : presentationRecord(editDetails_); }
+QVariantList FeatureController::selectedAgentKnowledge() const { return presentationRecords(selectedAgentKnowledge_); }
+QString FeatureController::currentMemberId() const {
+    return currentPage_==QStringLiteral("tasks") ? overview_.value("meta").toMap().value("current_member_id").toString() : QString{};
+}
+bool FeatureController::canMoveTasks() const {
+    const auto* feature=findFeature(currentPage_);
+    if (currentPage_!=QStringLiteral("tasks") || !feature || busy_ || offline_ || !permitted(*feature,true)) return false;
+    const auto meta=overview_.value("meta").toMap();
+    if (meta.contains("can_update")) return meta.value("can_update").toBool();
+    // Older APIs omit capability metadata. Their workspace role can still
+    // identify a read-only session; the endpoint remains the authorization gate.
+    for (const auto& entry : session_.workspaces()) {
+        const auto workspace=entry.toMap();
+        if (workspace.value("id").toString()!=identityWorkspace(api_,session_) || !workspace.contains("role_name")) continue;
+        const auto role=workspace.value("role_name").toString();
+        return role=="Owner" || role=="Admin" || role=="Manager" || role=="Member" || role=="Agent User";
+    }
+    return true;
+}
 QVariantList FeatureController::fields() const { return fieldsForAction("edit"); }
 QVariantList FeatureController::fieldsForAction(const QString& id) const {
     const auto* action=findAction(id); if (!action) return {};
@@ -202,10 +228,11 @@ QString FeatureController::actionContext(const QString& id) const {
     return QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(context).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
 }
 void FeatureController::clear() {
-    ++epoch_; ++detailEpoch_; ++viewGeneration_; busy_=false; offline_=false; nextPage_=0; loadingMore_=false;
+    ++epoch_; ++detailEpoch_; ++selectedRecordEpoch_; ++viewGeneration_; busy_=false; offline_=false; nextPage_=0; loadingMore_=false;
     resetSelectedAgentTasks();
+    resetSelectedAgentKnowledge();
     api_.cancelRequests(this); pendingSelection_.clear(); detailHeading_.clear(); detailCollection_.clear(); overview_.clear();
-    error_.clear(); selectedId_.clear(); details_.clear(); editDetails_.clear(); records_.setRecords({}); retryKeys_.clear(); searchTimer_.stop();
+    error_.clear(); selectedId_.clear(); pendingTaskId_.clear(); pendingTaskStatus_.clear(); details_.clear(); editDetails_.clear(); records_.setRecords({}); retryKeys_.clear(); searchTimer_.stop();
     driveBreadcrumbs_={QVariantMap{{"id",QString{}},{"name","Drive"}}}; driveTrash_=false; driveDownload_.reset();
 }
 bool FeatureController::driveActionAllowed(const QString& action,const QString& id) const {
@@ -304,7 +331,8 @@ void FeatureController::navigate(const QString& page) {
     const auto* feature=findFeature(page);
     if (!feature) { fail("This page is not available."); return; }
     if (feature->scope==core::Scope::administration && !session_.administrator()) { fail("Administrator access requires an online, authorized session."); return; }
-    clear(); currentPage_=page; search_.clear(); records_.setQuery({}); emit changed(); refresh();
+    clear(); currentPage_=page; search_.clear(); records_.setQuery({});
+    mailAccounts_.setActive(page == "mail"); emit changed(); refresh();
 }
 void FeatureController::openMarketplaceOffer(const QString& agentId, const QString& mode) {
     static const QRegularExpression safeId(QStringLiteral("^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"));
@@ -334,6 +362,10 @@ void FeatureController::load(int page,bool append) {
     if (!permitted(*feature,false)) { fail(feature->scope==core::Scope::workspace ? "Select a workspace to continue." : "Sign in to continue."); return; }
     auto path=currentPage_=="drive" ? driveListPath() : resolvePath(feature->path,{});
     if (path.isEmpty()) { fail("Select a workspace to continue."); return; }
+    if (currentPage_ == "mail" && !mailAccounts_.selectedId().isEmpty()) {
+        QUrl url(path); QUrlQuery query(url); query.addQueryItem("account_id", mailAccounts_.selectedId());
+        url.setQuery(query); path = url.toString(QUrl::FullyEncoded);
+    }
     if (feature->paginated) {
         QUrl url(path); QUrlQuery query(url); query.addQueryItem("page",QString::number(page)); query.addQueryItem("per_page","100");
         if (!search_.isEmpty()) query.addQueryItem("q",search_);
@@ -387,27 +419,36 @@ void FeatureController::select(const QString& id) {
     if (record.isEmpty() && target && !target->detailPath.isEmpty() && permitted(*target, false)
         && QRegularExpression("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$").match(id).hasMatch()) record.insert("id", id);
     if (record.isEmpty()) { clearSelection(); return; }
-    pendingSelection_.clear(); selectedId_=id; details_=record; editDetails_=record; detailHeading_="Record details"; detailCollection_.clear(); error_.clear(); const auto epoch=++detailEpoch_;
-    if (agentTasksPage()) loadSelectedAgentTasks(id);
-    else resetSelectedAgentTasks();
+    // Refreshing the same agent must retain expanded settings until its fresh
+    // detail request arrives. A list response may omit those fields.
+    if (selectedId_==id && agentTasksPage()) {
+        auto expanded=editDetails_;
+        for (auto it=record.begin();it!=record.end();++it) expanded.insert(it.key(),it.value());
+        record=std::move(expanded);
+    }
+    pendingSelection_.clear(); selectedId_=id; details_=record; editDetails_=record; detailHeading_="Record details"; detailCollection_.clear(); error_.clear(); ++detailEpoch_; const auto recordEpoch=++selectedRecordEpoch_;
+    if (agentTasksPage()) { loadSelectedAgentTasks(id); loadSelectedAgentKnowledge(id); }
+    else { resetSelectedAgentTasks(); resetSelectedAgentKnowledge(); }
     emit changed();
     const auto* feature=findFeature(currentPage_); if (!feature || feature->detailPath.isEmpty() || !permitted(*feature,false)) return;
     const auto path=resolvePath(feature->detailPath,id,record);
     const auto generation=api_.context().generation;
     if (path.isEmpty()) return;
-    const auto apply=[this,epoch,generation,id](const QJsonObject& response) {
-        if (epoch!=detailEpoch_ || generation!=api_.context().generation || selectedId_!=id) return;
+    const auto apply=[this,recordEpoch,generation,id](const QJsonObject& response) {
+        if (recordEpoch!=selectedRecordEpoch_ || generation!=api_.context().generation || selectedId_!=id) return;
         const auto expanded=responseDetails(response);
-        for (auto it=expanded.begin();it!=expanded.end();++it) details_.insert(it.key(),it.value());
-        editDetails_=details_;
+        for (auto it=expanded.begin();it!=expanded.end();++it) editDetails_.insert(it.key(),it.value());
+        // A secondary report can own the inspector while the primary record
+        // finishes loading. Its result must not replace agent edit defaults.
+        if (showingRecordDetails()) details_=editDetails_;
         emit changed();
     };
     if (!api_.context().online && feature->scope!=core::Scope::administration) {
         cache_.read(cacheKey(path),this,[apply](QByteArray bytes) { const auto doc=QJsonDocument::fromJson(bytes); if (doc.isObject()) apply(doc.object()); });
         return;
     }
-    api_.request("GET",path,{},feature->scope,this,[this,path,epoch,generation,apply](ApiResponse response) {
-        if (epoch!=detailEpoch_ || generation!=api_.context().generation) return;
+    api_.request("GET",path,{},feature->scope,this,[this,path,recordEpoch,generation,apply](ApiResponse response) {
+        if (recordEpoch!=selectedRecordEpoch_ || generation!=api_.context().generation) return;
         if (!response.ok()) { clearSelection(); fail(response.error); return; }
         const auto* feature=findFeature(currentPage_);
         if (!feature || !permitted(*feature,false)) return;
@@ -416,11 +457,12 @@ void FeatureController::select(const QString& id) {
     });
 }
 void FeatureController::clearSelection() {
-    ++detailEpoch_; pendingSelection_.clear(); selectedId_.clear(); details_.clear(); editDetails_.clear();
-    resetSelectedAgentTasks(); emit changed();
+    ++detailEpoch_; ++selectedRecordEpoch_; pendingSelection_.clear(); selectedId_.clear(); details_.clear(); editDetails_.clear();
+    resetSelectedAgentTasks(); resetSelectedAgentKnowledge(); emit changed();
 }
 bool FeatureController::agentTasksPage() const {
-    return currentPage_ == QStringLiteral("agents") || currentPage_ == QStringLiteral("agent-performance");
+    return currentPage_ == QStringLiteral("office") || currentPage_ == QStringLiteral("agents")
+        || currentPage_ == QStringLiteral("agent-detail") || currentPage_ == QStringLiteral("agent-performance");
 }
 void FeatureController::resetSelectedAgentTasks() {
     ++agentTasksEpoch_; selectedAgentTasks_.clear(); selectedAgentTasksAgent_.clear(); selectedAgentTasksState_=QStringLiteral("idle");
@@ -464,6 +506,47 @@ void FeatureController::loadSelectedAgentTasks(const QString& agentId) {
         apply(response.json);
     });
 }
+void FeatureController::resetSelectedAgentKnowledge() {
+    ++agentKnowledgeEpoch_; selectedAgentKnowledge_.clear(); selectedAgentKnowledgeAgent_.clear(); selectedAgentKnowledgeState_=QStringLiteral("idle");
+}
+void FeatureController::loadSelectedAgentKnowledge(const QString& agentId) {
+    const bool keepVisible=selectedAgentKnowledgeAgent_==agentId && selectedAgentKnowledgeState_==QStringLiteral("ready");
+    ++agentKnowledgeEpoch_;
+    if (!keepVisible) selectedAgentKnowledge_.clear();
+    static const QRegularExpression safeId(QStringLiteral("^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"));
+    const auto* feature=findFeature(currentPage_);
+    if (!agentTasksPage() || !feature || !permitted(*feature,false) || !safeId.match(agentId).hasMatch()) {
+        selectedAgentKnowledge_.clear(); selectedAgentKnowledgeAgent_.clear(); selectedAgentKnowledgeState_=QStringLiteral("unavailable"); return;
+    }
+    selectedAgentKnowledgeAgent_=agentId;
+    if (!keepVisible) selectedAgentKnowledgeState_=QStringLiteral("loading");
+    const auto epoch=agentKnowledgeEpoch_, generation=api_.context().generation;
+    const auto path=QStringLiteral("/api/knowledge?agent_id=")+QString::fromLatin1(QUrl::toPercentEncoding(agentId));
+    const auto apply=[this,epoch,generation,agentId](const QJsonObject& response) {
+        if (epoch!=agentKnowledgeEpoch_ || generation!=api_.context().generation || selectedId_!=agentId || !agentTasksPage()) return;
+        QVariantList owned;
+        for (const auto& row : extractFeatureRecords(response)) {
+            const auto item=row.toMap();
+            if (item.value(QStringLiteral("agent_id")).toString()==agentId) owned.append(item);
+        }
+        selectedAgentKnowledge_=std::move(owned); selectedAgentKnowledgeState_=QStringLiteral("ready"); emit changed();
+    };
+    if (!api_.context().online) {
+        cache_.read(cacheKey(path),this,[this,epoch,generation,apply](QByteArray bytes) {
+            if (epoch!=agentKnowledgeEpoch_ || generation!=api_.context().generation) return;
+            const auto document=QJsonDocument::fromJson(bytes);
+            if (!document.isObject()) { selectedAgentKnowledge_.clear(); selectedAgentKnowledgeState_=QStringLiteral("unavailable"); emit changed(); return; }
+            apply(document.object());
+        });
+        return;
+    }
+    api_.request("GET",path,{},feature->scope,this,[this,path,epoch,generation,apply](ApiResponse response) {
+        if (epoch!=agentKnowledgeEpoch_ || generation!=api_.context().generation) return;
+        if (!response.ok()) { selectedAgentKnowledge_.clear(); selectedAgentKnowledgeState_=QStringLiteral("unavailable"); emit changed(); return; }
+        cache_.write(cacheKey(path),response.bytes);
+        apply(response.json);
+    });
+}
 void FeatureController::showOverview() { clearSelection(); details_=overview_; if (currentPage_=="profile" || currentPage_=="settings") editDetails_=overview_; detailHeading_="Overview"; detailCollection_.clear(); emit changed(); }
 void FeatureController::showRecordDetails() { if (selectedId_.isEmpty()) return; ++detailEpoch_; details_=editDetails_; detailHeading_="Record details"; detailCollection_.clear(); emit changed(); }
 void FeatureController::openRecord(const QString& page, const QString& id) {
@@ -496,6 +579,58 @@ QString FeatureController::resolvePath(QString path,const QString& id,const QVar
         match=placeholder.match(path);
     }
     return path;
+}
+bool FeatureController::moveTask(const QString& taskId,const QString& status) {
+    if (busy_) return false;
+    if (!canMoveTasks()) { fail("Connect to a workspace with permission to update tasks before moving a task."); return false; }
+    static const QSet<QString> statuses{"to_do","in_progress","in_review","waiting","blocked","completed","canceled","overdue"};
+    if (!statuses.contains(status)) { fail("Choose a valid task status."); return false; }
+    auto source=records_.record(taskId);
+    if (source.isEmpty() && selectedId_==taskId) source=editDetails_;
+    const auto path=resolvePath("/api/tasks/{id}",taskId);
+    if (source.isEmpty() || path.isEmpty()) { fail("This task is no longer available in the current workspace."); return false; }
+    if (source.value("status").toString()==status) return false;
+
+    const auto epoch=epoch_,generation=api_.context().generation;
+    pendingTaskId_=taskId; pendingTaskStatus_=status; busy_=true; error_.clear(); emit changed();
+    // A board move patches only status. It must never replay edit-form defaults
+    // or depend on the unrelated record currently open in the inspector.
+    api_.request("PATCH",path,{{"status",status}},core::Scope::workspace,this,
+        [this,epoch,generation,taskId,path,source](ApiResponse response) {
+            if (epoch!=epoch_ || generation!=api_.context().generation) return;
+            busy_=false; pendingTaskId_.clear(); pendingTaskStatus_.clear();
+            if (!response.ok()) { fail(response.error); return; }
+            const auto updated=response.json.value("data").toObject().toVariantMap();
+            if (updated.value("id").toString()!=taskId || !statuses.contains(updated.value("status").toString())) {
+                fail("The server did not confirm the task's new status. Refresh the board to check it."); return;
+            }
+            auto merged=source;
+            for (auto it=updated.begin();it!=updated.end();++it) merged.insert(it.key(),it.value());
+            auto rows=records_.allRecords();
+            for (auto& row : rows) if (featureRecordId(row.toMap())==taskId) { row=merged; break; }
+            records_.setRecords(std::move(rows));
+            auto meta=overview_.value("meta").toMap();
+            auto counts=meta.value("counts").toMap();
+            const auto oldStatus=source.value("status").toString(),newStatus=merged.value("status").toString();
+            if (!counts.isEmpty() && oldStatus!=newStatus) {
+                counts.insert(oldStatus,std::max(0,counts.value(oldStatus).toInt()-1));
+                counts.insert(newStatus,counts.value(newStatus).toInt()+1);
+                meta.insert("counts",counts); overview_.insert("meta",meta);
+            }
+            overview_.insert("items",records_.allRecords());
+            if (selectedId_==taskId) {
+                ++detailEpoch_; // An older detail response must not undo this move.
+                ++selectedRecordEpoch_;
+                for (auto it=updated.begin();it!=updated.end();++it) editDetails_.insert(it.key(),it.value());
+                if (showingRecordDetails()) details_=editDetails_;
+            } else if (selectedId_.isEmpty()) { details_=overview_; editDetails_=overview_; }
+            offline_=false;
+            cache_.write(cacheKey(path),QJsonDocument(QJsonObject{{"data",QJsonObject::fromVariantMap(merged)}}).toJson(QJsonDocument::Compact));
+            cache_.write(cacheKey("/api/tasks"),QJsonDocument(QJsonObject{
+                {"data",QJsonArray::fromVariantList(records_.allRecords())},{"meta",QJsonObject::fromVariantMap(meta)}}).toJson(QJsonDocument::Compact));
+            emit actionResult("move-task",presentationRecord(merged)); emit changed();
+        });
+    return true;
 }
 void FeatureController::submit(const QString& actionId,const QVariantMap& values) {
     const auto* descriptor=findFeature(currentPage_); const auto* definition=findAction(actionId);
@@ -548,6 +683,12 @@ void FeatureController::submit(const QString& actionId,const QVariantMap& values
         if (!retryKeys_.contains(retryHash)) retryKeys_.insert(retryHash,QUuid::createUuid().toString(QUuid::WithoutBraces));
         body.insert("idempotency_key",retryKeys_.value(retryHash));
     }
+    if (currentPage_=="tasks" && actionId=="runtime-budget") {
+        const auto credits=body.value("additional_credits").toInt();
+        if (credits!=500 && credits!=2000) { fail("Choose 500 or 2,000 additional credits."); return; }
+        if (!retryKeys_.contains(retryHash)) retryKeys_.insert(retryHash,QUuid::createUuid().toString(QUuid::WithoutBraces));
+        body.insert("request_id",retryKeys_.value(retryHash));
+    }
     const auto epoch=epoch_,generation=api_.context().generation;
     // A secondary report supersedes any pending primary-detail display request.
     const auto detailEpoch=action.method=="GET" ? ++detailEpoch_ : detailEpoch_;
@@ -558,8 +699,8 @@ void FeatureController::submit(const QString& actionId,const QVariantMap& values
         else if (resource.startsWith("/api/drive")) detailCollection_="drive";
     }
     busy_=true; error_.clear(); emit changed();
-    auto readCachedAction=[this,path,epoch,generation,detailEpoch] {
-        cache_.read(cacheKey(path),this,[this,epoch,generation,detailEpoch](QByteArray bytes) {
+    auto readCachedAction=[this,path,epoch,generation,detailEpoch,actionId] {
+        cache_.read(cacheKey(path),this,[this,epoch,generation,detailEpoch,actionId](QByteArray bytes) {
             if (epoch!=epoch_ || generation!=api_.context().generation) return;
             busy_=false;
             if (detailEpoch!=detailEpoch_) { emit changed(); return; }
@@ -569,6 +710,7 @@ void FeatureController::submit(const QString& actionId,const QVariantMap& values
             QJsonParseError failure; const auto document=QJsonDocument::fromJson(bytes,&failure);
             if (failure.error==QJsonParseError::NoError && document.isObject()) {
                 details_=responseDetails(document.object()); error_="Offline — displaying the last synchronized data.";
+                emit actionResult(actionId,presentationRecord(details_));
             } else error_="No synchronized data is available for this action yet.";
             emit changed();
         });
@@ -587,7 +729,7 @@ void FeatureController::submit(const QString& actionId,const QVariantMap& values
             if (response.networkError && feature->scope!=core::Scope::administration) { busy_=true; readCachedAction(); return; }
             if (!response.ok()) { fail(response.error); return; }
             if (feature->scope!=core::Scope::administration) cache_.write(cacheKey(path),response.bytes);
-            offline_=false; details_=responseDetails(response.json); emit changed(); return;
+            offline_=false; details_=responseDetails(response.json); emit actionResult(action.id,presentationRecord(details_)); emit changed(); return;
         }
         if (!response.ok()) { fail(response.error); return; }
         retryKeys_.remove(retryHash);
@@ -597,7 +739,24 @@ void FeatureController::submit(const QString& actionId,const QVariantMap& values
             if (externalUrlAllowed(external)) emit requestExternal(external);
             else { fail("The service returned an invalid external link."); return; }
         }
+        if (agentTasksPage() && action.id=="edit" && data.value("id").toString()==id) {
+            const auto updated=data.toVariantMap();
+            auto rows=records_.allRecords();
+            for (auto& row : rows) {
+                auto record=row.toMap();
+                if (featureRecordId(record)!=id) continue;
+                for (auto it=updated.begin();it!=updated.end();++it) record.insert(it.key(),it.value());
+                row=record; break;
+            }
+            records_.setRecords(std::move(rows));
+            if (selectedId_==id) {
+                ++selectedRecordEpoch_;
+                for (auto it=updated.begin();it!=updated.end();++it) editDetails_.insert(it.key(),it.value());
+                if (showingRecordDetails()) details_=editDetails_;
+            }
+        }
         emit actionSucceeded(submittedContext);
+        emit actionResult(action.id,presentationRecord(data.toVariantMap()));
         if (currentPage_=="profile" || currentPage_=="settings") session_.reloadIdentity();
         if (currentPage_=="drive") invalidateDriveCache(id,oldParent,data.value("parent_id").toString(body.value("parent_id").toString()));
         if (action.method=="DELETE" || (currentPage_=="drive" && action.id=="restore")) clearSelection();

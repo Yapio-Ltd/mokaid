@@ -20,6 +20,7 @@ defmodule Mokaid.Tasks.TaskApprovalRequest do
     field :status, :string, default: "pending"
     field :reviewed_at, :utc_datetime_usec
     field :decision_payload, :map
+    field :operation_key, :string
 
     timestamps()
   end
@@ -34,10 +35,13 @@ defmodule Mokaid.Tasks.TaskApprovalRequest do
       :tool_name,
       :risk_level,
       :proposed_action,
-      :input_payload
+      :input_payload,
+      :operation_key
     ])
     |> validate_required([:workspace_id, :task_id, :tool_name, :proposed_action])
     |> validate_inclusion(:risk_level, ~w(low medium high critical))
+    |> validate_length(:operation_key, max: 200)
+    |> unique_constraint([:run_id, :operation_key], name: :task_approval_operation_key_unique)
   end
 
   def decision_changeset(request, attrs) do

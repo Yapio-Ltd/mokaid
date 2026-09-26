@@ -48,7 +48,7 @@ export type NotificationTone = "success" | "error" | "warning" | "info";
 export function notificationTone(kind: string, resourceStatus?: string | null): NotificationTone {
   if (resourceStatus === "completed") return "success";
   if (resourceStatus === "canceled") return "info";
-  if (kind === "ai_run_completed") return "warning";
+  if (kind === "ai_run_completed") return "success";
   if (kind === "ai_run_failed" || kind.includes("failed") || kind.includes("rejected")) {
     return "error";
   }
@@ -66,7 +66,7 @@ export function formatNotificationTitle(n: AppNotification): {
     colon > 0 && colon < 40 ? title.slice(colon + 2).trim() || title : title || "Notification";
 
   if (n.resource_status === "completed" && actionKind(n.kind)) {
-    return { eyebrow: "Approved", headline };
+    return { eyebrow: "Completed", headline };
   }
   if (n.resource_status === "canceled" && actionKind(n.kind)) {
     return { eyebrow: "Canceled", headline };
@@ -90,7 +90,7 @@ export function formatNotificationTitle(n: AppNotification): {
 
 export function formatNotificationBody(n: AppNotification): string | null {
   if (n.resource_status === "completed" && actionKind(n.kind)) {
-    return "This task was approved.";
+    return "This task is complete.";
   }
   if (n.resource_status === "in_progress" && n.kind === "ai_run_completed") {
     return "Sent back for revisions.";
@@ -110,7 +110,7 @@ export function formatNotificationBody(n: AppNotification): string | null {
 
   // Older completed copy said "The agent finished…" — shorten now that the avatar shows who.
   if (n.kind === "ai_run_completed" && n.body.includes("The agent finished")) {
-    return "Finished this task. Review the output and approve or request changes.";
+    return "The response is ready. Let the agent know how it did.";
   }
 
   return n.body.trim();
@@ -121,8 +121,8 @@ export function notificationCta(n: AppNotification): string | null {
   if (n.resource_status === "completed") return "View task";
   if (n.resource_status === "canceled") return "View task";
   if (n.kind === "ai_run_failed") return "Voir conversation";
-  if (n.kind === "approval_requested") return "Approve";
-  if (n.kind === "ai_run_completed") return "Approve";
+  if (n.kind === "approval_requested") return "Open task";
+  if (n.kind === "ai_run_completed") return "View response";
   return "Open";
 }
 
@@ -143,8 +143,8 @@ function polishEyebrow(label: string, kind: string): string {
   const map: Record<string, string> = {
     "Task failed": "Couldn't finish",
     "Couldn't finish": "Couldn't finish",
-    "Ready for review": "Ready for review",
-    "Approval needed": "Needs approval",
+    "Ready for review": "Response ready",
+    "Approval needed": "Task paused",
     "New task assigned": "New task",
   };
   if (map[label]) return map[label];
@@ -155,11 +155,11 @@ function polishEyebrow(label: string, kind: string): string {
 function defaultEyebrow(kind: string): string {
   switch (kind) {
     case "ai_run_completed":
-      return "Ready for review";
+      return "Response ready";
     case "ai_run_failed":
       return "Couldn't finish";
     case "approval_requested":
-      return "Needs approval";
+      return "Task paused";
     case "task_assigned":
       return "New task";
     default:

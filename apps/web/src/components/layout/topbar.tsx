@@ -16,7 +16,6 @@ import {
   formatNotificationBody,
   formatNotificationTitle,
   notificationCta,
-  notificationNeedsAction,
   notificationTone,
 } from "@/lib/notifications";
 import { signOut } from "@/api/client";
@@ -28,7 +27,6 @@ import { GlobalSearch } from "@/components/layout/global-search";
 import { CreditBalance } from "@/components/billing/credit-balance";
 import { WorkspaceProjectSwitcher } from "@/components/layout/workspace-project-switcher";
 import { useActiveProjectId } from "@/stores/project-store";
-import { useReviewQueueStore } from "@/stores/review-queue-store";
 
 const TONE_DOT: Record<ReturnType<typeof notificationTone>, string> = {
   success: "bg-success",
@@ -62,17 +60,6 @@ export function Topbar() {
 
   const openNotification = (n: AppNotification) => {
     if (n.resource_type === "task" && n.resource_id) {
-      if (notificationNeedsAction(n)) {
-        useReviewQueueStore.getState().enqueue(
-          {
-            taskId: n.resource_id,
-            kind: n.kind === "approval_requested" ? "tool_approval" : "in_review",
-            title: n.title?.replace(/^[^:]+:\s*/, "") || n.title || "Task",
-          },
-          { open: true },
-        );
-        return;
-      }
       if (n.kind === "ai_run_failed" && n.agent?.id) {
         useChatStore.getState().openChat(n.agent.id);
         return;

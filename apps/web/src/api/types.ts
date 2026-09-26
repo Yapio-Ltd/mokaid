@@ -6,6 +6,8 @@ import type {
   PresenceStatus,
   TaskPriority,
   TaskStatus,
+  TaskResponseFeedback,
+  TaskRuntime,
   ProjectStatus,
   LeaveStatus,
   LeaveType,
@@ -248,6 +250,7 @@ export interface TaskAttachment {
 
 export interface TaskRunToolCall {
   tool: string;
+  agent_id?: string | null;
   input?: Record<string, unknown>;
   output?: Record<string, unknown> | null;
   risk?: string;
@@ -257,6 +260,8 @@ export interface TaskRunToolCall {
 /** One tool call streamed live by the worker (run timeline / activity chips). */
 export interface ToolActivityEvent {
   id: string;
+  agent_id?: string | null;
+  agent_name?: string | null;
   tool: string;
   description: string;
   status: "running" | "awaiting_approval" | "ok" | "error" | "denied" | "rejected" | string;
@@ -275,6 +280,7 @@ export interface TaskRun {
     artifacts?: string[];
     summary?: string;
     consultations?: Array<{ colleague: string; question: string }>;
+    runtime?: TaskRuntime | null;
   } | null;
   /** Deep-agent live plan (todo checklist), streamed while the run works. */
   plan?: Array<{ content: string; status: string }>;
@@ -325,6 +331,8 @@ export interface Task {
   comments: TaskComment[];
   attachments: TaskAttachment[];
   latest_run: TaskRun | null;
+  /** Latest response rating, tied to the run that was shown to the user. */
+  response_feedback?: TaskResponseFeedback | null;
   /** Present on the task detail endpoint when an agent is waiting on a human decision. */
   pending_approval: TaskPendingApproval | null;
   /** Anchored agent DM for chat-born (or delivered) missions. */

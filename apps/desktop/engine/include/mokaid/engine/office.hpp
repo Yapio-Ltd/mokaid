@@ -3,6 +3,7 @@
 #include "scene.hpp"
 #include "office_camera.hpp"
 #include "traffic.hpp"
+#include "guided_tour.hpp"
 #include <array>
 #include <chrono>
 #include <mutex>
@@ -72,6 +73,18 @@ public:
   std::vector<MotionDebug> debugMotion() const;
   std::shared_ptr<const Frame> snapshot(float aspect) const;
   std::string pick(float normalizedX, float normalizedY, float aspect) const;
+  bool enterTour();
+  void exitTour();
+  bool travelTourTo(std::string_view id);
+  void lookTour(float deltaYaw, float deltaPitch);
+  bool faceCurrentTourStop();
+  void stopTour();
+  void setTourReducedMotion(bool);
+  void setConversationAgent(std::string_view id);
+  TourState tourState() const;
+  std::vector<TourStop> tourStops() const;
+  std::vector<TourStop> visibleTourStops() const;
+  std::vector<TourEdge> tourEdges() const;
   std::uint64_t residentBytes() const;
 
 private:
@@ -83,9 +96,13 @@ private:
   // Rendering reads only completed immutable frames, never waits for A*.
   mutable std::mutex frameMutex_;
   std::shared_ptr<const Scene> office_;
+  std::shared_ptr<const Scene> surroundings_;
   std::vector<Vec3> cameraPoints_;
   mutable float cameraAspect_{};
   mutable OfficeCamera camera_;
+  GuidedTour tour_;
+  bool tourReducedMotion_{};
+  std::string conversationAgentId_;
   std::vector<std::pair<std::string, std::shared_ptr<const Scene>>> avatars_;
   std::vector<Agent> agents_;
   std::shared_ptr<const Frame> frame_;
@@ -97,6 +114,8 @@ private:
     AgentPersonality personality;
     std::uint32_t randomState{};
     float gestureUntil{},gestureStarted{},gesturePhase{},socialUntil{},socialOffset{};
+    float conversationYaw{}, conversationAmount{}, conversationStarted{};
+    bool conversing{};
     std::size_t socialBeat{};
     bool sofaCoffee{},greetingDone{},returningCup{},awaitSofaEntry{};
     std::string arrivalSocket;

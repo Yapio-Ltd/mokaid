@@ -1,0 +1,212 @@
+{
+  "review": "accepted-01-04-social-framing",
+  "reviewDate": "2026-09-25",
+  "scope": "Revue visuelle uniquement des clips acceptés 01–04; tous les fichiers contenant rejected ont été ignorés.",
+  "method": {
+    "samples": "Première image, 25%, 50%, 75%, dernière image de chaque source vidéo; contacts 16:9/4:5/9:16 inspectés avec view_image.",
+    "additionalChecks": [
+      "Trois alternatives constantes de crop portrait pour 04: focusX 0.35,0.65,0.80.",
+      "Paires d’images de raccord 01→02,02→03,03→04 au crop portrait centre."
+    ],
+    "focusSemantics": "Comme prepare-media.mjs: position horizontale x=(scaledWidth-outputWidth)*focusX, et non centre du sujet dans les coordonnées source.",
+    "limitations": [
+      "La revue échantillonnée ne certifie pas toutes les images intermédiaires ni chaque détail des mains.",
+      "Paroles, musique, synchronisation et qualité audio non écoutées/non vérifiées."
+    ]
+  },
+  "summary": {
+    "constantFocusRecommendation": "Conserver focusX=0.50 et focusY=0.50 sur les quatre clips, dans les deux formats.",
+    "joins": "Les trois paires d’images de raccord sont visuellement très proches avec le même crop centre; pas de saut de cadrage ajouté par ce réglage.",
+    "mainConcern": "Le portrait 9:16 du clip04 perd la marche du collègue en violet au milieu. Aucun focusX constant testé ne résout ce point sans autre sacrifice ou rupture au raccord.",
+    "otherCaveat": "Les crops café éliminent la tasse et le 9:16 coupe les côtés du laptop. Ce n’est pas corrigeable par un simple déplacement horizontal."
+  },
+  "clips": [
+    {
+      "clip": "01-cafe",
+      "source": "artifacts/mokaid-cinema-2026-09-25/clips/01-cafe.mp4",
+      "width": 1912,
+      "height": 1080,
+      "videoDuration": "8.041667",
+      "sampleFrames": [
+        0,
+        48,
+        96,
+        144,
+        192
+      ],
+      "sampleTimes": [
+        0.0,
+        2.0,
+        4.0,
+        6.0,
+        8.0
+      ],
+      "contactSheet": "artifacts/mokaid-cinema-2026-09-25/production/review/accepted-01-cafe-center-crops.jpg",
+      "sha256": "9ddb9954ca48b1c0f28b4a70d70c59bcf234e8c3d2a06107f78c4abf2765aa40",
+      "recommendedFraming": {
+        "4:5": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "constantOffsetChanged": false,
+          "verdict": "usable_with_caveat",
+          "observations": [
+            "Le laptop reste le sujet central. Sa base devient très proche des bords en fin de plan.",
+            "La tasse à droite disparaît : le détail café devra être porté par le décor, pas par cet accessoire."
+          ]
+        },
+        "9:16": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "constantOffsetChanged": false,
+          "verdict": "usable_with_caveat",
+          "observations": [
+            "L’écran lumineux, le clavier et le décor du café restent lisibles.",
+            "Les côtés du laptop sont coupés dès le début et la tasse disparaît. Aucun focusX constant ne peut faire entrer le laptop complet dans cette largeur de crop."
+          ]
+        }
+      }
+    },
+    {
+      "clip": "02-approach",
+      "source": "artifacts/mokaid-cinema-2026-09-25/clips/02-approach.mp4",
+      "width": 1916,
+      "height": 1080,
+      "videoDuration": "8.041667",
+      "sampleFrames": [
+        0,
+        48,
+        96,
+        144,
+        192
+      ],
+      "sampleTimes": [
+        0.0,
+        2.0,
+        4.0,
+        6.0,
+        8.0
+      ],
+      "contactSheet": "artifacts/mokaid-cinema-2026-09-25/production/review/accepted-02-approach-center-crops.jpg",
+      "sha256": "a6755d06f4ed852eee7b37d4a37b5550508ea8cce11bd801dbbadf2480b2d23b",
+      "recommendedFraming": {
+        "4:5": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "constantOffsetChanged": false,
+          "verdict": "usable",
+          "observations": [
+            "Le mouvement vers l’écran, puis le bureau illuminé, demeure clair.",
+            "La perte progressive des bords de l’écran est cohérente avec l’approche macro."
+          ]
+        },
+        "9:16": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "constantOffsetChanged": false,
+          "verdict": "usable_with_caveat",
+          "observations": [
+            "Le halo violet puis les bureaux centraux guident correctement l’entrée.",
+            "La salle de réunion à droite et les limites latérales du laptop sont en grande partie exclues. La notion de bureau complet est moins spectaculaire que dans le 16:9."
+          ]
+        }
+      }
+    },
+    {
+      "clip": "03-portal",
+      "source": "artifacts/mokaid-cinema-2026-09-25/clips/03-portal.mp4",
+      "width": 1916,
+      "height": 1080,
+      "videoDuration": "8.041667",
+      "sampleFrames": [
+        0,
+        48,
+        96,
+        144,
+        192
+      ],
+      "sampleTimes": [
+        0.0,
+        2.0,
+        4.0,
+        6.0,
+        8.0
+      ],
+      "contactSheet": "artifacts/mokaid-cinema-2026-09-25/production/review/accepted-03-portal-center-crops.jpg",
+      "sha256": "c8031125ab61d1996f50fee1d94a830504294c65539580b96010c1e1e529c3f5",
+      "recommendedFraming": {
+        "4:5": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "constantOffsetChanged": false,
+          "verdict": "usable",
+          "observations": [
+            "Le passage du screen au bureau et l’approche des employés restent lisibles.",
+            "Les chemins violets et les bureaux centraux maintiennent l’identité du lieu."
+          ]
+        },
+        "9:16": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "constantOffsetChanged": false,
+          "verdict": "usable_with_caveat",
+          "observations": [
+            "Le crop conserve une progression spatiale identifiable du bureau miniature aux employés.",
+            "La vue d’ensemble et la salle de réunion sont réduites, mais les sujets centraux restent présents. Le cadrage centre préserve les deux raccords."
+          ]
+        }
+      }
+    },
+    {
+      "clip": "04-office",
+      "source": "artifacts/mokaid-cinema-2026-09-25/clips/04-office.mp4",
+      "width": 1916,
+      "height": 1080,
+      "videoDuration": "12.041667",
+      "sampleFrames": [
+        0,
+        72,
+        144,
+        216,
+        288
+      ],
+      "sampleTimes": [
+        0.0,
+        3.0,
+        6.0,
+        9.0,
+        12.0
+      ],
+      "contactSheet": "artifacts/mokaid-cinema-2026-09-25/production/review/accepted-04-office-center-crops.jpg",
+      "sha256": "544d4b50d5448f18cb792930b0abcbcbf1636adc3e17eafa5e173ce8c0b816fe",
+      "recommendedFraming": {
+        "4:5": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "constantOffsetChanged": false,
+          "verdict": "usable_with_caveat",
+          "observations": [
+            "Les employés au début et le collègue en pull ambre à la fin restent lisibles.",
+            "Le déplacement du collègue en violet est momentanément hors cadre pendant le travelling; le plan porte alors surtout les bureaux et l’architecture."
+          ]
+        },
+        "9:16": {
+          "focusX": 0.5,
+          "focusY": 0.5,
+          "constantOffsetChanged": false,
+          "verdict": "needs_framing_decision",
+          "observations": [
+            "Le début et la fin sont bien composés autour des employés.",
+            "Aux échantillons 6 s et 9 s, le crop central perd l’employé en violet qui marche et montre surtout une chaise/un bureau vide, la porte et des corps coupés aux bords. La préparation de la collaboration est affaiblie.",
+            "Les essais constants focusX=0.35,0.65,0.80 ne sauvent pas à la fois l’action au milieu et les sujets du début/de la fin. Le décalage à 0.80 conserve surtout l’employée du fond, pas le trajet du collègue en violet.",
+            "Aucun changement constant de focusX n’est recommandé : il casserait aussi le raccord visuellement très proche 03→04. Garder 0.50 est le choix conservateur, avec cette limite explicitement reconnue. Une version portrait réellement centrée sur la marche demanderait un recadrage animé revenant au centre aux extrémités ou un autre plan portrait, hors de cette revue."
+          ]
+        }
+      }
+    }
+  ],
+  "additionalContactSheets": [
+    "artifacts/mokaid-cinema-2026-09-25/production/review/accepted-04-office-alternative-focus.jpg",
+    "artifacts/mokaid-cinema-2026-09-25/production/review/accepted-01-04-portrait-joins.jpg"
+  ],
+  "sharedManifestModified": false
+}

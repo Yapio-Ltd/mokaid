@@ -1,0 +1,3661 @@
+{
+  "version": 1,
+  "createdAt": "2026-09-25T15:59:34.932Z",
+  "manifestPath": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/production-manifest.json",
+  "ffmpegVersion": "ffmpeg version 7.1.1 Copyright (c) 2000-2025 the FFmpeg developers",
+  "method": {
+    "loudness": "ffmpeg -map 0:a:0 -vn -sn -dn -af ebur128=peak=true -f null -; full original take, no gain/filter before measurement",
+    "envelope": "Original decoded sample rate/channels, pcm_f32le; RMS combines channel energy and also records each channel. No normalization, fades, resampling or remixing.",
+    "edgeSeconds": 1,
+    "binSeconds": 0.1,
+    "thresholds": {
+      "quietIntegratedLUFS": -45,
+      "undetectableSamplePeakDBFS": -90,
+      "joinWarningDB": 6,
+      "joinExtremeDB": 12,
+      "truePeakWarningDBTP": -1
+    },
+    "negativeInfinity": "null for logarithmic quantities denotes digital silence/non-finite dB, not zero dB.",
+    "limitations": [
+      "Objective signal measurements only; no listening or semantic sound verification was performed.",
+      "Short takes provide limited LRA statistics; no assertion of programme compliance.",
+      "Join alerts compare original source envelopes. Intentional dynamics and existing edge fades can explain differences. Final retimed montage must be measured separately.",
+      "True peak is reported as dBTP although ffmpeg labels its summary dBFS. Only the first audio stream is measured."
+    ]
+  },
+  "clips": [
+    {
+      "index": 1,
+      "id": "cafe",
+      "sourcePath": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/clips/01-cafe.mp4",
+      "manifestStatus": "completed",
+      "outputDuration": 7,
+      "audio": {
+        "streamCount": 1,
+        "measuredStreamIndex": 0,
+        "codec": "aac",
+        "channels": 2,
+        "sampleRate": 44100,
+        "durationSeconds": 8.033991
+      },
+      "loudness": {
+        "integratedLUFS": -47.4,
+        "rangeLU": 0.9,
+        "truePeakDBTP": -34.5
+      },
+      "envelope": {
+        "decodedDurationSeconds": 8.034,
+        "decodedFrames": 354304,
+        "whole": {
+          "startSeconds": 0,
+          "endSeconds": 8.034,
+          "rmsDBFS": -49.738,
+          "samplePeakDBFS": -34.505,
+          "perChannelRmsDBFS": [
+            -49.738,
+            -49.738
+          ],
+          "perChannelSamplePeakDBFS": [
+            -34.505,
+            -34.505
+          ],
+          "samplesAtOrAboveFullScale": 0
+        },
+        "start": {
+          "aggregate": {
+            "startSeconds": 0,
+            "endSeconds": 1,
+            "rmsDBFS": -50.454,
+            "samplePeakDBFS": -35.783,
+            "perChannelRmsDBFS": [
+              -50.454,
+              -50.454
+            ],
+            "perChannelSamplePeakDBFS": [
+              -35.783,
+              -35.783
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 0,
+              "endSeconds": 0.1,
+              "rmsDBFS": -51.049,
+              "samplePeakDBFS": -35.783,
+              "perChannelRmsDBFS": [
+                -51.049,
+                -51.049
+              ],
+              "perChannelSamplePeakDBFS": [
+                -35.783,
+                -35.783
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.1,
+              "endSeconds": 0.2,
+              "rmsDBFS": -51.277,
+              "samplePeakDBFS": -38.565,
+              "perChannelRmsDBFS": [
+                -51.277,
+                -51.277
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.565,
+                -38.565
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.2,
+              "endSeconds": 0.3,
+              "rmsDBFS": -50.258,
+              "samplePeakDBFS": -39.776,
+              "perChannelRmsDBFS": [
+                -50.258,
+                -50.258
+              ],
+              "perChannelSamplePeakDBFS": [
+                -39.776,
+                -39.776
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.3,
+              "endSeconds": 0.4,
+              "rmsDBFS": -50.459,
+              "samplePeakDBFS": -41.868,
+              "perChannelRmsDBFS": [
+                -50.459,
+                -50.459
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.868,
+                -41.868
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.4,
+              "endSeconds": 0.5,
+              "rmsDBFS": -49.901,
+              "samplePeakDBFS": -40.058,
+              "perChannelRmsDBFS": [
+                -49.901,
+                -49.901
+              ],
+              "perChannelSamplePeakDBFS": [
+                -40.058,
+                -40.058
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.5,
+              "endSeconds": 0.6,
+              "rmsDBFS": -51.754,
+              "samplePeakDBFS": -41.253,
+              "perChannelRmsDBFS": [
+                -51.754,
+                -51.754
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.253,
+                -41.253
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.6,
+              "endSeconds": 0.7,
+              "rmsDBFS": -51.778,
+              "samplePeakDBFS": -41.47,
+              "perChannelRmsDBFS": [
+                -51.778,
+                -51.778
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.47,
+                -41.47
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.7,
+              "endSeconds": 0.8,
+              "rmsDBFS": -49.995,
+              "samplePeakDBFS": -39.241,
+              "perChannelRmsDBFS": [
+                -49.995,
+                -49.995
+              ],
+              "perChannelSamplePeakDBFS": [
+                -39.241,
+                -39.241
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.8,
+              "endSeconds": 0.9,
+              "rmsDBFS": -49.325,
+              "samplePeakDBFS": -36.613,
+              "perChannelRmsDBFS": [
+                -49.325,
+                -49.325
+              ],
+              "perChannelSamplePeakDBFS": [
+                -36.613,
+                -36.613
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.9,
+              "endSeconds": 1,
+              "rmsDBFS": -49.547,
+              "samplePeakDBFS": -38.38,
+              "perChannelRmsDBFS": [
+                -49.547,
+                -49.547
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.38,
+                -38.38
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        },
+        "end": {
+          "aggregate": {
+            "startSeconds": 7.034,
+            "endSeconds": 8.034,
+            "rmsDBFS": -49.266,
+            "samplePeakDBFS": -35.887,
+            "perChannelRmsDBFS": [
+              -49.266,
+              -49.266
+            ],
+            "perChannelSamplePeakDBFS": [
+              -35.887,
+              -35.887
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 7.034,
+              "endSeconds": 7.134,
+              "rmsDBFS": -50.036,
+              "samplePeakDBFS": -38.382,
+              "perChannelRmsDBFS": [
+                -50.036,
+                -50.036
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.382,
+                -38.382
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.134,
+              "endSeconds": 7.234,
+              "rmsDBFS": -49.152,
+              "samplePeakDBFS": -38.641,
+              "perChannelRmsDBFS": [
+                -49.152,
+                -49.152
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.641,
+                -38.641
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.234,
+              "endSeconds": 7.334,
+              "rmsDBFS": -48.705,
+              "samplePeakDBFS": -39.167,
+              "perChannelRmsDBFS": [
+                -48.705,
+                -48.705
+              ],
+              "perChannelSamplePeakDBFS": [
+                -39.167,
+                -39.167
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.334,
+              "endSeconds": 7.434,
+              "rmsDBFS": -49.716,
+              "samplePeakDBFS": -37.616,
+              "perChannelRmsDBFS": [
+                -49.716,
+                -49.716
+              ],
+              "perChannelSamplePeakDBFS": [
+                -37.616,
+                -37.616
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.434,
+              "endSeconds": 7.534,
+              "rmsDBFS": -49.499,
+              "samplePeakDBFS": -39.051,
+              "perChannelRmsDBFS": [
+                -49.499,
+                -49.499
+              ],
+              "perChannelSamplePeakDBFS": [
+                -39.051,
+                -39.051
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.534,
+              "endSeconds": 7.634,
+              "rmsDBFS": -47.926,
+              "samplePeakDBFS": -35.887,
+              "perChannelRmsDBFS": [
+                -47.926,
+                -47.926
+              ],
+              "perChannelSamplePeakDBFS": [
+                -35.887,
+                -35.887
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.634,
+              "endSeconds": 7.734,
+              "rmsDBFS": -48.996,
+              "samplePeakDBFS": -39.353,
+              "perChannelRmsDBFS": [
+                -48.996,
+                -48.996
+              ],
+              "perChannelSamplePeakDBFS": [
+                -39.353,
+                -39.353
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.734,
+              "endSeconds": 7.834,
+              "rmsDBFS": -50.614,
+              "samplePeakDBFS": -40.203,
+              "perChannelRmsDBFS": [
+                -50.614,
+                -50.614
+              ],
+              "perChannelSamplePeakDBFS": [
+                -40.203,
+                -40.203
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.834,
+              "endSeconds": 7.934,
+              "rmsDBFS": -49.819,
+              "samplePeakDBFS": -39.602,
+              "perChannelRmsDBFS": [
+                -49.819,
+                -49.819
+              ],
+              "perChannelSamplePeakDBFS": [
+                -39.602,
+                -39.602
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.934,
+              "endSeconds": 8.034,
+              "rmsDBFS": -48.813,
+              "samplePeakDBFS": -38.253,
+              "perChannelRmsDBFS": [
+                -48.813,
+                -48.813
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.253,
+                -38.253
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        }
+      },
+      "sourceSizeBytes": 9845173,
+      "sourceMtime": "2026-09-25T12:12:35.319Z",
+      "status": "measured",
+      "signalDetected": true
+    },
+    {
+      "index": 2,
+      "id": "approach",
+      "sourcePath": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/clips/02-approach.mp4",
+      "manifestStatus": "completed",
+      "outputDuration": 6,
+      "audio": {
+        "streamCount": 1,
+        "measuredStreamIndex": 0,
+        "codec": "aac",
+        "channels": 2,
+        "sampleRate": 44100,
+        "durationSeconds": 8.033991
+      },
+      "loudness": {
+        "integratedLUFS": -21.7,
+        "rangeLU": 15,
+        "truePeakDBTP": -8.9
+      },
+      "envelope": {
+        "decodedDurationSeconds": 8.034,
+        "decodedFrames": 354304,
+        "whole": {
+          "startSeconds": 0,
+          "endSeconds": 8.034,
+          "rmsDBFS": -25.034,
+          "samplePeakDBFS": -8.866,
+          "perChannelRmsDBFS": [
+            -25.034,
+            -25.034
+          ],
+          "perChannelSamplePeakDBFS": [
+            -8.866,
+            -8.866
+          ],
+          "samplesAtOrAboveFullScale": 0
+        },
+        "start": {
+          "aggregate": {
+            "startSeconds": 0,
+            "endSeconds": 1,
+            "rmsDBFS": -46.283,
+            "samplePeakDBFS": -32.812,
+            "perChannelRmsDBFS": [
+              -46.283,
+              -46.283
+            ],
+            "perChannelSamplePeakDBFS": [
+              -32.812,
+              -32.812
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 0,
+              "endSeconds": 0.1,
+              "rmsDBFS": -51.544,
+              "samplePeakDBFS": -41.227,
+              "perChannelRmsDBFS": [
+                -51.544,
+                -51.544
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.227,
+                -41.227
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.1,
+              "endSeconds": 0.2,
+              "rmsDBFS": -49.761,
+              "samplePeakDBFS": -41.333,
+              "perChannelRmsDBFS": [
+                -49.761,
+                -49.761
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.333,
+                -41.333
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.2,
+              "endSeconds": 0.3,
+              "rmsDBFS": -44.391,
+              "samplePeakDBFS": -35.288,
+              "perChannelRmsDBFS": [
+                -44.391,
+                -44.391
+              ],
+              "perChannelSamplePeakDBFS": [
+                -35.288,
+                -35.288
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.3,
+              "endSeconds": 0.4,
+              "rmsDBFS": -44.419,
+              "samplePeakDBFS": -35.704,
+              "perChannelRmsDBFS": [
+                -44.419,
+                -44.419
+              ],
+              "perChannelSamplePeakDBFS": [
+                -35.704,
+                -35.704
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.4,
+              "endSeconds": 0.5,
+              "rmsDBFS": -44.911,
+              "samplePeakDBFS": -34.905,
+              "perChannelRmsDBFS": [
+                -44.911,
+                -44.911
+              ],
+              "perChannelSamplePeakDBFS": [
+                -34.905,
+                -34.905
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.5,
+              "endSeconds": 0.6,
+              "rmsDBFS": -45.077,
+              "samplePeakDBFS": -38.026,
+              "perChannelRmsDBFS": [
+                -45.077,
+                -45.077
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.026,
+                -38.026
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.6,
+              "endSeconds": 0.7,
+              "rmsDBFS": -45.75,
+              "samplePeakDBFS": -32.812,
+              "perChannelRmsDBFS": [
+                -45.75,
+                -45.75
+              ],
+              "perChannelSamplePeakDBFS": [
+                -32.812,
+                -32.812
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.7,
+              "endSeconds": 0.8,
+              "rmsDBFS": -47.749,
+              "samplePeakDBFS": -37.532,
+              "perChannelRmsDBFS": [
+                -47.749,
+                -47.749
+              ],
+              "perChannelSamplePeakDBFS": [
+                -37.532,
+                -37.532
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.8,
+              "endSeconds": 0.9,
+              "rmsDBFS": -47.661,
+              "samplePeakDBFS": -37.649,
+              "perChannelRmsDBFS": [
+                -47.661,
+                -47.661
+              ],
+              "perChannelSamplePeakDBFS": [
+                -37.649,
+                -37.649
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.9,
+              "endSeconds": 1,
+              "rmsDBFS": -46.7,
+              "samplePeakDBFS": -37.208,
+              "perChannelRmsDBFS": [
+                -46.7,
+                -46.7
+              ],
+              "perChannelSamplePeakDBFS": [
+                -37.208,
+                -37.208
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        },
+        "end": {
+          "aggregate": {
+            "startSeconds": 7.034,
+            "endSeconds": 8.034,
+            "rmsDBFS": -36.714,
+            "samplePeakDBFS": -25.106,
+            "perChannelRmsDBFS": [
+              -36.714,
+              -36.714
+            ],
+            "perChannelSamplePeakDBFS": [
+              -25.106,
+              -25.106
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 7.034,
+              "endSeconds": 7.134,
+              "rmsDBFS": -32.18,
+              "samplePeakDBFS": -25.106,
+              "perChannelRmsDBFS": [
+                -32.18,
+                -32.18
+              ],
+              "perChannelSamplePeakDBFS": [
+                -25.106,
+                -25.106
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.134,
+              "endSeconds": 7.234,
+              "rmsDBFS": -33.553,
+              "samplePeakDBFS": -25.457,
+              "perChannelRmsDBFS": [
+                -33.553,
+                -33.553
+              ],
+              "perChannelSamplePeakDBFS": [
+                -25.457,
+                -25.457
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.234,
+              "endSeconds": 7.334,
+              "rmsDBFS": -35.574,
+              "samplePeakDBFS": -28.373,
+              "perChannelRmsDBFS": [
+                -35.574,
+                -35.574
+              ],
+              "perChannelSamplePeakDBFS": [
+                -28.373,
+                -28.373
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.334,
+              "endSeconds": 7.434,
+              "rmsDBFS": -37.189,
+              "samplePeakDBFS": -29.83,
+              "perChannelRmsDBFS": [
+                -37.189,
+                -37.189
+              ],
+              "perChannelSamplePeakDBFS": [
+                -29.83,
+                -29.83
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.434,
+              "endSeconds": 7.534,
+              "rmsDBFS": -36.117,
+              "samplePeakDBFS": -28.011,
+              "perChannelRmsDBFS": [
+                -36.117,
+                -36.117
+              ],
+              "perChannelSamplePeakDBFS": [
+                -28.011,
+                -28.011
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.534,
+              "endSeconds": 7.634,
+              "rmsDBFS": -38.774,
+              "samplePeakDBFS": -29.546,
+              "perChannelRmsDBFS": [
+                -38.774,
+                -38.774
+              ],
+              "perChannelSamplePeakDBFS": [
+                -29.546,
+                -29.546
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.634,
+              "endSeconds": 7.734,
+              "rmsDBFS": -39.643,
+              "samplePeakDBFS": -31.028,
+              "perChannelRmsDBFS": [
+                -39.643,
+                -39.643
+              ],
+              "perChannelSamplePeakDBFS": [
+                -31.028,
+                -31.028
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.734,
+              "endSeconds": 7.834,
+              "rmsDBFS": -42.106,
+              "samplePeakDBFS": -33.431,
+              "perChannelRmsDBFS": [
+                -42.106,
+                -42.106
+              ],
+              "perChannelSamplePeakDBFS": [
+                -33.431,
+                -33.431
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.834,
+              "endSeconds": 7.934,
+              "rmsDBFS": -44.066,
+              "samplePeakDBFS": -35.613,
+              "perChannelRmsDBFS": [
+                -44.066,
+                -44.066
+              ],
+              "perChannelSamplePeakDBFS": [
+                -35.613,
+                -35.613
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.934,
+              "endSeconds": 8.034,
+              "rmsDBFS": -45.283,
+              "samplePeakDBFS": -36.953,
+              "perChannelRmsDBFS": [
+                -45.283,
+                -45.283
+              ],
+              "perChannelSamplePeakDBFS": [
+                -36.953,
+                -36.953
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        }
+      },
+      "sourceSizeBytes": 12942809,
+      "sourceMtime": "2026-09-25T12:40:31.561Z",
+      "status": "measured",
+      "signalDetected": true
+    },
+    {
+      "index": 3,
+      "id": "portal",
+      "sourcePath": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/clips/03-portal.mp4",
+      "manifestStatus": "completed",
+      "outputDuration": 7,
+      "audio": {
+        "streamCount": 1,
+        "measuredStreamIndex": 0,
+        "codec": "aac",
+        "channels": 2,
+        "sampleRate": 44100,
+        "durationSeconds": 8.033991
+      },
+      "loudness": {
+        "integratedLUFS": -50.5,
+        "rangeLU": 0.4,
+        "truePeakDBTP": -28.8
+      },
+      "envelope": {
+        "decodedDurationSeconds": 8.034,
+        "decodedFrames": 354304,
+        "whole": {
+          "startSeconds": 0,
+          "endSeconds": 8.034,
+          "rmsDBFS": -50.629,
+          "samplePeakDBFS": -28.91,
+          "perChannelRmsDBFS": [
+            -50.629,
+            -50.629
+          ],
+          "perChannelSamplePeakDBFS": [
+            -28.91,
+            -28.91
+          ],
+          "samplesAtOrAboveFullScale": 0
+        },
+        "start": {
+          "aggregate": {
+            "startSeconds": 0,
+            "endSeconds": 1,
+            "rmsDBFS": -51.514,
+            "samplePeakDBFS": -40.195,
+            "perChannelRmsDBFS": [
+              -51.514,
+              -51.514
+            ],
+            "perChannelSamplePeakDBFS": [
+              -40.195,
+              -40.195
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 0,
+              "endSeconds": 0.1,
+              "rmsDBFS": -51.391,
+              "samplePeakDBFS": -40.464,
+              "perChannelRmsDBFS": [
+                -51.391,
+                -51.391
+              ],
+              "perChannelSamplePeakDBFS": [
+                -40.464,
+                -40.464
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.1,
+              "endSeconds": 0.2,
+              "rmsDBFS": -50.196,
+              "samplePeakDBFS": -40.504,
+              "perChannelRmsDBFS": [
+                -50.196,
+                -50.196
+              ],
+              "perChannelSamplePeakDBFS": [
+                -40.504,
+                -40.504
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.2,
+              "endSeconds": 0.3,
+              "rmsDBFS": -51.012,
+              "samplePeakDBFS": -41.304,
+              "perChannelRmsDBFS": [
+                -51.012,
+                -51.012
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.304,
+                -41.304
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.3,
+              "endSeconds": 0.4,
+              "rmsDBFS": -51.474,
+              "samplePeakDBFS": -41.239,
+              "perChannelRmsDBFS": [
+                -51.474,
+                -51.474
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.239,
+                -41.239
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.4,
+              "endSeconds": 0.5,
+              "rmsDBFS": -51.207,
+              "samplePeakDBFS": -41.212,
+              "perChannelRmsDBFS": [
+                -51.207,
+                -51.207
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.212,
+                -41.212
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.5,
+              "endSeconds": 0.6,
+              "rmsDBFS": -51.768,
+              "samplePeakDBFS": -42.107,
+              "perChannelRmsDBFS": [
+                -51.768,
+                -51.768
+              ],
+              "perChannelSamplePeakDBFS": [
+                -42.107,
+                -42.107
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.6,
+              "endSeconds": 0.7,
+              "rmsDBFS": -52.103,
+              "samplePeakDBFS": -44.362,
+              "perChannelRmsDBFS": [
+                -52.103,
+                -52.103
+              ],
+              "perChannelSamplePeakDBFS": [
+                -44.362,
+                -44.362
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.7,
+              "endSeconds": 0.8,
+              "rmsDBFS": -52.328,
+              "samplePeakDBFS": -40.195,
+              "perChannelRmsDBFS": [
+                -52.328,
+                -52.328
+              ],
+              "perChannelSamplePeakDBFS": [
+                -40.195,
+                -40.195
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.8,
+              "endSeconds": 0.9,
+              "rmsDBFS": -52.772,
+              "samplePeakDBFS": -43.149,
+              "perChannelRmsDBFS": [
+                -52.772,
+                -52.772
+              ],
+              "perChannelSamplePeakDBFS": [
+                -43.149,
+                -43.149
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.9,
+              "endSeconds": 1,
+              "rmsDBFS": -51.439,
+              "samplePeakDBFS": -40.872,
+              "perChannelRmsDBFS": [
+                -51.439,
+                -51.439
+              ],
+              "perChannelSamplePeakDBFS": [
+                -40.872,
+                -40.872
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        },
+        "end": {
+          "aggregate": {
+            "startSeconds": 7.034,
+            "endSeconds": 8.034,
+            "rmsDBFS": -50.795,
+            "samplePeakDBFS": -35.348,
+            "perChannelRmsDBFS": [
+              -50.795,
+              -50.795
+            ],
+            "perChannelSamplePeakDBFS": [
+              -35.348,
+              -35.348
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 7.034,
+              "endSeconds": 7.134,
+              "rmsDBFS": -49.407,
+              "samplePeakDBFS": -39.513,
+              "perChannelRmsDBFS": [
+                -49.407,
+                -49.407
+              ],
+              "perChannelSamplePeakDBFS": [
+                -39.513,
+                -39.513
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.134,
+              "endSeconds": 7.234,
+              "rmsDBFS": -50.975,
+              "samplePeakDBFS": -42.116,
+              "perChannelRmsDBFS": [
+                -50.975,
+                -50.975
+              ],
+              "perChannelSamplePeakDBFS": [
+                -42.116,
+                -42.116
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.234,
+              "endSeconds": 7.334,
+              "rmsDBFS": -50.722,
+              "samplePeakDBFS": -41.326,
+              "perChannelRmsDBFS": [
+                -50.722,
+                -50.722
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.326,
+                -41.326
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.334,
+              "endSeconds": 7.434,
+              "rmsDBFS": -52.286,
+              "samplePeakDBFS": -35.348,
+              "perChannelRmsDBFS": [
+                -52.286,
+                -52.286
+              ],
+              "perChannelSamplePeakDBFS": [
+                -35.348,
+                -35.348
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.434,
+              "endSeconds": 7.534,
+              "rmsDBFS": -50.211,
+              "samplePeakDBFS": -40.635,
+              "perChannelRmsDBFS": [
+                -50.211,
+                -50.211
+              ],
+              "perChannelSamplePeakDBFS": [
+                -40.635,
+                -40.635
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.534,
+              "endSeconds": 7.634,
+              "rmsDBFS": -50.773,
+              "samplePeakDBFS": -41.628,
+              "perChannelRmsDBFS": [
+                -50.773,
+                -50.773
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.628,
+                -41.628
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.634,
+              "endSeconds": 7.734,
+              "rmsDBFS": -49.348,
+              "samplePeakDBFS": -39.553,
+              "perChannelRmsDBFS": [
+                -49.348,
+                -49.348
+              ],
+              "perChannelSamplePeakDBFS": [
+                -39.553,
+                -39.553
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.734,
+              "endSeconds": 7.834,
+              "rmsDBFS": -50.676,
+              "samplePeakDBFS": -41.386,
+              "perChannelRmsDBFS": [
+                -50.676,
+                -50.676
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.386,
+                -41.386
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.834,
+              "endSeconds": 7.934,
+              "rmsDBFS": -52.352,
+              "samplePeakDBFS": -42.779,
+              "perChannelRmsDBFS": [
+                -52.352,
+                -52.352
+              ],
+              "perChannelSamplePeakDBFS": [
+                -42.779,
+                -42.779
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.934,
+              "endSeconds": 8.034,
+              "rmsDBFS": -52.55,
+              "samplePeakDBFS": -42.367,
+              "perChannelRmsDBFS": [
+                -52.55,
+                -52.55
+              ],
+              "perChannelSamplePeakDBFS": [
+                -42.367,
+                -42.367
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        }
+      },
+      "sourceSizeBytes": 18266701,
+      "sourceMtime": "2026-09-25T13:06:04.919Z",
+      "status": "measured",
+      "signalDetected": true
+    },
+    {
+      "index": 4,
+      "id": "office",
+      "sourcePath": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/clips/04-office.mp4",
+      "manifestStatus": "completed",
+      "outputDuration": 12,
+      "audio": {
+        "streamCount": 1,
+        "measuredStreamIndex": 0,
+        "codec": "aac",
+        "channels": 2,
+        "sampleRate": 44100,
+        "durationSeconds": 12.041995
+      },
+      "loudness": {
+        "integratedLUFS": -47.5,
+        "rangeLU": 2.4,
+        "truePeakDBTP": -25.9
+      },
+      "envelope": {
+        "decodedDurationSeconds": 12.051,
+        "decodedFrames": 531456,
+        "whole": {
+          "startSeconds": 0,
+          "endSeconds": 12.051,
+          "rmsDBFS": -48.873,
+          "samplePeakDBFS": -26,
+          "perChannelRmsDBFS": [
+            -48.873,
+            -48.873
+          ],
+          "perChannelSamplePeakDBFS": [
+            -26,
+            -26
+          ],
+          "samplesAtOrAboveFullScale": 0
+        },
+        "start": {
+          "aggregate": {
+            "startSeconds": 0,
+            "endSeconds": 1,
+            "rmsDBFS": -50.523,
+            "samplePeakDBFS": -34.912,
+            "perChannelRmsDBFS": [
+              -50.523,
+              -50.523
+            ],
+            "perChannelSamplePeakDBFS": [
+              -34.912,
+              -34.912
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 0,
+              "endSeconds": 0.1,
+              "rmsDBFS": -50.9,
+              "samplePeakDBFS": -38.862,
+              "perChannelRmsDBFS": [
+                -50.9,
+                -50.9
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.862,
+                -38.862
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.1,
+              "endSeconds": 0.2,
+              "rmsDBFS": -50.035,
+              "samplePeakDBFS": -39.841,
+              "perChannelRmsDBFS": [
+                -50.035,
+                -50.035
+              ],
+              "perChannelSamplePeakDBFS": [
+                -39.841,
+                -39.841
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.2,
+              "endSeconds": 0.3,
+              "rmsDBFS": -50.925,
+              "samplePeakDBFS": -41.036,
+              "perChannelRmsDBFS": [
+                -50.925,
+                -50.925
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.036,
+                -41.036
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.3,
+              "endSeconds": 0.4,
+              "rmsDBFS": -51.066,
+              "samplePeakDBFS": -40.965,
+              "perChannelRmsDBFS": [
+                -51.066,
+                -51.066
+              ],
+              "perChannelSamplePeakDBFS": [
+                -40.965,
+                -40.965
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.4,
+              "endSeconds": 0.5,
+              "rmsDBFS": -50.966,
+              "samplePeakDBFS": -34.912,
+              "perChannelRmsDBFS": [
+                -50.966,
+                -50.966
+              ],
+              "perChannelSamplePeakDBFS": [
+                -34.912,
+                -34.912
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.5,
+              "endSeconds": 0.6,
+              "rmsDBFS": -49.213,
+              "samplePeakDBFS": -39.516,
+              "perChannelRmsDBFS": [
+                -49.213,
+                -49.213
+              ],
+              "perChannelSamplePeakDBFS": [
+                -39.516,
+                -39.516
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.6,
+              "endSeconds": 0.7,
+              "rmsDBFS": -50.877,
+              "samplePeakDBFS": -39.49,
+              "perChannelRmsDBFS": [
+                -50.877,
+                -50.877
+              ],
+              "perChannelSamplePeakDBFS": [
+                -39.49,
+                -39.49
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.7,
+              "endSeconds": 0.8,
+              "rmsDBFS": -49.951,
+              "samplePeakDBFS": -38.404,
+              "perChannelRmsDBFS": [
+                -49.951,
+                -49.951
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.404,
+                -38.404
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.8,
+              "endSeconds": 0.9,
+              "rmsDBFS": -51.048,
+              "samplePeakDBFS": -40.727,
+              "perChannelRmsDBFS": [
+                -51.048,
+                -51.048
+              ],
+              "perChannelSamplePeakDBFS": [
+                -40.727,
+                -40.727
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.9,
+              "endSeconds": 1,
+              "rmsDBFS": -50.672,
+              "samplePeakDBFS": -40.932,
+              "perChannelRmsDBFS": [
+                -50.672,
+                -50.672
+              ],
+              "perChannelSamplePeakDBFS": [
+                -40.932,
+                -40.932
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        },
+        "end": {
+          "aggregate": {
+            "startSeconds": 11.051,
+            "endSeconds": 12.051,
+            "rmsDBFS": -49.638,
+            "samplePeakDBFS": -35.885,
+            "perChannelRmsDBFS": [
+              -49.638,
+              -49.638
+            ],
+            "perChannelSamplePeakDBFS": [
+              -35.885,
+              -35.885
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 11.051,
+              "endSeconds": 11.151,
+              "rmsDBFS": -49.517,
+              "samplePeakDBFS": -36.319,
+              "perChannelRmsDBFS": [
+                -49.517,
+                -49.517
+              ],
+              "perChannelSamplePeakDBFS": [
+                -36.319,
+                -36.319
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.151,
+              "endSeconds": 11.251,
+              "rmsDBFS": -47.266,
+              "samplePeakDBFS": -35.885,
+              "perChannelRmsDBFS": [
+                -47.266,
+                -47.266
+              ],
+              "perChannelSamplePeakDBFS": [
+                -35.885,
+                -35.885
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.251,
+              "endSeconds": 11.351,
+              "rmsDBFS": -47.668,
+              "samplePeakDBFS": -38.071,
+              "perChannelRmsDBFS": [
+                -47.668,
+                -47.668
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.071,
+                -38.071
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.351,
+              "endSeconds": 11.451,
+              "rmsDBFS": -52.298,
+              "samplePeakDBFS": -43.215,
+              "perChannelRmsDBFS": [
+                -52.298,
+                -52.298
+              ],
+              "perChannelSamplePeakDBFS": [
+                -43.215,
+                -43.215
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.451,
+              "endSeconds": 11.551,
+              "rmsDBFS": -51.558,
+              "samplePeakDBFS": -41.012,
+              "perChannelRmsDBFS": [
+                -51.558,
+                -51.558
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.012,
+                -41.012
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.551,
+              "endSeconds": 11.651,
+              "rmsDBFS": -51.875,
+              "samplePeakDBFS": -40.344,
+              "perChannelRmsDBFS": [
+                -51.875,
+                -51.875
+              ],
+              "perChannelSamplePeakDBFS": [
+                -40.344,
+                -40.344
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.651,
+              "endSeconds": 11.751,
+              "rmsDBFS": -49.041,
+              "samplePeakDBFS": -38.636,
+              "perChannelRmsDBFS": [
+                -49.041,
+                -49.041
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.636,
+                -38.636
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.751,
+              "endSeconds": 11.851,
+              "rmsDBFS": -48.731,
+              "samplePeakDBFS": -38.071,
+              "perChannelRmsDBFS": [
+                -48.731,
+                -48.731
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.071,
+                -38.071
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.851,
+              "endSeconds": 11.951,
+              "rmsDBFS": -50.96,
+              "samplePeakDBFS": -41.224,
+              "perChannelRmsDBFS": [
+                -50.96,
+                -50.96
+              ],
+              "perChannelSamplePeakDBFS": [
+                -41.224,
+                -41.224
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.951,
+              "endSeconds": 12.051,
+              "rmsDBFS": -50.765,
+              "samplePeakDBFS": -38.817,
+              "perChannelRmsDBFS": [
+                -50.765,
+                -50.765
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.817,
+                -38.817
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        }
+      },
+      "sourceSizeBytes": 25262878,
+      "sourceMtime": "2026-09-25T13:12:03.467Z",
+      "status": "measured",
+      "signalDetected": true
+    },
+    {
+      "index": 5,
+      "id": "collaboration",
+      "sourcePath": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/clips/05-collaboration.mp4",
+      "manifestStatus": "completed",
+      "outputDuration": 10,
+      "audio": {
+        "streamCount": 1,
+        "measuredStreamIndex": 0,
+        "codec": "aac",
+        "channels": 2,
+        "sampleRate": 44100,
+        "durationSeconds": 10.030998
+      },
+      "loudness": {
+        "integratedLUFS": -33,
+        "rangeLU": 1.6,
+        "truePeakDBTP": -16.4
+      },
+      "envelope": {
+        "decodedDurationSeconds": 10.031,
+        "decodedFrames": 442368,
+        "whole": {
+          "startSeconds": 0,
+          "endSeconds": 10.031,
+          "rmsDBFS": -34.624,
+          "samplePeakDBFS": -16.44,
+          "perChannelRmsDBFS": [
+            -34.624,
+            -34.624
+          ],
+          "perChannelSamplePeakDBFS": [
+            -16.44,
+            -16.44
+          ],
+          "samplesAtOrAboveFullScale": 0
+        },
+        "start": {
+          "aggregate": {
+            "startSeconds": 0,
+            "endSeconds": 1,
+            "rmsDBFS": -34.179,
+            "samplePeakDBFS": -22.348,
+            "perChannelRmsDBFS": [
+              -34.179,
+              -34.179
+            ],
+            "perChannelSamplePeakDBFS": [
+              -22.348,
+              -22.348
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 0,
+              "endSeconds": 0.1,
+              "rmsDBFS": -36.88,
+              "samplePeakDBFS": -24.838,
+              "perChannelRmsDBFS": [
+                -36.88,
+                -36.88
+              ],
+              "perChannelSamplePeakDBFS": [
+                -24.838,
+                -24.838
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.1,
+              "endSeconds": 0.2,
+              "rmsDBFS": -34.241,
+              "samplePeakDBFS": -22.348,
+              "perChannelRmsDBFS": [
+                -34.241,
+                -34.241
+              ],
+              "perChannelSamplePeakDBFS": [
+                -22.348,
+                -22.348
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.2,
+              "endSeconds": 0.3,
+              "rmsDBFS": -35.754,
+              "samplePeakDBFS": -26.473,
+              "perChannelRmsDBFS": [
+                -35.754,
+                -35.754
+              ],
+              "perChannelSamplePeakDBFS": [
+                -26.473,
+                -26.473
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.3,
+              "endSeconds": 0.4,
+              "rmsDBFS": -35.2,
+              "samplePeakDBFS": -24.126,
+              "perChannelRmsDBFS": [
+                -35.2,
+                -35.2
+              ],
+              "perChannelSamplePeakDBFS": [
+                -24.126,
+                -24.126
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.4,
+              "endSeconds": 0.5,
+              "rmsDBFS": -32.404,
+              "samplePeakDBFS": -22.924,
+              "perChannelRmsDBFS": [
+                -32.404,
+                -32.404
+              ],
+              "perChannelSamplePeakDBFS": [
+                -22.924,
+                -22.924
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.5,
+              "endSeconds": 0.6,
+              "rmsDBFS": -34.33,
+              "samplePeakDBFS": -23.805,
+              "perChannelRmsDBFS": [
+                -34.33,
+                -34.33
+              ],
+              "perChannelSamplePeakDBFS": [
+                -23.805,
+                -23.805
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.6,
+              "endSeconds": 0.7,
+              "rmsDBFS": -32.486,
+              "samplePeakDBFS": -23.866,
+              "perChannelRmsDBFS": [
+                -32.486,
+                -32.486
+              ],
+              "perChannelSamplePeakDBFS": [
+                -23.866,
+                -23.866
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.7,
+              "endSeconds": 0.8,
+              "rmsDBFS": -34.351,
+              "samplePeakDBFS": -24.951,
+              "perChannelRmsDBFS": [
+                -34.351,
+                -34.351
+              ],
+              "perChannelSamplePeakDBFS": [
+                -24.951,
+                -24.951
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.8,
+              "endSeconds": 0.9,
+              "rmsDBFS": -33.039,
+              "samplePeakDBFS": -22.599,
+              "perChannelRmsDBFS": [
+                -33.039,
+                -33.039
+              ],
+              "perChannelSamplePeakDBFS": [
+                -22.599,
+                -22.599
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.9,
+              "endSeconds": 1,
+              "rmsDBFS": -35.25,
+              "samplePeakDBFS": -25.438,
+              "perChannelRmsDBFS": [
+                -35.25,
+                -35.25
+              ],
+              "perChannelSamplePeakDBFS": [
+                -25.438,
+                -25.438
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        },
+        "end": {
+          "aggregate": {
+            "startSeconds": 9.031,
+            "endSeconds": 10.031,
+            "rmsDBFS": -34.728,
+            "samplePeakDBFS": -18.404,
+            "perChannelRmsDBFS": [
+              -34.728,
+              -34.728
+            ],
+            "perChannelSamplePeakDBFS": [
+              -18.404,
+              -18.404
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 9.031,
+              "endSeconds": 9.131,
+              "rmsDBFS": -36.345,
+              "samplePeakDBFS": -27.627,
+              "perChannelRmsDBFS": [
+                -36.345,
+                -36.345
+              ],
+              "perChannelSamplePeakDBFS": [
+                -27.627,
+                -27.627
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.131,
+              "endSeconds": 9.231,
+              "rmsDBFS": -37.737,
+              "samplePeakDBFS": -27.625,
+              "perChannelRmsDBFS": [
+                -37.737,
+                -37.737
+              ],
+              "perChannelSamplePeakDBFS": [
+                -27.625,
+                -27.625
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.231,
+              "endSeconds": 9.331,
+              "rmsDBFS": -35.359,
+              "samplePeakDBFS": -24.668,
+              "perChannelRmsDBFS": [
+                -35.359,
+                -35.359
+              ],
+              "perChannelSamplePeakDBFS": [
+                -24.668,
+                -24.668
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.331,
+              "endSeconds": 9.431,
+              "rmsDBFS": -34.355,
+              "samplePeakDBFS": -23.603,
+              "perChannelRmsDBFS": [
+                -34.355,
+                -34.355
+              ],
+              "perChannelSamplePeakDBFS": [
+                -23.603,
+                -23.603
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.431,
+              "endSeconds": 9.531,
+              "rmsDBFS": -35.268,
+              "samplePeakDBFS": -25.995,
+              "perChannelRmsDBFS": [
+                -35.268,
+                -35.268
+              ],
+              "perChannelSamplePeakDBFS": [
+                -25.995,
+                -25.995
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.531,
+              "endSeconds": 9.631,
+              "rmsDBFS": -31.492,
+              "samplePeakDBFS": -18.404,
+              "perChannelRmsDBFS": [
+                -31.492,
+                -31.492
+              ],
+              "perChannelSamplePeakDBFS": [
+                -18.404,
+                -18.404
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.631,
+              "endSeconds": 9.731,
+              "rmsDBFS": -33.762,
+              "samplePeakDBFS": -24.128,
+              "perChannelRmsDBFS": [
+                -33.762,
+                -33.762
+              ],
+              "perChannelSamplePeakDBFS": [
+                -24.128,
+                -24.128
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.731,
+              "endSeconds": 9.831,
+              "rmsDBFS": -35.642,
+              "samplePeakDBFS": -25.471,
+              "perChannelRmsDBFS": [
+                -35.642,
+                -35.642
+              ],
+              "perChannelSamplePeakDBFS": [
+                -25.471,
+                -25.471
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.831,
+              "endSeconds": 9.931,
+              "rmsDBFS": -36.167,
+              "samplePeakDBFS": -26.262,
+              "perChannelRmsDBFS": [
+                -36.167,
+                -36.167
+              ],
+              "perChannelSamplePeakDBFS": [
+                -26.262,
+                -26.262
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.931,
+              "endSeconds": 10.031,
+              "rmsDBFS": -34.361,
+              "samplePeakDBFS": -24.769,
+              "perChannelRmsDBFS": [
+                -34.361,
+                -34.361
+              ],
+              "perChannelSamplePeakDBFS": [
+                -24.769,
+                -24.769
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        }
+      },
+      "sourceSizeBytes": 21058861,
+      "sourceMtime": "2026-09-25T13:17:43.690Z",
+      "status": "measured",
+      "signalDetected": true
+    },
+    {
+      "index": 6,
+      "id": "life",
+      "sourcePath": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/clips/06-life.mp4",
+      "manifestStatus": "completed",
+      "outputDuration": 9,
+      "audio": {
+        "streamCount": 1,
+        "measuredStreamIndex": 0,
+        "codec": "aac",
+        "channels": 2,
+        "sampleRate": 44100,
+        "durationSeconds": 12.041995
+      },
+      "loudness": {
+        "integratedLUFS": -47.2,
+        "rangeLU": 9.8,
+        "truePeakDBTP": -24.3
+      },
+      "envelope": {
+        "decodedDurationSeconds": 12.051,
+        "decodedFrames": 531456,
+        "whole": {
+          "startSeconds": 0,
+          "endSeconds": 12.051,
+          "rmsDBFS": -51.935,
+          "samplePeakDBFS": -24.278,
+          "perChannelRmsDBFS": [
+            -51.935,
+            -51.935
+          ],
+          "perChannelSamplePeakDBFS": [
+            -24.278,
+            -24.278
+          ],
+          "samplesAtOrAboveFullScale": 0
+        },
+        "start": {
+          "aggregate": {
+            "startSeconds": 0,
+            "endSeconds": 1,
+            "rmsDBFS": -55.817,
+            "samplePeakDBFS": -42.596,
+            "perChannelRmsDBFS": [
+              -55.817,
+              -55.817
+            ],
+            "perChannelSamplePeakDBFS": [
+              -42.596,
+              -42.596
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 0,
+              "endSeconds": 0.1,
+              "rmsDBFS": -62.452,
+              "samplePeakDBFS": -50.875,
+              "perChannelRmsDBFS": [
+                -62.452,
+                -62.452
+              ],
+              "perChannelSamplePeakDBFS": [
+                -50.875,
+                -50.875
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.1,
+              "endSeconds": 0.2,
+              "rmsDBFS": -58.828,
+              "samplePeakDBFS": -47.062,
+              "perChannelRmsDBFS": [
+                -58.828,
+                -58.828
+              ],
+              "perChannelSamplePeakDBFS": [
+                -47.062,
+                -47.062
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.2,
+              "endSeconds": 0.3,
+              "rmsDBFS": -56.295,
+              "samplePeakDBFS": -45.145,
+              "perChannelRmsDBFS": [
+                -56.295,
+                -56.295
+              ],
+              "perChannelSamplePeakDBFS": [
+                -45.145,
+                -45.145
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.3,
+              "endSeconds": 0.4,
+              "rmsDBFS": -51.881,
+              "samplePeakDBFS": -42.596,
+              "perChannelRmsDBFS": [
+                -51.881,
+                -51.881
+              ],
+              "perChannelSamplePeakDBFS": [
+                -42.596,
+                -42.596
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.4,
+              "endSeconds": 0.5,
+              "rmsDBFS": -54.979,
+              "samplePeakDBFS": -43.857,
+              "perChannelRmsDBFS": [
+                -54.979,
+                -54.979
+              ],
+              "perChannelSamplePeakDBFS": [
+                -43.857,
+                -43.857
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.5,
+              "endSeconds": 0.6,
+              "rmsDBFS": -53.666,
+              "samplePeakDBFS": -43.271,
+              "perChannelRmsDBFS": [
+                -53.666,
+                -53.666
+              ],
+              "perChannelSamplePeakDBFS": [
+                -43.271,
+                -43.271
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.6,
+              "endSeconds": 0.7,
+              "rmsDBFS": -56.118,
+              "samplePeakDBFS": -45.492,
+              "perChannelRmsDBFS": [
+                -56.118,
+                -56.118
+              ],
+              "perChannelSamplePeakDBFS": [
+                -45.492,
+                -45.492
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.7,
+              "endSeconds": 0.8,
+              "rmsDBFS": -55.535,
+              "samplePeakDBFS": -44.751,
+              "perChannelRmsDBFS": [
+                -55.535,
+                -55.535
+              ],
+              "perChannelSamplePeakDBFS": [
+                -44.751,
+                -44.751
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.8,
+              "endSeconds": 0.9,
+              "rmsDBFS": -58.266,
+              "samplePeakDBFS": -47.193,
+              "perChannelRmsDBFS": [
+                -58.266,
+                -58.266
+              ],
+              "perChannelSamplePeakDBFS": [
+                -47.193,
+                -47.193
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.9,
+              "endSeconds": 1,
+              "rmsDBFS": -58.916,
+              "samplePeakDBFS": -47.915,
+              "perChannelRmsDBFS": [
+                -58.916,
+                -58.916
+              ],
+              "perChannelSamplePeakDBFS": [
+                -47.915,
+                -47.915
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        },
+        "end": {
+          "aggregate": {
+            "startSeconds": 11.051,
+            "endSeconds": 12.051,
+            "rmsDBFS": -48.633,
+            "samplePeakDBFS": -26.03,
+            "perChannelRmsDBFS": [
+              -48.633,
+              -48.633
+            ],
+            "perChannelSamplePeakDBFS": [
+              -26.03,
+              -26.03
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 11.051,
+              "endSeconds": 11.151,
+              "rmsDBFS": -53.103,
+              "samplePeakDBFS": -35.802,
+              "perChannelRmsDBFS": [
+                -53.103,
+                -53.103
+              ],
+              "perChannelSamplePeakDBFS": [
+                -35.802,
+                -35.802
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.151,
+              "endSeconds": 11.251,
+              "rmsDBFS": -45.829,
+              "samplePeakDBFS": -27.138,
+              "perChannelRmsDBFS": [
+                -45.829,
+                -45.829
+              ],
+              "perChannelSamplePeakDBFS": [
+                -27.138,
+                -27.138
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.251,
+              "endSeconds": 11.351,
+              "rmsDBFS": -44.74,
+              "samplePeakDBFS": -26.03,
+              "perChannelRmsDBFS": [
+                -44.74,
+                -44.74
+              ],
+              "perChannelSamplePeakDBFS": [
+                -26.03,
+                -26.03
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.351,
+              "endSeconds": 11.451,
+              "rmsDBFS": -52.121,
+              "samplePeakDBFS": -38.495,
+              "perChannelRmsDBFS": [
+                -52.121,
+                -52.121
+              ],
+              "perChannelSamplePeakDBFS": [
+                -38.495,
+                -38.495
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.451,
+              "endSeconds": 11.551,
+              "rmsDBFS": -47.882,
+              "samplePeakDBFS": -27.867,
+              "perChannelRmsDBFS": [
+                -47.882,
+                -47.882
+              ],
+              "perChannelSamplePeakDBFS": [
+                -27.867,
+                -27.867
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.551,
+              "endSeconds": 11.651,
+              "rmsDBFS": -45.736,
+              "samplePeakDBFS": -28.731,
+              "perChannelRmsDBFS": [
+                -45.736,
+                -45.736
+              ],
+              "perChannelSamplePeakDBFS": [
+                -28.731,
+                -28.731
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.651,
+              "endSeconds": 11.751,
+              "rmsDBFS": -48.733,
+              "samplePeakDBFS": -28.825,
+              "perChannelRmsDBFS": [
+                -48.733,
+                -48.733
+              ],
+              "perChannelSamplePeakDBFS": [
+                -28.825,
+                -28.825
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.751,
+              "endSeconds": 11.851,
+              "rmsDBFS": -60.379,
+              "samplePeakDBFS": -49.084,
+              "perChannelRmsDBFS": [
+                -60.379,
+                -60.379
+              ],
+              "perChannelSamplePeakDBFS": [
+                -49.084,
+                -49.084
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.851,
+              "endSeconds": 11.951,
+              "rmsDBFS": -50.807,
+              "samplePeakDBFS": -29.488,
+              "perChannelRmsDBFS": [
+                -50.807,
+                -50.807
+              ],
+              "perChannelSamplePeakDBFS": [
+                -29.488,
+                -29.488
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 11.951,
+              "endSeconds": 12.051,
+              "rmsDBFS": -61.667,
+              "samplePeakDBFS": -48.523,
+              "perChannelRmsDBFS": [
+                -61.667,
+                -61.667
+              ],
+              "perChannelSamplePeakDBFS": [
+                -48.523,
+                -48.523
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        }
+      },
+      "sourceSizeBytes": 27125222,
+      "sourceMtime": "2026-09-25T13:36:44.446Z",
+      "status": "measured",
+      "signalDetected": true
+    },
+    {
+      "index": 7,
+      "id": "execution",
+      "sourcePath": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/clips/07-execution.mp4",
+      "manifestStatus": "completed",
+      "outputDuration": 10,
+      "audio": {
+        "streamCount": 1,
+        "measuredStreamIndex": 0,
+        "codec": "aac",
+        "channels": 2,
+        "sampleRate": 44100,
+        "durationSeconds": 10.030998
+      },
+      "loudness": {
+        "integratedLUFS": -25.5,
+        "rangeLU": 10.9,
+        "truePeakDBTP": -7.7
+      },
+      "envelope": {
+        "decodedDurationSeconds": 10.031,
+        "decodedFrames": 442368,
+        "whole": {
+          "startSeconds": 0,
+          "endSeconds": 10.031,
+          "rmsDBFS": -27.698,
+          "samplePeakDBFS": -7.685,
+          "perChannelRmsDBFS": [
+            -27.698,
+            -27.698
+          ],
+          "perChannelSamplePeakDBFS": [
+            -7.685,
+            -7.685
+          ],
+          "samplesAtOrAboveFullScale": 0
+        },
+        "start": {
+          "aggregate": {
+            "startSeconds": 0,
+            "endSeconds": 1,
+            "rmsDBFS": -36.755,
+            "samplePeakDBFS": -14.476,
+            "perChannelRmsDBFS": [
+              -36.755,
+              -36.755
+            ],
+            "perChannelSamplePeakDBFS": [
+              -14.476,
+              -14.476
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 0,
+              "endSeconds": 0.1,
+              "rmsDBFS": -44.601,
+              "samplePeakDBFS": -33.569,
+              "perChannelRmsDBFS": [
+                -44.601,
+                -44.601
+              ],
+              "perChannelSamplePeakDBFS": [
+                -33.569,
+                -33.569
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.1,
+              "endSeconds": 0.2,
+              "rmsDBFS": -42.803,
+              "samplePeakDBFS": -34.105,
+              "perChannelRmsDBFS": [
+                -42.803,
+                -42.803
+              ],
+              "perChannelSamplePeakDBFS": [
+                -34.105,
+                -34.105
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.2,
+              "endSeconds": 0.3,
+              "rmsDBFS": -43.25,
+              "samplePeakDBFS": -33.619,
+              "perChannelRmsDBFS": [
+                -43.25,
+                -43.25
+              ],
+              "perChannelSamplePeakDBFS": [
+                -33.619,
+                -33.619
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.3,
+              "endSeconds": 0.4,
+              "rmsDBFS": -38.188,
+              "samplePeakDBFS": -26.605,
+              "perChannelRmsDBFS": [
+                -38.188,
+                -38.188
+              ],
+              "perChannelSamplePeakDBFS": [
+                -26.605,
+                -26.605
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.4,
+              "endSeconds": 0.5,
+              "rmsDBFS": -39.858,
+              "samplePeakDBFS": -27.68,
+              "perChannelRmsDBFS": [
+                -39.858,
+                -39.858
+              ],
+              "perChannelSamplePeakDBFS": [
+                -27.68,
+                -27.68
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.5,
+              "endSeconds": 0.6,
+              "rmsDBFS": -44.754,
+              "samplePeakDBFS": -34.972,
+              "perChannelRmsDBFS": [
+                -44.754,
+                -44.754
+              ],
+              "perChannelSamplePeakDBFS": [
+                -34.972,
+                -34.972
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.6,
+              "endSeconds": 0.7,
+              "rmsDBFS": -30.64,
+              "samplePeakDBFS": -14.476,
+              "perChannelRmsDBFS": [
+                -30.64,
+                -30.64
+              ],
+              "perChannelSamplePeakDBFS": [
+                -14.476,
+                -14.476
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.7,
+              "endSeconds": 0.8,
+              "rmsDBFS": -35.057,
+              "samplePeakDBFS": -20.962,
+              "perChannelRmsDBFS": [
+                -35.057,
+                -35.057
+              ],
+              "perChannelSamplePeakDBFS": [
+                -20.962,
+                -20.962
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.8,
+              "endSeconds": 0.9,
+              "rmsDBFS": -33.815,
+              "samplePeakDBFS": -22.186,
+              "perChannelRmsDBFS": [
+                -33.815,
+                -33.815
+              ],
+              "perChannelSamplePeakDBFS": [
+                -22.186,
+                -22.186
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.9,
+              "endSeconds": 1,
+              "rmsDBFS": -40.105,
+              "samplePeakDBFS": -27.138,
+              "perChannelRmsDBFS": [
+                -40.105,
+                -40.105
+              ],
+              "perChannelSamplePeakDBFS": [
+                -27.138,
+                -27.138
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        },
+        "end": {
+          "aggregate": {
+            "startSeconds": 9.031,
+            "endSeconds": 10.031,
+            "rmsDBFS": -24.02,
+            "samplePeakDBFS": -7.685,
+            "perChannelRmsDBFS": [
+              -24.02,
+              -24.02
+            ],
+            "perChannelSamplePeakDBFS": [
+              -7.685,
+              -7.685
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 9.031,
+              "endSeconds": 9.131,
+              "rmsDBFS": -27.225,
+              "samplePeakDBFS": -17.362,
+              "perChannelRmsDBFS": [
+                -27.225,
+                -27.225
+              ],
+              "perChannelSamplePeakDBFS": [
+                -17.362,
+                -17.362
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.131,
+              "endSeconds": 9.231,
+              "rmsDBFS": -29.327,
+              "samplePeakDBFS": -21.101,
+              "perChannelRmsDBFS": [
+                -29.327,
+                -29.327
+              ],
+              "perChannelSamplePeakDBFS": [
+                -21.101,
+                -21.101
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.231,
+              "endSeconds": 9.331,
+              "rmsDBFS": -21.685,
+              "samplePeakDBFS": -8.96,
+              "perChannelRmsDBFS": [
+                -21.685,
+                -21.685
+              ],
+              "perChannelSamplePeakDBFS": [
+                -8.96,
+                -8.96
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.331,
+              "endSeconds": 9.431,
+              "rmsDBFS": -18.331,
+              "samplePeakDBFS": -7.685,
+              "perChannelRmsDBFS": [
+                -18.331,
+                -18.331
+              ],
+              "perChannelSamplePeakDBFS": [
+                -7.685,
+                -7.685
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.431,
+              "endSeconds": 9.531,
+              "rmsDBFS": -21.757,
+              "samplePeakDBFS": -12.704,
+              "perChannelRmsDBFS": [
+                -21.757,
+                -21.757
+              ],
+              "perChannelSamplePeakDBFS": [
+                -12.704,
+                -12.704
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.531,
+              "endSeconds": 9.631,
+              "rmsDBFS": -24.855,
+              "samplePeakDBFS": -16.887,
+              "perChannelRmsDBFS": [
+                -24.855,
+                -24.855
+              ],
+              "perChannelSamplePeakDBFS": [
+                -16.887,
+                -16.887
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.631,
+              "endSeconds": 9.731,
+              "rmsDBFS": -27.456,
+              "samplePeakDBFS": -19.372,
+              "perChannelRmsDBFS": [
+                -27.456,
+                -27.456
+              ],
+              "perChannelSamplePeakDBFS": [
+                -19.372,
+                -19.372
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.731,
+              "endSeconds": 9.831,
+              "rmsDBFS": -30.003,
+              "samplePeakDBFS": -20.752,
+              "perChannelRmsDBFS": [
+                -30.003,
+                -30.003
+              ],
+              "perChannelSamplePeakDBFS": [
+                -20.752,
+                -20.752
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.831,
+              "endSeconds": 9.931,
+              "rmsDBFS": -32.253,
+              "samplePeakDBFS": -22.439,
+              "perChannelRmsDBFS": [
+                -32.253,
+                -32.253
+              ],
+              "perChannelSamplePeakDBFS": [
+                -22.439,
+                -22.439
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 9.931,
+              "endSeconds": 10.031,
+              "rmsDBFS": -27.53,
+              "samplePeakDBFS": -18.577,
+              "perChannelRmsDBFS": [
+                -27.53,
+                -27.53
+              ],
+              "perChannelSamplePeakDBFS": [
+                -18.577,
+                -18.577
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        }
+      },
+      "sourceSizeBytes": 19058655,
+      "sourceMtime": "2026-09-25T13:55:18.555Z",
+      "status": "measured",
+      "signalDetected": true
+    },
+    {
+      "index": 8,
+      "id": "return",
+      "sourcePath": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/clips/08-return.mp4",
+      "manifestStatus": "completed",
+      "outputDuration": 6,
+      "audio": {
+        "streamCount": 1,
+        "measuredStreamIndex": 0,
+        "codec": "aac",
+        "channels": 2,
+        "sampleRate": 44100,
+        "durationSeconds": 8.033991
+      },
+      "loudness": {
+        "integratedLUFS": -33.1,
+        "rangeLU": 13.5,
+        "truePeakDBTP": -13.7
+      },
+      "envelope": {
+        "decodedDurationSeconds": 8.034,
+        "decodedFrames": 354304,
+        "whole": {
+          "startSeconds": 0,
+          "endSeconds": 8.034,
+          "rmsDBFS": -33.645,
+          "samplePeakDBFS": -13.716,
+          "perChannelRmsDBFS": [
+            -33.645,
+            -33.645
+          ],
+          "perChannelSamplePeakDBFS": [
+            -13.716,
+            -13.716
+          ],
+          "samplesAtOrAboveFullScale": 0
+        },
+        "start": {
+          "aggregate": {
+            "startSeconds": 0,
+            "endSeconds": 1,
+            "rmsDBFS": -47.168,
+            "samplePeakDBFS": -28.413,
+            "perChannelRmsDBFS": [
+              -47.168,
+              -47.168
+            ],
+            "perChannelSamplePeakDBFS": [
+              -28.413,
+              -28.413
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 0,
+              "endSeconds": 0.1,
+              "rmsDBFS": -47.114,
+              "samplePeakDBFS": -32.828,
+              "perChannelRmsDBFS": [
+                -47.114,
+                -47.114
+              ],
+              "perChannelSamplePeakDBFS": [
+                -32.828,
+                -32.828
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.1,
+              "endSeconds": 0.2,
+              "rmsDBFS": -50.276,
+              "samplePeakDBFS": -37.996,
+              "perChannelRmsDBFS": [
+                -50.276,
+                -50.276
+              ],
+              "perChannelSamplePeakDBFS": [
+                -37.996,
+                -37.996
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.2,
+              "endSeconds": 0.3,
+              "rmsDBFS": -46.973,
+              "samplePeakDBFS": -32.653,
+              "perChannelRmsDBFS": [
+                -46.973,
+                -46.973
+              ],
+              "perChannelSamplePeakDBFS": [
+                -32.653,
+                -32.653
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.3,
+              "endSeconds": 0.4,
+              "rmsDBFS": -46.604,
+              "samplePeakDBFS": -28.413,
+              "perChannelRmsDBFS": [
+                -46.604,
+                -46.604
+              ],
+              "perChannelSamplePeakDBFS": [
+                -28.413,
+                -28.413
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.4,
+              "endSeconds": 0.5,
+              "rmsDBFS": -47.847,
+              "samplePeakDBFS": -28.913,
+              "perChannelRmsDBFS": [
+                -47.847,
+                -47.847
+              ],
+              "perChannelSamplePeakDBFS": [
+                -28.913,
+                -28.913
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.5,
+              "endSeconds": 0.6,
+              "rmsDBFS": -47.374,
+              "samplePeakDBFS": -31.155,
+              "perChannelRmsDBFS": [
+                -47.374,
+                -47.374
+              ],
+              "perChannelSamplePeakDBFS": [
+                -31.155,
+                -31.155
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.6,
+              "endSeconds": 0.7,
+              "rmsDBFS": -44.84,
+              "samplePeakDBFS": -28.704,
+              "perChannelRmsDBFS": [
+                -44.84,
+                -44.84
+              ],
+              "perChannelSamplePeakDBFS": [
+                -28.704,
+                -28.704
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.7,
+              "endSeconds": 0.8,
+              "rmsDBFS": -47.096,
+              "samplePeakDBFS": -29.545,
+              "perChannelRmsDBFS": [
+                -47.096,
+                -47.096
+              ],
+              "perChannelSamplePeakDBFS": [
+                -29.545,
+                -29.545
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.8,
+              "endSeconds": 0.9,
+              "rmsDBFS": -50.097,
+              "samplePeakDBFS": -36.997,
+              "perChannelRmsDBFS": [
+                -50.097,
+                -50.097
+              ],
+              "perChannelSamplePeakDBFS": [
+                -36.997,
+                -36.997
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.9,
+              "endSeconds": 1,
+              "rmsDBFS": -46.128,
+              "samplePeakDBFS": -30.539,
+              "perChannelRmsDBFS": [
+                -46.128,
+                -46.128
+              ],
+              "perChannelSamplePeakDBFS": [
+                -30.539,
+                -30.539
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        },
+        "end": {
+          "aggregate": {
+            "startSeconds": 7.034,
+            "endSeconds": 8.034,
+            "rmsDBFS": -40.874,
+            "samplePeakDBFS": -29.717,
+            "perChannelRmsDBFS": [
+              -40.874,
+              -40.874
+            ],
+            "perChannelSamplePeakDBFS": [
+              -29.717,
+              -29.717
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 7.034,
+              "endSeconds": 7.134,
+              "rmsDBFS": -41.237,
+              "samplePeakDBFS": -31.464,
+              "perChannelRmsDBFS": [
+                -41.237,
+                -41.237
+              ],
+              "perChannelSamplePeakDBFS": [
+                -31.464,
+                -31.464
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.134,
+              "endSeconds": 7.234,
+              "rmsDBFS": -40.968,
+              "samplePeakDBFS": -32.135,
+              "perChannelRmsDBFS": [
+                -40.968,
+                -40.968
+              ],
+              "perChannelSamplePeakDBFS": [
+                -32.135,
+                -32.135
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.234,
+              "endSeconds": 7.334,
+              "rmsDBFS": -37.895,
+              "samplePeakDBFS": -30.503,
+              "perChannelRmsDBFS": [
+                -37.895,
+                -37.895
+              ],
+              "perChannelSamplePeakDBFS": [
+                -30.503,
+                -30.503
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.334,
+              "endSeconds": 7.434,
+              "rmsDBFS": -41.204,
+              "samplePeakDBFS": -31.676,
+              "perChannelRmsDBFS": [
+                -41.204,
+                -41.204
+              ],
+              "perChannelSamplePeakDBFS": [
+                -31.676,
+                -31.676
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.434,
+              "endSeconds": 7.534,
+              "rmsDBFS": -40.171,
+              "samplePeakDBFS": -30.708,
+              "perChannelRmsDBFS": [
+                -40.171,
+                -40.171
+              ],
+              "perChannelSamplePeakDBFS": [
+                -30.708,
+                -30.708
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.534,
+              "endSeconds": 7.634,
+              "rmsDBFS": -41.389,
+              "samplePeakDBFS": -34.022,
+              "perChannelRmsDBFS": [
+                -41.389,
+                -41.389
+              ],
+              "perChannelSamplePeakDBFS": [
+                -34.022,
+                -34.022
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.634,
+              "endSeconds": 7.734,
+              "rmsDBFS": -41.998,
+              "samplePeakDBFS": -34.166,
+              "perChannelRmsDBFS": [
+                -41.998,
+                -41.998
+              ],
+              "perChannelSamplePeakDBFS": [
+                -34.166,
+                -34.166
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.734,
+              "endSeconds": 7.834,
+              "rmsDBFS": -42.519,
+              "samplePeakDBFS": -34.965,
+              "perChannelRmsDBFS": [
+                -42.519,
+                -42.519
+              ],
+              "perChannelSamplePeakDBFS": [
+                -34.965,
+                -34.965
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.834,
+              "endSeconds": 7.934,
+              "rmsDBFS": -42.017,
+              "samplePeakDBFS": -32.614,
+              "perChannelRmsDBFS": [
+                -42.017,
+                -42.017
+              ],
+              "perChannelSamplePeakDBFS": [
+                -32.614,
+                -32.614
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.934,
+              "endSeconds": 8.034,
+              "rmsDBFS": -41.332,
+              "samplePeakDBFS": -29.717,
+              "perChannelRmsDBFS": [
+                -41.332,
+                -41.332
+              ],
+              "perChannelSamplePeakDBFS": [
+                -29.717,
+                -29.717
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        }
+      },
+      "sourceSizeBytes": 14060651,
+      "sourceMtime": "2026-09-25T14:04:08.452Z",
+      "status": "measured",
+      "signalDetected": true
+    },
+    {
+      "index": 9,
+      "id": "completed",
+      "sourcePath": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/clips/09-completed.mp4",
+      "manifestStatus": "completed",
+      "outputDuration": 7,
+      "audio": {
+        "streamCount": 1,
+        "measuredStreamIndex": 0,
+        "codec": "aac",
+        "channels": 2,
+        "sampleRate": 44100,
+        "durationSeconds": 8.033991
+      },
+      "loudness": {
+        "integratedLUFS": -19.4,
+        "rangeLU": 13.4,
+        "truePeakDBTP": -2.7
+      },
+      "envelope": {
+        "decodedDurationSeconds": 8.034,
+        "decodedFrames": 354304,
+        "whole": {
+          "startSeconds": 0,
+          "endSeconds": 8.034,
+          "rmsDBFS": -25.252,
+          "samplePeakDBFS": -2.693,
+          "perChannelRmsDBFS": [
+            -25.252,
+            -25.252
+          ],
+          "perChannelSamplePeakDBFS": [
+            -2.693,
+            -2.693
+          ],
+          "samplesAtOrAboveFullScale": 0
+        },
+        "start": {
+          "aggregate": {
+            "startSeconds": 0,
+            "endSeconds": 1,
+            "rmsDBFS": -36.4,
+            "samplePeakDBFS": -17.351,
+            "perChannelRmsDBFS": [
+              -36.4,
+              -36.4
+            ],
+            "perChannelSamplePeakDBFS": [
+              -17.351,
+              -17.351
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 0,
+              "endSeconds": 0.1,
+              "rmsDBFS": -40.031,
+              "samplePeakDBFS": -32.179,
+              "perChannelRmsDBFS": [
+                -40.031,
+                -40.031
+              ],
+              "perChannelSamplePeakDBFS": [
+                -32.179,
+                -32.179
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.1,
+              "endSeconds": 0.2,
+              "rmsDBFS": -40.227,
+              "samplePeakDBFS": -32.945,
+              "perChannelRmsDBFS": [
+                -40.227,
+                -40.227
+              ],
+              "perChannelSamplePeakDBFS": [
+                -32.945,
+                -32.945
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.2,
+              "endSeconds": 0.3,
+              "rmsDBFS": -39.912,
+              "samplePeakDBFS": -32.153,
+              "perChannelRmsDBFS": [
+                -39.912,
+                -39.912
+              ],
+              "perChannelSamplePeakDBFS": [
+                -32.153,
+                -32.153
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.3,
+              "endSeconds": 0.4,
+              "rmsDBFS": -41.477,
+              "samplePeakDBFS": -32.965,
+              "perChannelRmsDBFS": [
+                -41.477,
+                -41.477
+              ],
+              "perChannelSamplePeakDBFS": [
+                -32.965,
+                -32.965
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.4,
+              "endSeconds": 0.5,
+              "rmsDBFS": -41.746,
+              "samplePeakDBFS": -32.74,
+              "perChannelRmsDBFS": [
+                -41.746,
+                -41.746
+              ],
+              "perChannelSamplePeakDBFS": [
+                -32.74,
+                -32.74
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.5,
+              "endSeconds": 0.6,
+              "rmsDBFS": -45.071,
+              "samplePeakDBFS": -37.231,
+              "perChannelRmsDBFS": [
+                -45.071,
+                -45.071
+              ],
+              "perChannelSamplePeakDBFS": [
+                -37.231,
+                -37.231
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.6,
+              "endSeconds": 0.7,
+              "rmsDBFS": -29.064,
+              "samplePeakDBFS": -17.351,
+              "perChannelRmsDBFS": [
+                -29.064,
+                -29.064
+              ],
+              "perChannelSamplePeakDBFS": [
+                -17.351,
+                -17.351
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.7,
+              "endSeconds": 0.8,
+              "rmsDBFS": -35.447,
+              "samplePeakDBFS": -26.418,
+              "perChannelRmsDBFS": [
+                -35.447,
+                -35.447
+              ],
+              "perChannelSamplePeakDBFS": [
+                -26.418,
+                -26.418
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.8,
+              "endSeconds": 0.9,
+              "rmsDBFS": -37.041,
+              "samplePeakDBFS": -27.758,
+              "perChannelRmsDBFS": [
+                -37.041,
+                -37.041
+              ],
+              "perChannelSamplePeakDBFS": [
+                -27.758,
+                -27.758
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 0.9,
+              "endSeconds": 1,
+              "rmsDBFS": -39.906,
+              "samplePeakDBFS": -31.756,
+              "perChannelRmsDBFS": [
+                -39.906,
+                -39.906
+              ],
+              "perChannelSamplePeakDBFS": [
+                -31.756,
+                -31.756
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        },
+        "end": {
+          "aggregate": {
+            "startSeconds": 7.034,
+            "endSeconds": 8.034,
+            "rmsDBFS": -32.896,
+            "samplePeakDBFS": -21.521,
+            "perChannelRmsDBFS": [
+              -32.896,
+              -32.896
+            ],
+            "perChannelSamplePeakDBFS": [
+              -21.521,
+              -21.521
+            ],
+            "samplesAtOrAboveFullScale": 0
+          },
+          "bins": [
+            {
+              "startSeconds": 7.034,
+              "endSeconds": 7.134,
+              "rmsDBFS": -41.581,
+              "samplePeakDBFS": -32.381,
+              "perChannelRmsDBFS": [
+                -41.581,
+                -41.581
+              ],
+              "perChannelSamplePeakDBFS": [
+                -32.381,
+                -32.381
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.134,
+              "endSeconds": 7.234,
+              "rmsDBFS": -28.761,
+              "samplePeakDBFS": -21.637,
+              "perChannelRmsDBFS": [
+                -28.761,
+                -28.761
+              ],
+              "perChannelSamplePeakDBFS": [
+                -21.637,
+                -21.637
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.234,
+              "endSeconds": 7.334,
+              "rmsDBFS": -29.814,
+              "samplePeakDBFS": -21.521,
+              "perChannelRmsDBFS": [
+                -29.814,
+                -29.814
+              ],
+              "perChannelSamplePeakDBFS": [
+                -21.521,
+                -21.521
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.334,
+              "endSeconds": 7.434,
+              "rmsDBFS": -31.477,
+              "samplePeakDBFS": -23.514,
+              "perChannelRmsDBFS": [
+                -31.477,
+                -31.477
+              ],
+              "perChannelSamplePeakDBFS": [
+                -23.514,
+                -23.514
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.434,
+              "endSeconds": 7.534,
+              "rmsDBFS": -33.204,
+              "samplePeakDBFS": -24.984,
+              "perChannelRmsDBFS": [
+                -33.204,
+                -33.204
+              ],
+              "perChannelSamplePeakDBFS": [
+                -24.984,
+                -24.984
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.534,
+              "endSeconds": 7.634,
+              "rmsDBFS": -33.675,
+              "samplePeakDBFS": -24.954,
+              "perChannelRmsDBFS": [
+                -33.675,
+                -33.675
+              ],
+              "perChannelSamplePeakDBFS": [
+                -24.954,
+                -24.954
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.634,
+              "endSeconds": 7.734,
+              "rmsDBFS": -34.253,
+              "samplePeakDBFS": -27.098,
+              "perChannelRmsDBFS": [
+                -34.253,
+                -34.253
+              ],
+              "perChannelSamplePeakDBFS": [
+                -27.098,
+                -27.098
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.734,
+              "endSeconds": 7.834,
+              "rmsDBFS": -35.335,
+              "samplePeakDBFS": -27.583,
+              "perChannelRmsDBFS": [
+                -35.335,
+                -35.335
+              ],
+              "perChannelSamplePeakDBFS": [
+                -27.583,
+                -27.583
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.834,
+              "endSeconds": 7.934,
+              "rmsDBFS": -36.189,
+              "samplePeakDBFS": -28.28,
+              "perChannelRmsDBFS": [
+                -36.189,
+                -36.189
+              ],
+              "perChannelSamplePeakDBFS": [
+                -28.28,
+                -28.28
+              ],
+              "samplesAtOrAboveFullScale": 0
+            },
+            {
+              "startSeconds": 7.934,
+              "endSeconds": 8.034,
+              "rmsDBFS": -37.897,
+              "samplePeakDBFS": -29.197,
+              "perChannelRmsDBFS": [
+                -37.897,
+                -37.897
+              ],
+              "perChannelSamplePeakDBFS": [
+                -29.197,
+                -29.197
+              ],
+              "samplesAtOrAboveFullScale": 0
+            }
+          ]
+        }
+      },
+      "sourceSizeBytes": 2167348,
+      "sourceMtime": "2026-09-25T14:20:58.534Z",
+      "status": "measured",
+      "signalDetected": true
+    }
+  ],
+  "joins": [
+    {
+      "from": 1,
+      "to": 2,
+      "tailRmsDBFS": -49.266,
+      "headRmsDBFS": -46.283,
+      "edgeRmsDeltaDB": 2.983,
+      "integratedDeltaLU": 25.7,
+      "interpretation": "Positive difference means the incoming source is louder. This is a review candidate, not proof of an audible fault."
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "tailRmsDBFS": -36.714,
+      "headRmsDBFS": -51.514,
+      "edgeRmsDeltaDB": -14.8,
+      "integratedDeltaLU": -28.8,
+      "interpretation": "Positive difference means the incoming source is louder. This is a review candidate, not proof of an audible fault."
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "tailRmsDBFS": -50.795,
+      "headRmsDBFS": -50.523,
+      "edgeRmsDeltaDB": 0.272,
+      "integratedDeltaLU": 3,
+      "interpretation": "Positive difference means the incoming source is louder. This is a review candidate, not proof of an audible fault."
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "tailRmsDBFS": -49.638,
+      "headRmsDBFS": -34.179,
+      "edgeRmsDeltaDB": 15.459,
+      "integratedDeltaLU": 14.5,
+      "interpretation": "Positive difference means the incoming source is louder. This is a review candidate, not proof of an audible fault."
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "tailRmsDBFS": -34.728,
+      "headRmsDBFS": -55.817,
+      "edgeRmsDeltaDB": -21.089,
+      "integratedDeltaLU": -14.2,
+      "interpretation": "Positive difference means the incoming source is louder. This is a review candidate, not proof of an audible fault."
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "tailRmsDBFS": -48.633,
+      "headRmsDBFS": -36.755,
+      "edgeRmsDeltaDB": 11.878,
+      "integratedDeltaLU": 21.7,
+      "interpretation": "Positive difference means the incoming source is louder. This is a review candidate, not proof of an audible fault."
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "tailRmsDBFS": -24.02,
+      "headRmsDBFS": -47.168,
+      "edgeRmsDeltaDB": -23.148,
+      "integratedDeltaLU": -7.6,
+      "interpretation": "Positive difference means the incoming source is louder. This is a review candidate, not proof of an audible fault."
+    },
+    {
+      "from": 8,
+      "to": 9,
+      "tailRmsDBFS": -40.874,
+      "headRmsDBFS": -36.4,
+      "edgeRmsDeltaDB": 4.474,
+      "integratedDeltaLU": 13.7,
+      "interpretation": "Positive difference means the incoming source is louder. This is a review candidate, not proof of an audible fault."
+    }
+  ],
+  "alerts": [
+    {
+      "severity": "warning",
+      "clip": 1,
+      "code": "very-quiet-source",
+      "integratedLUFS": -47.4
+    },
+    {
+      "severity": "warning",
+      "clip": 3,
+      "code": "very-quiet-source",
+      "integratedLUFS": -50.5
+    },
+    {
+      "severity": "warning",
+      "clip": 4,
+      "code": "very-quiet-source",
+      "integratedLUFS": -47.5
+    },
+    {
+      "severity": "warning",
+      "clip": 6,
+      "code": "very-quiet-source",
+      "integratedLUFS": -47.2
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 1,
+      "to": 2,
+      "metric": "integratedDeltaLU",
+      "delta": 25.7
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 2,
+      "to": 3,
+      "metric": "edgeRmsDeltaDB",
+      "delta": -14.8
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 2,
+      "to": 3,
+      "metric": "integratedDeltaLU",
+      "delta": -28.8
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 4,
+      "to": 5,
+      "metric": "edgeRmsDeltaDB",
+      "delta": 15.459
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 4,
+      "to": 5,
+      "metric": "integratedDeltaLU",
+      "delta": 14.5
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 5,
+      "to": 6,
+      "metric": "edgeRmsDeltaDB",
+      "delta": -21.089
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 5,
+      "to": 6,
+      "metric": "integratedDeltaLU",
+      "delta": -14.2
+    },
+    {
+      "severity": "warning",
+      "code": "source-level-discontinuity",
+      "from": 6,
+      "to": 7,
+      "metric": "edgeRmsDeltaDB",
+      "delta": 11.878
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 6,
+      "to": 7,
+      "metric": "integratedDeltaLU",
+      "delta": 21.7
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 7,
+      "to": 8,
+      "metric": "edgeRmsDeltaDB",
+      "delta": -23.148
+    },
+    {
+      "severity": "warning",
+      "code": "source-level-discontinuity",
+      "from": 7,
+      "to": 8,
+      "metric": "integratedDeltaLU",
+      "delta": -7.6
+    },
+    {
+      "severity": "high",
+      "code": "source-level-discontinuity",
+      "from": 8,
+      "to": 9,
+      "metric": "integratedDeltaLU",
+      "delta": 13.7
+    }
+  ],
+  "summary": {
+    "measuredClips": 9,
+    "unavailableClips": [],
+    "errorClips": [],
+    "sourcesWithDetectedSignal": 9,
+    "overloadAlertCount": 0,
+    "alertCount": 16
+  }
+}

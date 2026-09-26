@@ -12,7 +12,11 @@ class SessionController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool authenticated READ authenticated NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
+    Q_PROPERTY(bool signingIn READ signingIn NOTIFY changed)
+    Q_PROPERTY(bool canResume READ canResume NOTIFY changed)
     Q_PROPERTY(bool online READ online NOTIFY changed)
+    Q_PROPERTY(bool connected READ connected NOTIFY changed)
+    Q_PROPERTY(bool reconnecting READ reconnecting NOTIFY changed)
     Q_PROPERTY(bool administrator READ administrator NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QVariantMap user READ user NOTIFY changed)
@@ -24,7 +28,12 @@ public:
     void restore();
     bool authenticated() const { return authenticated_; }
     bool busy() const { return busy_ || refreshing_ || identityLoading_; }
-    bool online() const { return api_.context().online; }
+    bool signingIn() const { return signingIn_; }
+    bool canResume() const { return !refreshToken_.isEmpty(); }
+    // Reachable HTTP endpoints alone do not make a saved identity usable.
+    bool online() const { return api_.context().authenticated && api_.context().online; }
+    bool connected() const { return sessionReady_ && online(); }
+    bool reconnecting() const { return canResume() && api_.context().online && !connected(); }
     bool administrator() const { return online() && api_.context().platform_admin; }
     QString error() const { return error_; }
     QVariantMap user() const { return user_.toVariantMap(); }
@@ -48,6 +57,8 @@ private:
     void receiveCallback();
     void fail(const QString& message);
     void persistIdentity();
+    bool persistCredentials(const QByteArray& refresh, const QByteArray& requestId);
+    void retryRenewal(const QString& message);
     QString identityKey() const;
     ApiClient& api_;
     PhoenixClient& realtime_;
@@ -57,12 +68,12 @@ private:
     QSettings settings_;
     QTcpServer callback_;
     QTimer expiration_, loginTimeout_, connectivity_;
-    QByteArray refreshToken_, verifier_;
+    QByteArray refreshToken_, refreshRequestId_, verifier_;
     QString state_, redirect_, workspace_, error_;
     QJsonObject user_;
     QJsonArray workspaces_;
     quint64 loginGeneration_{};
     quint64 sessionGeneration_{};
-    bool authenticated_{}, busy_{}, refreshing_{}, identityLoading_{}, signingIn_{};
+    bool authenticated_{}, busy_{}, refreshing_{}, identityLoading_{}, signingIn_{}, sessionReady_{};
 };
 }

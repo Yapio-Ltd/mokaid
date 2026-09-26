@@ -211,7 +211,14 @@ try {
           assert.equal(new URL(page.url()).pathname, "/");
           const header = page.locator("header").first();
           await header.getByRole("link", { name: "Download", exact: true }).waitFor();
+          if (viewport.width < 768) {
+            await header.getByLabel("Open menu", { exact: true }).click();
+          }
           await header.getByRole("link", { name: signedIn ? "My account" : "Sign in", exact: true }).waitFor();
+          if (viewport.width < 768) {
+            await page.keyboard.press("Escape");
+            await header.getByRole("navigation", { name: "Mobile", exact: true }).waitFor({ state: "hidden" });
+          }
           assert.equal(await page.locator('a[href="/dashboard"]').count(), 0);
           assert.equal(await page.locator('[data-hero-scene]').evaluate((el) => getComputedStyle(el).opacity), "1");
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

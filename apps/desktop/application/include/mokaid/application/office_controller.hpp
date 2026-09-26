@@ -21,7 +21,7 @@ class OfficeController final : public QObject {
 public:
     OfficeController(ApiClient&, SessionController&, PhoenixClient&, CacheStore&, QObject* parent = nullptr);
     ~OfficeController() override;
-    QVariantList agents() const { return agents_; }
+    QVariantList agents() const;
     QVariantMap selectedAgent() const { return selected_; }
     QVariantList messages() const { return messages_; }
     QVariantList conversations() const { return conversations_; }
@@ -53,6 +53,8 @@ private:
     void contextChanged();
     void get(const QString& path, QObject* owner, std::function<bool()> applicable, std::function<void(QJsonObject)> done);
     void loadMessages(quint64 request);
+    void refreshWork();
+    void markWorkConnection(const QString& state);
     void invalidateChat();
     void clearStreams();
     void retireStream(const QString& id);
@@ -75,7 +77,12 @@ private:
     QSet<QString> retiredStreams_;
     QHash<QString, QVariantMap> realtimeMessages_;
     QString conversation_, activeConversation_, draft_, stream_, error_, streamNotice_, context_;
-    QObject agentsOwner_, historyOwner_, mutationOwner_;
+    QObject agentsOwner_, historyOwner_, mutationOwner_, workOwner_;
+    QHash<QString, QVariantMap> work_;
+    QHash<QString, QVariantList> liveWorkEvents_;
+    QHash<QString, quint64> workRequests_;
+    QTimer workRefresh_, workPoll_;
+    bool workConnected_{};
     QTimer publishStream_, debounceRefresh_;
     quint64 generation_{}, chatGeneration_{}, historyRequest_{}, agentsRequest_{}, apiGeneration_{};
     bool loading_{}, sending_{}, conversationKnown_{};

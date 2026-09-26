@@ -12,7 +12,7 @@ Item {
     readonly property var pageMeta: Logic.meta(page)
     readonly property var records: features.visibleRecords
     readonly property var statistics: Logic.stats(page,features.allRecords)
-    readonly property var primaryAction: features.actions.find(function(a){return a.id===root.pageMeta.primary;}) || ({enabled:false})
+    readonly property var primaryAction: page==="mail" ? ({id:"connect", enabled:features.mailAccounts.online && !features.mailAccounts.submitting}) : features.actions.find(function(a){return a.id===root.pageMeta.primary;}) || ({enabled:false})
     readonly property bool hasSelection: features.selectedId.length>0
     readonly property bool showInspector: hasSelection || inspectOverview || (features.detailView.available && features.detailView.heading!=="Overview" && features.detailView.heading!=="Record details")
     readonly property bool compact: width<900 && page!=="drive"
@@ -23,6 +23,11 @@ Item {
     // Compatibility for native delivery-gallery consumers: metadata stays collapsed.
     readonly property bool metadataExpanded: inspector.browserMode
     function request(action) {
+        if(page==="mail") {
+            if(action.id==="connect") { mailConnect.start({}); return; }
+            if(action.id==="accounts") { mailAccountsDialog.open(); return; }
+            if(action.id==="sync") { features.mailAccounts.synchronize(); return; }
+        }
         if(Logic.reportAction(page,action.id)) { inspectOverview=true; inspector.browserMode=true; }
         root.actionRequested(action);
     }
@@ -58,8 +63,8 @@ Item {
                 MokaidLabel { Layout.fillWidth: true; text: root.page==="agent-new" ? "Choose a specialization" : features.title; font.pixelSize: 26; font.weight: Font.DemiBold; elide: Text.ElideRight }
                 MokaidLabel { Layout.fillWidth: true; text: features.offline ? "Saved workspace data · Offline" : root.pageMeta.subtitle; font.pixelSize: 13; color: Theme.secondary; wrapMode: Text.Wrap }
             }
-            MokaidButton { iconName: "refresh"; quiet: true; enabled: !features.busy; Accessible.name: "Refresh "+features.title; onClicked: features.refresh() }
-            MokaidButton { text: root.pageMeta.action || ""; visible: !!root.pageMeta.primary; iconName: ["create","invite","upload"].indexOf(root.pageMeta.primary)>=0 ? "plus" : ""; highlighted: true; enabled: root.primaryAction.enabled && (root.page!=="agent-new" || root.hasSelection); onClicked: root.request(root.primaryAction) }
+            MokaidButton { iconName: "refresh"; quiet: true; enabled: !features.busy; Accessible.name: "Refresh "+features.title; onClicked: {features.refresh(); if(root.page==="mail") features.mailAccounts.refresh();} }
+            MokaidButton { objectName: "featurePrimaryButton"; text: root.pageMeta.action || ""; visible: !!root.pageMeta.primary; iconName: ["create","invite","upload"].indexOf(root.pageMeta.primary)>=0 ? "plus" : ""; highlighted: true; enabled: root.primaryAction.enabled && (root.page!=="agent-new" || root.hasSelection); onClicked: root.request(root.primaryAction) }
         }
         Rectangle {
             visible: root.statistics.length>0 && !root.showInspector
@@ -89,6 +94,7 @@ Item {
             MokaidButton { objectName: "featureListMode"; visible: ["tasks","projects","drive","integrations","admin-workspaces","admin-plans","agent-new"].indexOf(root.page)>=0; text: "List"; quiet: true; highlighted: root.viewMode==="list"; onClicked: root.viewMode="list" }
             MokaidButton { objectName: "pageActionsButton"; text: "More"; iconName: "more"; quiet: true; onClicked: viewActions.openFor(this); Accessible.name: "More "+features.title.toLowerCase()+" actions" }
         }
+        MailAccountsBar { Layout.fillWidth:true; visible:root.page==="mail"; controller:features.mailAccounts; onManageRequested:mailAccountsDialog.open() }
         DriveNavigation { Layout.fillWidth: true; visible: root.page==="drive" && !(root.compact && root.showInspector); controller: features }
         Rectangle {
             visible: features.error.length>0; Layout.fillWidth: true; Layout.preferredHeight: errorRow.implicitHeight+20; radius: 10; color: Logic.alpha(Theme.warning,0.08)
@@ -107,7 +113,11 @@ Item {
                 FeatureCollection {
                     objectName: "featureCollection"
                     anchors.fill: parent; visible: root.pageMeta.view!=="summary" && root.page!=="calendar"
-                    page: root.page; viewMode: root.viewMode; rows: root.records; selectedId: features.selectedId; busy: features.busy; offline: features.offline; filtered: root.query.length>0; hasMore: features.hasMore; driveTrash: features.driveTrash
+                    page: root.page; viewMode: root.viewMode; rows: root.records; selectedId: features.selectedId; busy: features.busy || (root.page==="mail" && features.mailAccounts.refreshing); offline: features.offline; filtered: root.query.length>0; hasMore: features.hasMore; driveTrash: features.driveTrash
+                    emptyTitle:root.page==="mail" && !features.mailAccounts.accounts.length ? "Connect your first mailbox" : ""
+                    emptyHint:root.page==="mail" ? (features.mailAccounts.accounts.length ? "Your connected inboxes are ready. Sync mail to bring recent messages here." : "Connect Gmail in your browser, or add another provider with IMAP / SMTP.") : ""
+                    emptyActionText:root.page==="mail" && !features.mailAccounts.accounts.length ? "Connect mailbox" : ""
+                    onEmptyActionRequested:mailConnect.start({})
                     onSelected: function(recordId){root.selectRecord(recordId);}
                     onActivated: function(record){root.activate(record);}
                     onLoadMore: features.loadMore()
@@ -141,6 +151,8 @@ Item {
         visible: root.page==="agent-new"
         onActionRequested: function(action) { root.actionRequested(action); }
     }
+    MailConnectDialog { id:mailConnect; controller:features.mailAccounts }
+    MailAccountsDialog { id:mailAccountsDialog; controller:features.mailAccounts; onConnectRequested:function(account){mailConnect.start(account);} }
     MokaidMenu {
         id: viewActions
         objectName: "pageActionsMenu"

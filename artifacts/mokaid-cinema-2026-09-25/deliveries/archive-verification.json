@@ -1,0 +1,41 @@
+{
+  "createdAt": "2026-09-25T20:36:22.377450+00:00",
+  "archive": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/deliveries/mokaid-higgsedit-editable.zip",
+  "bytes": 496908462,
+  "sha256": "6a0865668e52ec447df3057441095b180e6438aadd8cc6bb7834d43838aa67b7",
+  "allEntriesCRCValid": true,
+  "entryCount": 146,
+  "storyMatchesSite": true,
+  "requiredFilesPresent": [
+    "authoring/build-film.mjs",
+    "authoring/README.md",
+    "production-manifest.json",
+    "cinematic-story.json",
+    "export-input.json",
+    "framing-review.json",
+    "credits-ledger.json",
+    "portrait-manifest.json",
+    "portrait-office-manifest.json",
+    "Manrope.ttf",
+    "OFL-Manrope.txt",
+    "mokaid-logo.png"
+  ],
+  "projects": {
+    "web": {
+      "assets": 10,
+      "scenes": 1
+    },
+    "social-16x9": {
+      "assets": 11,
+      "scenes": 1
+    },
+    "social-4x5": {
+      "assets": 11,
+      "scenes": 1
+    },
+    "social-9x16": {
+      "assets": 11,
+      "scenes": 1
+    }
+  }
+}

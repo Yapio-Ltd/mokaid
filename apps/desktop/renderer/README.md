@@ -5,14 +5,26 @@ catalog and the Blender-authored desktop office pinned by
 `assets/office-desktop.json`; the scene is not a procedural replacement.
 Unversioned authoring intermediates are not used by default. Run
 `npm ci --ignore-scripts` and `npm test` in `tools/asset-cooker`, then
-`node cook.mjs <output-directory>`. This emits nine `.mokaidasset` files,
+`node cook.mjs <output-directory>`. This emits twelve `.mokaidasset` files,
 `office.mokaidnav` and a SHA-256 manifest. The default output is `build/assets`.
 The cooker expands glTF instance transforms, decodes Draco/quantized accessors,
 exports skinning/animation and head-position tracks, generates color/data
 mipchains, and combines the web navigation source with the desktop manifest's
 reviewed obstacle, activity-socket, chair and floor-height overrides. The current
-pack contains the office and eight avatar catalog entries (seven distinct rigs;
+pack contains the office and eleven avatar entries (seven geometry families;
 `avatar_female` aliases `avatar_design`), with 48 clips per avatar entry.
+
+The native character preparation first restores verified original 2K atlases
+from the portable files in `assets/character-textures`, then applies seven
+calibrated smile profiles and repairs inconsistent triangle winding/normals.
+Legal also receives a subtle inner-brow relaxation. Texture recovery checks the
+catalog image and UV hashes; Byte, Nyx and Moss retain their distinct recolors.
+The source GLBs, rig weights, UVs and animation tracks remain unchanged. Normals
+stay continuous across texture seams while retaining real garment creases.
+These preparations apply only to the bundled avatar cooker, not custom imports.
+The development app must restart after recooking to load the new immutable scenes.
+Native closeups and verification details are in
+[the character capture guide](../../../artifacts/character-polish-2026-09-25/README.md).
 
 ## Office activities
 
@@ -53,12 +65,21 @@ The dock stays on the desk; the phone stays there outside the three call clips
 and is shown on the avatar during pickup, calling and putdown. Static desk props
 reuse the rig's `typing` pose at time zero even while their agent is elsewhere.
 
-Both native backends use `shaders/screen_content.h` for the same code editor,
-analytics and browser layouts. Their slow scroll, graph traces and cursor use
-`Frame.sceneSeconds`, so scene pause also stops displays. Content is decorative
-and local; it does not claim to show tasks or API activity. Nine additional draw
-calls reuse the original 22 display triangles and add no screen textures. Only
-these explicit surfaces take the display shader path; phone materials retain PBR.
+Both native backends now sample a 1536 × 864 sRGB task atlas painted by
+`OfficeScreenContent`. Stable physical seats own its nine tiles, independent of
+roster ordering. Each tile shows the assigned task's actual title, progress,
+run state and latest reported tool actions. The controller loads the current task,
+merges workspace-scoped tool events, refreshes on task changes/reconnect and polls
+for missed updates. Disconnection and unavailable data are explicit; canonical
+terminal events supersede stale running previews. The GPU animates an activity
+strip only while work is current, and stops it for reduced motion.
+
+The source room contains two displays at seat 6 and one spare unoccupied monitor;
+the spare remains dark. Two reused monitor assemblies complete seats 4 and 5.
+The adjacent offices' displays remain ambient and never inherit agent tasks.
+The atlas is repainted only when visible data changes; immutable GPU uploads
+are retained through their submitted command buffers. This is a view of reported
+task activity, not a remote browser/video capture.
 
 The Metal smoke fixture supports `MOKAID_SCREEN_TIME=8` to compare two display
 times without advancing actors. It reports the last six frames' CPU encode and
@@ -146,6 +167,9 @@ must include the build's `qml` import directory.
   use separate RGBA16F targets; a half-resolution separable bloom affects actual
   emitters only. ACES filmic display mapping and sRGB encoding happen once, after
   compositing. The cooker filters portrait emission and keeps screen pixels lit.
+  A second geometry pass provides floor-plane reflections, clipped above the
+  authored floor-trace overlay. Rough environment fill, specular antialiasing,
+  directional edge smoothing and two bloom scales preserve detail around emitters.
   Soft analytic body contact darkening anchors avatars; full geometry shadow
   maps and environmental occlusion remain to be implemented.
 - Color textures use offline RGBA8 mipchains, not ASTC/BC compressed GPU formats.

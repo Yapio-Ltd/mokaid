@@ -176,6 +176,16 @@ defmodule Mokaid.Marketplace do
     end)
   end
 
+  def list_purchases(workspace_id) do
+    from(o in Order,
+      where: o.buyer_workspace_id == ^workspace_id,
+      order_by: [desc: o.inserted_at],
+      limit: 100,
+      preload: [listing: :agent]
+    )
+    |> Repo.all()
+  end
+
   defp open_listings_by_agent(workspace_id) do
     from(l in Listing,
       where: l.workspace_id == ^workspace_id and l.status in ["active", "paused"],

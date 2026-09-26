@@ -33,7 +33,6 @@ defmodule MokaidWeb.Router do
 
   scope "/api", MokaidWeb do
     pipe_through :api
-
     get "/health", HealthController, :show
     get "/integrations/logos/:key", IntegrationController, :logo
     get "/mcp/logos/:key", MCPController, :logo
@@ -44,6 +43,7 @@ defmodule MokaidWeb.Router do
 
     post "/desktop/auth/requests", DesktopAuthController, :create
     post "/desktop/auth/token", DesktopAuthController, :token
+    post "/desktop/auth/refresh", DesktopAuthController, :refresh
     post "/desktop/auth/revoke", DesktopAuthController, :revoke
 
     get "/auth/google/status", AuthController, :google_status
@@ -58,6 +58,7 @@ defmodule MokaidWeb.Router do
     post "/webhooks/gmail", MailWebhookController, :gmail
     post "/webhooks/microsoft", MailWebhookController, :microsoft
     post "/webhooks/meshy", MeshyWebhookController, :notify
+    post "/webhooks/openai/agents", RuntimeWebhookController, :notify
     get "/avatar-assets/:id/:token/:filename", AvatarAssetController, :show
   end
 
@@ -83,6 +84,11 @@ defmodule MokaidWeb.Router do
     pipe_through [:api, :authenticated, :workspace]
 
     get "/workspaces/:id", WorkspaceController, :show
+    get "/ai/runtime-policy", RuntimePolicyController, :show
+    patch "/ai/runtime-policy", RuntimePolicyController, :update
+    post "/tasks/:id/runtime-budget", RuntimeBudgetController, :create
+    get "/workspaces/:id/runtime-settings", RuntimePolicyController, :show
+    patch "/workspaces/:id/runtime-settings", RuntimePolicyController, :update
     get "/workspaces/:id/logo", WorkspaceController, :logo
     patch "/workspaces/:id", WorkspaceController, :update
     post "/workspaces/:id/logo", WorkspaceController, :upload_logo
@@ -131,6 +137,7 @@ defmodule MokaidWeb.Router do
     post "/tasks/:id/comments", TaskController, :create_comment
     post "/tasks/:id/execute-ai", TaskController, :execute_ai
     post "/tasks/:id/stop-ai", TaskController, :stop_ai
+    post "/tasks/:id/feedback", TaskController, :feedback
     post "/tasks/:id/approve-action", TaskController, :approve_action
 
     resources "/projects", ProjectController, only: [:index, :create, :show, :update, :delete]
@@ -216,6 +223,7 @@ defmodule MokaidWeb.Router do
 
     get "/marketplace/listings", MarketplaceController, :listings
     get "/marketplace/mine", MarketplaceController, :mine
+    get "/marketplace/purchases", MarketplaceController, :purchases
     get "/marketplace/earnings", MarketplaceController, :earnings
     post "/marketplace/listings", MarketplaceController, :create_listing
     post "/marketplace/listings/:id/pause", MarketplaceController, :pause_listing
@@ -301,6 +309,16 @@ defmodule MokaidWeb.Router do
     pipe_through [:api, :worker]
 
     post "/runs/:run_id/progress", WorkerCallbackController, :progress
+    post "/runs/:run_id/runtime/authorize", WorkerRuntimeController, :authorize
+    post "/runs/:run_id/runtime/file", WorkerRuntimeController, :file
+    post "/runs/:run_id/runtime/reserve", WorkerRuntimeController, :reserve
+    post "/runs/:run_id/runtime/settle", WorkerRuntimeController, :settle
+    post "/runs/:run_id/runtime/participants", WorkerRuntimeController, :participants
+
+    post "/runs/:run_id/runtime/release-participant",
+         WorkerRuntimeController,
+         :release_participant
+
     post "/runs/:run_id/status", WorkerCallbackController, :progress
     post "/runs/:run_id/tool-activity", WorkerCallbackController, :tool_activity
     post "/runs/:run_id/approval-request", WorkerCallbackController, :approval_request
@@ -320,6 +338,7 @@ defmodule MokaidWeb.Router do
     post "/tasks/:id/update", WorkerResourceController, :update_task
     post "/tasks/:id/subtasks", WorkerResourceController, :create_subtasks
     post "/tasks/:id/comment", WorkerResourceController, :create_comment
+    post "/tasks/:id/followup", WorkerTaskFollowupController, :create
     post "/agents/:id/chat-message", WorkerResourceController, :agent_chat_message
     post "/agents/:id/chat-stream", WorkerResourceController, :agent_chat_stream
     post "/agents/:id/memory", WorkerResourceController, :agent_memory

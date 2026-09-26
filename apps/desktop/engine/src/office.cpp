@@ -1,6 +1,8 @@
 #include <mokaid/engine/office.hpp>
 #include <mokaid/engine/office_camera.hpp>
+#include <mokaid/engine/surrounding_offices.hpp>
 #include <iostream>
+#include <limits>
 #include <unordered_set>
 
 namespace mokaid::engine {
@@ -21,6 +23,64 @@ std::string deskClip(const Agent &agent) {
 }
 constexpr float partnerReservationLeadSeconds=90.F;
 constexpr float partnerArrivalTimeoutSeconds=150.F;
+std::vector<TourStop> officeTourStops(const Navigation &navigation, std::span<const Navigation::ActivitySocket> sockets) {
+  // Aisles and social areas use the measured room coordinates (glTF RH Z).
+  // The desk viewpoint approaches from a side so the monitor does not fill the
+  // view. Construction projects it onto the same validated aisle component.
+  std::vector<TourStop> stops{
+    // Face the first clear aisle and its visible desk-side waypoint on entry.
+    // Facing the room center here points into a bank of desks and hides every
+    // physically visible floor destination outside the initial field of view.
+    {"entrance", "Entrance", -1, {1.2F, 0, -5.F}, {2.3F, .8F, -2.6F}},
+    {"south_aisle", "South aisle", -1, {2.75F, 0, -3.2F}, {2.5F, 1.1F, -.8F}},
+    {"center", "Central aisle", -1, {.35F, 0, 1.6F}, {1.75F, 1.25F, .52F}},
+    {"meeting", "Meeting room", -1, {-4.3F, 0, -.6F}, {-6.019F, 1.25F, -.665F}},
+    {"coffee", "Coffee corner", -1, {-1.79F, 0, 4.7F}, {-1.79F, 1.25F, 5.7F}},
+    {"lounge", "Main lounge", -1, {1.99F, 0, 5.05F}, {1.99F, 1.1F, 5.78F}},
+    {"lounge_left", "Quiet lounge", -1, {5.65F, 0, 5.05F}, {5.65F, 1.1F, 5.88F}},
+    {"games", "Table football", -1, {-2.85F, 0, -4.67F}, {-1.85F, 1.F, -4.67F}}
+  };
+  for (std::size_t seat = 0; seat < seats.size(); ++seat) {
+    const auto id = "desk_" + std::to_string(seat);
+    const auto found = std::find_if(sockets.begin(), sockets.end(), [&](const auto &socket) { return socket.id == id; });
+    const auto &s = seats[seat]; const Vec3 position = found == sockets.end() ? Vec3{s.x, 0, s.z} : found->position;
+    const auto forward = avatarForward(found == sockets.end() ? s.yaw : found->yaw);
+    const Vec3 side{forward.z, 0, -forward.x};
+    auto viewpoint = position + side * 1.05F - forward * .40F;
+    // A sitting person's own chair hull is not visitor floor. socketApproach
+    // finds an ordinary collision-clear point outside that hull.
+    if (const auto approach = navigation.socketApproach(position, side, 1.8F, GuidedTour::radius)) viewpoint = *approach;
+    // A conversation belongs in the agent's front quarter, far enough away
+    // to see the face and hands. Pure side projections can land behind a chair
+    // and demand an impossible 150-degree neck turn. Search both clear sides,
+    // keeping every candidate in the entrance's connected walkable component.
+    float best = std::numeric_limits<float>::infinity();
+    const float yaw = found == sockets.end() ? s.yaw : found->yaw;
+    for (const float degrees : {65.F, -65.F, 75.F, -75.F, 50.F, -50.F, 35.F, -35.F, 0.F}) {
+      for (const float distance : {1.1F, 1.4F, 1.7F, 2.F, 2.3F}) {
+        const auto desired = position + avatarForward(yaw + degrees * .01745329252F) * distance;
+        const auto candidate = navigation.nearestReachable(desired, stops.front().position, .3F, GuidedTour::radius);
+        if (!candidate) continue;
+        const auto direction = *candidate - position;
+        const float angle = std::abs(std::remainder(avatarYaw(direction) - yaw, 6.283185307F));
+        const float separation = length(direction);
+        if (angle > 1.3962634F || separation < .95F || separation > 2.5F) continue;
+        const float score = std::abs(angle - 1.134464F) * 1.4F + std::abs(separation - 1.4F);
+        if (score < best) { best = score; viewpoint = *candidate; }
+      }
+    }
+    stops.push_back({id, "Desk " + std::to_string(seat + 1), static_cast<int>(seat), viewpoint, position + Vec3{0, 1.25F, 0}});
+  }
+  return stops;
+}
+float raySphere(Vec3 origin, Vec3 direction, Vec3 center, float radius) {
+  const auto offset = origin - center;
+  const float b = dot(offset, direction), c = dot(offset, offset) - radius * radius;
+  const float discriminant = b * b - c;
+  if (discriminant < 0) return std::numeric_limits<float>::infinity();
+  const float near = -b - std::sqrt(discriminant), far = -b + std::sqrt(discriminant);
+  return near > .025F ? near : far > .025F ? far : std::numeric_limits<float>::infinity();
+}
 }
 AgentPersonality agentPersonality(std::string_view id) {
   AgentPersonality profile;profile.seed=identitySeed(id);auto state=profile.seed;
@@ -40,6 +100,7 @@ void Office::setCustomAvatar(std::string key, std::shared_ptr<const Scene> scene
 }
 void Office::load(const std::filesystem::path &root) {
   auto office = loadScene(root / "office.mokaidasset");
+  auto surroundings = makeSurroundingOffices(*office);
   std::vector<std::pair<std::string, std::shared_ptr<const Scene>>> avatars;
   for (const auto *key : {"male", "female", "corporate", "developer", "design", "finance", "research", "legal", "byte", "nyx", "moss"}) {
     auto path = root / (std::string("avatar_") + key + ".mokaidasset");
@@ -50,6 +111,7 @@ void Office::load(const std::filesystem::path &root) {
   std::lock_guard lock(mutex_);
   std::lock_guard frameLock(frameMutex_);
   office_ = std::move(office); cameraPoints_.clear();
+  surroundings_ = std::move(surroundings);
   const auto officePose = evaluatePose(*office_, "", 0);
   for (const auto &mesh : office_->meshes) {
     const auto matrix = trs({}, {0, 1, 0, 0}) * officePose.world[mesh.node];
@@ -68,6 +130,8 @@ void Office::load(const std::filesystem::path &root) {
       sockets_.push_back({"desk_" + std::to_string(i), 0, p, p + avatarForward(s.yaw) * .4025F, s.yaw, deskSeatHeight, 12});
     }
   }
+  tour_ = GuidedTour::build(navigation_, officeTourStops(navigation_, sockets_));
+  tour_.setReducedMotion(tourReducedMotion_);
   socketRoutes_.clear();
   for (const auto &s : sockets_) {
     if (s.kind <= 1) {
@@ -92,6 +156,8 @@ void Office::setAgents(std::vector<Agent> agents) {
     if(retained) ids.push_back(previous.id); else chairOffsets_[previous.seat]=0;
   }
   agents_ = std::move(agents);
+  if (std::none_of(agents_.begin(), agents_.end(), [&](const auto &agent) { return agent.id == conversationAgentId_; }))
+    conversationAgentId_.clear();
   std::erase_if(avatars_, [&](const auto &entry) {
     return entry.first.starts_with("custom:") && std::none_of(agents_.begin(), agents_.end(), [&](const auto &agent) { return agent.assetType == entry.first; });
   });
@@ -414,6 +480,10 @@ void Office::requestTravel(const Agent &a, Motion &m) {
   traffic_.request(a.id,goal);
 }
 void Office::tick(float dt) {
+  // Visitor navigation is independent of agent animation and office pause.
+  TourState visitor;
+  bool reduceMotion = false;
+  { std::lock_guard lock(frameMutex_); tour_.advance(dt); visitor = tour_.state(); reduceMotion = tourReducedMotion_; }
   if (avatars_.empty()) return;
   const bool advancing=dt>0 && !paused_;
   if(advancing) seconds_+=dt;
@@ -449,11 +519,12 @@ void Office::tick(float dt) {
   traffic_.setFurniture(std::move(furniture));
   for(const auto &a:agents_) {
     auto &m=motion_.at(a.id); auto &body=traffic_.state(a.id);
-    if(!freeAgent(a) && m.phase!=Motion::Phase::Desk && !m.returning) returnToDesk(a,m);
+    if((!freeAgent(a) || (visitor.active && a.id == conversationAgentId_)) &&
+        m.phase!=Motion::Phase::Desk && !m.returning) returnToDesk(a,m);
     if(m.phase==Motion::Phase::Desk) {
       if(!freeAgent(a)) {release(a.id,m.socketId);m.chatId.clear();m.partnerId.clear();m.targetId=m.socketId;}
       traffic_.pin(a.id,true);updateDeskGesture(a,m);
-      if(freeAgent(a) && !m.deskGesture.starts_with("phone_") && seconds_>=m.holdUntil && !chooseMission(a,m)) m.holdUntil=seconds_+.75F;
+      if(a.id != conversationAgentId_ && freeAgent(a) && !m.deskGesture.starts_with("phone_") && seconds_>=m.holdUntil && !chooseMission(a,m)) m.holdUntil=seconds_+.75F;
     }
     if(m.awaitSofaEntry) {
       const auto peer=motion_.find(m.partnerId);
@@ -498,7 +569,7 @@ void Office::tick(float dt) {
       }
     }
     if(m.phase==Motion::Phase::Activity)updateSocial(a,m);
-    if(m.phase==Motion::Phase::Activity && seconds_>=m.holdUntil) {
+    if(m.phase==Motion::Phase::Activity && a.id != conversationAgentId_ && seconds_>=m.holdUntil) {
       const auto *s=socket(m.socketId);
       if(s&&s->kind==2&&m.returningCup) {
         if(m.activity=="preparing_coffee") {m.carrying=true;m.activity="coffee_putdown";m.phaseStarted=seconds_;m.holdUntil=seconds_+1.1F;}
@@ -512,6 +583,24 @@ void Office::tick(float dt) {
   traffic_.step(dt);
   for(const auto &a:agents_) {
     auto &m=motion_.at(a.id); const auto &b=traffic_.state(a.id);
+    const bool available = m.phase == Motion::Phase::Desk ||
+        m.phase == Motion::Phase::Activity || m.phase == Motion::Phase::WaitPartner;
+    const bool conversing = visitor.active && a.id == conversationAgentId_ && available &&
+        !b.translating && length(visitor.position - b.position) < 5.5F;
+    if (conversing != m.conversing) {
+      m.conversing = conversing;
+      m.conversationStarted = seconds_;
+    }
+    const float blend = reduceMotion ? 1.F : 1.F - std::exp(-dt * 5.F);
+    m.conversationAmount += ((conversing ? 1.F : 0.F) - m.conversationAmount) * blend;
+    const float targetYaw = conversing ? std::clamp(std::remainder(
+        avatarYaw(visitor.position - b.position) - b.yaw, 6.283185307F), -1.48F, 1.48F) : 0.F;
+    // Hands settle into the resting pose before the shoulders follow the head.
+    // Rotation is additive above the spine, so the pelvis never intersects its
+    // chair and the feet remain planted under the desk.
+    const float turnBlend = reduceMotion ? 1.F : 1.F - std::exp(-dt * 4.8F);
+    if (!conversing || reduceMotion || seconds_ - m.conversationStarted > .16F)
+      m.conversationYaw += (targetYaw - m.conversationYaw) * turnBlend;
     if(m.phase==Motion::Phase::Pullback || m.phase==Motion::Phase::PushIn) {
       if(const auto *s=socket(m.socketId);s&&s->pullback>0)
         chairOffsets_[a.seat]=std::clamp(length(b.position-s->position)/s->pullback,0.F,1.F);
@@ -562,6 +651,11 @@ void Office::publishFrame() {
     }
     f->instances.push_back(std::move(room));
   }
+  if (surroundings_) {
+    Instance surroundings{surroundings_, Mat4::identity(), "", 0, {}};
+    { std::lock_guard lock(frameMutex_); if (!tour_.state().active) surroundings.surfaceMask &= ~(1U << 4); }
+    f->instances.push_back(std::move(surroundings));
+  }
   for(const auto &a:agents_) {
     if(avatars_.empty()) break;
     const auto found=std::find_if(avatars_.begin(),avatars_.end(),[&](const auto &v){return v.first==a.assetType;});
@@ -597,6 +691,11 @@ void Office::publishFrame() {
       y = standingY;
       if (b.translating && hasClip(*scene, "walking")) animation = "walking";
     }
+    if (m.conversing && scene->gazeHead >= 0) {
+      const bool seated = m.phase == Motion::Phase::Desk || (s && s->kind == 1);
+      animation = seated ? (s && s->kind == 1 ? "sitting_sofa" : "sitting") : "idle";
+      clipTime = seconds_ - m.conversationStarted;
+    }
     m.animation.transition(*scene,animation,seconds_);
     auto samples=m.animation.sample(seconds_);
     // These authored one-shots start/end at the matching resting poses. Their
@@ -611,16 +710,31 @@ void Office::publishFrame() {
       if(sample.clip==animation && (m.phase==Motion::Phase::Stand||m.phase==Motion::Phase::Sit||m.phase==Motion::Phase::Desk||m.phase==Motion::Phase::Activity||oneShotAnimation(animation))) sample.seconds=clipTime;
     }
     const auto placement=trs({b.position.x,y,b.position.z},{0,std::sin(b.yaw*.5F),0,std::cos(b.yaw*.5F)},{scale,scale,-scale});
-    const auto head=headPosition(*scene,samples);const auto projected=transform(placement,{head.x,head.y,head.z,1});
-    const std::string activity=!freeAgent(a)&&(a.status=="offline"||a.status=="away")?a.status:
+    Instance body{scene,placement,animation,clipTime,a.id,std::move(samples)};
+    auto head = headPosition(*scene, body.animationSamples);
+    if (scene->gazeHead >= 0 && scene->gazeChest >= 0 &&
+        (std::abs(m.conversationYaw) > .0001F || m.conversationAmount > .001F)) {
+      const float chestYaw = -m.conversationYaw * .35F;
+      const float headYaw = -m.conversationYaw * .65F;
+      body.nodeRotations.push_back({static_cast<std::uint32_t>(scene->gazeChest),
+          {0, std::sin(chestYaw * .5F), 0, std::cos(chestYaw * .5F)}});
+      body.nodeRotations.push_back({static_cast<std::uint32_t>(scene->gazeHead),
+          {0, std::sin(headYaw * .5F), 0, std::cos(headYaw * .5F)}});
+      if (scene->gazeCrown >= 0) {
+        const auto pose = evaluateInstancePose(body);
+        const auto &crown = pose.world[static_cast<std::size_t>(scene->gazeCrown)];
+        head = {crown.m[12], crown.m[13] + scene->gazeCrownOffset, crown.m[14]};
+      }
+    }
+    const auto projected=transform(placement,{head.x,head.y,head.z,1});
+    const std::string activity=m.conversing?"talking":!freeAgent(a)&&(a.status=="offline"||a.status=="away")?a.status:
       m.phase==Motion::Phase::WaitPartner?"waiting_for_colleague":
       (m.phase==Motion::Phase::Travel||m.phase==Motion::Phase::Exit)&&b.pending&&!b.translating?"waiting":animation;
     const float activityLevel=b.translating?.6F:m.phase==Motion::Phase::Desk?(freeAgent(a)?.35F:.85F):m.phase==Motion::Phase::Activity?.7F:.25F;
     f->actorIndicators.push_back({a.id,a.name,activity,a.level,{projected.x,projected.y+.10F,projected.z},activityLevel});
-    Instance body{scene,placement,animation,clipTime,a.id,std::move(samples)};
     const bool hasPhone=std::any_of(scene->materials.begin(),scene->materials.end(),[](const auto &material){return material.surfaceKind==2;});
     if(hasPhone) {
-      const bool calling=m.phase==Motion::Phase::Desk&&m.deskGesture.starts_with("phone_");
+      const bool calling=!m.conversing&&m.phase==Motion::Phase::Desk&&m.deskGesture.starts_with("phone_");
       body.surfaceMask&=~((1U<<2)|(1U<<3));if(calling)body.surfaceMask|=1U<<2;
       const auto *desk=socket("desk_"+std::to_string(a.seat));
       if(desk) {
@@ -659,6 +773,11 @@ std::shared_ptr<const Frame> Office::snapshot(float aspect) const {
   std::lock_guard lock(frameMutex_);
   aspect = std::isfinite(aspect) ? std::max(.2F, aspect) : 1.F;
   auto f = std::make_shared<Frame>(*frame_);
+  if (tour_.state().active) {
+    const auto camera = tour_.camera(aspect);
+    f->viewProjection = camera.viewProjection; f->camera = camera.position;
+    return f;
+  }
   const Vec3 min = office_ ? Vec3{-office_->max.x, office_->min.y, -office_->max.z}
                           : Vec3{-7, 0, -7};
   const Vec3 max = office_ ? Vec3{-office_->min.x, office_->max.y, -office_->min.z}
@@ -672,29 +791,61 @@ std::shared_ptr<const Frame> Office::snapshot(float aspect) const {
   return f;
 }
 std::string Office::pick(float x, float y, float aspect) const {
+  if (!std::isfinite(x) || !std::isfinite(y) || x < 0 || y < 0 || x > 1 || y > 1) return {};
   auto f = snapshot(aspect);
-  float best = .004F;
+  const auto cameraInverse = inverse(f->viewProjection);
+  const auto far = transform(cameraInverse, {x * 2 - 1, 1 - y * 2, 1, 1});
+  if (std::abs(far.w) < .000001F) return {};
+  const Vec3 direction = normalized(Vec3{far.x / far.w, far.y / far.w, far.z / far.w} - f->camera);
+  float best = std::numeric_limits<float>::infinity();
   std::string id;
-  for (const auto &i : f->instances) {
-    if (i.agentId.empty())
-      continue;
-    const auto foot = transform(i.transform, {0, 0, 0, 1});
-    const auto p =
-        transform(f->viewProjection, {foot.x, foot.y + 1, foot.z, 1});
-    if (p.w <= 0)
-      continue;
-    const float dx = p.x / p.w * .5F + .5F - x, dy = .5F - p.y / p.w * .5F - y,
-                d = dx * dx + dy * dy;
-    if (d < best) {
-      best = d;
-      id = i.agentId;
+  // A short chain of overlapping spheres follows the posed head and torso.
+  // World-space hit targets grow naturally at close range and nearest depth
+  // wins, unlike a fixed screen-space dot centered above the actor's root.
+  for (const auto &actor : f->actorIndicators) {
+    for (int section = 0; section < 5; ++section) {
+      const auto center = actor.headWorld - Vec3{0, .1F + section * .16F, 0};
+      const float distance = raySphere(f->camera, direction, center, section == 0 ? .23F : .28F);
+      if (distance < best) { best = distance; id = actor.id; }
     }
   }
   return id;
 }
+bool Office::enterTour() { std::lock_guard lock(frameMutex_); return tour_.enter(); }
+void Office::exitTour() { std::lock_guard lock(frameMutex_); tour_.exit(); }
+bool Office::travelTourTo(std::string_view id) { std::lock_guard lock(frameMutex_); return tour_.travelTo(id); }
+void Office::lookTour(float yaw, float pitch) { std::lock_guard lock(frameMutex_); tour_.look(yaw, pitch); }
+bool Office::faceCurrentTourStop() { std::lock_guard lock(frameMutex_); return tour_.faceCurrentStop(); }
+void Office::stopTour() { std::lock_guard lock(frameMutex_); tour_.stop(); }
+void Office::setTourReducedMotion(bool reduced) {
+  std::lock_guard lock(frameMutex_); tourReducedMotion_ = reduced; tour_.setReducedMotion(reduced);
+}
+void Office::setConversationAgent(std::string_view id) {
+  std::lock_guard lock(mutex_);
+  const auto agent = std::find_if(agents_.begin(), agents_.end(), [&](const auto &candidate) { return candidate.id == id; });
+  conversationAgentId_ = agent == agents_.end() ? std::string{} : agent->id;
+}
+TourState Office::tourState() const { std::lock_guard lock(frameMutex_); return tour_.state(); }
+std::vector<TourStop> Office::tourStops() const { std::lock_guard lock(frameMutex_); return tour_.stops(); }
+std::vector<TourStop> Office::visibleTourStops() const {
+  // Same lock order as the simulation: scene/navigation before visitor state.
+  std::lock_guard lock(mutex_);
+  std::lock_guard frameLock(frameMutex_);
+  std::vector<TourStop> stops;
+  const auto &visitor = tour_.state();
+  for (const auto &stop : tour_.stops()) {
+    if (visitor.active && (length(stop.position - visitor.position) < .65F ||
+        length(stop.position - visitor.position) > 9.F ||
+        !navigation_.segmentWalkable(visitor.position, stop.position, 0.F))) continue;
+    stops.push_back(stop);
+  }
+  return stops;
+}
+std::vector<TourEdge> Office::tourEdges() const { std::lock_guard lock(frameMutex_); return tour_.edges(); }
 std::uint64_t Office::residentBytes() const {
   std::lock_guard lock(mutex_);
   std::uint64_t n = office_ ? office_->residentBytes : 0;
+  if (surroundings_) n += surroundings_->residentBytes;
   n += cameraPoints_.capacity() * sizeof(Vec3);
   for (const auto &a : avatars_)
     n += a.second->residentBytes;

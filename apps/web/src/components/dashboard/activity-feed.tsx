@@ -41,7 +41,7 @@ export function ActivityFeed({ tasks, agents }: { tasks: Task[]; agents: Agent[]
       if (!run) continue;
       const name = agentName(task);
 
-      if (["queued", "running"].includes(run.status)) {
+      if (["queued", "running"].includes(run.status) || task.pending_approval?.tool_name === "export_pdf") {
         const live = (feeds[task.id] ?? [])
           .filter((e) => e.status === "running")
           .at(-1);
@@ -58,7 +58,7 @@ export function ActivityFeed({ tasks, agents }: { tasks: Task[]; agents: Agent[]
           key: `${run.id}-approval`,
           taskId: task.id,
           icon: "approval",
-          text: `${name} is waiting for your approval on “${task.title}”`,
+          text: `${name} paused “${task.title}”`,
           at: run.started_at ?? run.inserted_at,
         });
       } else if (run.status === "completed" && run.completed_at) {

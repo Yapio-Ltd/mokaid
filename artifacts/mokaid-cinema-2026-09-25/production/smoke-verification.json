@@ -1,0 +1,40 @@
+{
+  "test": "Native Higgsedit composition smoke; synthetic background and real Mokaid brand mark",
+  "date": "2026-09-25",
+  "result": {
+    "exitCode": 0,
+    "check": "clean",
+    "frame": {
+      "width": 1080,
+      "height": 1920,
+      "time": 73,
+      "diagnostics": []
+    },
+    "rangeRender": {
+      "from": 72,
+      "to": 73,
+      "frames": 24,
+      "fps": 24,
+      "durationSeconds": 1,
+      "hasAudio": true,
+      "backend": "cpu",
+      "diagnostics": []
+    }
+  },
+  "status": "Smoke test passed; this is not a reviewed final narrative film.",
+  "note": "Small review JPEG saved as smoke-payoff.jpg. Full PNG/movie were ephemeral sandbox artifacts and not delivered as finals.",
+  "timingAssertions": "Nine expected clips sum to 74s; invalid source count/cue bounds rejected; atempo stage factors verified.",
+  "realSourceRetiming": {
+    "source": "clips/01-cafe.mp4",
+    "sourceVideoDuration": 8.041667,
+    "output": "build/prepared/01-cafe-social-16x9.mp4",
+    "outputVideoDuration": 7,
+    "outputAudioDuration": 7,
+    "frames": 168,
+    "fps": 24,
+    "width": 1920,
+    "height": 1080,
+    "lastFrameSSIMAgainstSourceLastFrame": 0.990557,
+    "normalizer": "prepare-media.mjs normalizeMedia tested with independent picture/audio passes"
+  }
+}

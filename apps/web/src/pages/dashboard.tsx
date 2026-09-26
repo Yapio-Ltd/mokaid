@@ -247,7 +247,7 @@ function RunStatusBadge({ run }: { run: { status: string; error: string | null }
     running:  { label: "Running",  className: "bg-blue-500/15 text-blue-300" },
     failed:   { label: "Failed",   className: "bg-red-500/15 text-red-400" },
     completed: { label: "Done",    className: "bg-green-500/15 text-green-400" },
-    waiting_for_approval: { label: "Approval", className: "bg-purple-500/15 text-purple-300" },
+    waiting_for_approval: { label: "Paused", className: "bg-purple-500/15 text-purple-300" },
   };
 
   const { label, className } = cfg[run.status] ?? { label: run.status, className: "bg-surface-2 text-text-muted" };

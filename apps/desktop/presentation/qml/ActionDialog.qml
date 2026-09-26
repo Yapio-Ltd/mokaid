@@ -97,6 +97,11 @@ Dialog {
                 if (next.specialization.department) initial.department = next.specialization.department
             }
         }
+        if (features.currentPage === "tasks" && next.id === "create" && next.initialValues) {
+            const laneStatus = next.initialValues.status
+            if (["to_do", "in_progress", "in_review", "completed"].indexOf(laneStatus) >= 0)
+                initial.status = laneStatus
+        }
         values = initial; confirmation.checked = false; pending = false; open()
         if (hasAvatar && avatarLoader.item) avatarLoader.item.reset()
     }

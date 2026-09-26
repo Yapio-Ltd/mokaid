@@ -1,0 +1,353 @@
+.mk-cinematic-story {
+  position: relative;
+  isolation: isolate;
+  background: #08080d;
+  color: #f4f1f9;
+  scroll-margin-top: 72px;
+}
+
+.mk-cinema-eyebrow {
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #bab4c9;
+}
+
+.mk-cinema-static {
+  max-width: 1320px;
+  margin: auto;
+  padding: 100px 6vw 88px;
+}
+
+.mk-cinema-static-intro {
+  max-width: 640px;
+  margin: 0 auto 80px;
+  text-align: center;
+}
+.mk-cinema-static h2 {
+  margin: 18px 0 16px;
+  font-size: clamp(32px, 4.4vw, 60px);
+  font-weight: 500;
+  line-height: 1.09;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+.mk-cinema-static p {
+  color: #aaa4b7;
+  font-size: 15px;
+  line-height: 1.75;
+}
+.mk-cinema-moments {
+  display: grid;
+  gap: 100px;
+}
+.mk-cinema-moment {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  align-items: center;
+  gap: 8%;
+}
+.mk-cinema-moment:nth-child(2) .mk-cinema-still {
+  order: 2;
+}
+.mk-cinema-still {
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #111017;
+}
+.mk-cinema-still img {
+  display: block;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.mk-cinema-moment h3 {
+  margin: 18px 0;
+  max-width: 410px;
+  font-size: clamp(28px, 3.25vw, 44px);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+.mk-cinema-moment p {
+  max-width: 355px;
+}
+.mk-cinema-static-payoff {
+  margin: 110px auto 0;
+  max-width: 720px;
+  text-align: center;
+}
+.mk-cinema-static-payoff > p {
+  margin-top: 16px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.mk-cinema-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  min-height: 46px;
+  margin-top: 16px;
+  padding: 0 21px;
+  border: 1px solid #eae7f0;
+  border-radius: 99px;
+  background: #eeeaf4;
+  color: #17121f;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+.mk-cinema-cta:hover {
+  background: #fff;
+}
+
+/* Loading is intentionally layout-neutral. No animated CSS is needed in the HTML snapshot. */
+.mk-cinema-stage {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.mk-cinema-video,
+.mk-cinema-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mk-cinema-video {
+  z-index: 1;
+}
+.mk-cinema-shade {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(4 3 9 / 52%) 0%, rgb(4 3 9 / 15%) 48%, transparent 75%),
+    linear-gradient(0deg, rgb(4 3 9 / 65%), transparent 23%, transparent 78%, rgb(4 3 9 / 32%));
+  pointer-events: none;
+}
+.mk-cinema-topline,
+.mk-cinema-bottomline {
+  position: absolute;
+  z-index: 3;
+  right: 5vw;
+  left: 5vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.mk-cinema-topline {
+  top: 100px;
+}
+.mk-cinema-topline .mk-cinema-eyebrow {
+  color: rgb(255 255 255 / 78%);
+}
+.mk-cinema-skip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  color: rgb(255 255 255 / 70%);
+  font-size: 11px;
+  text-decoration: none;
+}
+.mk-cinema-skip:hover {
+  color: #fff;
+}
+.mk-cinema-bottomline {
+  bottom: 30px;
+  color: rgb(255 255 255 / 65%);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+}
+.mk-cinema-bottomline > span:first-child {
+  width: 150px;
+}
+.mk-cinema-progress {
+  width: min(24vw, 260px);
+  height: 1px;
+  margin-left: auto;
+  background: rgb(255 255 255 / 18%);
+}
+.mk-cinema-progress > span {
+  display: block;
+  height: 1px;
+  background: #fff;
+  transform-origin: left;
+}
+.mk-cinema-cue {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 7vw;
+  width: min(510px, 40vw);
+  opacity: var(--cue-opacity, 1);
+  transform: translateY(-35%);
+}
+.mk-cinema-cue h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(35px, 4.6vw, 70px);
+  font-weight: 500;
+  line-height: 1.045;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+  text-shadow: 0 2px 28px rgb(0 0 0 / 12%);
+}
+.mk-cinema-cue p {
+  margin-top: 24px;
+  max-width: 360px;
+  color: rgb(255 255 255 / 78%);
+  font-size: 15px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+.mk-cinema-cue--center {
+  left: 50%;
+  width: 540px;
+  max-width: 75vw;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+.mk-cinema-cue--center p {
+  margin-left: auto;
+  margin-right: auto;
+}
+.mk-cinema-cue .mk-cinema-cta {
+  margin-top: 32px;
+}
+.mk-cinema-cue.mk-final-cta {
+  position: absolute;
+  background: none;
+}
+.mk-cinema-static-payoff.mk-final-cta {
+  background: none;
+}
+.mk-cinema-notifications {
+  position: absolute;
+  z-index: 3;
+  right: 8vw;
+  top: 45%;
+  width: 238px;
+  display: grid;
+  gap: 9px;
+}
+.mk-cinema-notification {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 11px;
+  background: rgb(248 246 251 / 87%);
+  color: #272330;
+  box-shadow: 0 6px 28px rgb(0 0 0 / 8%);
+  backdrop-filter: blur(12px);
+  font-size: 11px;
+  opacity: var(--notification-progress, 1);
+  transform: translateY(calc((1 - var(--notification-progress, 1)) * 8px));
+}
+.mk-cinema-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  corner-shape: round;
+  background: #218951;
+  color: white;
+}
+.mk-cinema-final-logo {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 50%;
+  width: clamp(36px, 3.6vw, 64px);
+  height: auto;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 15px rgb(183 154 255 / 30%));
+}
+.mk-cinema-recovery-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-top: 22px;
+  color: #ddd5ea;
+  font-size: 12px;
+}
+.mk-cinema-end {
+  position: absolute;
+  bottom: 0;
+  height: 1px;
+  width: 1px;
+  scroll-margin-top: 72px;
+}
+
+@media (min-width: 1024px) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .mk-cinematic-story[data-mode="cinematic"] {
+    min-height: 1300svh;
+  }
+  .mk-cinematic-story[data-mode="cinematic"] > .mk-cinema-static {
+    display: none;
+  }
+  .mk-cinematic-story[data-mode="cinematic"] > .mk-cinema-stage {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: 100svh;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .mk-cinema-static {
+    padding: 76px 24px 64px;
+  }
+  .mk-cinema-static-intro {
+    text-align: left;
+    margin-bottom: 48px;
+  }
+  .mk-cinema-moments {
+    gap: 54px;
+  }
+  .mk-cinema-moment {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .mk-cinema-moment:nth-child(2) .mk-cinema-still {
+    order: initial;
+  }
+  .mk-cinema-moment h3 {
+    margin: 10px 0 12px;
+  }
+  .mk-cinema-still {
+    border-radius: 11px;
+    aspect-ratio: 16 / 10;
+  }
+  .mk-cinema-static-payoff {
+    margin-top: 70px;
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-cinema-cta {
+    transition: none;
+  }
+}

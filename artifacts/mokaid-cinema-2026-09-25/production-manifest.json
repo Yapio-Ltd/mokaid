@@ -1,0 +1,632 @@
+{
+  "title": "Mokaid — enter the AI office",
+  "createdAt": "2026-09-25",
+  "budget": {
+    "initialBalance": 933.5,
+    "maxCredits": 933.5,
+    "referenceImageEstimated": 2.75,
+    "videoCreditsPerSecond": 2,
+    "lastVerifiedBalance": 466,
+    "spentAtLastCheck": 467.5,
+    "lastCheckedAt": "2026-09-25T14:33:00Z"
+  },
+  "masterReference": {
+    "path": "/Users/olimservice/Downloads/office.png",
+    "mediaId": "4f7421ac-8a5f-4846-bd72-9e03baa4d53e"
+  },
+  "references": [
+    {
+      "id": "cafe",
+      "prompt": "Create the opening KEYFRAME, one still photograph, of the REAL-WORLD half of this film. A premium contemporary urban coffee shop, morning amber sunlight through huge windows on LEFT, walnut table centered, a slim unbranded graphite laptop OPEN and facing camera, screen visible and dark navy with a faint violet glow deep inside (no readable UI), ivory ceramic espresso cup on saucer to RIGHT of laptop, subtle steam. Human customers and barista heavily defocused in background. Laptop is central hero occupying lower middle 45% width and 40% height. Calm elegant medium-wide photography, camera at seated eye height 35mm cinema lens, depth of field, quiet tactile realism. True photographic coffee shop, NOT the stylized digital office yet. Reserve top-left for native website text. No logos or text or watermark. Keep laptop screen planar and unwarped. Opening composition must also work as ending composition for the final payoff.",
+      "index": 0,
+      "job_id": "53b1e0e4-1963-47d4-8da8-e5b7d5056ee2",
+      "status": "completed",
+      "adjustments": {
+        "medias[0].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        }
+      },
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_120438_53b1e0e4-1963-47d4-8da8-e5b7d5056ee2.png"
+    },
+    {
+      "id": "characters",
+      "prompt": "Create a single CHARACTER CONTINUITY reference sheet for the AI employees who populate the attached office. Six DISTINCT adult friendly premium stylized humanoid professional digital workers, full body, evenly spaced in a lineup, all facing camera with relaxed professional stance. Semi-realistic sculpted 3D faces, normal adult proportions, subtle simplified skin and hair materials, beautifully rendered high-end 3D, no cartoon oversized heads, not robots, no metallic skin. Consistent design language. Character A woman with short dark bob, ivory knit top and graphite trousers. B man with dark wavy hair, violet overshirt and black trousers. C woman with dark skin, tied curly hair, slate-blue shirt. D East Asian-looking adult man with round dark spectacles, charcoal jacket and white shirt. E woman with auburn shoulder-length hair, sage-green blouse. F adult man with brown skin, short curly hair, amber knit sweater. Dark charcoal studio backdrop, amber key and violet rim lighting matching provided office. No names labels text logo watermark. Characters recognizable via wardrobe across film.",
+      "index": 1,
+      "job_id": "ba78de97-b905-4412-9712-c82cb9eb6d73",
+      "status": "completed",
+      "adjustments": {
+        "medias[0].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        }
+      },
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_120439_ba78de97-b905-4412-9712-c82cb9eb6d73.png"
+    },
+    {
+      "id": "office-entry",
+      "prompt": "Camera at the front open corner of this exact office, slightly raised wide 24mm view looking deep into the floorplan. Show ALL its architecture in one cinematic wide, real volumetric place, not a framed miniature. The blue meeting room is at far RIGHT, lounge LEFT, coffee counter BACK CENTER, desks center, foosball front RIGHT. Populate with all six distinct employees from reference sheet naturally working at different desks (no one poses or looks at camera). Space to glide into center aisle. Floor violet paths lead from bottom center into office. Keep office footprint, lights and furniture positions of master reference. Immersive dimensional volume, no black outside void. Cinematic entrance reveal.",
+      "index": 2,
+      "job_id": "e6d0c76c-c1de-48c3-9f55-e8570bbfc8f9",
+      "status": "completed",
+      "adjustments": {
+        "medias[0].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        },
+        "medias[1].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        }
+      },
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_120728_e6d0c76c-c1de-48c3-9f55-e8570bbfc8f9.png"
+    },
+    {
+      "id": "office-work",
+      "prompt": "Camera within the central aisle of exact master office, waist-height medium wide 35mm. Foreground RIGHT the woman in ivory knit with short dark bob typing at her desk, seen over shoulder. Several other distinct reference employees working farther away. Coffee bar remains at BACK center, blue meeting glass room far RIGHT. Premium graphite desks, plants, warm desk lamps and violet floor paths exactly same furniture language and geography. Abstract short colored bars on screens, NO readable text. Rich foreground parallax, cinematic beautifully shaded premium 3D. Reserve upper LEFT negative space for native overlay.",
+      "index": 3,
+      "job_id": "59c354fd-7b64-44dd-985e-24dc01b0fb75",
+      "status": "completed",
+      "adjustments": {
+        "medias[0].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        },
+        "medias[1].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        }
+      },
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_120728_59c354fd-7b64-44dd-985e-24dc01b0fb75.png"
+    },
+    {
+      "id": "office-meeting",
+      "prompt": "Camera just inside the blue-lit glass meeting room at RIGHT side of exact office, medium-wide 35mm. Three reference employees collaborate around same graphite meeting table: man in spectacles charcoal jacket, woman dark skin slate-blue shirt, man violet overshirt; naturally looking at tablet and wall charts, not camera. Abstract charts only no text. THROUGH glass opening at LEFT see open-space desks with violet floor lighting and distant warm coffee area. Keep room footprint and electric-blue illuminated border exactly same as master. Warm skin under cool architectural lighting, no robotic bodies. Reserve leftmost 25% darker space.",
+      "index": 4,
+      "job_id": "0bd1d762-bca6-403e-a711-f617740f4057",
+      "status": "completed",
+      "adjustments": {
+        "medias[0].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        },
+        "medias[1].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        }
+      },
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_120728_0bd1d762-bca6-403e-a711-f617740f4057.png"
+    },
+    {
+      "id": "office-coffee",
+      "prompt": "Cinematic medium close view of coffee area at BACK CENTER of exact master office, matching wood cabinetry, amber horizontal light above, violet light below. The auburn-haired woman in sage blouse makes espresso at counter and takes ceramic cup. Man with amber sweater converses gently beside her. Show coffee steam, espresso machine, warm inviting professional break. Digital stylized premium3D matching characters and same architecture, not photoreal human cafe. Coffee cup foreground, employees natural not posing. Screen-free frame, no generated text. Main action center-right, room depth behind.",
+      "index": 5,
+      "job_id": "5ffc47ca-e2ee-4f65-ab0a-6516bdbc7f32",
+      "status": "completed",
+      "adjustments": {
+        "medias[0].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        },
+        "medias[1].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        }
+      },
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_120729_5ffc47ca-e2ee-4f65-ab0a-6516bdbc7f32.png"
+    },
+    {
+      "id": "office-foosball",
+      "prompt": "Cinematic medium-wide low-angle view at the foosball table FRONT RIGHT of exact master office. Brown-skinned man amber sweater and man violet overshirt play opposite sides naturally, realistic anatomy and non-exaggerated faces. Foosball table matching master dark charcoal and red miniature players. Blue meeting room glows behind on RIGHT, desk rows on LEFT; plants, violet floor routes unchanged. The ivory-top woman still working at left desk behind them. Premium stylized humanoid 3D, not robots. Main action centered, foreground rods supply depth, no readable text or logo.",
+      "index": 6,
+      "job_id": "1eafd92f-dd7e-4f83-ba4c-ad24c503dfe5",
+      "status": "completed",
+      "adjustments": {
+        "medias[0].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        },
+        "medias[1].role": {
+          "requested": "image",
+          "used": "image_references",
+          "reason": "GPT Image 2.5 backend expects schema-key media roles"
+        }
+      },
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_120728_1eafd92f-dd7e-4f83-ba4c-ad24c503dfe5.png"
+    },
+    {
+      "id": "screen-portal",
+      "job_id": "dc0eafe1-ce4e-4eab-96fd-816e19e5f3f1",
+      "status": "completed",
+      "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nCreate the EXACT END KEYFRAME of the laptop approach, still in the real cafe. First reference is last actual video frame of the opening shot. Move the same camera straight toward the SAME laptop screen, no sideways shift. Extreme close-up so the black laptop bezel is barely visible around the edges, screen takes 94 percent frame width. The screen is now a physically deep WINDOW: inside the screen is the miniature illuminated office of second reference, exact architecture and people. Deep charcoal room, violet floor paths, blue meeting room on right, amber lamps, miniature workstations. DO NOT leave the laptop screen yet. Thin natural glass reflections at edges; laptop bezel rectangular and undistorted. The coffee shop is only a tiny heavily blurred warm border beyond the screen. No digital text, no captions, no watermark. Keep center corridor aligned straight with camera, ready to pass through display into room. Not generic cyberspace. High-end real camera macro perspective blending convincingly into premium 3D interior.",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_121350_dc0eafe1-ce4e-4eab-96fd-816e19e5f3f1.png"
+    }
+  ],
+  "clips": [
+    {
+      "index": 1,
+      "id": "cafe",
+      "jobId": "0829f57d-0623-4322-a658-b2658f1b1b3c",
+      "status": "completed",
+      "params": {
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 1 — THE REAL WORLD. Begin EXACTLY from the supplied cafe first frame. One uninterrupted cinematic shot in this same physical real coffee shop. No office architecture visible outside laptop. The same graphite slim laptop sits open on the walnut table, ivory cup to its right, morning window light left, softly defocused barista and customers. A very slow gentle dolly toward laptop, only about 15 percent closer over the whole shot. Laptop stays centered, screen navy with faint violet glimmer, no text or logos. Background humans make tiny natural movements, barista shifts, barely visible coffee steam. Keep laptop/table/cup rigid and identical. Calm commercial 35mm photography. End slightly closer, still seeing full laptop and cup. DO NOT enter screen yet; that is next scene. SOUND: cafe room tone, distant indistinct conversation, espresso machine, ceramic cup, no music, no intelligible dialogue, no voiceover. No captions, no generated UI or logo.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions.",
+        "aspect_ratio": "16:9",
+        "duration": 8,
+        "reference_images": [
+          "53b1e0e4-1963-47d4-8da8-e5b7d5056ee2"
+        ],
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "genre": "auto",
+        "multi_shot_mode": "custom",
+        "medias": [
+          {
+            "role": "start_image",
+            "data": {
+              "id": "53b1e0e4-1963-47d4-8da8-e5b7d5056ee2",
+              "type": "image_job",
+              "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_120438_53b1e0e4-1963-47d4-8da8-e5b7d5056ee2.png"
+            }
+          }
+        ]
+      },
+      "sourceDuration": 8.041667,
+      "outputDuration": 7,
+      "localPath": "clips/01-cafe.mp4",
+      "startFrame": "53b1e0e4-1963-47d4-8da8-e5b7d5056ee2",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_120720_0829f57d-0623-4322-a658-b2658f1b1b3c.mp4",
+      "endFrame": "9a3aa004-0a1b-4345-99bf-699c530e2f76"
+    },
+    {
+      "index": 2,
+      "id": "approach",
+      "jobId": "7cde95ba-1496-491d-a290-a7c8fe5f8ee6",
+      "status": "completed",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 8,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "9a3aa004-0a1b-4345-99bf-699c530e2f76"
+          },
+          {
+            "role": "end_image",
+            "value": "dc0eafe1-ce4e-4eab-96fd-816e19e5f3f1"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 2 — SOMETHING IS INSIDE. This is a SINGLE unbroken continuation of the real cafe camera dolly. Start EXACTLY at provided first frame (actual last frame of previous clip) and END at provided close-up laptop frame. Move straight forward toward the CENTER of the same laptop screen. First half slow gentle acceleration, second half progressively faster but stable. The previously dark violet screen develops physically deep small violet/blue illuminated office details with desks, workers and floor lights. Reflections gradually recede to edges. Do NOT change the cafe, laptop, ivory cup, table or window lighting; do NOT move objects. Screen stays rigid rectangular with thin graphite bezel. By end screen occupies nearly all view yet bezel remains visible. We have NOT passed through display yet. NO cuts, no fades, no rolling camera, no circular tunnel, no new props. Keep exact office spatial layout shown in target. SOUND: cafe ambience gently muffles, low rumble rises and small electronic spatial details, no music yet, no intelligible dialogue, no voiceover. No captions or added logos. Retain natural pauses only very briefly; predominantly forward movement.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "sourceDuration": 8.041667,
+      "outputDuration": 6,
+      "localPath": "clips/02-approach.mp4",
+      "startFrame": "9a3aa004-0a1b-4345-99bf-699c530e2f76",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_121743_7cde95ba-1496-491d-a290-a7c8fe5f8ee6.mp4",
+      "endFrame": "56143470-c458-4924-a403-ed1d479f23cf"
+    },
+    {
+      "index": 3,
+      "id": "portal",
+      "jobId": "5a9f8e45-1c18-4b74-93d6-13e37f1ccf43",
+      "status": "completed",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 8,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "56143470-c458-4924-a403-ed1d479f23cf"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 3 — ENTER MOKAID, ONE SIMPLE CAMERA MOVE. Begin at the supplied frame: real laptop fills frame, its single flat screen contains the miniature office. For the entire 8 seconds, camera performs ONE continuous straight forward dolly through the CENTER of that SAME screen and into the room already visible. The laptop bezel expands beyond image edges within first two seconds. Afterwards only the existing office is visible, growing steadily larger as camera enters between the desks. Tilt down gently into the central aisle. End inside that room at waist height beside the nearest desk, looking toward the coffee counter and blue meeting room. The SAME employees continue working. Their scale gradually grows. Architecture remains fixed. STRICTLY NO newly appearing rectangles or frames anywhere: no portal frame, no inset, no picture-in-picture, no duplicate scene, no transition graphic, no sparkling particles, no light tunnel, no morphing, no zoom-out. Do not introduce another window. This is simply physically moving the lens through glass into an existing room. Begin with energetic forward acceleration then smooth deceleration near workers. Quiet natural cafe becomes muffled and gently transitions into keyboard and office ambience. No voice, no music, no text.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "sourceDuration": 8,
+      "outputDuration": 7,
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_130217_5a9f8e45-1c18-4b74-93d6-13e37f1ccf43.mp4",
+      "localPath": "clips/03-portal.mp4",
+      "endFrame": "1774bb61-d052-438b-ac96-6c9fd4173bbc",
+      "review": "Accepted: direct camera crossing; no tunnel or nested frame. Contact sheet + actual last frame checked."
+    },
+    {
+      "index": 4,
+      "id": "office",
+      "sourceDuration": 12,
+      "outputDuration": 12,
+      "description": "SCENE 4 — THE OFFICE IS ALIVE. Start EXACTLY in the provided actual last office frame: ivory-knit woman at desk in near RIGHT foreground, violet-shirt man behind her, blue meeting room in background RIGHT. Camera glides past her existing desk without moving furniture, then follows a slow elegant S-curve through the central working aisle toward the blue-lit meeting room on the RIGHT. Multiple distinct AI employees actively work: violet-shirt man reviews a chart; slate-blue-shirt woman reads a document; amber-sweater man types; spectacles man briefly shares a tablet. Short authentic gestures, no exaggerated acting, nobody notices camera. Foreground desks, plants and chairs pass close with natural parallax. Fixed furniture and lighting, physically plausible eye-to-waist-height dolly. Preserve office geography: coffee bar rear center, lounge left, meeting room right. Screens show abstract bars and task cards, NO readable text. END just OUTSIDE the glass meeting-room entrance looking toward the violet-shirt man walking toward it, preparing next collaboration scene. Never enter or show any tunnel. End with gentle deceleration; no hard cuts or objects morphing. SOUND: natural keyboards, mouse clicks, low room ambience, very quiet indistinct murmur; no music, no dialogue, no voiceover.",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 12,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "1774bb61-d052-438b-ac96-6c9fd4173bbc"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 4 — THE OFFICE IS ALIVE. Start EXACTLY in the provided actual last office frame: ivory-knit woman at desk in near RIGHT foreground, violet-shirt man behind her, blue meeting room in background RIGHT. Camera glides past her existing desk without moving furniture, then follows a slow elegant S-curve through the central working aisle toward the blue-lit meeting room on the RIGHT. Multiple distinct AI employees actively work: violet-shirt man reviews a chart; slate-blue-shirt woman reads a document; amber-sweater man types; spectacles man briefly shares a tablet. Short authentic gestures, no exaggerated acting, nobody notices camera. Foreground desks, plants and chairs pass close with natural parallax. Fixed furniture and lighting, physically plausible eye-to-waist-height dolly. Preserve office geography: coffee bar rear center, lounge left, meeting room right. Screens show abstract bars and task cards, NO readable text. END just OUTSIDE the glass meeting-room entrance looking toward the violet-shirt man walking toward it, preparing next collaboration scene. Never enter or show any tunnel. End with gentle deceleration; no hard cuts or objects morphing. SOUND: natural keyboards, mouse clicks, low room ambience, very quiet indistinct murmur; no music, no dialogue, no voiceover.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "jobId": "325148f5-0361-4ca4-bdcb-3e07d141cc29",
+      "status": "completed",
+      "startFrame": "1774bb61-d052-438b-ac96-6c9fd4173bbc",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_130750_325148f5-0361-4ca4-bdcb-3e07d141cc29.mp4",
+      "localPath": "clips/04-office.mp4",
+      "endFrame": "e249e313-f621-43d3-968e-6cd20318ba4f",
+      "review": "Accepted: continuous aisle tracking, violet-shirt coworker stands and walks to meeting room; no cut observed in sampled frames."
+    },
+    {
+      "index": 5,
+      "id": "collaboration",
+      "sourceDuration": 10,
+      "outputDuration": 10,
+      "description": "SCENE 5 — THEY WORK TOGETHER. Begin EXACTLY from this actual final frame: violet-shirt man arriving at the open blue-glass meeting-room doorway, auburn-haired woman in sage blouse already seated inside at the table. Follow him naturally THROUGH that existing doorway. He carries a thin dark tablet with abstract task cards and gently sets it beside her workstation. The same woman looks at the tablet and acknowledges with a nod. The dark-haired male coworker with glasses and a blue-gray shirt leaves his nearby desk and joins them through the same door, never teleporting. Three distinct coworkers collaborate: one points at an abstract chart on the wall, another highlights an item on the tablet, the third makes a brief note. No readable text anywhere. Camera slowly tracks into the room and gently arcs around a corner of the existing table to see all three faces together, then decelerates. Preserve exact architecture, screen, chairs, door and existing desk arrangement; do not transform desks or enlarge room. The characters remain the same people in the same clothes. Camera never cuts. End on a stable medium-wide view of these three coworkers inside the meeting room with doorway still visible at side, preparing to travel back out. SOUND: indistinct quiet conversation murmur with NO intelligible speech, chair movement, soft touchscreen interaction, natural office ambience. No voiceover, no music.",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 10,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "e249e313-f621-43d3-968e-6cd20318ba4f"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 5 — THEY WORK TOGETHER. Begin EXACTLY from this actual final frame: violet-shirt man arriving at the open blue-glass meeting-room doorway, auburn-haired woman in sage blouse already seated inside at the table. Follow him naturally THROUGH that existing doorway. He carries a thin dark tablet with abstract task cards and gently sets it beside her workstation. The same woman looks at the tablet and acknowledges with a nod. The dark-haired male coworker with glasses and a blue-gray shirt leaves his nearby desk and joins them through the same door, never teleporting. Three distinct coworkers collaborate: one points at an abstract chart on the wall, another highlights an item on the tablet, the third makes a brief note. No readable text anywhere. Camera slowly tracks into the room and gently arcs around a corner of the existing table to see all three faces together, then decelerates. Preserve exact architecture, screen, chairs, door and existing desk arrangement; do not transform desks or enlarge room. The characters remain the same people in the same clothes. Camera never cuts. End on a stable medium-wide view of these three coworkers inside the meeting room with doorway still visible at side, preparing to travel back out. SOUND: indistinct quiet conversation murmur with NO intelligible speech, chair movement, soft touchscreen interaction, natural office ambience. No voiceover, no music.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "jobId": "e0ad540e-ccd4-4ae7-a3bd-a487b820bf55",
+      "status": "completed",
+      "startFrame": "e249e313-f621-43d3-968e-6cd20318ba4f",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_131345_e0ad540e-ccd4-4ae7-a3bd-a487b820bf55.mp4",
+      "localPath": "clips/05-collaboration.mp4",
+      "endFrame": "96f0598a-1c64-4238-b9c7-e35ab6095fa6",
+      "review": "Accepted: continuous entry into existing meeting room; tablet collaboration among existing coworkers."
+    },
+    {
+      "index": 6,
+      "id": "life",
+      "sourceDuration": 12,
+      "outputDuration": 9,
+      "endImage": "1eafd92f-dd7e-4f83-ba4c-ad24c503dfe5",
+      "description": "SCENE 6 — THEY ALSO HAVE A LIFE. Begin EXACTLY from supplied meeting-room first frame with violet-shirt man, man in charcoal jacket and auburn-haired woman in sage blouse collaborating. In one uninterrupted physical shot, camera turns and glides BACK OUT through the EXISTING meeting-room door, travels along the aisle to the coffee counter at back center of the same office. The auburn-haired woman walks ahead naturally from the meeting room to the espresso machine, picks up a small ceramic cup. Seconds 4-7: close enough to see a short espresso pour, delicate steam and warm amber light on her face; no exaggerated expression. Then the camera tracks sideways following violet floor paths to the foosball table at front right. Seconds 9-12: two coworkers already there, violet-shirt man and amber-sweater man, casually play a short rally and share a natural smile. END on the provided foosball image, bothplayers in view. Preserve the original table, meeting room, desks, floor routes and furniture. All people move on foot through real aisles. No teleportation, no duplicated characters, no furniture moving or changing. Camera smooth elegant speedup BETWEEN stations and slow near espresso and foosball. No cuts, no generictransitioneffect. SOUND: office room tone and keyboards, espresso pouring, ceramic cup touch, foosball rods and ball tap, very quiet indistinct friendly murmur. No intelligible speech, no voiceover, no music.",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 12,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "96f0598a-1c64-4238-b9c7-e35ab6095fa6"
+          },
+          {
+            "role": "end_image",
+            "value": "1eafd92f-dd7e-4f83-ba4c-ad24c503dfe5"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 6 — THEY ALSO HAVE A LIFE. Begin EXACTLY from supplied meeting-room first frame with violet-shirt man, man in charcoal jacket and auburn-haired woman in sage blouse collaborating. In one uninterrupted physical shot, camera turns and glides BACK OUT through the EXISTING meeting-room door, travels along the aisle to the coffee counter at back center of the same office. The auburn-haired woman walks ahead naturally from the meeting room to the espresso machine, picks up a small ceramic cup. Seconds 4-7: close enough to see a short espresso pour, delicate steam and warm amber light on her face; no exaggerated expression. Then the camera tracks sideways following violet floor paths to the foosball table at front right. Seconds 9-12: two coworkers already there, violet-shirt man and amber-sweater man, casually play a short rally and share a natural smile. END on the provided foosball image, bothplayers in view. Preserve the original table, meeting room, desks, floor routes and furniture. All people move on foot through real aisles. No teleportation, no duplicated characters, no furniture moving or changing. Camera smooth elegant speedup BETWEEN stations and slow near espresso and foosball. No cuts, no generictransitioneffect. SOUND: office room tone and keyboards, espresso pouring, ceramic cup touch, foosball rods and ball tap, very quiet indistinct friendly murmur. No intelligible speech, no voiceover, no music.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "jobId": "be06d542-080d-4693-9cf9-fc02891e1857",
+      "status": "completed",
+      "startFrame": "96f0598a-1c64-4238-b9c7-e35ab6095fa6",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_132125_be06d542-080d-4693-9cf9-fc02891e1857.mp4",
+      "localPath": "clips/06-life.mp4",
+      "endFrame": "176d189d-5e77-42fa-babb-b42e0f746b24",
+      "review": "Meeting exit, espresso close-up and two-player foosball sampled; extra 5fps inspection of espresso approach confirms continuous camera move."
+    },
+    {
+      "index": 7,
+      "id": "execution",
+      "sourceDuration": 10,
+      "outputDuration": 10,
+      "description": "SCENE 7 — THE OFFICE ACCELERATES. ONE SHOT, ONE CAMERA MOVE. Begin from this exact foosball view. The camera ONLY moves BACKWARD about three metres and gently UP by one metre, revealing slightly more of the SAME compact office. The two foosball players remain visible, alive and PLAYING AT THEIR EXACT TABLE through the ENTIRE shot, growing smaller smoothly. They NEVER leave, vanish, change clothes or appear at desks. Existing desk workers continue typing in background. Several existing monitors briefly change from abstract charts to a SMALL GREEN CHECK symbol, one after another, each on its original screen; only screen pixels change. No people or furniture relocate. Maintain the original compact room dimensions, only the existing eight workstations, blue glass meeting room to RIGHT, amber coffee bar REAR, violet pathways SAME shapes. No extra desks, no long corridor, no zoom into screens. Gentle initial speed, stronger controlled backward motion in middle, smooth final deceleration and rest on a medium-wide room view. Keep original foosball table AND its two players visible in final frame. NO transitions, no morphing, no speed blur hiding a cut, no dissolves, no disappearance. Sound: office typing and several soft tasteful confirmation chimes; a very restrained rising electronic pulse, no voiceover and no intelligible speech.",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 10,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "176d189d-5e77-42fa-babb-b42e0f746b24"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 7 — THE OFFICE ACCELERATES. ONE SHOT, ONE CAMERA MOVE. Begin from this exact foosball view. The camera ONLY moves BACKWARD about three metres and gently UP by one metre, revealing slightly more of the SAME compact office. The two foosball players remain visible, alive and PLAYING AT THEIR EXACT TABLE through the ENTIRE shot, growing smaller smoothly. They NEVER leave, vanish, change clothes or appear at desks. Existing desk workers continue typing in background. Several existing monitors briefly change from abstract charts to a SMALL GREEN CHECK symbol, one after another, each on its original screen; only screen pixels change. No people or furniture relocate. Maintain the original compact room dimensions, only the existing eight workstations, blue glass meeting room to RIGHT, amber coffee bar REAR, violet pathways SAME shapes. No extra desks, no long corridor, no zoom into screens. Gentle initial speed, stronger controlled backward motion in middle, smooth final deceleration and rest on a medium-wide room view. Keep original foosball table AND its two players visible in final frame. NO transitions, no morphing, no speed blur hiding a cut, no dissolves, no disappearance. Sound: office typing and several soft tasteful confirmation chimes; a very restrained rising electronic pulse, no voiceover and no intelligible speech.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "jobId": "497ccc5f-f8c4-4234-8998-ec022d3f2bf1",
+      "status": "completed",
+      "startFrame": "176d189d-5e77-42fa-babb-b42e0f746b24",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_134939_497ccc5f-f8c4-4234-8998-ec022d3f2bf1.mp4",
+      "localPath": "clips/07-execution.mp4",
+      "endFrame": "50719363-d728-4377-a768-e49325b0f2d3",
+      "review": "Accepted: restrained physical pullback, both foosball players remain, existing desks complete tasks via green confirmations. Simpler camera chosen to preserve geometry."
+    },
+    {
+      "index": 8,
+      "id": "return",
+      "sourceDuration": 8,
+      "outputDuration": 6,
+      "endImage": "53b1e0e4-1963-47d4-8da8-e5b7d5056ee2",
+      "description": "SCENE 8 — EXIT THE WORLD, ONE PHYSICAL BACKWARD MOVE. Begin EXACTLY in supplied office first frame, looking at foosball players and existing desks. Camera continues BACKWARD while looking into this same office. The whole office steadily becomes smaller as we retreat. After about two seconds, the real graphite LAPTOP BEZEL appears ONLY around the OUTSIDE edges of the frame, enclosing the SAME office view in its screen. This is ONE laptop and ONE screen: never create a smaller extra rectangle inside the office, no nested frame, no picture-in-picture, no tunnel. Continue retreating through the screen plane into the original REAL CAFE in the end reference. SAME laptop on walnut table, SAME ivory cup to RIGHT, same left window light and blurred background patrons. Camera decelerates to the exact provided end frame. As the office shrinks into the screen, it fades ONLY INSIDE that display into the clean original navy/violet resting glow. Do not change the cafe, table or laptop geometry. All office employees remain at their last positions and naturally shrink with the room until the screen fade; no teleports. No bursts, no glitches, no effect montage, no rotating camera, no cut. End completely still for one second. SOUND: short gentle transition whoosh, office keyboards become distant, real cafe room tone returns, tiny restrained electronic musical resolution. No dialogue, voiceover, text, logo or notifications.",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 8,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "50719363-d728-4377-a768-e49325b0f2d3"
+          },
+          {
+            "role": "end_image",
+            "value": "53b1e0e4-1963-47d4-8da8-e5b7d5056ee2"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 8 — EXIT THE WORLD, ONE PHYSICAL BACKWARD MOVE. Begin EXACTLY in supplied office first frame, looking at foosball players and existing desks. Camera continues BACKWARD while looking into this same office. The whole office steadily becomes smaller as we retreat. After about two seconds, the real graphite LAPTOP BEZEL appears ONLY around the OUTSIDE edges of the frame, enclosing the SAME office view in its screen. This is ONE laptop and ONE screen: never create a smaller extra rectangle inside the office, no nested frame, no picture-in-picture, no tunnel. Continue retreating through the screen plane into the original REAL CAFE in the end reference. SAME laptop on walnut table, SAME ivory cup to RIGHT, same left window light and blurred background patrons. Camera decelerates to the exact provided end frame. As the office shrinks into the screen, it fades ONLY INSIDE that display into the clean original navy/violet resting glow. Do not change the cafe, table or laptop geometry. All office employees remain at their last positions and naturally shrink with the room until the screen fade; no teleports. No bursts, no glitches, no effect montage, no rotating camera, no cut. End completely still for one second. SOUND: short gentle transition whoosh, office keyboards become distant, real cafe room tone returns, tiny restrained electronic musical resolution. No dialogue, voiceover, text, logo or notifications.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "jobId": "2da36446-b47a-4223-bbb0-a758e17c6617",
+      "status": "completed",
+      "startFrame": "50719363-d728-4377-a768-e49325b0f2d3",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_135705_2da36446-b47a-4223-bbb0-a758e17c6617.mp4",
+      "localPath": "clips/08-return.mp4",
+      "endFrame": "d1231411-706f-4d36-9f68-a300c3775752",
+      "review": "Accepted: single physical screen boundary emerges at image edge; retreats into original cafe and office fades within laptop screen."
+    },
+    {
+      "index": 9,
+      "id": "completed",
+      "sourceDuration": 8,
+      "outputDuration": 7,
+      "description": "SCENE 9 — ABSOLUTELY STATIC PHOTOGRAPH WITH TINY BACKGROUND LIFE. FIRST AND LAST REFERENCE IMAGES ARE IDENTICAL; maintain this exact framing throughout. The camera is bolted to a fixed tripod. ZERO camera translation, ZERO pan, ZERO tilt, ZERO zoom. The laptop and table are absolutely still. The entire laptop screen is a completely plain dark navy-to-violet gradient: no operating system, no desktop icons, no menu bar, no task bar, no status dots, no windows, no application, no UI, no checkmarks, no lettering, no logo. Treat the screen as a blank purple painted surface. It must remain exactly blank across every frame. Only extremely subtle steam from the coffee and tiny blurred background café movements. Do not change any object position. Do not add any visual notification: all graphics are added afterwards by the editor. Very calm premium final composition. SOUND ONLY: quiet coffee ambience, five soft isolated success chimes spaced about0.8seconds apart in the first4seconds, then gentle quiet sustained electronic resolution; no speech or voiceover. No sound source needs to be visually shown.",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 8,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "d1231411-706f-4d36-9f68-a300c3775752"
+          },
+          {
+            "role": "end_image",
+            "value": "d1231411-706f-4d36-9f68-a300c3775752"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 9 — ABSOLUTELY STATIC PHOTOGRAPH WITH TINY BACKGROUND LIFE. FIRST AND LAST REFERENCE IMAGES ARE IDENTICAL; maintain this exact framing throughout. The camera is bolted to a fixed tripod. ZERO camera translation, ZERO pan, ZERO tilt, ZERO zoom. The laptop and table are absolutely still. The entire laptop screen is a completely plain dark navy-to-violet gradient: no operating system, no desktop icons, no menu bar, no task bar, no status dots, no windows, no application, no UI, no checkmarks, no lettering, no logo. Treat the screen as a blank purple painted surface. It must remain exactly blank across every frame. Only extremely subtle steam from the coffee and tiny blurred background café movements. Do not change any object position. Do not add any visual notification: all graphics are added afterwards by the editor. Very calm premium final composition. SOUND ONLY: quiet coffee ambience, five soft isolated success chimes spaced about0.8seconds apart in the first4seconds, then gentle quiet sustained electronic resolution; no speech or voiceover. No sound source needs to be visually shown.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "jobId": "412037b3-d90a-4db6-abdd-3dd6003cc5de",
+      "status": "completed",
+      "startFrame": "d1231411-706f-4d36-9f68-a300c3775752",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_141222_412037b3-d90a-4db6-abdd-3dd6003cc5de.mp4",
+      "localPath": "clips/09-completed.mp4",
+      "review": "Accepted: locked composition, laptop screen stays blank navy/violet, no generated UI; eight sampled frames inspected."
+    }
+  ],
+  "rejectedTakes": [
+    {
+      "index": 3,
+      "id": "portal",
+      "jobId": "a6668512-6dbb-4733-ba9f-b12322b33003",
+      "status": "rejected",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 8,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "56143470-c458-4924-a403-ed1d479f23cf"
+          },
+          {
+            "role": "end_image",
+            "value": "e6d0c76c-c1de-48c3-9f55-e8570bbfc8f9"
+          },
+          {
+            "role": "image",
+            "value": "4f7421ac-8a5f-4846-bd72-9e03baa4d53e"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 3 — ENTER MOKAID. START EXACTLY at the laptop screen close-up supplied. END EXACTLY at the office wide supplied. A SINGLE PHYSICALLY CONTINUOUS CAMERA MOVE. The camera accelerates FORWARD through the thin screen glass, passing a brief layer of tiny luminous violet/blue pixels for less than one second. Those pixel lines immediately resolve into the EXISTING violet floor paths of the same office; never a generic sci-fi tunnel. The laptop bezel expands beyond the camera frame and falls behind us. The camera is now physically inside the volumetric digital office, with desks, chairs, plants, workers and glass meeting room. The view gracefully opens into a cinematic wide reveal with three-dimensional parallax. Coffee shop entirely gone. Preserve all architecture and worker identities. The office comes alive with subtle typing and movement, no one looks at camera. Strong forward acceleration crossing screen then smooth deceleration and a beautiful near-still wide resting point at end. Use provided office target exact spatial layout. No dissolves between unrelated rooms, no abrupt cuts, no objects melting. Light may bloom very briefly crossing the boundary. SOUND: cafe sounds vanish into a short spatial whoosh, tiny digital particles, then quiet keyboards and gentle office room tone. No music, no voiceover, no intelligible speech. No text or logos.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "sourceDuration": 8,
+      "outputDuration": 7,
+      "localPath": "clips/03-portal-rejected.mp4",
+      "startFrame": "56143470-c458-4924-a403-ed1d479f23cf",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_124302_a6668512-6dbb-4733-ba9f-b12322b33003.mp4",
+      "reason": "Generated a radial cyberspace tunnel and shrunk the office, conflicting with creative direction."
+    },
+    {
+      "index": 3,
+      "id": "portal",
+      "jobId": "3135dd2b-b53d-4133-8b2b-cda69a1f6728",
+      "status": "rejected",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 8,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.75,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "56143470-c458-4924-a403-ed1d479f23cf"
+          },
+          {
+            "role": "end_image",
+            "value": "59c354fd-7b64-44dd-985e-24dc01b0fb75"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 3 — ENTER MOKAID, DIRECT PHYSICAL SCREEN CROSSING. The first frame is the actual close-up laptop screen. The last frame is the eye-level view INSIDE that exact office behind the ivory-shirt worker. Treat the laptop screen as an OPEN WINDOW into this ROOM. The CAMERA MOVES DIRECTLY FORWARD through that rectangular window. The room seen in the window gets LARGER smoothly as we approach, never smaller. The thin black laptop bezel expands past the edges of the camera view and disappears behind the camera. We descend very slightly to waist height as we enter. We pass close to a real desk edge and plant leaves before settling behind the woman in ivory knit at her desk. The SAME blue meeting room stays back right and coffee bar back center. Friendly workers make subtle typing actions. This is simply a physically filmed dolly through an open window, with ONE tiny violet glint at the glass threshold. No effect sequence is needed. The office furniture is physically present throughout every frame, continuously increases in perspective size during forward movement, never disappears. End matching provided second frame's intimate office perspective. Keep exposure stable, environment occupies whole image, tangible desk parallax. Absolutely no tunnel, no vortex, no hyperspace, no radial streaks, no stars, no explosive flash, no shrinking diorama, no zoom-out, no crossfade, no black void transition. Accelerate gently crossing the screen, then decelerate inside. SOUND: short soft glass-threshold whoosh, cafe becomes quiet and workplace typing rises, no music or speech.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "sourceDuration": 8,
+      "outputDuration": 7,
+      "localPath": "clips/03-portal.mp4",
+      "startFrame": "56143470-c458-4924-a403-ed1d479f23cf",
+      "reason": "Nested screen frame materializes inside office at 3 seconds; not physically continuous."
+    },
+    {
+      "index": 7,
+      "id": "execution",
+      "sourceDuration": 10,
+      "outputDuration": 10,
+      "description": "SCENE 7 — THE OFFICE ACCELERATES. Start exactly at the foosball table in the actual supplied first frame, violet-shirt and amber-sweater coworkers in foreground. Camera flows around the LEFT short end of this same table and tracks into working desks of this existing office. Ivory-knit woman continues typing and clicks to finish a task; a nearby coworker points at an abstract completed chart; another worker acknowledges a green confirmation on a monitor. Show five small green confirmation cues successively at different workstations, simple check-shaped symbols and cards closing with NO readable words or text. Do NOT introduce extra characters. Keep people, desks and lamps consistent. The violet floor paths brighten only subtly. Camera begins slowly then accelerates along the main central aisle with strong foreground plant/desk parallax. Finally make ONE elegant broad backward arc and rise gently to a high WIDE viewpoint that sees the whole office, ending facing IN toward the same working desks, rear coffee counter and blue meeting room on RIGHT. End slowing down for the following backward exit shot. No physical laptop yet, no floating rectangles, no portals, no tunnel, no camera spins, no cuts, no scene transformations, no new architecture. Furniture stays in fixed places. SOUND: keyboards and mouse clicks become lightly rhythmic, five tasteful soft short success chimes, subtle restrained electronic musical pulse rises, no intelligible speech and no voiceover.",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 10,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "176d189d-5e77-42fa-babb-b42e0f746b24"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 7 — THE OFFICE ACCELERATES. Start exactly at the foosball table in the actual supplied first frame, violet-shirt and amber-sweater coworkers in foreground. Camera flows around the LEFT short end of this same table and tracks into working desks of this existing office. Ivory-knit woman continues typing and clicks to finish a task; a nearby coworker points at an abstract completed chart; another worker acknowledges a green confirmation on a monitor. Show five small green confirmation cues successively at different workstations, simple check-shaped symbols and cards closing with NO readable words or text. Do NOT introduce extra characters. Keep people, desks and lamps consistent. The violet floor paths brighten only subtly. Camera begins slowly then accelerates along the main central aisle with strong foreground plant/desk parallax. Finally make ONE elegant broad backward arc and rise gently to a high WIDE viewpoint that sees the whole office, ending facing IN toward the same working desks, rear coffee counter and blue meeting room on RIGHT. End slowing down for the following backward exit shot. No physical laptop yet, no floating rectangles, no portals, no tunnel, no camera spins, no cuts, no scene transformations, no new architecture. Furniture stays in fixed places. SOUND: keyboards and mouse clicks become lightly rhythmic, five tasteful soft short success chimes, subtle restrained electronic musical pulse rises, no intelligible speech and no voiceover.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "jobId": "86573a80-1b09-46f0-b5e6-b00faf7cde84",
+      "status": "rejected",
+      "startFrame": "176d189d-5e77-42fa-babb-b42e0f746b24",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_133841_86573a80-1b09-46f0-b5e6-b00faf7cde84.mp4",
+      "reason": "Forward traveling introduced extra desk rows and expanded the compact office. Retry constrained to backward crane and reference end."
+    },
+    {
+      "index": 7,
+      "id": "execution",
+      "sourceDuration": 10,
+      "outputDuration": 10,
+      "endImage": "e6d0c76c-c1de-48c3-9f55-e8570bbfc8f9",
+      "description": "SCENE 7 — COMPLETED WORK, ONE SIMPLE CAMERA RETREAT. Begin at supplied foosball frame. End at supplied wide view of this EXACT same compact office. The camera performs only one smooth BACKWARD DOLLY combined with a gentle CRANE UP. It retreats from the foosball table, rising to reveal the full office from the supplied end-image angle. It must not travel down a newly invented long hallway. There are only the EXISTING desks visible in the reference, at most eight workstations. Keep their exact places, compact floor plan, back coffee counter, left lounge and right blue meeting room. NO new rows of desks, no extra corridors, no expanding office, no changes to floor-route shapes. The foosball coworkers continue their small natural game as camera leaves. Existing employees at desks finish their tasks with brief mouse clicks. Five SMALL green check symbols appear ON five monitor screens successively, never floating in space, with simple abstract cards resolving. No readable text. Violet floor paths subtly brighten, maintaining the SAME layout. Beginning slow, middle accelerates gently, end decelerates into the provided stable overview. ONE backward rising move only, no orbit, no spin, no hard cut or morph. SOUND: typing, soft mouse clicks, several restrained success chimes, a very subtle rising electronic musical pulse, no dialogue or voiceover.",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 10,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "176d189d-5e77-42fa-babb-b42e0f746b24"
+          },
+          {
+            "role": "end_image",
+            "value": "e6d0c76c-c1de-48c3-9f55-e8570bbfc8f9"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 7 — COMPLETED WORK, ONE SIMPLE CAMERA RETREAT. Begin at supplied foosball frame. End at supplied wide view of this EXACT same compact office. The camera performs only one smooth BACKWARD DOLLY combined with a gentle CRANE UP. It retreats from the foosball table, rising to reveal the full office from the supplied end-image angle. It must not travel down a newly invented long hallway. There are only the EXISTING desks visible in the reference, at most eight workstations. Keep their exact places, compact floor plan, back coffee counter, left lounge and right blue meeting room. NO new rows of desks, no extra corridors, no expanding office, no changes to floor-route shapes. The foosball coworkers continue their small natural game as camera leaves. Existing employees at desks finish their tasks with brief mouse clicks. Five SMALL green check symbols appear ON five monitor screens successively, never floating in space, with simple abstract cards resolving. No readable text. Violet floor paths subtly brighten, maintaining the SAME layout. Beginning slow, middle accelerates gently, end decelerates into the provided stable overview. ONE backward rising move only, no orbit, no spin, no hard cut or morph. SOUND: typing, soft mouse clicks, several restrained success chimes, a very subtle rising electronic musical pulse, no dialogue or voiceover.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "jobId": "8449a9ca-c2a4-457e-b68d-dd610fef3c84",
+      "status": "rejected",
+      "startFrame": "176d189d-5e77-42fa-babb-b42e0f746b24",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_134322_8449a9ca-c2a4-457e-b68d-dd610fef3c84.mp4",
+      "reason": "End keyframe forced players to disappear from foosball and reappear at desks at ~4s. Retrying without conflicting end frame."
+    },
+    {
+      "index": 9,
+      "id": "completed",
+      "sourceDuration": 8,
+      "outputDuration": 7,
+      "description": "SCENE 9 — THE PAYOFF. This shot is the final resting point. Start EXACTLY from supplied last frame of return to cafe. Camera is COMPLETELY LOCKED OFF, no dolly, no zoom, no pan. Same graphite laptop centered on same walnut table, ivory cup to its right, warm morning cafe, people softly defocused. Very subtle coffee steam and tiny natural background life. Laptop screen remains dark navy/violet empty clean, planar and stable. Keep all foreground objects completely fixed. Do NOT generate any notifications, UI text, logo, captions or checkmarks. These will be added as clean native graphic layers later; leave laptop and its surrounding negative space clear. Premium commercial calm finish, soft light, no cuts. SOUND: quiet coffee-shop ambience; five delicate isolated success chimes spaced across first four seconds, then a very restrained short musical resolution, finish calm. No intelligible speech and no voiceover.",
+      "params": {
+        "model": "cinematic_studio_video_v2",
+        "aspect_ratio": "16:9",
+        "duration": 8,
+        "mode": "pro",
+        "sound": "on",
+        "speedramp": "custom",
+        "multi_shots": false,
+        "cfg_scale": 0.7,
+        "use_unlim": false,
+        "medias": [
+          {
+            "role": "start_image",
+            "value": "d1231411-706f-4d36-9f68-a300c3775752"
+          }
+        ],
+        "prompt": "VISUAL CONTINUITY BIBLE:\n\nThis film belongs to the same continuous cinematic universe.\n\nThe digital office is the Mokaid AI Office shown in the reference image:\na premium stylized 3D office environment, slightly isometric but fully volumetric,\ndark charcoal architecture, sophisticated violet and electric blue neon floor lighting,\nwarm amber practical lights, elegant desks, screens, plants, meeting room, coffee area,\nlounge area and foosball table.\n\nKeep the exact same architecture, furniture language, lighting palette and spatial identity\nthroughout every shot.\n\nThe AI employees are friendly premium stylized humanoid digital workers.\nThey are not metallic robots and not cartoon characters.\nThey look intelligent, approachable, professional and slightly futuristic.\nConsistent character design throughout the film.\n\nCinematic physically plausible camera movement.\nPremium global illumination.\nSoft volumetric light.\nRealistic depth of field.\nSubtle motion blur.\nHigh-end commercial cinematography.\nNo chaotic camera movement.\nNo sudden geometry changes.\nNo morphing furniture.\nNo disappearing characters.\nNo duplicated characters.\nNo warped screens.\nNo text generated inside screens unless specifically requested.\n\nEvery shot must feel like the camera is physically travelling through one continuous place.\nSmooth acceleration and deceleration.\nElegant ease-in and ease-out camera curves.\nNo hard cuts unless explicitly requested.\n\nSCENE 9 — THE PAYOFF. This shot is the final resting point. Start EXACTLY from supplied last frame of return to cafe. Camera is COMPLETELY LOCKED OFF, no dolly, no zoom, no pan. Same graphite laptop centered on same walnut table, ivory cup to its right, warm morning cafe, people softly defocused. Very subtle coffee steam and tiny natural background life. Laptop screen remains dark navy/violet empty clean, planar and stable. Keep all foreground objects completely fixed. Do NOT generate any notifications, UI text, logo, captions or checkmarks. These will be added as clean native graphic layers later; leave laptop and its surrounding negative space clear. Premium commercial calm finish, soft light, no cuts. SOUND: quiet coffee-shop ambience; five delicate isolated success chimes spaced across first four seconds, then a very restrained short musical resolution, finish calm. No intelligible speech and no voiceover.\n\nCAMERA MOTION LANGUAGE:\nThe camera movement must feel designed for interactive website scrollytelling.\nEvery major movement follows cinematic easing curves:\nstillness → gradual acceleration → fluid travel → gradual deceleration → stillness.\nNo constant-speed robotic camera movement.\nCreate natural visual resting points where the website can pause the video during scrolling.\nUse strong foreground parallax when travelling through the office.\nOccasionally pass close to desks, plants, chairs and characters to reinforce depth and immersion.\nMovement should feel like a premium interactive experience,\nsomewhere between an Apple product film, a Pixar environment exploration\nand a high-end architectural camera tour.\nNo shaky camera. No handheld movement. No whip pans. No random zooms. No hard transitions."
+      },
+      "jobId": "cf1155e7-6d12-4382-9725-7f7621ac01fb",
+      "status": "rejected",
+      "startFrame": "d1231411-706f-4d36-9f68-a300c3775752",
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3IzyO73Zdrk1FRjgePW5mupmEs9/hf_20260925_140543_cf1155e7-6d12-4382-9725-7f7621ac01fb.mp4",
+      "reason": "Generated OS/menu UI appears on laptop from~2s; camera drifts. Retrying identical first/last with strictly blank screen."
+    }
+  ]
+}

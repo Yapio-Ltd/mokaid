@@ -86,6 +86,10 @@ struct Scene {
   float sittingPelvisHeight{.58F};
   float sofaPelvisHeight{.70F};
   std::vector<HeadTrack> headTracks;
+  // Derived from the validated humanoid joint hierarchy, never guessed for an
+  // incompatible custom rig. These indices do not change the asset format.
+  std::int32_t gazeHead{-1}, gazeChest{-1}, gazeCrown{-1};
+  float gazeCrownOffset{};
   std::uint64_t residentBytes{};
 };
 struct Pose {
@@ -128,6 +132,10 @@ struct Instance {
   struct NodeTranslation { std::uint32_t node; Vec3 delta; };
   std::vector<NodeTranslation> nodeTranslations{};
   std::uint32_t surfaceMask{~0U};
+  // Additive rotations in scene space, around the joint's animated pivot.
+  // Ancestors precede descendants; translations and foot placement stay intact.
+  struct NodeRotation { std::uint32_t node; Vec4 rotation; };
+  std::vector<NodeRotation> nodeRotations{};
 };
 Pose evaluateInstancePose(const Instance &);
 Vec3 headPosition(const Scene &, std::span<const AnimationSample>);
@@ -145,5 +153,7 @@ struct Frame {
   std::uint64_t sequence{};
   float sceneSeconds{};
   std::vector<ActorIndicator> actorIndicators;
+  std::shared_ptr<const Texture> screenAtlas;
+  std::array<float, 9> screenActivity{};
 };
 } // namespace mokaid::engine

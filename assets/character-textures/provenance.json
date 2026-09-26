@@ -1,0 +1,218 @@
+{
+  "version": 1,
+  "description": "Original artist atlases recovered at 2048px from the pinned high-resolution GLBs. The catalog animation, geometry, material colors and UV layouts are retained. Recolored Byte, Nyx and Moss remain unchanged.",
+  "conversion": {
+    "sharp": "0.35.4",
+    "maxSize": 2048,
+    "kernel": "lanczos3",
+    "format": "webp",
+    "lossless": true,
+    "effort": 6
+  },
+  "sources": {
+    "avatar_legal": {
+      "catalogSourceSha256": "859687268a642c7644714cee5ebd5e9f72b6a4835c62140122f3f965f3364198",
+      "catalogImageSha256": "e40a52ed87ee05a19399061c89f84bd57d7b15437301b40a1de4d27f615c6674",
+      "catalogUvSha256": "68bc738da32effcf33c3fe5cf58bfca77bb05676890718e842e3dab2ee542045",
+      "path": "assets/character-textures/legal.51430ee2c9c2.webp",
+      "sha256": "51430ee2c9c2bb56fb413c78f32081fdd0d4690370272b4e4a041485a89ee4b2",
+      "width": 2048,
+      "height": 2048,
+      "original": {
+        "path": "assets/raw/legal/Meshy_AI_Create_a_beautiful_lo_biped_Character_output.glb",
+        "sha256": "47f6a9460cbaf8b569029eeb1905b4464bc4a8ffd8c213ee9290f3da554b0e90",
+        "imageIndex": 0,
+        "imageSha256": "cff5b44214d1c09c65189bc579069fc24934fed85bb083cd6211a07720f38966",
+        "width": 8192,
+        "height": 8192
+      },
+      "verification": {
+        "catalogResolution": [
+          1024,
+          1024
+        ],
+        "rgbaRmseAtCatalogResolution": 2.529091797987391,
+        "rgbaMeanAbsoluteError": 0.9802224636077881,
+        "uvMaxNearestDistance": 0.0002057685135859263,
+        "uvVertexCount": 13944,
+        "reconstructedCatalogWebP": {
+          "quality": 80,
+          "rgbRmse": 1.2299987218173036,
+          "byteIdentical": false
+        }
+      },
+      "bytes": 1470540,
+      "mimeType": "image/webp"
+    },
+    "avatar_developer": {
+      "catalogSourceSha256": "867211fc6b99e9d01df3626943f7155cfc7e6ad9fa5f7138bcc5263452770303",
+      "catalogImageSha256": "4df589b3f7568997a49e8e152fd9c9049a800d96e7c505c5183e09ccebdb29ef",
+      "catalogUvSha256": "304c7e67e682f4833c067520d131c8366e26c8b6353b671d282496a4cfba09fd",
+      "path": "assets/character-textures/developer.47c9d6efc494.webp",
+      "sha256": "47c9d6efc4946ccc23a8c54bd5f6798bd91e2df1b6d04be9580d6c332570a5a9",
+      "width": 2048,
+      "height": 2048,
+      "original": {
+        "path": "assets/raw/developer/Meshy_AI_Generate_a_Software_e_biped_Character_output.glb",
+        "sha256": "8ba78bc0633c69bd08e3ae050619f89e0a0fbdd7022ef3c48382fe89ddbad436",
+        "imageIndex": 0,
+        "imageSha256": "3cdb55511800568abb8c2772310b5402733757d9285af3b7d7102bbc9816bca8",
+        "width": 8192,
+        "height": 8192
+      },
+      "verification": {
+        "catalogResolution": [
+          1024,
+          1024
+        ],
+        "rgbaRmseAtCatalogResolution": 3.152174026855284,
+        "rgbaMeanAbsoluteError": 1.7302627563476562,
+        "uvMaxNearestDistance": 0.00020823273145632057,
+        "uvVertexCount": 86851,
+        "reconstructedCatalogWebP": {
+          "quality": 80,
+          "rgbRmse": 0,
+          "byteIdentical": true
+        }
+      },
+      "bytes": 3865312,
+      "mimeType": "image/webp"
+    },
+    "avatar_research": {
+      "catalogSourceSha256": "7c86fc428e9f339c9ecb0b75425c178b1649812b09e5ae8d6f08f8e6c26f40ca",
+      "catalogImageSha256": "4cf815f4983bb5fafc6c4c7144a2c982677e9f1f5b87ff9b7ef579cac6e47faf",
+      "catalogUvSha256": "4425aef8710a148bf940775dd634c71eb6b0eb148c8de470ae3120123a377b23",
+      "path": "assets/character-textures/research.0b0081670208.webp",
+      "sha256": "0b00816702085f3985322c9b11b0da81ea8d017065b8d2683ba106be83ff7b5b",
+      "width": 2048,
+      "height": 2048,
+      "original": {
+        "path": "assets/raw/research/Meshy_AI_J_aimerai_que_tu_fass_biped_Animation_Walking_withSkin.glb",
+        "sha256": "e40c650c91314ee32d79c00b3b68caef1aa1037e6d8faf0dde6edd1d91a8cbda",
+        "imageIndex": 0,
+        "imageSha256": "304882f18b6af48b4dd7671e01f10af5cb6b9e4708d543577d6b8de2e29f9cf5",
+        "width": 8192,
+        "height": 8192
+      },
+      "verification": {
+        "catalogResolution": [
+          1024,
+          1024
+        ],
+        "rgbaRmseAtCatalogResolution": 4.448532413264678,
+        "rgbaMeanAbsoluteError": 2.155871868133545,
+        "uvMaxNearestDistance": 0.00021008860271126337,
+        "uvVertexCount": 35798,
+        "reconstructedCatalogWebP": {
+          "quality": 80,
+          "rgbRmse": 1.9483448176810998,
+          "byteIdentical": false
+        }
+      },
+      "bytes": 3038934,
+      "mimeType": "image/webp"
+    },
+    "avatar_corporate": {
+      "catalogSourceSha256": "b2951a24cd0219ffd306353c2fd31c37aae1760ea802f4378010cb67ab1e0a0c",
+      "catalogImageSha256": "8afe6f4482306d9d7eea8cee4384d7aac33f84b5d3924c7d1eca5f741edcef76",
+      "catalogUvSha256": "f4ba8893280aebd74a191b1e91a69d0db7b10e16fb749cbfb7438913bcbe28d2",
+      "path": "assets/character-textures/corporate.835e0134509e.webp",
+      "sha256": "835e0134509e2765eeb81acb9e0e7eae6b6bc4f93db0d50efdb0d620d14264e4",
+      "width": 2048,
+      "height": 2048,
+      "original": {
+        "path": "assets/raw/corporate/Meshy_AI_Corporate_A_Pose_Avat_biped_Character_output.glb",
+        "sha256": "2d8f948bb5f5f5bc67d359f662bf482f49b8691ab659971d9404b28c666712c6",
+        "imageIndex": 0,
+        "imageSha256": "098042f9d04fb235b61c27336122eea5d906d834affbd89bbc0794ad64133aa5",
+        "width": 4096,
+        "height": 4096
+      },
+      "verification": {
+        "catalogResolution": [
+          1024,
+          1024
+        ],
+        "rgbaRmseAtCatalogResolution": 2.253267035590589,
+        "rgbaMeanAbsoluteError": 0.9275045394897461,
+        "uvMaxNearestDistance": 0.00020730163837268074,
+        "uvVertexCount": 61618,
+        "reconstructedCatalogWebP": {
+          "quality": 80,
+          "rgbRmse": 0,
+          "byteIdentical": true
+        }
+      },
+      "bytes": 3000926,
+      "mimeType": "image/webp"
+    },
+    "avatar_finance": {
+      "catalogSourceSha256": "1db634ff8a82cc9911aa224b25a38efde26034a389fc500a11cdae1875be6eba",
+      "catalogImageSha256": "79981e6cff211e2083223c9137fdc8c5b5b9cf2c4deedd4a6b5ca6aa04494431",
+      "catalogUvSha256": "20e961570debe31f18280ad82f645dc4221abfe944dadc3c46e092df268ca308",
+      "path": "assets/character-textures/finance.f9aa49f2bdcd.webp",
+      "sha256": "f9aa49f2bdcdf80f834d26b01b9a6688411b110e8b6ecfcece686846d44a7cad",
+      "width": 2048,
+      "height": 2048,
+      "original": {
+        "path": "assets/raw/feminine_finance/Femal_finance_Character_V3_Rigg_biped_Character_output.glb",
+        "sha256": "2c90600e937934f228d64950dd3b8ae3b9d1a1f1d4a05e9d5bc74a57bc799fcb",
+        "imageIndex": 0,
+        "imageSha256": "94e205937635fcbca084276d2c3387220c0d86332655cdad9226f3c419302496",
+        "width": 4096,
+        "height": 4096
+      },
+      "verification": {
+        "catalogResolution": [
+          1024,
+          1024
+        ],
+        "rgbaRmseAtCatalogResolution": 3.7651662586682435,
+        "rgbaMeanAbsoluteError": 1.6073637008666992,
+        "uvMaxNearestDistance": 0.00020110615096856647,
+        "uvVertexCount": 10759,
+        "reconstructedCatalogWebP": {
+          "quality": 80,
+          "rgbRmse": 0,
+          "byteIdentical": true
+        }
+      },
+      "bytes": 3360052,
+      "mimeType": "image/webp"
+    },
+    "avatar_design": {
+      "catalogSourceSha256": "1c0dba698d817f42263efdc62c82d528eef0c5840f254d246ca618bd9658960c",
+      "catalogImageSha256": "4ce777d0f2a32fdde0688afbc257eb3c1799399b10e0d38a20952490c0c4cf1a",
+      "catalogUvSha256": "22aeaa48cef39add02ddc22d14dffb9c4faa03e15071fcb498a87e0d18278450",
+      "path": "assets/character-textures/design.ce19082a6dc8.webp",
+      "sha256": "ce19082a6dc894e09901c0b4b030502b60ea35afde72a84181ab2f871d7185bd",
+      "width": 2048,
+      "height": 2048,
+      "original": {
+        "path": "assets/raw/feminine/Stylish_Feminine_Char_biped_Character_output.glb",
+        "sha256": "17325dcb7d564743be82ac9ae1b73ca85b80230e02a005745a5d65128e6095bb",
+        "imageIndex": 0,
+        "imageSha256": "a280611df0bc6648f5deee494f85cc8879b91ac060a93fc1448962b02cfbe0bf",
+        "width": 4096,
+        "height": 4096
+      },
+      "verification": {
+        "catalogResolution": [
+          1024,
+          1024
+        ],
+        "rgbaRmseAtCatalogResolution": 5.986466064855246,
+        "rgbaMeanAbsoluteError": 2.9354045391082764,
+        "uvMaxNearestDistance": 0.000207831050301053,
+        "uvVertexCount": 15171,
+        "reconstructedCatalogWebP": {
+          "quality": 80,
+          "rgbRmse": 4.2960374420447645,
+          "byteIdentical": false
+        }
+      },
+      "bytes": 4688948,
+      "mimeType": "image/webp"
+    }
+  }
+}

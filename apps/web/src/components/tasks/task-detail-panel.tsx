@@ -19,20 +19,15 @@ import {
   Paperclip,
   Play,
   RefreshCw,
-  ShieldAlert,
   Sparkles,
   Square,
   Trash2,
-  ThumbsDown,
-  ThumbsUp,
-  Undo2,
 } from "lucide-react";
 import { fetchDriveFileBlob } from "@/api/client";
 import { isTextPreviewable } from "@/lib/file-parsers";
 import type { Agent, TaskAttachment, TaskRunToolCall } from "@/api/types";
 import {
   useAgents,
-  useApproveTaskAction,
   useAttachTaskFile,
   useDeleteTask,
   useExecuteAi,
@@ -48,14 +43,13 @@ import { MarkdownView } from "@/components/ui/markdown-view";
 import { openDeliverable } from "@/stores/deliverable-store";
 import { DeployActions } from "@/components/deliverables/deploy-actions";
 import { CodebaseCard } from "@/components/deliverables/codebase-card";
-import {
-  SiteDeliveryChoice,
-  isSiteDeliveryChoice,
-} from "@/components/approvals/site-delivery-choice";
+import { TaskResponseFeedback } from "@/components/tasks/task-response-feedback";
+import { TaskAgentRequest } from "@/components/tasks/task-agent-request";
 import { toast } from "@/stores/toast-store";
 import { motion } from "framer-motion";
 import { useMissionPlanStore, type MissionPlanStep } from "@/stores/mission-plan-store";
 import { RunHistory, RunTimeline } from "@/components/tasks/run-timeline";
+import { TaskRuntimeProgress } from "@/components/tasks/task-runtime-progress";
 import { useChatStore } from "@/stores/chat-store";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -466,7 +460,6 @@ export function TaskDetailPanel({
   const { data: projectsData } = useProjects();
   const toggleSubtask = useToggleSubtask();
   const updateTask = useUpdateTask();
-  const approveAction = useApproveTaskAction();
   const executeAi = useExecuteAi();
   const stopAi = useStopTaskAi();
   const deleteTask = useDeleteTask();
@@ -494,8 +487,9 @@ export function TaskDetailPanel({
   const plan = livePlan ?? run?.plan ?? [];
   const pendingApproval = task?.pending_approval ?? null;
   const waitingApproval = run?.status === "waiting_for_approval" || pendingApproval != null;
+  const exportingPdf = pendingApproval?.tool_name === "export_pdf";
   const agentWorking =
-    !waitingApproval && run != null && ["queued", "running"].includes(run.status);
+    exportingPdf || (!waitingApproval && run != null && ["queued", "running"].includes(run.status));
   const runFailed = run?.status === "failed" && task?.status !== "completed";
   const canRetry =
     task != null && !["completed", "canceled"].includes(task.status) && !agentWorking;
@@ -526,29 +520,6 @@ export function TaskDetailPanel({
     if (!chatAgentId) return;
     openChat(chatAgentId, task?.conversation_id ?? null);
   };
-
-  const decide = (decision: "approved" | "rejected") => {
-    if (!task || !pendingApproval) return;
-    approveAction.mutate({
-      taskId: task.id,
-      approvalRequestId: pendingApproval.id,
-      decision,
-    });
-  };
-
-  const chooseSiteDelivery = (delivery: "html" | "webapp") => {
-    if (!task || !pendingApproval) return;
-    approveAction.mutate({
-      taskId: task.id,
-      approvalRequestId: pendingApproval.id,
-      decision: "edited",
-      payload: { delivery },
-    });
-  };
-
-  const siteDeliveryPayload = isSiteDeliveryChoice(pendingApproval?.input_payload)
-    ? pendingApproval.input_payload
-    : null;
 
   const retry = () => {
     if (!task) return;
@@ -650,7 +621,7 @@ export function TaskDetailPanel({
                 <span className="font-semibold text-text">
                   {task.assigned_agent_name ?? "Agent"}
                 </span>{" "}
-                {run?.status === "queued" ? "is queued…" : "is working…"}
+                {exportingPdf ? "is exporting the PDF…" : run?.status === "queued" ? "is queued…" : "is working…"}
               </p>
               <Button
                 size="sm"
@@ -671,6 +642,9 @@ export function TaskDetailPanel({
 
           {/* Chronological tool activity: what the agent actually does, live. */}
           <RunTimeline taskId={task.id} run={run} working={agentWorking} />
+          <TaskRuntimeProgress runtime={run?.output?.runtime} attachments={outputs} taskId={task.id} runId={run?.id} />
+
+          {waitingApproval && <TaskAgentRequest taskId={task.id} request={pendingApproval} />}
 
           {/* Idle to_do task with an AI agent: one click to launch. */}
           {task.status === "to_do" && task.assigned_agent_id && !agentWorking && !waitingApproval && (
@@ -681,125 +655,6 @@ export function TaskDetailPanel({
             >
               <Play size={13} /> Start the mission with {task.assigned_agent_name ?? "the agent"}
             </Button>
-          )}
-
-          {/* Approval needed: the agent paused and waits for a human decision. */}
-          {waitingApproval && pendingApproval && (
-            <div className="rounded-xl bg-warning/10 px-4 py-3.5">
-              <div className="flex items-start gap-2.5">
-                <ShieldAlert size={15} className="mt-0.5 shrink-0 text-warning" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-semibold text-text">
-                    {siteDeliveryPayload
-                      ? "How should we deliver this site?"
-                      : `${task.assigned_agent_name ?? "The agent"} needs your approval`}
-                  </p>
-                  <p className="mt-0.5 text-[11px] leading-snug text-text-secondary">
-                    {pendingApproval.proposed_action}
-                  </p>
-                  {!siteDeliveryPayload && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <Badge tone="muted">{pendingApproval.tool_name}</Badge>
-                      <span
-                        className={
-                          "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
-                          (["high", "critical"].includes(pendingApproval.risk_level)
-                            ? "bg-danger/15 text-danger"
-                            : "bg-warning/15 text-warning")
-                        }
-                      >
-                        {pendingApproval.risk_level} risk
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {siteDeliveryPayload ? (
-                <div className="mt-3">
-                  <SiteDeliveryChoice
-                    payload={siteDeliveryPayload}
-                    busy={approveAction.isPending}
-                    onChoose={chooseSiteDelivery}
-                  />
-                </div>
-              ) : (
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    size="sm"
-                    className="flex-1 gap-1.5"
-                    loading={approveAction.isPending}
-                    onClick={() => decide("approved")}
-                  >
-                    <ThumbsUp size={12} /> Approve
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="flex-1 gap-1.5"
-                    disabled={approveAction.isPending}
-                    onClick={() => decide("rejected")}
-                  >
-                    <ThumbsDown size={12} /> Reject
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Orphaned wait: the run says "waiting" but no approval exists to
-              decide on (e.g. worker restarted). Offer a clean restart. */}
-          {waitingApproval && !pendingApproval && (
-            <div className="rounded-xl bg-warning/10 px-4 py-3.5">
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle size={15} className="mt-0.5 shrink-0 text-warning" />
-                <div>
-                  <p className="text-[12px] font-semibold text-text">
-                    The agent is stuck waiting
-                  </p>
-                  <p className="mt-0.5 text-[11px] leading-snug text-text-secondary">
-                    Its approval request could not be found. Restart the mission to continue.
-                  </p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                className="mt-3 w-full gap-1.5"
-                loading={executeAi.isPending}
-                onClick={retry}
-              >
-                <RefreshCw size={12} /> Restart mission
-              </Button>
-            </div>
-          )}
-
-          {task.status === "in_review" && !agentWorking && (
-            <div className="rounded-xl bg-primary/8 px-4 py-3.5">
-              <div className="flex items-center gap-2.5">
-                <Sparkles size={15} className="shrink-0 text-primary" />
-                <p className="text-[12px] leading-snug text-text-secondary">
-                  <span className="font-semibold text-text">Ready for review</span>. Check the
-                  output below.
-                </p>
-              </div>
-              <div className="mt-3 flex gap-2">
-                <Button
-                  size="sm"
-                  className="flex-1 gap-1.5"
-                  loading={updateTask.isPending}
-                  onClick={() => patch({ status: "completed" })}
-                >
-                  <ThumbsUp size={12} /> Approve
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="flex-1 gap-1.5"
-                  onClick={() => patch({ status: "in_progress" })}
-                >
-                  <Undo2 size={12} /> Revise
-                </Button>
-              </div>
-            </div>
           )}
 
           {runFailed && !waitingApproval && (
@@ -1000,6 +855,16 @@ export function TaskDetailPanel({
                 ))}
               </div>
             </Section>
+          )}
+
+          {run?.output?.summary && (
+            <Section title="Response">
+              <MarkdownView markdown={run.output.summary} />
+            </Section>
+          )}
+
+          {run != null && !agentWorking && task.status !== "canceled" && (
+              <TaskResponseFeedback task={task} />
           )}
 
           {/* Attachments — always visible so users can hand the agent new

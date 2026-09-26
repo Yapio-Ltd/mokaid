@@ -7,7 +7,7 @@ var pages = {
     projects: { subtitle: "A clear view of what your team is building.", primary: "create", action: "New project", icon: "projects", empty: "Make room for your next project", hint: "Organize a goal, its tasks, and the people bringing it to life.", view: "grid" },
     drive: { subtitle: "Everything your workspace creates, together.", primary: "upload", action: "Upload file", icon: "folder", empty: "A place for your team's work", hint: "Upload a file or create a folder to keep your work organized.", view: "grid" },
     calendar: { subtitle: "Make time for the work that matters.", primary: "create", action: "New event", icon: "calendar", empty: "Your schedule is clear", hint: "Add a meeting, milestone, or deadline to your calendar.", view: "calendar" },
-    mail: { subtitle: "Your connected mail, ready for a closer look.", primary: "sync", action: "Sync mailbox", icon: "mail", empty: "Your inbox is quiet", hint: "Review your connected accounts or synchronize a mailbox to bring messages here.", view: "list" },
+    mail: { subtitle: "All your inboxes, together in one workspace.", primary: "connect", action: "Connect mailbox", icon: "mail", empty: "Your inbox is quiet", hint: "Review your connected accounts or synchronize a mailbox to bring messages here.", view: "list" },
     analytics: { subtitle: "Understand how work moves through your workspace.", primary: "tasks", action: "Task report", icon: "analytics", view: "summary" },
     settings: { subtitle: "Make this workspace feel like yours.", primary: "edit", action: "Edit workspace", icon: "settings", view: "summary" },
     profile: { subtitle: "Your identity and preferences across the workspace.", primary: "edit", action: "Edit profile", icon: "profile", view: "summary" },
@@ -112,22 +112,34 @@ function taskSubtasks(r) {
     var completed=typeof r.subtask_done_count==="number" ? Math.max(0,Math.min(total,r.subtask_done_count)) : 0;
     return {total:total,completed:completed};
 }
+function taskRuntime(r) {
+    var runtime=(((r || {}).latest_run || {}).output || {}).runtime;
+    return runtime && runtime.engine === "openai_agents" ? runtime : {};
+}
+function runtimeStatus(state) {
+    var labels={queued:"Queued",running:"Working",in_progress:"Working",completed:"Completed",failed:"Could not finish",canceled:"Stopped",cancelled:"Stopped",waiting_for_budget:"Paused: credit limit reached",budget_exhausted:"Paused: credit limit reached",waiting_for_approval:"Waiting for your approval",waiting_for_user_input:"Waiting for your input",collecting:"Combining contributions",verifying:"Checking the result"};
+    return labels[state] || human(state || "");
+}
+function runtimeCredits(value) {
+    return typeof value === "number" && isFinite(value) && value >= 0 ? String(Math.round(value * 100) / 100) : "Unavailable";
+}
 function taskRunState(r) {
-    if(seoChoicePause(r)) return "report";
-    if(r.pending_approval || (r.latest_run || {}).status==="waiting_for_approval") return "approval";
     var state=(r.latest_run || {}).status;
+    if (["waiting_for_budget","budget_exhausted"].indexOf(taskRuntime(r).status)>=0 || state==="waiting_for_budget") return "budget";
     if(state==="queued" || state==="running") return "running";
+    if(r.pending_approval || state==="waiting_for_approval") return "feedback";
     if(state==="failed" && r.status!=="completed") return "failed";
     return "";
 }
+function taskResponse(r) {
+    var output=(r.latest_run || {}).output || {};
+    if(typeof output === "string") return output;
+    return first(output, ["summary", "response", "text", "content"], "");
+}
 function taskHint(r) {
     var run=taskRunState(r);
-    if(run==="report") return (r.assigned_agent_name || "L'agent")+" écrit le compte rendu SEO de ce site.";
-    if(run==="approval") {
-        var approval=r.pending_approval||{};
-        if(approval.proposed_action) return approval.proposed_action;
-        return "Your agent is waiting for a decision. Review the requested action to continue.";
-    }
+    if(run==="budget") return "The mission reached its credit allowance. Review the available results before continuing.";
+    if(run==="feedback") return "Tell your agent what to do next to finish this task.";
     if(run==="running") return "Your agent is working. Open execution history to follow its activity.";
     if(run==="failed") return "The last run could not finish. Review its history before trying again.";
     if(r.status==="completed") return "This task is complete. Its deliverables and conversation stay available here.";

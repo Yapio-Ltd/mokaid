@@ -1,0 +1,90 @@
+[
+  {
+    "clip": "01-cafe",
+    "source": "artifacts/mokaid-cinema-2026-09-25/clips/01-cafe.mp4",
+    "width": 1912,
+    "height": 1080,
+    "videoDuration": "8.041667",
+    "sampleFrames": [
+      0,
+      48,
+      96,
+      144,
+      192
+    ],
+    "sampleTimes": [
+      0.0,
+      2.0,
+      4.0,
+      6.0,
+      8.0
+    ],
+    "contactSheet": "artifacts/mokaid-cinema-2026-09-25/production/review/accepted-01-cafe-center-crops.jpg"
+  },
+  {
+    "clip": "02-approach",
+    "source": "artifacts/mokaid-cinema-2026-09-25/clips/02-approach.mp4",
+    "width": 1916,
+    "height": 1080,
+    "videoDuration": "8.041667",
+    "sampleFrames": [
+      0,
+      48,
+      96,
+      144,
+      192
+    ],
+    "sampleTimes": [
+      0.0,
+      2.0,
+      4.0,
+      6.0,
+      8.0
+    ],
+    "contactSheet": "artifacts/mokaid-cinema-2026-09-25/production/review/accepted-02-approach-center-crops.jpg"
+  },
+  {
+    "clip": "03-portal",
+    "source": "artifacts/mokaid-cinema-2026-09-25/clips/03-portal.mp4",
+    "width": 1916,
+    "height": 1080,
+    "videoDuration": "8.041667",
+    "sampleFrames": [
+      0,
+      48,
+      96,
+      144,
+      192
+    ],
+    "sampleTimes": [
+      0.0,
+      2.0,
+      4.0,
+      6.0,
+      8.0
+    ],
+    "contactSheet": "artifacts/mokaid-cinema-2026-09-25/production/review/accepted-03-portal-center-crops.jpg"
+  },
+  {
+    "clip": "04-office",
+    "source": "artifacts/mokaid-cinema-2026-09-25/clips/04-office.mp4",
+    "width": 1916,
+    "height": 1080,
+    "videoDuration": "12.041667",
+    "sampleFrames": [
+      0,
+      72,
+      144,
+      216,
+      288
+    ],
+    "sampleTimes": [
+      0.0,
+      3.0,
+      6.0,
+      9.0,
+      12.0
+    ],
+    "contactSheet": "artifacts/mokaid-cinema-2026-09-25/production/review/accepted-04-office-center-crops.jpg"
+  }
+]

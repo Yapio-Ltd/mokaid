@@ -200,6 +200,17 @@ def resolve_web_research(
     return False, ""
 
 
+def _public_site_review(text: str) -> bool:
+    """A generic audit (for example source-code security) is not web research."""
+    from app.tools.site_delivery import is_existing_site_review
+
+    return bool(is_existing_site_review(text) and re.search(
+        r"\b(?:seo|référencement|referencement|site|website|web|google|backlinks?|"
+        r"keywords?|mots?[- ]cl[ée]s?|crawl|indexation)\b|https?://|\b[\w-]+\.(?:com|org|net|fr|io)\b",
+        text, re.IGNORECASE,
+    ))
+
+
 def detect_mission_kind(request: RunRequest) -> str:
     """An SEO review of an existing site stays research, even if metadata says website."""
     text = " ".join(
@@ -213,9 +224,7 @@ def detect_mission_kind(request: RunRequest) -> str:
         )
     ).lower()
 
-    from app.tools.site_delivery import is_existing_site_review
-
-    if is_existing_site_review(text):
+    if _public_site_review(text):
         return "research"
 
     meta_kind = (request.input or {}).get("mission_kind")
@@ -264,6 +273,40 @@ def detect_mission_kind(request: RunRequest) -> str:
     return "general"
 
 
+def requires_web_research(request: RunRequest) -> bool:
+    """Keep live research requirements even when the deliverable is a report."""
+    instruction = str(request.input.get("instruction") or "").strip()
+    # Follow-up packaging of an already completed research report does not
+    # require repeating research merely because its original title says so.
+    if re.match(r"^(?:export\w*|convert\w*|format\w*|mets?\s+en\s+page|tradui\w*|translat\w*)\b", instruction, re.I) and not re.search(
+        r"\b(?:and|then|et|puis)\s+(?:recherch\w*|search\w*|research\w*|v[ée]rifi\w*|verify|check|actualis\w*|update)\b",
+        instruction, re.I,
+    ):
+        return False
+    text = " ".join(str(value or "") for value in (
+        request.task_title, request.task_description, request.input.get("instruction"),
+    ))
+    return (
+        detect_mission_kind(request) == "research"
+        or looks_like_research(text)
+        or _public_site_review(text)
+    )
+
+
+def research_report_requested(request: RunRequest) -> bool:
+    """An explicit research-and-report brief needs an artifact as well as facts."""
+    if not requires_web_research(request):
+        return False
+    text = " ".join(str(value or "") for value in (
+        request.task_title, request.task_description, request.input.get("instruction"),
+    ))
+    return bool(
+        _EXPLICIT_REPORT_RE.search(text)
+        or re.search(r"\b(?:research|recherche)\s+(?:and|et)\s+report\b", text, re.I)
+        or re.search(r"\b(?:report|rapport)\s+(?:on|of|about|sur|de|d['’])\b", text, re.I)
+    )
+
+
 def required_tool_for_kind(kind: str) -> str | None:
     return {
         "website": "generate_website",
@@ -298,9 +341,12 @@ def web_search_succeeded(tool_calls: list[Any]) -> bool:
     for call in tool_calls:
         tool = getattr(call, "tool", None) or (call.get("tool") if isinstance(call, dict) else None)
         output = getattr(call, "output", None) or (call.get("output") if isinstance(call, dict) else None)
-        if tool != "web_search":
+        approved = call.get("approved") if isinstance(call, dict) else getattr(call, "approved", None)
+        if tool != "web_search" or approved is False:
             continue
-        if isinstance(output, dict) and not output.get("error") and (output.get("results") is not None):
+        # An empty list is a real, successful lookup with no matches. An absent
+        # or malformed payload is not evidence that a search ran.
+        if isinstance(output, dict) and not output.get("error") and isinstance(output.get("results"), list):
             return True
     return False
 
