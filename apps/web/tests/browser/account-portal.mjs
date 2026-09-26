@@ -212,7 +212,7 @@ try {
           const header = page.locator("header").first();
           await header.getByRole("link", { name: "Download", exact: true }).waitFor();
           if (viewport.width < 768) {
-            await header.getByRole("button", { name: "Open menu", exact: true }).click();
+            await header.getByLabel("Open menu", { exact: true }).click();
           }
           await header.getByRole("link", { name: signedIn ? "My account" : "Sign in", exact: true }).waitFor();
           if (viewport.width < 768) {
