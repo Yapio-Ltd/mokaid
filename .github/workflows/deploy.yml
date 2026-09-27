@@ -229,6 +229,7 @@ jobs:
       - name: Test exact production images in isolated ephemeral staging
         timeout-minutes: 15
         env:
+          STAGING_PLATFORM: linux/arm64
           API_IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-api@${{ steps.api_image.outputs.digest }}
           WEB_IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-web@${{ steps.web_image.outputs.digest }}
           CRM_IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-crm@${{ steps.crm_image.outputs.digest }}

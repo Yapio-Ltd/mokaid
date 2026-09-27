@@ -91,6 +91,8 @@ def test_exact_scanned_images_pass_staging_before_production_mutations():
             + "_image.outputs.digest }}"
         )
     assert stage["env"]["MOKAID_DESKTOP_ONLY_BUSINESS"] == "${{ env.DESKTOP_ONLY }}"
+    assert stage["env"]["STAGING_PLATFORM"] == "linux/arm64"
+    assert "DOCKER_DEFAULT_PLATFORM" not in stage["env"]
     assert "continue-on-error" not in stage
 
 

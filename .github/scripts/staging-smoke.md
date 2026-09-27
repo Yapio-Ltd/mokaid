@@ -13,6 +13,13 @@ image content selected for the production release. It creates no AWS resources.
 - Optional `CRM_IMAGE`: same immutable contract; adds CRM startup/login HTML.
 - Optional `WORKER_IMAGE`: same immutable contract; adds real uvicorn startup,
   successful `/health` JSON and anonymous `GET /runs/fixture-validation` 401.
+- Optional `STAGING_PLATFORM`: literal `linux/arm64` or `linux/amd64`. Production
+  sets `linux/arm64` so an AMD64 runner still tests the ECS application images.
+  Each remote application digest is pulled for this platform even if cached;
+  its inspected OS/architecture must match before any container is created.
+  Creation explicitly selects that platform and the verified immutable image
+  ID. PostgreSQL and Node fixtures stay native. Without this option local runs
+  retain Docker's native selection; `DOCKER_DEFAULT_PLATFORM` is never inherited.
 - Optional `MOKAID_DESKTOP_ONLY_BUSINESS`: literal `true` or `false`, default
   `false`. This is not the signed-desktop readiness gate; the release workflow
   must enforce that gate independently before enabling the production flag.
@@ -31,6 +38,11 @@ pulls or resource creation. The job needs permission to pull the exact image ref
 containers do not receive the runner's registry credentials. Pulls happen before
 the isolated network is created. All image references resolve to content IDs;
 the created containers' actual image IDs and sole network are checked.
+Platform validation supports the deployment runner's Docker API 1.48: it uses
+explicit `pull --platform`, ordinary image inspection and `create --platform`,
+not the newer `image inspect --platform` option. If an image store resolves the
+index to another architecture after pulling, the gate fails closed. Local image
+IDs are inspected for the same OS/architecture match and are never pulled.
 
 Run after scans of those same immutable image digests and before registering or
 updating ECS task definitions. A failed smoke or incomplete cleanup returns 1;
@@ -42,6 +54,7 @@ API_IMAGE=registry.example/api@sha256:... \
 WEB_IMAGE=registry.example/web@sha256:... \
 CRM_IMAGE=registry.example/crm@sha256:... \
 WORKER_IMAGE=registry.example/ai-worker@sha256:... \
+STAGING_PLATFORM=linux/arm64 \
 STAGING_DIAGNOSTICS_DIR="$RUNNER_TEMP/mokaid-staging-diagnostics" \
 python3 .github/scripts/staging_smoke.py
 ```
