@@ -1,0 +1,254 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "Phase A only: paid Basic signing account, UAMI/FIC, human identity verifier. No certificate profile or CI signer role."
+  },
+  "parameters": {
+    "subscriptionId": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "metadata": {
+        "description": "Expected subscription. Use this exact CLI --subscription and check the authenticated context as documented in README.md."
+      }
+    },
+    "tenantId": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "metadata": {
+        "description": "Expected tenant; compare it with az account show before validation or deployment. This parameter does not switch tenants."
+      }
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "defaultValue": "rg-mokaid-signing-prod",
+      "minLength": 1,
+      "maxLength": 90
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "westeurope",
+      "allowedValues": [
+        "westeurope"
+      ]
+    },
+    "signingAccountName": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 24
+    },
+    "managedIdentityName": {
+      "type": "string",
+      "defaultValue": "id-mokaid-signing-stable",
+      "minLength": 3,
+      "maxLength": 128
+    },
+    "operatorObjectId": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "metadata": {
+        "description": "Object ID of the authenticated human operator in the target tenant, never a service principal."
+      }
+    },
+    "identityVerifierRoleId": {
+      "type": "string",
+      "defaultValue": "4339b7cf-9826-4e41-b4ed-c7f4505dac08",
+      "allowedValues": [
+        "4339b7cf-9826-4e41-b4ed-c7f4505dac08"
+      ],
+      "metadata": {
+        "description": "Built-in Artifact Signing Identity Verifier, resolved live on 2026-09-27."
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "application": "mokaid",
+        "environment": "production",
+        "purpose": "desktop-windows-signing",
+        "managed-by": "arm"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2024-03-01",
+      "name": "[parameters('resourceGroupName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2024-03-01",
+      "name": "[format('{0}-phase-a', parameters('resourceGroupName'))]",
+      "subscriptionId": "[parameters('subscriptionId')]",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupName'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "signingAccountName": {
+            "value": "[parameters('signingAccountName')]"
+          },
+          "managedIdentityName": {
+            "value": "[parameters('managedIdentityName')]"
+          },
+          "operatorObjectId": {
+            "value": "[parameters('operatorObjectId')]"
+          },
+          "identityVerifierRoleId": {
+            "value": "[parameters('identityVerifierRoleId')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "signingAccountName": {
+              "type": "string"
+            },
+            "managedIdentityName": {
+              "type": "string"
+            },
+            "operatorObjectId": {
+              "type": "string"
+            },
+            "identityVerifierRoleId": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "variables": {
+            "signingAccountId": "[resourceId('Microsoft.CodeSigning/codeSigningAccounts', parameters('signingAccountName'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CodeSigning/codeSigningAccounts",
+              "apiVersion": "2025-10-13",
+              "name": "[parameters('signingAccountName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "name": "Basic"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2024-11-30",
+              "name": "[parameters('managedIdentityName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {}
+            },
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials",
+              "apiVersion": "2024-11-30",
+              "name": "[format('{0}/github-desktop-signing-stable', parameters('managedIdentityName'))]",
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]"
+              ],
+              "properties": {
+                "issuer": "https://token.actions.githubusercontent.com",
+                "subject": "repo:Yapio-Ltd/mokaid:environment:desktop-signing-stable",
+                "audiences": [
+                  "api://AzureADTokenExchange"
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(variables('signingAccountId'), parameters('operatorObjectId'), parameters('identityVerifierRoleId'))]",
+              "scope": "[variables('signingAccountId')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.CodeSigning/codeSigningAccounts', parameters('signingAccountName'))]"
+              ],
+              "properties": {
+                "principalId": "[parameters('operatorObjectId')]",
+                "principalType": "User",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('identityVerifierRoleId'))]",
+                "description": "Human operator completes organization identity validation in the Azure portal."
+              }
+            }
+          ],
+          "outputs": {
+            "signingAccountResourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.CodeSigning/codeSigningAccounts', parameters('signingAccountName'))]"
+            },
+            "managedIdentityResourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]"
+            },
+            "managedIdentityPrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2024-11-30').principalId]"
+            },
+            "managedIdentityClientId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName')), '2024-11-30').clientId]"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "actualSubscriptionId": {
+      "type": "string",
+      "value": "[subscription().subscriptionId]"
+    },
+    "actualTenantId": {
+      "type": "string",
+      "value": "[tenant().tenantId]"
+    },
+    "expectedTenantId": {
+      "type": "string",
+      "value": "[parameters('tenantId')]"
+    },
+    "signingAccountResourceId": {
+      "type": "string",
+      "value": "[reference(format('{0}-phase-a', parameters('resourceGroupName'))).outputs.signingAccountResourceId.value]"
+    },
+    "managedIdentityPrincipalId": {
+      "type": "string",
+      "value": "[reference(format('{0}-phase-a', parameters('resourceGroupName'))).outputs.managedIdentityPrincipalId.value]"
+    },
+    "githubEnvironment": {
+      "type": "string",
+      "value": "desktop-signing-stable"
+    },
+    "githubEnvironmentVariables": {
+      "type": "object",
+      "value": {
+        "MOKAID_AZURE_CLIENT_ID": "[reference(format('{0}-phase-a', parameters('resourceGroupName'))).outputs.managedIdentityClientId.value]",
+        "MOKAID_AZURE_TENANT_ID": "[tenant().tenantId]",
+        "MOKAID_AZURE_SUBSCRIPTION_ID": "[subscription().subscriptionId]",
+        "MOKAID_AZURE_SIGNING_ENDPOINT": "https://weu.codesigning.azure.net",
+        "MOKAID_AZURE_SIGNING_ACCOUNT": "[parameters('signingAccountName')]"
+      }
+    }
+  }
+}

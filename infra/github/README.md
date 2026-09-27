@@ -257,3 +257,15 @@ to use the `mokaid-github-policy` wrapper. Normal CI usage needs no completion.
 
 The client pins REST version `2022-11-28`. Revalidate the documented schema and
 tests before changing that API version or the fixed release/ref contract.
+
+## Windows signing identifiers
+
+The release matrix selects `MOKAID_WINDOWS_SIGNING_AWS_ROLE_ARN` for Windows and
+the existing `MOKAID_SIGNING_AWS_ROLE_ARN` for macOS. Windows accepts only the
+dedicated stable Windows role and the exact `stable/windows-updates` secret ARN;
+it cannot be configured to use the Apple identity. New desired variables remain
+`null` (unmanaged) until provisioning and seed verification are complete. The
+[Windows signing module](../terraform/modules/desktop-windows-signing/README.md)
+describes initialization outside Terraform and the six public Azure OIDC/signing
+identifiers. No client secret, private key, or signing certificate is accepted by
+the reconciler.

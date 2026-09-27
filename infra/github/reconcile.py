@@ -40,15 +40,22 @@ ENVIRONMENTS = {
 ROLE_KEYS = {
     "AWS_DEPLOY_ROLE_ARN",
     "MOKAID_SIGNING_AWS_ROLE_ARN",
+    "MOKAID_WINDOWS_SIGNING_AWS_ROLE_ARN",
     "MOKAID_PUBLISH_AWS_ROLE_ARN",
 }
 SECRET_REFERENCE_KEYS = {
     "MOKAID_MACOS_SIGNING_SECRET_ARN",
     "MOKAID_WINDOWS_SIGNING_SECRET_ARN",
 }
+AZURE_ID_KEYS = {
+    "MOKAID_AZURE_CLIENT_ID",
+    "MOKAID_AZURE_TENANT_ID",
+    "MOKAID_AZURE_SUBSCRIPTION_ID",
+}
 ALLOWED_VARIABLES = (
     ROLE_KEYS
     | SECRET_REFERENCE_KEYS
+    | AZURE_ID_KEYS
     | {
         "MOKAID_AWS_REGION",
         "MOKAID_DOWNLOADS_BUCKET",
@@ -56,6 +63,9 @@ ALLOWED_VARIABLES = (
         "MOKAID_UPDATE_PUBLIC_KEY",
         "MOKAID_DESKTOP_ONLY",
         "MOKAID_TRUSTED_ALB_CIDRS",
+        "MOKAID_AZURE_SIGNING_ENDPOINT",
+        "MOKAID_AZURE_SIGNING_ACCOUNT",
+        "MOKAID_AZURE_CERTIFICATE_PROFILE",
     }
 )
 
@@ -116,7 +126,33 @@ def validate_variable(name: str, value: Json) -> str | None:
             f"Variable {name}: invalid public identifier (value redacted)"
         )
     valid = False
-    if name in ROLE_KEYS:
+    if name == "MOKAID_WINDOWS_SIGNING_AWS_ROLE_ARN":
+        valid = value == (
+            "arn:aws:iam::660601648321:role/mokaid-desktop-signing-windows-stable"
+        )
+    elif name == "MOKAID_WINDOWS_SIGNING_SECRET_ARN":
+        valid = bool(
+            re.fullmatch(
+                r"arn:aws:secretsmanager:il-central-1:660601648321:secret:"
+                r"mokaid/desktop/stable/windows-updates-[A-Za-z0-9]{6}",
+                value,
+            )
+        )
+    elif name in AZURE_ID_KEYS:
+        valid = bool(
+            re.fullmatch(
+                r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+                value,
+            )
+        )
+    elif name == "MOKAID_AZURE_SIGNING_ENDPOINT":
+        # The account is provisioned in West Europe. No arbitrary credential sink.
+        valid = value == "https://weu.codesigning.azure.net"
+    elif name == "MOKAID_AZURE_SIGNING_ACCOUNT":
+        valid = bool(re.fullmatch(r"[a-z][a-z0-9-]{1,22}[a-z0-9]", value))
+    elif name == "MOKAID_AZURE_CERTIFICATE_PROFILE":
+        valid = bool(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{3,98}[A-Za-z0-9]", value))
+    elif name in ROLE_KEYS:
         valid = bool(
             re.fullmatch(r"arn:aws:iam::660601648321:role/[A-Za-z0-9_+=,.@/-]+", value)
         )

@@ -173,3 +173,50 @@ def test_release_public_keys_are_versioned_and_fail_closed_until_initialized():
     assert "stage_archive.py public-key" in keys["run"]
     assert metadata["outputs"]["public_key"] == "${{ steps.keys.outputs.public_key }}"
     assert (ROOT / "apps/desktop/distribution/update-public-keys.json").is_file()
+
+
+def test_each_platform_uses_its_own_aws_role_and_secret_without_fallback():
+    sign = workflow()["jobs"]["sign"]
+    matrix = {item["platform"]: item for item in sign["strategy"]["matrix"]["include"]}
+    assert matrix["macos-arm64"]["roleVar"] == "MOKAID_SIGNING_AWS_ROLE_ARN"
+    assert matrix["macos-arm64"]["secretVar"] == "MOKAID_MACOS_SIGNING_SECRET_ARN"
+    assert matrix["windows-x64"]["roleVar"] == "MOKAID_WINDOWS_SIGNING_AWS_ROLE_ARN"
+    assert matrix["windows-x64"]["secretVar"] == "MOKAID_WINDOWS_SIGNING_SECRET_ARN"
+    login = next(
+        step for step in sign["steps"]
+        if step.get("uses", "").startswith("aws-actions/configure-aws-credentials@")
+    )
+    assert login["with"]["role-to-assume"] == "${{ vars[matrix.roleVar] }}"
+    assert sign["env"]["MOKAID_SIGNING_SECRET_ARN"] == "${{ vars[matrix.secretVar] }}"
+
+
+def test_azure_signing_uses_windows_only_oidc_without_static_credentials():
+    sign = workflow()["jobs"]["sign"]
+    login = next(
+        step for step in sign["steps"]
+        if step.get("uses", "").startswith("azure/login@")
+    )
+    assert login["if"] == "runner.os == 'Windows'"
+    assert login["with"] == {
+        "client-id": "${{ vars.MOKAID_AZURE_CLIENT_ID }}",
+        "tenant-id": "${{ vars.MOKAID_AZURE_TENANT_ID }}",
+        "subscription-id": "${{ vars.MOKAID_AZURE_SUBSCRIPTION_ID }}",
+    }
+    assert not any("secrets." in str(step) for step in sign["steps"])
+
+
+def test_windows_module_manages_metadata_only_and_ci_runs_its_policy_tests():
+    module = ROOT / "infra/terraform/modules/desktop-windows-signing"
+    source = "\n".join(path.read_text() for path in module.glob("*.tf"))
+    # No secret value, version resource/data source, or external read can enter state.
+    assert re.findall(r'resource "([^"]+)"', source) == [
+        "aws_secretsmanager_secret", "aws_iam_role", "aws_iam_role_policy"
+    ]
+    assert set(re.findall(r'data "([^"]+)"', source)) == {
+        "aws_caller_identity", "aws_region"
+    }
+    assert "secret_version" not in source
+    assert "prevent_destroy = true" in source
+    ci = yaml.load((ROOT / ".github/workflows/ci.yml").read_text(), Loader=yaml.BaseLoader)
+    runs = "\n".join(step.get("run", "") for step in ci["jobs"]["terraform"]["steps"])
+    assert "terraform -chdir=infra/terraform/modules/desktop-windows-signing test" in runs

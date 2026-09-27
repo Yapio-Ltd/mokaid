@@ -43,6 +43,7 @@ build/
 !infra/terraform/environments/prod/.terraform.lock.hcl
 !infra/terraform/modules/desktop-downloads/.terraform.lock.hcl
 !infra/terraform/modules/desktop-signing/.terraform.lock.hcl
+!infra/terraform/modules/desktop-windows-signing/.terraform.lock.hcl
 !infra/terraform/modules/waf/.terraform.lock.hcl
 crash.log
 # IDE / OS
