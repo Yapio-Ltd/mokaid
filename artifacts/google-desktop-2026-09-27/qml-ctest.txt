@@ -1,0 +1,97 @@
+Start testing: Sep 27 00:56 IDT
+----------------------------------------------------------
+25/44 Testing: desktop-feature-qml
+25/44 Test: desktop-feature-qml
+Command: "/Users/olimservice/mokaid/apps/desktop/build/macos-debug/application/features/mokaid_feature_qml_tests"
+Directory: /Users/olimservice/mokaid/apps/desktop/build/macos-debug/application/features
+"desktop-feature-qml" start time: Sep 27 00:56 IDT
+Output:
+----------------------------------------------------------
+********* Start testing of FeatureQmlTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by Apple LLVM 16.0.0 (clang-1600.0.26.3)), macos 26.5.1
+PASS   : FeatureQmlTests::initTestCase()
+QWARN  : FeatureQmlTests::agentCreationFormPreservesSpecialtyAndSubmitsUserChoices() qt.qpa.fonts: Populating font family aliases took 38 ms. Replace uses of missing font family "Sans Serif" with one that exists to avoid this cost. 
+PASS   : FeatureQmlTests::agentCreationFormPreservesSpecialtyAndSubmitsUserChoices()
+PASS   : FeatureQmlTests::deliverableGalleryShowsActualImagesAndOpensTheirCollection()
+PASS   : FeatureQmlTests::driveToolbarSupportsKeyboardFoldersBreadcrumbsAndTrash()
+PASS   : FeatureQmlTests::actionDialogCapturesAccessibilityAndKeyboardTextChanges()
+PASS   : FeatureQmlTests::realFeaturePageRendersNestedPayload()
+PASS   : FeatureQmlTests::cleanupTestCase()
+Totals: 7 passed, 0 failed, 0 skipped, 0 blacklisted, 1607ms
+********* Finished testing of FeatureQmlTests *********
+<end of output>
+Test time =   1.68 sec
+----------------------------------------------------------
+Test Passed.
+"desktop-feature-qml" end time: Sep 27 00:56 IDT
+"desktop-feature-qml" time elapsed: 00:00:01
+----------------------------------------------------------
+
+26/44 Testing: desktop-native-pages-qml
+26/44 Test: desktop-native-pages-qml
+Command: "/Users/olimservice/mokaid/apps/desktop/build/macos-debug/application/features/mokaid_native_pages_qml_tests"
+Directory: /Users/olimservice/mokaid/apps/desktop/build/macos-debug/application/features
+"desktop-native-pages-qml" start time: Sep 27 00:56 IDT
+Output:
+----------------------------------------------------------
+********* Start testing of NativePagesQmlTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by Apple LLVM 16.0.0 (clang-1600.0.26.3)), macos 26.5.1
+PASS   : NativePagesQmlTests::initTestCase()
+QWARN  : NativePagesQmlTests::googleCalendarConnectsFromItsPageAndServicesFitMinimumWindow() qt.qpa.fonts: Populating font family aliases took 40 ms. Replace uses of missing font family "Sans Serif" with one that exists to avoid this cost. 
+PASS   : NativePagesQmlTests::googleCalendarConnectsFromItsPageAndServicesFitMinimumWindow()
+PASS   : NativePagesQmlTests::mailConnectFlowSupportsGoogleAndPresetImapAtMinimumSize()
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(deployed-legal)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(deployed-research)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(deployed-developer)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(deployed-male)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(current-legal)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(relative-design)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(optimized-finance)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(cdn-corporate)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(byte)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(nyx)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(moss)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(unversioned)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(future-revision)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(default-avatar)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(custom-location)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(unknown-character)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(unresolved-assignment)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(human)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(hybrid)
+PASS   : NativePagesQmlTests::officeCardsUseGeneratedPortraitsWithoutBorrowingCatalogFaces()
+PASS   : NativePagesQmlTests::agentsUsePersistedDataAndKeepInteractionsAtMinimumSize()
+PASS   : NativePagesQmlTests::agentKpisFollowAssignedTasks()
+PASS   : NativePagesQmlTests::emptyWorkforceHasNoInventedMetricsOrSelection()
+PASS   : NativePagesQmlTests::primaryNativePagesRender(tasks)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(projects)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(drive)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(calendar)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(mail)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(analytics)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(settings)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(agent-new)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(profile)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(members)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(integrations)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(billing)
+PASS   : NativePagesQmlTests::taskBoardDefaultsSurviveNavigationAndAllStatusesRemainVisible()
+PASS   : NativePagesQmlTests::agentCreationHasExplicitSelectionAndResponsiveNextStep()
+PASS   : NativePagesQmlTests::officeChatOffersRentSaleAndPerformance()
+PASS   : NativePagesQmlTests::agentPerformanceUsesAssignedTaskHistory()
+PASS   : NativePagesQmlTests::marketplaceOfferOpensRentForThatAgent()
+PASS   : NativePagesQmlTests::marketplaceNavigationFiltersAndDetailsUseRealListings()
+PASS   : NativePagesQmlTests::marketplaceCheckoutWaitsForPersistedFulfillment()
+PASS   : NativePagesQmlTests::marketplaceSellerWizardValidatesAndPublishesTheSelectedAgent()
+PASS   : NativePagesQmlTests::cleanupTestCase()
+Totals: 47 passed, 0 failed, 0 skipped, 0 blacklisted, 11096ms
+********* Finished testing of NativePagesQmlTests *********
+<end of output>
+Test time =  11.96 sec
+----------------------------------------------------------
+Test Passed.
+"desktop-native-pages-qml" end time: Sep 27 00:56 IDT
+"desktop-native-pages-qml" time elapsed: 00:00:11
+----------------------------------------------------------
+
+End testing: Sep 27 00:56 IDT

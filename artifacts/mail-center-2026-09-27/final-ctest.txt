@@ -1,0 +1,136 @@
+Start testing: Sep 27 01:41 IDT
+----------------------------------------------------------
+24/45 Testing: desktop-mail-center
+24/45 Test: desktop-mail-center
+Command: "/Users/olimservice/mokaid/apps/desktop/build/macos-debug/application/features/mokaid_mail_center_tests"
+Directory: /Users/olimservice/mokaid/apps/desktop/build/macos-debug/application/features
+"desktop-mail-center" start time: Sep 27 01:41 IDT
+Output:
+----------------------------------------------------------
+********* Start testing of MailCenterTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by Apple LLVM 16.0.0 (clang-1600.0.26.3)), macos 26.5.1
+PASS   : MailCenterTests::initTestCase()
+PASS   : MailCenterTests::htmlIsRebuiltWithoutActiveContentOrResources()
+PASS   : MailCenterTests::externalLinksRequireExplicitSafeSchemes()
+PASS   : MailCenterTests::permissionsAndOfflineStatePreventSubmission()
+PASS   : MailCenterTests::foldersFilteringAndPaginationUseServerResponses()
+PASS   : MailCenterTests::changingTheViewedMailboxDoesNotChangeAnExistingDraftSender()
+PASS   : MailCenterTests::ambiguousDeliveryThenForbiddenKeepsTheSameRequestAndDraftLocked()
+PASS   : MailCenterTests::firstValidationRejectionPreservesAnEditableDraftAndAllowsANewRequest()
+PASS   : MailCenterTests::knownOutboxIsPolledWithGetAndDefiniteFailureAllowsANewRequest()
+PASS   : MailCenterTests::attachmentsAreBoundedAndOnlySelectedMessageAttachmentsCanOpen()
+PASS   : MailCenterTests::switchingWorkspaceClearsPrivateCompositionAndIgnoresOldResponses()
+PASS   : MailCenterTests::cleanupTestCase()
+Totals: 12 passed, 0 failed, 0 skipped, 0 blacklisted, 2356ms
+********* Finished testing of MailCenterTests *********
+<end of output>
+Test time =   2.43 sec
+----------------------------------------------------------
+Test Passed.
+"desktop-mail-center" end time: Sep 27 01:41 IDT
+"desktop-mail-center" time elapsed: 00:00:02
+----------------------------------------------------------
+
+27/45 Testing: desktop-native-pages-qml
+27/45 Test: desktop-native-pages-qml
+Command: "/Users/olimservice/mokaid/apps/desktop/build/macos-debug/application/features/mokaid_native_pages_qml_tests"
+Directory: /Users/olimservice/mokaid/apps/desktop/build/macos-debug/application/features
+"desktop-native-pages-qml" start time: Sep 27 01:41 IDT
+Output:
+----------------------------------------------------------
+********* Start testing of NativePagesQmlTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by Apple LLVM 16.0.0 (clang-1600.0.26.3)), macos 26.5.1
+PASS   : NativePagesQmlTests::initTestCase()
+QWARN  : NativePagesQmlTests::googleCalendarConnectsFromItsPageAndServicesFitMinimumWindow() qt.qpa.fonts: Populating font family aliases took 38 ms. Replace uses of missing font family "Sans Serif" with one that exists to avoid this cost. 
+PASS   : NativePagesQmlTests::googleCalendarConnectsFromItsPageAndServicesFitMinimumWindow()
+PASS   : NativePagesQmlTests::mailCenterReaderComposerAndAttachmentsFitWideAndCompact()
+PASS   : NativePagesQmlTests::mailConnectFlowSupportsGoogleAndPresetImapAtMinimumSize()
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(deployed-legal)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(deployed-research)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(deployed-developer)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(deployed-male)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(current-legal)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(relative-design)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(optimized-finance)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(cdn-corporate)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(byte)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(nyx)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(moss)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(unversioned)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(future-revision)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(default-avatar)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(custom-location)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(unknown-character)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(unresolved-assignment)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(human)
+PASS   : NativePagesQmlTests::workforcePortraitsFollowAssignedCharacters(hybrid)
+PASS   : NativePagesQmlTests::officeCardsUseGeneratedPortraitsWithoutBorrowingCatalogFaces()
+PASS   : NativePagesQmlTests::agentsUsePersistedDataAndKeepInteractionsAtMinimumSize()
+PASS   : NativePagesQmlTests::agentKpisFollowAssignedTasks()
+PASS   : NativePagesQmlTests::emptyWorkforceHasNoInventedMetricsOrSelection()
+PASS   : NativePagesQmlTests::primaryNativePagesRender(tasks)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(projects)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(drive)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(calendar)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(mail)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(analytics)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(settings)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(agent-new)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(profile)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(members)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(integrations)
+PASS   : NativePagesQmlTests::primaryNativePagesRender(billing)
+PASS   : NativePagesQmlTests::taskBoardDefaultsSurviveNavigationAndAllStatusesRemainVisible()
+PASS   : NativePagesQmlTests::agentCreationHasExplicitSelectionAndResponsiveNextStep()
+PASS   : NativePagesQmlTests::officeChatOffersRentSaleAndPerformance()
+PASS   : NativePagesQmlTests::agentPerformanceUsesAssignedTaskHistory()
+PASS   : NativePagesQmlTests::marketplaceOfferOpensRentForThatAgent()
+PASS   : NativePagesQmlTests::marketplaceNavigationFiltersAndDetailsUseRealListings()
+PASS   : NativePagesQmlTests::marketplaceCheckoutWaitsForPersistedFulfillment()
+PASS   : NativePagesQmlTests::marketplaceSellerWizardValidatesAndPublishesTheSelectedAgent()
+PASS   : NativePagesQmlTests::cleanupTestCase()
+Totals: 48 passed, 0 failed, 0 skipped, 0 blacklisted, 11257ms
+********* Finished testing of NativePagesQmlTests *********
+<end of output>
+Test time =  11.31 sec
+----------------------------------------------------------
+Test Passed.
+"desktop-native-pages-qml" end time: Sep 27 01:41 IDT
+"desktop-native-pages-qml" time elapsed: 00:00:11
+----------------------------------------------------------
+
+33/45 Testing: desktop-preview-navigation
+33/45 Test: desktop-preview-navigation
+Command: "/Users/olimservice/mokaid/apps/desktop/build/macos-debug/preview/mokaid_preview_navigation_tests"
+Directory: /Users/olimservice/mokaid/apps/desktop/build/macos-debug/preview
+"desktop-preview-navigation" start time: Sep 27 01:41 IDT
+Output:
+----------------------------------------------------------
+********* Start testing of PreviewNavigationTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by Apple LLVM 16.0.0 (clang-1600.0.26.3)), macos 26.5.1
+PASS   : PreviewNavigationTests::initTestCase()
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() qt.qpa.fonts: Populating font family aliases took 37 ms. Replace uses of missing font family "Sans Serif" with one that exists to avoid this cost. 
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() GPUInfo not initialized on GpuInfoUpdate
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+PASS   : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts()
+PASS   : PreviewNavigationTests::filesButtonRequestsNativeNavigationWithoutEvictingPreviewState()
+PASS   : PreviewNavigationTests::cleanupTestCase()
+Totals: 4 passed, 0 failed, 0 skipped, 0 blacklisted, 2905ms
+********* Finished testing of PreviewNavigationTests *********
+<end of output>
+Test time =   2.98 sec
+----------------------------------------------------------
+Test Passed.
+"desktop-preview-navigation" end time: Sep 27 01:41 IDT
+"desktop-preview-navigation" time elapsed: 00:00:02
+----------------------------------------------------------
+
+End testing: Sep 27 01:41 IDT

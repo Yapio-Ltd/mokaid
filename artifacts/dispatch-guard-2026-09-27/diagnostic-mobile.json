@@ -1,0 +1,171 @@
+[
+  {
+    "id": "f19_partial_frontend_mobile_en",
+    "structured": {
+      "task": {
+        "title": "Build production native mobile app with offline synchronization",
+        "description": "Design and develop a production-ready native mobile application with offline data synchronization capabilities. This requires native mobile development expertise (iOS/Android) and offline-sync architecture—skills beyond JavaScript web development.",
+        "priority": "high"
+      },
+      "recommendation": {
+        "mode": "user_choice",
+        "agent_id": "agent-frontend",
+        "confidence": 35,
+        "reason": "Mika can assist with simple screens using JavaScript, but native mobile and offline synchronization require specialized expertise. We're offering the choice between partial support from Mika and a dedicated mobile specialist who can own the full architecture.",
+        "alternatives": [],
+        "custom_agent": {
+          "display_name": "Mobile App Specialist",
+          "role_title": "Mobile Engineer",
+          "archetype_key": "developer",
+          "department": "Engineering",
+          "skills": [
+            {
+              "name": "Native mobile development",
+              "level": 90
+            },
+            {
+              "name": "Offline synchronization",
+              "level": 85
+            },
+            {
+              "name": "iOS/Android architecture",
+              "level": 85
+            },
+            {
+              "name": "Data persistence & local storage",
+              "level": 80
+            },
+            {
+              "name": "API integration",
+              "level": 75
+            },
+            {
+              "name": "Mobile performance optimization",
+              "level": 75
+            }
+          ]
+        }
+      },
+      "mcp_suggestions": []
+    },
+    "status": "ok"
+  },
+  {
+    "id": "f19_partial_frontend_mobile_fr",
+    "structured_error": "structured output parse failed: 1 validation error for DispatchAnalysis\nrecommendation\n  Value error, alternatives must be distinct and exclude the primary agent [type=value_error, input_value={'mode': 'user_choice', '...esting', 'level': 75}]}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error",
+    "repair": {
+      "task": {
+        "title": "Développer une application mobile native avec synchronisation hors ligne",
+        "description": "Créer une application mobile native de production avec capacités de synchronisation des données hors ligne. Le projet nécessite une expertise en développement mobile natif (iOS/Android) et en architecture de synchronisation hors ligne, domaines où les compétences actuelles de l'équipe sont limitées.",
+        "priority": "high"
+      },
+      "recommendation": {
+        "mode": "user_choice",
+        "agent_id": "agent-frontend",
+        "confidence": 35,
+        "reason": "Mika peut contribuer à certains éléments JavaScript et frontend, mais manque d'expérience critique en développement mobile natif et synchronisation hors ligne. Un spécialiste mobile dédié serait beaucoup plus adapté pour livrer une production robuste.",
+        "alternatives": [
+          {
+            "agent_id": null,
+            "confidence": 0,
+            "reason": "Aucun agent du roster ne possède les compétences requises en développement mobile natif ou synchronisation hors ligne."
+          }
+        ],
+        "custom_agent": {
+          "display_name": "Spécialiste Développement Mobile",
+          "role_title": "Mobile Native Developer",
+          "archetype_key": "developer",
+          "department": "Engineering",
+          "skills": [
+            {
+              "name": "Native mobile development (iOS/Android)",
+              "level": 90
+            },
+            {
+              "name": "Offline synchronization & data persistence",
+              "level": 85
+            },
+            {
+              "name": "Mobile architecture & performance",
+              "level": 85
+            },
+            {
+              "name": "API integration & backend sync",
+              "level": 80
+            },
+            {
+              "name": "Debugging & testing mobile apps",
+              "level": 80
+            },
+            {
+              "name": "Cross-platform deployment",
+              "level": 75
+            }
+          ]
+        }
+      },
+      "mcp_suggestions": []
+    },
+    "status": "error",
+    "cause": "1 validation error for DispatchAnalysis\nrecommendation.alternatives.0.agent_id\n  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.13/v/string_type"
+  },
+  {
+    "id": "f19_partial_frontend_mobile_he",
+    "structured_error": "structured output parse failed: 1 validation error for DispatchAnalysis\nrecommendation\n  Value error, alternatives must be distinct and exclude the primary agent [type=value_error, input_value={'mode': 'user_choice', '... נייד מקורי'}]}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error",
+    "repair": {
+      "task": {
+        "title": "Build native mobile manufacturing app with offline sync",
+        "description": "Create an original native mobile application for manufacturing with offline synchronization capability. This requires native mobile development expertise (iOS/Android) and offline-first architecture experience beyond basic JavaScript UI.",
+        "priority": "high"
+      },
+      "recommendation": {
+        "mode": "user_choice",
+        "agent_id": "agent-frontend",
+        "confidence": 35,
+        "reason": "Mika can assist with basic UI components and JavaScript logic, but lacks native mobile and offline sync expertise. A specialized Mobile Developer would deliver a production-ready solution with proper native architecture and data synchronization patterns.",
+        "alternatives": [
+          {
+            "agent_id": null,
+            "confidence": 85,
+            "reason": "Custom Mobile Developer specializing in native iOS/Android and offline-first databases (SQLite, Realm) would be the optimal fit for this complex engineering work."
+          }
+        ],
+        "custom_agent": {
+          "display_name": "Mobile Developer",
+          "role_title": "Senior Mobile Engineer",
+          "archetype_key": "developer",
+          "department": "Engineering",
+          "skills": [
+            {
+              "name": "Native iOS/Android development",
+              "level": 85
+            },
+            {
+              "name": "Offline-first architecture",
+              "level": 80
+            },
+            {
+              "name": "Data synchronization",
+              "level": 80
+            },
+            {
+              "name": "Database design (SQLite, Realm, CoreData)",
+              "level": 75
+            },
+            {
+              "name": "Mobile app debugging",
+              "level": 80
+            },
+            {
+              "name": "Manufacturing domain knowledge",
+              "level": 60
+            }
+          ]
+        }
+      },
+      "mcp_suggestions": []
+    },
+    "status": "error",
+    "cause": "1 validation error for DispatchAnalysis\nrecommendation.alternatives.0.agent_id\n  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.13/v/string_type"
+  }
+]

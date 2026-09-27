@@ -1,0 +1,12 @@
+{
+  "mokaid-api": {
+    "tag": "google-20260927-1740b0f81a",
+    "digest": "sha256:64e17087e726527cfa7d2d6923bde952915662a0d20fea55b485f2b83379d98e",
+    "image": "660601648321.dkr.ecr.il-central-1.amazonaws.com/mokaid-api@sha256:64e17087e726527cfa7d2d6923bde952915662a0d20fea55b485f2b83379d98e"
+  },
+  "mokaid-ai-worker": {
+    "tag": "google-20260927-1740b0f81a",
+    "digest": "sha256:ebfc20b6ebda761eda4ad48136f882da397a2de494819c9763669da7172cdfd6",
+    "image": "660601648321.dkr.ecr.il-central-1.amazonaws.com/mokaid-ai-worker@sha256:ebfc20b6ebda761eda4ad48136f882da397a2de494819c9763669da7172cdfd6"
+  }
+}

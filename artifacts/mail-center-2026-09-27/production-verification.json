@@ -1,0 +1,67 @@
+{
+  "verified_at": "2026-09-26T22:49:08.951854+00:00",
+  "services": [
+    {
+      "service": "mokaid-prod-api",
+      "revision": "arn:aws:ecs:il-central-1:660601648321:task-definition/mokaid-prod-api:58",
+      "rollout": "COMPLETED",
+      "running": 1,
+      "pending": 0,
+      "image": "660601648321.dkr.ecr.il-central-1.amazonaws.com/mokaid-api@sha256:b19ac5da559b6136ff4263421eae6af186b88be81e672b470f89e1d36e4e54d1",
+      "runtime_digest": "sha256:b19ac5da559b6136ff4263421eae6af186b88be81e672b470f89e1d36e4e54d1",
+      "task": "arn:aws:ecs:il-central-1:660601648321:task/mokaid-prod/8cef9cf1e3cf46008fa42b781707385d"
+    },
+    {
+      "service": "mokaid-prod-ai-worker",
+      "revision": "arn:aws:ecs:il-central-1:660601648321:task-definition/mokaid-prod-ai-worker:51",
+      "rollout": "COMPLETED",
+      "running": 1,
+      "pending": 0,
+      "image": "660601648321.dkr.ecr.il-central-1.amazonaws.com/mokaid-ai-worker@sha256:f40003a714a7590ba1c3da603ec62864c82480b99717bf30e87c4bb5232859a1",
+      "runtime_digest": "sha256:f40003a714a7590ba1c3da603ec62864c82480b99717bf30e87c4bb5232859a1",
+      "task": "arn:aws:ecs:il-central-1:660601648321:task/mokaid-prod/aaf47174edb44dc1b7f2675f1aaa4080"
+    }
+  ],
+  "migration": {
+    "task": "a31dede97b664b55b61a0b6ac5cfe731",
+    "exit_code": 0,
+    "versions": [
+      20260927110000,
+      20260927111000,
+      20260927130000,
+      20260927130500
+    ]
+  },
+  "tests": {
+    "api": 104,
+    "python": 184,
+    "qt_cases_including_setup_cleanup": 157,
+    "sanitizers": "compiled; execution timed out before tests"
+  },
+  "real_mail": {
+    "account_status": "active",
+    "synchronized_messages": 106,
+    "last_sync_at": "2026-09-26T22:46:21.864324Z",
+    "migrations": [
+      20260927110000,
+      20260927111000,
+      20260927130000,
+      20260927130500
+    ],
+    "provider_mutations": 0,
+    "emails_sent": 0,
+    "reader_ready": true,
+    "attachment_count": 1,
+    "has_body": false,
+    "attachment_download": "verified",
+    "attachment_bytes": 690
+  },
+  "native": {
+    "app": "/Users/olimservice/mokaid/apps/desktop/build/macos-debug/app/Mokaid.app",
+    "sha256": "824b875eeea8891e9287de2fee84db08a012f3bbcf630f014a245a8124d9cd92",
+    "live_ui_verification": "blocked: Mac locked",
+    "launched_by_this_verification": false
+  },
+  "emails_sent": 0,
+  "temporary_registry_credentials_removed": true
+}

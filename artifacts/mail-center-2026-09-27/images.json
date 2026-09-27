@@ -1,0 +1,12 @@
+{
+  "mokaid-api": {
+    "tag": "mail-center-20260927-6acd294e49",
+    "digest": "sha256:b19ac5da559b6136ff4263421eae6af186b88be81e672b470f89e1d36e4e54d1",
+    "image": "660601648321.dkr.ecr.il-central-1.amazonaws.com/mokaid-api@sha256:b19ac5da559b6136ff4263421eae6af186b88be81e672b470f89e1d36e4e54d1"
+  },
+  "mokaid-ai-worker": {
+    "tag": "mail-center-20260927-6acd294e49",
+    "digest": "sha256:f40003a714a7590ba1c3da603ec62864c82480b99717bf30e87c4bb5232859a1",
+    "image": "660601648321.dkr.ecr.il-central-1.amazonaws.com/mokaid-ai-worker@sha256:f40003a714a7590ba1c3da603ec62864c82480b99717bf30e87c4bb5232859a1"
+  }
+}

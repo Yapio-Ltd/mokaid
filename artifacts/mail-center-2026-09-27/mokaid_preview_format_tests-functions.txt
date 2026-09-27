@@ -1,0 +1,8 @@
+mailAttachmentsNeverPromoteActiveMarkupFromMimeOrFilename()
+usesFilenameWhenUploaderProvidesGenericMime()
+attachmentsUseDriveIdentifierAndOriginalSize()
+spreadsheetPreservesQuotedContentAndEscapesMarkup()
+hugeSpreadsheetClearlyShowsPreviewLimit()
+codeIsReadableButCannotExecute()
+largeTextPreviewIsBoundedAndClearlyMarked()
+makesBoundedRealImageThumbnailAndRejectsNonImages()

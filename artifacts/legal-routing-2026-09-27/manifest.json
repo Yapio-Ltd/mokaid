@@ -1,0 +1,9 @@
+{
+  "model": "claude-haiku-4-5",
+  "cases_sha256": "710aee03a9cb835d27fe8c732d1995cd82624dc843faaed4acbd6d53cd3ddba7",
+  "dispatcher_sha256": "f1da47d05491ef511298655aafc54588a9b773fefd46e516e720b6ac11147f17",
+  "orchestrator_chat_sha256": "44a1fb0704ad01f874261ecc4f7fb28f91e7390dc8e11f67af655248242635fc",
+  "runner_sha256": "ca0da24f06eafc5947088528b54465bede5f95d8145104190f452646ca4d50a3",
+  "scope": "8 direct routing cases + 3 full chat-to-dispatch repetitions; no task confirmation or execution.",
+  "hash_correction_note": "Original runner hashed source at completion while prompt edit occurred during run. Corrected to imported pre-edit source, verified byte-for-byte by removing only the new prompt paragraph from current code; baseline snapshot preserved."
+}

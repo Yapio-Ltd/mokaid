@@ -1,0 +1,697 @@
+{
+  "base": "4716998a35123c85e19bdbe2013e8f4ff3d69669",
+  "expected_deployed_api": 58,
+  "expected_deployed_worker": 51,
+  "previous_deployed_api": 58,
+  "previous_deployed_worker": 51,
+  "runtime_architecture": "linux/arm64",
+  "previous_release": "/private/tmp/mokaid-mail-center-release-20260927",
+  "previous_source_manifest": "/Users/olimservice/mokaid/artifacts/mail-center-2026-09-27/snapshot-source-manifest.json",
+  "previous_source_manifest_sha256": "f9f140c2ce16d24a2b601bb47110c1800ce061a226d403c32f17c718f453f52e",
+  "previous_overlays_validated": 51,
+  "current_overlays": [
+    "apps/ai-worker/app/agents/deep_runner.py",
+    "apps/ai-worker/app/agents/direct_chat.py",
+    "apps/ai-worker/app/agents/managed_runner.py",
+    "apps/ai-worker/app/agents/mission_kind.py",
+    "apps/ai-worker/app/agents/orchestrator_chat.py",
+    "apps/ai-worker/app/agents/planner.py",
+    "apps/ai-worker/app/agents/quality.py",
+    "apps/ai-worker/app/agents/runner.py",
+    "apps/ai-worker/app/agents/runtime.py",
+    "apps/ai-worker/app/clients/phoenix.py",
+    "apps/ai-worker/app/main.py",
+    "apps/ai-worker/app/policies/approval.py",
+    "apps/ai-worker/app/schemas.py",
+    "apps/ai-worker/app/tools/mail.py",
+    "apps/ai-worker/app/tools/registry.py",
+    "apps/ai-worker/tests/test_direct_chat.py",
+    "apps/ai-worker/tests/test_mail_mission_routing.py",
+    "apps/ai-worker/tests/test_orchestrator_chat.py",
+    "apps/ai-worker/tests/test_runner.py",
+    "apps/ai-worker/tests/test_workspace_mail_tools.py",
+    "apps/api/lib/mokaid/ai/coordinator.ex",
+    "apps/api/lib/mokaid/ai/managed_runtime.ex",
+    "apps/api/lib/mokaid/ai/orchestrator.ex",
+    "apps/api/lib/mokaid/ai/workers/agent_chat_worker.ex",
+    "apps/api/lib/mokaid/ai/workers/dispatch_worker.ex",
+    "apps/api/lib/mokaid/mail/agent_access.ex",
+    "apps/api/lib/mokaid/mail/agent_tools.ex",
+    "apps/api/lib/mokaid/tasks.ex",
+    "apps/api/lib/mokaid_web/controllers/worker_mail_tools_controller.ex",
+    "apps/api/lib/mokaid_web/router.ex",
+    "apps/api/test/mokaid/dispatch_worker_test.exs",
+    "apps/api/test/mokaid/mail_agent_access_test.exs",
+    "apps/api/test/mokaid/mail_agent_tools_test.exs",
+    "apps/api/test/mokaid/orchestrator_test.exs",
+    "apps/api/test/mokaid_web/orchestrator_controller_test.exs",
+    "apps/api/test/mokaid_web/worker_mail_tools_controller_test.exs"
+  ],
+  "current_source_sha256": {
+    "apps/ai-worker/app/agents/deep_runner.py": "f6e7943079eb673eb7dc99c89ef877618768854bf5d7b7206404970327be1621",
+    "apps/ai-worker/app/agents/direct_chat.py": "034e2f42be3d3b48dc8deeebbce8ad1ff970c476a7d06fc5d2e9f14b47cc2482",
+    "apps/ai-worker/app/agents/managed_runner.py": "99eb18fcd9b0b7c2577ec9692e15b2e409aa6b54a3f78c711949153724057cc3",
+    "apps/ai-worker/app/agents/mission_kind.py": "4fa818df5ff9b6f7b55c6cedee152006a79f7bcef7bc89d6086f023cc707f08c",
+    "apps/ai-worker/app/agents/orchestrator_chat.py": "44a1fb0704ad01f874261ecc4f7fb28f91e7390dc8e11f67af655248242635fc",
+    "apps/ai-worker/app/agents/planner.py": "86ee50f06db0e0c99b2f03692272836687563450e20063fd32e942b5975798a2",
+    "apps/ai-worker/app/agents/quality.py": "86d0fc7417e9f7c78d7245f88107178d7d70b0f353c29c3cbcaed45c4000c044",
+    "apps/ai-worker/app/agents/runner.py": "21a727437b9a7de08e2a4ca180ff78297486d7cb8d62e781b4102536027ab0cf",
+    "apps/ai-worker/app/agents/runtime.py": "b84632a2ba0fdf55588305f99c41d84da50b6f258834f91cf075b57cc0ab6872",
+    "apps/ai-worker/app/clients/phoenix.py": "277d1c522a99e0ac91a98b775ed658546904d571db921618c35968f7aa714c8f",
+    "apps/ai-worker/app/policies/approval.py": "37c8a098c7cfa0364ee93205a33797a0ff4b654f454fa2a06d324301ffb94640",
+    "apps/ai-worker/app/schemas.py": "8551404bba091dc00dc0483439359b310987c2808166680cb4a796505cf10bf3",
+    "apps/ai-worker/app/tools/mail.py": "d9d43ed8b3dce90134263290356a9cbfe5ef462f4b0df178a63e9743d8b1580f",
+    "apps/ai-worker/app/tools/registry.py": "c88d4e6ae0da4006abcfafc2a93bae40d6681a792c3821d56e2989ae2101461f",
+    "apps/ai-worker/tests/test_direct_chat.py": "6bea206be402d50c538154db9c5d0808943efdee8c68191b2814ee0ed92d64ea",
+    "apps/ai-worker/tests/test_mail_mission_routing.py": "52ce3bc90454c08487600db308f1a5ef248de958b5d5569ffeda4df345bc32cc",
+    "apps/ai-worker/tests/test_orchestrator_chat.py": "238a767c3fb430a340c8a883f27819d0d20708f699cff49bd6b5d40e511f50dc",
+    "apps/ai-worker/tests/test_runner.py": "a35d017aba1bcd5ffd88aacfc91cb8b3afba2a0d47dc8956632a106b8b43b89a",
+    "apps/ai-worker/tests/test_workspace_mail_tools.py": "42a67d29011e3634ab8ea8351f45200ee2b0f889b37476bd8300824b96c322d6",
+    "apps/api/lib/mokaid/ai/coordinator.ex": "64bfed2fdede6ee8fcfdb9dacf4ee967df05e0b4c23961a00d1afa0265be3993",
+    "apps/api/lib/mokaid/ai/managed_runtime.ex": "82d73e393f4ee3302208fd7d0a10e87a426a55e996fb541cc8aa9fe40c63f585",
+    "apps/api/lib/mokaid/ai/orchestrator.ex": "8e474bb64ef0cabb0bb80d6bea295d1da9296f50395e54fcb0a253697dd7d850",
+    "apps/api/lib/mokaid/ai/workers/agent_chat_worker.ex": "c9c66766ffb9354465a874d3665ad3433531122e7a887637be169d703029c511",
+    "apps/api/lib/mokaid/ai/workers/dispatch_worker.ex": "5ce9ea96ef2b146c6eaa29da2006487c20bb7806f52cc1f25c76555a12b2df53",
+    "apps/api/lib/mokaid/mail/agent_access.ex": "1679feadc924db2e72735b12efc133f992439ce53d6d3548b4b1c49d57c9e17d",
+    "apps/api/lib/mokaid/mail/agent_tools.ex": "504fe8f583221143db325a8741a4a5f2d6d0e57a66a2120cec143e7466020990",
+    "apps/api/lib/mokaid/tasks.ex": "1e0420028697ca76dc91a6196a4cb8b3b65f10131c0decc807373b172f1e787a",
+    "apps/api/lib/mokaid_web/controllers/worker_mail_tools_controller.ex": "3ed6dbda398107fe28f7d3461b249fc6700c2f2bda0f62624703083cc6cbc47e",
+    "apps/api/lib/mokaid_web/router.ex": "20970c9aca2f0f939c93271d5d97b039040dae1d4b66c0112638fe0349db65cb",
+    "apps/api/test/mokaid/dispatch_worker_test.exs": "ddc3d8299023a83f403738de70f4308e071e682f4ac02c10a98a95b302cf0ec2",
+    "apps/api/test/mokaid/mail_agent_access_test.exs": "a5887b98ce17e4f12955156c57c4103c1ffa781f530e99337b35624043987f75",
+    "apps/api/test/mokaid/mail_agent_tools_test.exs": "cba3e7b528296622894a4f7447a9094a891b150edeb2d5fd370ad409dfbb93cf",
+    "apps/api/test/mokaid/orchestrator_test.exs": "6bc32351bfb71b5cd1e6788042be5fd4a95c8fdbbc9bcccbcb344bf14f1683f2",
+    "apps/api/test/mokaid_web/orchestrator_controller_test.exs": "993ad1bf9147058a8dcc398aa59abcda25e212291cf467bfd719fc600c62cc7c",
+    "apps/api/test/mokaid_web/worker_mail_tools_controller_test.exs": "e5841a4e2618d5657a22a07f71a1c97b86bc036c442f3d7718d58d5441b20689"
+  },
+  "files": {
+    "apps/ai-worker/app/agents/deep_runner.py": "f6e7943079eb673eb7dc99c89ef877618768854bf5d7b7206404970327be1621",
+    "apps/ai-worker/app/agents/direct_chat.py": "034e2f42be3d3b48dc8deeebbce8ad1ff970c476a7d06fc5d2e9f14b47cc2482",
+    "apps/ai-worker/app/agents/managed_runner.py": "99eb18fcd9b0b7c2577ec9692e15b2e409aa6b54a3f78c711949153724057cc3",
+    "apps/ai-worker/app/agents/mission_kind.py": "4fa818df5ff9b6f7b55c6cedee152006a79f7bcef7bc89d6086f023cc707f08c",
+    "apps/ai-worker/app/agents/orchestrator_chat.py": "44a1fb0704ad01f874261ecc4f7fb28f91e7390dc8e11f67af655248242635fc",
+    "apps/ai-worker/app/agents/planner.py": "86ee50f06db0e0c99b2f03692272836687563450e20063fd32e942b5975798a2",
+    "apps/ai-worker/app/agents/quality.py": "86d0fc7417e9f7c78d7245f88107178d7d70b0f353c29c3cbcaed45c4000c044",
+    "apps/ai-worker/app/agents/runner.py": "21a727437b9a7de08e2a4ca180ff78297486d7cb8d62e781b4102536027ab0cf",
+    "apps/ai-worker/app/agents/runtime.py": "b84632a2ba0fdf55588305f99c41d84da50b6f258834f91cf075b57cc0ab6872",
+    "apps/ai-worker/app/clients/phoenix.py": "277d1c522a99e0ac91a98b775ed658546904d571db921618c35968f7aa714c8f",
+    "apps/ai-worker/app/mail/fetchers.py": "93d45b9c50a3d869c5dd59fb9cc65db484e75e255eb4e199e7306902e6e64ae4",
+    "apps/ai-worker/app/mail/normalize.py": "dc170d891377d3ccde3caa1c9a6208118b1fc05c99e3f58481014e6bda17f2fa",
+    "apps/ai-worker/app/mail/operations.py": "cde5708a8fd21f31b9084803d41f8ae30afe7c5bd6be32060a8daa68fa1f3971",
+    "apps/ai-worker/app/mail/outbound.py": "8e0d708c11754d8f1c41790f69f444dcc5b1583b42e0d4c5e88e5266d63b79dd",
+    "apps/ai-worker/app/mail/reader_sync.py": "7a12e85e423f49bb20277a531469a7bc593e3d122126419494e540b4dbd6be8b",
+    "apps/ai-worker/app/mail/sync.py": "917281706b116432dd13bd04a9986a858c8b212ac4600311840ec27366e0606d",
+    "apps/ai-worker/app/main.py": "9938bd0901589a5051d4ae314e3dc47df9829d4430c061cc06875c6e2292d208",
+    "apps/ai-worker/app/mcp/client.py": "8c3fed2613adf4f75369496c176be5a9caa0693240b07515cad2a4305655ad86",
+    "apps/ai-worker/app/mcp/google.py": "150500923811ebbf6659e5f35ae6446c90950f8525fcffe8f8e84fd566443a94",
+    "apps/ai-worker/app/policies/approval.py": "37c8a098c7cfa0364ee93205a33797a0ff4b654f454fa2a06d324301ffb94640",
+    "apps/ai-worker/app/schemas.py": "8551404bba091dc00dc0483439359b310987c2808166680cb4a796505cf10bf3",
+    "apps/ai-worker/app/tools/mail.py": "d9d43ed8b3dce90134263290356a9cbfe5ef462f4b0df178a63e9743d8b1580f",
+    "apps/ai-worker/app/tools/registry.py": "c88d4e6ae0da4006abcfafc2a93bae40d6681a792c3821d56e2989ae2101461f",
+    "apps/ai-worker/tests/test_direct_chat.py": "6bea206be402d50c538154db9c5d0808943efdee8c68191b2814ee0ed92d64ea",
+    "apps/ai-worker/tests/test_google_mcp.py": "b40d8934a42c3a77ff210529aacc08b835751c03b5ce825bc70fc833ae308cf1",
+    "apps/ai-worker/tests/test_mail_gateway.py": "0d750c4850d0b83fb975da89fe7d3e51d2dcf2445a43c54b04a80ca8a6553954",
+    "apps/ai-worker/tests/test_mail_mission_routing.py": "52ce3bc90454c08487600db308f1a5ef248de958b5d5569ffeda4df345bc32cc",
+    "apps/ai-worker/tests/test_mail_outbound.py": "e68ab7b26694547f5dd3ebecec66d689ded09d5240b94382414e98fc4a74b3a6",
+    "apps/ai-worker/tests/test_mail_reader.py": "3116dd1458745d676b0bb556efc2021bd429a1f25e22dc4aa0a4fce29da99a3c",
+    "apps/ai-worker/tests/test_orchestrator_chat.py": "238a767c3fb430a340c8a883f27819d0d20708f699cff49bd6b5d40e511f50dc",
+    "apps/ai-worker/tests/test_runner.py": "a35d017aba1bcd5ffd88aacfc91cb8b3afba2a0d47dc8956632a106b8b43b89a",
+    "apps/ai-worker/tests/test_workspace_mail_tools.py": "42a67d29011e3634ab8ea8351f45200ee2b0f889b37476bd8300824b96c322d6",
+    "apps/api/lib/mokaid/ai/coordinator.ex": "64bfed2fdede6ee8fcfdb9dacf4ee967df05e0b4c23961a00d1afa0265be3993",
+    "apps/api/lib/mokaid/ai/managed_runtime.ex": "82d73e393f4ee3302208fd7d0a10e87a426a55e996fb541cc8aa9fe40c63f585",
+    "apps/api/lib/mokaid/ai/orchestrator.ex": "8e474bb64ef0cabb0bb80d6bea295d1da9296f50395e54fcb0a253697dd7d850",
+    "apps/api/lib/mokaid/ai/workers/agent_chat_worker.ex": "c9c66766ffb9354465a874d3665ad3433531122e7a887637be169d703029c511",
+    "apps/api/lib/mokaid/ai/workers/dispatch_worker.ex": "5ce9ea96ef2b146c6eaa29da2006487c20bb7806f52cc1f25c76555a12b2df53",
+    "apps/api/lib/mokaid/integrations.ex": "50e5254df2147d91ac71cd6e5ae8b13d9432a18f374870816e3141840b8233f2",
+    "apps/api/lib/mokaid/integrations/google_catalog.ex": "f1cfa9e7d15f95b7e94e9e5831ccc6c3a8749a2ccb027484e8de6f433cc63884",
+    "apps/api/lib/mokaid/integrations/google_oauth.ex": "b1dcace2040a988349f57d3783fe1a9a026fb76bd01b943d7e56360b892b2fcb",
+    "apps/api/lib/mokaid/integrations/mail_oauth_flow.ex": "850584cb8c894bb8087dd7c9a292d088e2d12e70e5fae55519c32a4a97f20408",
+    "apps/api/lib/mokaid/integrations/microsoft_oauth.ex": "f3d1e70bcdcee52adfac35b10200128b30e72ccc86dc3718a05d8dc3a5c51853",
+    "apps/api/lib/mokaid/mail.ex": "cd2dcc76603dc229a1f54a56482738769a7e068058f28d08207a913641acb2a5",
+    "apps/api/lib/mokaid/mail/agent_access.ex": "1679feadc924db2e72735b12efc133f992439ce53d6d3548b4b1c49d57c9e17d",
+    "apps/api/lib/mokaid/mail/agent_tools.ex": "504fe8f583221143db325a8741a4a5f2d6d0e57a66a2120cec143e7466020990",
+    "apps/api/lib/mokaid/mail/attachments.ex": "403687cb74b70dcccaf5c0ee50b28dfe5e055d9237bdfe50e253d89344c58094",
+    "apps/api/lib/mokaid/mail/composer.ex": "93c15bf48797dd86769028c0a36bfb63236b861742a20c2aea7b5b80c0f6de44",
+    "apps/api/lib/mokaid/mail/message.ex": "015790841f23bb2a1335e7ae3c8cd3d5e73e3593d07be4bc7eb8d12c5981e8fd",
+    "apps/api/lib/mokaid/mail/message_actions.ex": "53dc803e08b1c7cd100b9c7ac720c156eb12aedec469d4104c74e04a764327fd",
+    "apps/api/lib/mokaid/mail/outbox.ex": "32ad65e8394947c786ca6cf5062904d87cd9e0a7c03826e0237f26dc9685376a",
+    "apps/api/lib/mokaid/mail/worker_rpc.ex": "1bd5d7b149e8d4c466c641baff63ade240eee8e33b7cab73cbe5833f6fc23aba",
+    "apps/api/lib/mokaid/mcp.ex": "3841c7a9df25763d6cb649954585c27ed14695b04a6f885311b5790a2e4798f4",
+    "apps/api/lib/mokaid/members.ex": "4c389484c0ef91553e83977676ade838400b2a8642f9fd37f9ce4d75299aaa61",
+    "apps/api/lib/mokaid/release.ex": "f70780a769b7c4bae87fdfcbd9d85a281d1404b4c007e037df96305624a1951c",
+    "apps/api/lib/mokaid/tasks.ex": "1e0420028697ca76dc91a6196a4cb8b3b65f10131c0decc807373b172f1e787a",
+    "apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex": "2ece70f0b256f3838b4b021534f4800d56bdc06b9892f349e17118c6923f9f8f",
+    "apps/api/lib/mokaid_web/controllers/mail_controller.ex": "faa9d1301109e8751ee6da3f67670fe71683962bda336e93b00d9fefac79f8f0",
+    "apps/api/lib/mokaid_web/controllers/mail_oauth_controller.ex": "e020b1a27c5bfda130c7869fa4419548e74b5a7f0639620851408398e087e049",
+    "apps/api/lib/mokaid_web/controllers/mail_send_controller.ex": "6172e16de5732f02d93ecb2c81a2267016287493470d36fc94ec719bbc9f5c85",
+    "apps/api/lib/mokaid_web/controllers/native_google_oauth_controller.ex": "cc288b5ff998c5aa2016d6be9180335c9871cf81236fb08259e4d00323e74444",
+    "apps/api/lib/mokaid_web/controllers/worker_mail_tools_controller.ex": "3ed6dbda398107fe28f7d3461b249fc6700c2f2bda0f62624703083cc6cbc47e",
+    "apps/api/lib/mokaid_web/json.ex": "8bc5570bf03dacc9df6e972f68448f52498b4449d44cfde852c3b9b91a7ed767",
+    "apps/api/lib/mokaid_web/router.ex": "20970c9aca2f0f939c93271d5d97b039040dae1d4b66c0112638fe0349db65cb",
+    "apps/api/priv/repo/migrations/20260927100000_extend_native_google_oauth_flows.exs": "9b3feed9e45bdff0c4a60a21d80ff632667f73a5af10c6ff413ba532acc8d368",
+    "apps/api/priv/repo/migrations/20260927100500_seed_google_integration_providers.exs": "841996bd28fa1b91364cfa21f5a461ced7d329238db6065cf0971c8707d0e3f5",
+    "apps/api/priv/repo/migrations/20260927110000_add_mail_reader_fields.exs": "9a0c154b7957bda15531c8feb148d240a7053ed88c175b93b6103c1ee6d44dbf",
+    "apps/api/priv/repo/migrations/20260927111000_add_mail_action_permissions.exs": "9593fa273b1e5694be5908bec28e9562dec326aa627f1f0f91e09df08b637735",
+    "apps/api/priv/repo/migrations/20260927130000_create_mail_outbox.exs": "5ff9b21503385c1bc66364ebd5e8feda6408202bb45c28d5b8e4421f9b0d0c8f",
+    "apps/api/priv/repo/migrations/20260927130500_add_outbox_attachments.exs": "c3854954b30981830d3666c65f75599ff0decfa32609429679c40894808693f2",
+    "apps/api/priv/repo/seeds.exs": "1b40d860767365645f08dc333e136a26cdd1c657e05d82246263ded66ce38581",
+    "apps/api/test/mokaid/dispatch_worker_test.exs": "ddc3d8299023a83f403738de70f4308e071e682f4ac02c10a98a95b302cf0ec2",
+    "apps/api/test/mokaid/integrations/microsoft_oauth_test.exs": "59406bab37adea0f2fe6d26fe343d47896b622d8a06109f23da02eff609fb4dd",
+    "apps/api/test/mokaid/mail_agent_access_test.exs": "a5887b98ce17e4f12955156c57c4103c1ffa781f530e99337b35624043987f75",
+    "apps/api/test/mokaid/mail_agent_tools_test.exs": "cba3e7b528296622894a4f7447a9094a891b150edeb2d5fd370ad409dfbb93cf",
+    "apps/api/test/mokaid/mail_composer_test.exs": "65104d8899fb6ea4cdc22d17abe3dd31f1be117fb365fdf51288d90dec9aaae2",
+    "apps/api/test/mokaid/mail_reader_test.exs": "715e8eccad63a410557558bb61ea12a4c0c7e61fa563b88c2cf5f7873bf0754b",
+    "apps/api/test/mokaid/mail_test.exs": "47c5f4357edade694d8470b250b34b9856d878ad490119044143393cfbf1338e",
+    "apps/api/test/mokaid/mcp_google_test.exs": "94d2ba1d69ca826ed17185bf71b862b3ec9b116ecefd5ecabdcdd5f77db45cb9",
+    "apps/api/test/mokaid/native_google_integrations_test.exs": "3b1dee8a65daebc213f67829b5f710228a872c52334493842e135373bd3557e2",
+    "apps/api/test/mokaid/orchestrator_test.exs": "6bc32351bfb71b5cd1e6788042be5fd4a95c8fdbbc9bcccbcb344bf14f1683f2",
+    "apps/api/test/mokaid/permissions_test.exs": "a44918214e85c61e6f787db2c2bea71f2cd0645873ce8a1ff376f955c2807a39",
+    "apps/api/test/mokaid_web/mail_oauth_controller_test.exs": "56b53b2c5fb580810f9697381aa6a6dfa0b53899cbb76364346df32ef3443997",
+    "apps/api/test/mokaid_web/mail_send_controller_test.exs": "83c6ad6dfe544fb9548be351edbf2ded317b9a4dddc4898ac4606c5ac29c48e0",
+    "apps/api/test/mokaid_web/orchestrator_controller_test.exs": "993ad1bf9147058a8dcc398aa59abcda25e212291cf467bfd719fc600c62cc7c",
+    "apps/api/test/mokaid_web/worker_mail_tools_controller_test.exs": "e5841a4e2618d5657a22a07f71a1c97b86bc036c442f3d7718d58d5441b20689"
+  },
+  "copied_files": {
+    "apps/ai-worker/app/agents/deep_runner.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/agents/deep_runner.py",
+      "source_sha256": "f6e7943079eb673eb7dc99c89ef877618768854bf5d7b7206404970327be1621",
+      "copied_sha256": "f6e7943079eb673eb7dc99c89ef877618768854bf5d7b7206404970327be1621"
+    },
+    "apps/ai-worker/app/agents/direct_chat.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/agents/direct_chat.py",
+      "source_sha256": "034e2f42be3d3b48dc8deeebbce8ad1ff970c476a7d06fc5d2e9f14b47cc2482",
+      "copied_sha256": "034e2f42be3d3b48dc8deeebbce8ad1ff970c476a7d06fc5d2e9f14b47cc2482"
+    },
+    "apps/ai-worker/app/agents/managed_runner.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/agents/managed_runner.py",
+      "source_sha256": "99eb18fcd9b0b7c2577ec9692e15b2e409aa6b54a3f78c711949153724057cc3",
+      "copied_sha256": "99eb18fcd9b0b7c2577ec9692e15b2e409aa6b54a3f78c711949153724057cc3"
+    },
+    "apps/ai-worker/app/agents/mission_kind.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/agents/mission_kind.py",
+      "source_sha256": "4fa818df5ff9b6f7b55c6cedee152006a79f7bcef7bc89d6086f023cc707f08c",
+      "copied_sha256": "4fa818df5ff9b6f7b55c6cedee152006a79f7bcef7bc89d6086f023cc707f08c"
+    },
+    "apps/ai-worker/app/agents/orchestrator_chat.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/agents/orchestrator_chat.py",
+      "source_sha256": "44a1fb0704ad01f874261ecc4f7fb28f91e7390dc8e11f67af655248242635fc",
+      "copied_sha256": "44a1fb0704ad01f874261ecc4f7fb28f91e7390dc8e11f67af655248242635fc"
+    },
+    "apps/ai-worker/app/agents/planner.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/agents/planner.py",
+      "source_sha256": "86ee50f06db0e0c99b2f03692272836687563450e20063fd32e942b5975798a2",
+      "copied_sha256": "86ee50f06db0e0c99b2f03692272836687563450e20063fd32e942b5975798a2"
+    },
+    "apps/ai-worker/app/agents/quality.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/agents/quality.py",
+      "source_sha256": "86d0fc7417e9f7c78d7245f88107178d7d70b0f353c29c3cbcaed45c4000c044",
+      "copied_sha256": "86d0fc7417e9f7c78d7245f88107178d7d70b0f353c29c3cbcaed45c4000c044"
+    },
+    "apps/ai-worker/app/agents/runner.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/agents/runner.py",
+      "source_sha256": "21a727437b9a7de08e2a4ca180ff78297486d7cb8d62e781b4102536027ab0cf",
+      "copied_sha256": "21a727437b9a7de08e2a4ca180ff78297486d7cb8d62e781b4102536027ab0cf"
+    },
+    "apps/ai-worker/app/agents/runtime.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/agents/runtime.py",
+      "source_sha256": "b84632a2ba0fdf55588305f99c41d84da50b6f258834f91cf075b57cc0ab6872",
+      "copied_sha256": "b84632a2ba0fdf55588305f99c41d84da50b6f258834f91cf075b57cc0ab6872"
+    },
+    "apps/ai-worker/app/clients/phoenix.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/clients/phoenix.py",
+      "source_sha256": "277d1c522a99e0ac91a98b775ed658546904d571db921618c35968f7aa714c8f",
+      "copied_sha256": "277d1c522a99e0ac91a98b775ed658546904d571db921618c35968f7aa714c8f"
+    },
+    "apps/ai-worker/app/mail/fetchers.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/app/mail/fetchers.py",
+      "source_sha256": "93d45b9c50a3d869c5dd59fb9cc65db484e75e255eb4e199e7306902e6e64ae4",
+      "copied_sha256": "93d45b9c50a3d869c5dd59fb9cc65db484e75e255eb4e199e7306902e6e64ae4"
+    },
+    "apps/ai-worker/app/mail/normalize.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/app/mail/normalize.py",
+      "source_sha256": "dc170d891377d3ccde3caa1c9a6208118b1fc05c99e3f58481014e6bda17f2fa",
+      "copied_sha256": "dc170d891377d3ccde3caa1c9a6208118b1fc05c99e3f58481014e6bda17f2fa"
+    },
+    "apps/ai-worker/app/mail/operations.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/app/mail/operations.py",
+      "source_sha256": "cde5708a8fd21f31b9084803d41f8ae30afe7c5bd6be32060a8daa68fa1f3971",
+      "copied_sha256": "cde5708a8fd21f31b9084803d41f8ae30afe7c5bd6be32060a8daa68fa1f3971"
+    },
+    "apps/ai-worker/app/mail/outbound.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/app/mail/outbound.py",
+      "source_sha256": "8e0d708c11754d8f1c41790f69f444dcc5b1583b42e0d4c5e88e5266d63b79dd",
+      "copied_sha256": "8e0d708c11754d8f1c41790f69f444dcc5b1583b42e0d4c5e88e5266d63b79dd"
+    },
+    "apps/ai-worker/app/mail/reader_sync.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/app/mail/reader_sync.py",
+      "source_sha256": "7a12e85e423f49bb20277a531469a7bc593e3d122126419494e540b4dbd6be8b",
+      "copied_sha256": "7a12e85e423f49bb20277a531469a7bc593e3d122126419494e540b4dbd6be8b"
+    },
+    "apps/ai-worker/app/mail/sync.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/app/mail/sync.py",
+      "source_sha256": "917281706b116432dd13bd04a9986a858c8b212ac4600311840ec27366e0606d",
+      "copied_sha256": "917281706b116432dd13bd04a9986a858c8b212ac4600311840ec27366e0606d"
+    },
+    "apps/ai-worker/app/main.py": {
+      "origin": "partial_frozen_overlay",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/app/main.py",
+      "source_sha256": "020c48fa05067fbe45a4296a480f5636626c3dea447528dbd7b0a884efe31e2c",
+      "copied_sha256": "9938bd0901589a5051d4ae314e3dc47df9829d4430c061cc06875c6e2292d208"
+    },
+    "apps/ai-worker/app/mcp/client.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/app/mcp/client.py",
+      "source_sha256": "8c3fed2613adf4f75369496c176be5a9caa0693240b07515cad2a4305655ad86",
+      "copied_sha256": "8c3fed2613adf4f75369496c176be5a9caa0693240b07515cad2a4305655ad86"
+    },
+    "apps/ai-worker/app/mcp/google.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/app/mcp/google.py",
+      "source_sha256": "150500923811ebbf6659e5f35ae6446c90950f8525fcffe8f8e84fd566443a94",
+      "copied_sha256": "150500923811ebbf6659e5f35ae6446c90950f8525fcffe8f8e84fd566443a94"
+    },
+    "apps/ai-worker/app/policies/approval.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/policies/approval.py",
+      "source_sha256": "37c8a098c7cfa0364ee93205a33797a0ff4b654f454fa2a06d324301ffb94640",
+      "copied_sha256": "37c8a098c7cfa0364ee93205a33797a0ff4b654f454fa2a06d324301ffb94640"
+    },
+    "apps/ai-worker/app/schemas.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/schemas.py",
+      "source_sha256": "8551404bba091dc00dc0483439359b310987c2808166680cb4a796505cf10bf3",
+      "copied_sha256": "8551404bba091dc00dc0483439359b310987c2808166680cb4a796505cf10bf3"
+    },
+    "apps/ai-worker/app/tools/mail.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/tools/mail.py",
+      "source_sha256": "d9d43ed8b3dce90134263290356a9cbfe5ef462f4b0df178a63e9743d8b1580f",
+      "copied_sha256": "d9d43ed8b3dce90134263290356a9cbfe5ef462f4b0df178a63e9743d8b1580f"
+    },
+    "apps/ai-worker/app/tools/registry.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/app/tools/registry.py",
+      "source_sha256": "c88d4e6ae0da4006abcfafc2a93bae40d6681a792c3821d56e2989ae2101461f",
+      "copied_sha256": "c88d4e6ae0da4006abcfafc2a93bae40d6681a792c3821d56e2989ae2101461f"
+    },
+    "apps/ai-worker/tests/test_direct_chat.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/tests/test_direct_chat.py",
+      "source_sha256": "6bea206be402d50c538154db9c5d0808943efdee8c68191b2814ee0ed92d64ea",
+      "copied_sha256": "6bea206be402d50c538154db9c5d0808943efdee8c68191b2814ee0ed92d64ea"
+    },
+    "apps/ai-worker/tests/test_google_mcp.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/tests/test_google_mcp.py",
+      "source_sha256": "b40d8934a42c3a77ff210529aacc08b835751c03b5ce825bc70fc833ae308cf1",
+      "copied_sha256": "b40d8934a42c3a77ff210529aacc08b835751c03b5ce825bc70fc833ae308cf1"
+    },
+    "apps/ai-worker/tests/test_mail_gateway.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/tests/test_mail_gateway.py",
+      "source_sha256": "0d750c4850d0b83fb975da89fe7d3e51d2dcf2445a43c54b04a80ca8a6553954",
+      "copied_sha256": "0d750c4850d0b83fb975da89fe7d3e51d2dcf2445a43c54b04a80ca8a6553954"
+    },
+    "apps/ai-worker/tests/test_mail_mission_routing.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/tests/test_mail_mission_routing.py",
+      "source_sha256": "52ce3bc90454c08487600db308f1a5ef248de958b5d5569ffeda4df345bc32cc",
+      "copied_sha256": "52ce3bc90454c08487600db308f1a5ef248de958b5d5569ffeda4df345bc32cc"
+    },
+    "apps/ai-worker/tests/test_mail_outbound.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/tests/test_mail_outbound.py",
+      "source_sha256": "e68ab7b26694547f5dd3ebecec66d689ded09d5240b94382414e98fc4a74b3a6",
+      "copied_sha256": "e68ab7b26694547f5dd3ebecec66d689ded09d5240b94382414e98fc4a74b3a6"
+    },
+    "apps/ai-worker/tests/test_mail_reader.py": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/ai-worker/tests/test_mail_reader.py",
+      "source_sha256": "3116dd1458745d676b0bb556efc2021bd429a1f25e22dc4aa0a4fce29da99a3c",
+      "copied_sha256": "3116dd1458745d676b0bb556efc2021bd429a1f25e22dc4aa0a4fce29da99a3c"
+    },
+    "apps/ai-worker/tests/test_orchestrator_chat.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/tests/test_orchestrator_chat.py",
+      "source_sha256": "238a767c3fb430a340c8a883f27819d0d20708f699cff49bd6b5d40e511f50dc",
+      "copied_sha256": "238a767c3fb430a340c8a883f27819d0d20708f699cff49bd6b5d40e511f50dc"
+    },
+    "apps/ai-worker/tests/test_runner.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/tests/test_runner.py",
+      "source_sha256": "a35d017aba1bcd5ffd88aacfc91cb8b3afba2a0d47dc8956632a106b8b43b89a",
+      "copied_sha256": "a35d017aba1bcd5ffd88aacfc91cb8b3afba2a0d47dc8956632a106b8b43b89a"
+    },
+    "apps/ai-worker/tests/test_workspace_mail_tools.py": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/ai-worker/tests/test_workspace_mail_tools.py",
+      "source_sha256": "42a67d29011e3634ab8ea8351f45200ee2b0f889b37476bd8300824b96c322d6",
+      "copied_sha256": "42a67d29011e3634ab8ea8351f45200ee2b0f889b37476bd8300824b96c322d6"
+    },
+    "apps/api/lib/mokaid/ai/coordinator.ex": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/lib/mokaid/ai/coordinator.ex",
+      "source_sha256": "64bfed2fdede6ee8fcfdb9dacf4ee967df05e0b4c23961a00d1afa0265be3993",
+      "copied_sha256": "64bfed2fdede6ee8fcfdb9dacf4ee967df05e0b4c23961a00d1afa0265be3993"
+    },
+    "apps/api/lib/mokaid/ai/managed_runtime.ex": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/lib/mokaid/ai/managed_runtime.ex",
+      "source_sha256": "82d73e393f4ee3302208fd7d0a10e87a426a55e996fb541cc8aa9fe40c63f585",
+      "copied_sha256": "82d73e393f4ee3302208fd7d0a10e87a426a55e996fb541cc8aa9fe40c63f585"
+    },
+    "apps/api/lib/mokaid/ai/orchestrator.ex": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/lib/mokaid/ai/orchestrator.ex",
+      "source_sha256": "8e474bb64ef0cabb0bb80d6bea295d1da9296f50395e54fcb0a253697dd7d850",
+      "copied_sha256": "8e474bb64ef0cabb0bb80d6bea295d1da9296f50395e54fcb0a253697dd7d850"
+    },
+    "apps/api/lib/mokaid/ai/workers/agent_chat_worker.ex": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/lib/mokaid/ai/workers/agent_chat_worker.ex",
+      "source_sha256": "c9c66766ffb9354465a874d3665ad3433531122e7a887637be169d703029c511",
+      "copied_sha256": "c9c66766ffb9354465a874d3665ad3433531122e7a887637be169d703029c511"
+    },
+    "apps/api/lib/mokaid/ai/workers/dispatch_worker.ex": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/lib/mokaid/ai/workers/dispatch_worker.ex",
+      "source_sha256": "5ce9ea96ef2b146c6eaa29da2006487c20bb7806f52cc1f25c76555a12b2df53",
+      "copied_sha256": "5ce9ea96ef2b146c6eaa29da2006487c20bb7806f52cc1f25c76555a12b2df53"
+    },
+    "apps/api/lib/mokaid/integrations.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/integrations.ex",
+      "source_sha256": "50e5254df2147d91ac71cd6e5ae8b13d9432a18f374870816e3141840b8233f2",
+      "copied_sha256": "50e5254df2147d91ac71cd6e5ae8b13d9432a18f374870816e3141840b8233f2"
+    },
+    "apps/api/lib/mokaid/integrations/google_catalog.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/integrations/google_catalog.ex",
+      "source_sha256": "f1cfa9e7d15f95b7e94e9e5831ccc6c3a8749a2ccb027484e8de6f433cc63884",
+      "copied_sha256": "f1cfa9e7d15f95b7e94e9e5831ccc6c3a8749a2ccb027484e8de6f433cc63884"
+    },
+    "apps/api/lib/mokaid/integrations/google_oauth.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/integrations/google_oauth.ex",
+      "source_sha256": "b1dcace2040a988349f57d3783fe1a9a026fb76bd01b943d7e56360b892b2fcb",
+      "copied_sha256": "b1dcace2040a988349f57d3783fe1a9a026fb76bd01b943d7e56360b892b2fcb"
+    },
+    "apps/api/lib/mokaid/integrations/mail_oauth_flow.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/integrations/mail_oauth_flow.ex",
+      "source_sha256": "850584cb8c894bb8087dd7c9a292d088e2d12e70e5fae55519c32a4a97f20408",
+      "copied_sha256": "850584cb8c894bb8087dd7c9a292d088e2d12e70e5fae55519c32a4a97f20408"
+    },
+    "apps/api/lib/mokaid/integrations/microsoft_oauth.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/integrations/microsoft_oauth.ex",
+      "source_sha256": "f3d1e70bcdcee52adfac35b10200128b30e72ccc86dc3718a05d8dc3a5c51853",
+      "copied_sha256": "f3d1e70bcdcee52adfac35b10200128b30e72ccc86dc3718a05d8dc3a5c51853"
+    },
+    "apps/api/lib/mokaid/mail.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/mail.ex",
+      "source_sha256": "cd2dcc76603dc229a1f54a56482738769a7e068058f28d08207a913641acb2a5",
+      "copied_sha256": "cd2dcc76603dc229a1f54a56482738769a7e068058f28d08207a913641acb2a5"
+    },
+    "apps/api/lib/mokaid/mail/agent_access.ex": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/lib/mokaid/mail/agent_access.ex",
+      "source_sha256": "1679feadc924db2e72735b12efc133f992439ce53d6d3548b4b1c49d57c9e17d",
+      "copied_sha256": "1679feadc924db2e72735b12efc133f992439ce53d6d3548b4b1c49d57c9e17d"
+    },
+    "apps/api/lib/mokaid/mail/agent_tools.ex": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/lib/mokaid/mail/agent_tools.ex",
+      "source_sha256": "504fe8f583221143db325a8741a4a5f2d6d0e57a66a2120cec143e7466020990",
+      "copied_sha256": "504fe8f583221143db325a8741a4a5f2d6d0e57a66a2120cec143e7466020990"
+    },
+    "apps/api/lib/mokaid/mail/attachments.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/mail/attachments.ex",
+      "source_sha256": "403687cb74b70dcccaf5c0ee50b28dfe5e055d9237bdfe50e253d89344c58094",
+      "copied_sha256": "403687cb74b70dcccaf5c0ee50b28dfe5e055d9237bdfe50e253d89344c58094"
+    },
+    "apps/api/lib/mokaid/mail/composer.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/mail/composer.ex",
+      "source_sha256": "93c15bf48797dd86769028c0a36bfb63236b861742a20c2aea7b5b80c0f6de44",
+      "copied_sha256": "93c15bf48797dd86769028c0a36bfb63236b861742a20c2aea7b5b80c0f6de44"
+    },
+    "apps/api/lib/mokaid/mail/message.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/mail/message.ex",
+      "source_sha256": "015790841f23bb2a1335e7ae3c8cd3d5e73e3593d07be4bc7eb8d12c5981e8fd",
+      "copied_sha256": "015790841f23bb2a1335e7ae3c8cd3d5e73e3593d07be4bc7eb8d12c5981e8fd"
+    },
+    "apps/api/lib/mokaid/mail/message_actions.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/mail/message_actions.ex",
+      "source_sha256": "53dc803e08b1c7cd100b9c7ac720c156eb12aedec469d4104c74e04a764327fd",
+      "copied_sha256": "53dc803e08b1c7cd100b9c7ac720c156eb12aedec469d4104c74e04a764327fd"
+    },
+    "apps/api/lib/mokaid/mail/outbox.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/mail/outbox.ex",
+      "source_sha256": "32ad65e8394947c786ca6cf5062904d87cd9e0a7c03826e0237f26dc9685376a",
+      "copied_sha256": "32ad65e8394947c786ca6cf5062904d87cd9e0a7c03826e0237f26dc9685376a"
+    },
+    "apps/api/lib/mokaid/mail/worker_rpc.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/mail/worker_rpc.ex",
+      "source_sha256": "1bd5d7b149e8d4c466c641baff63ade240eee8e33b7cab73cbe5833f6fc23aba",
+      "copied_sha256": "1bd5d7b149e8d4c466c641baff63ade240eee8e33b7cab73cbe5833f6fc23aba"
+    },
+    "apps/api/lib/mokaid/mcp.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/mcp.ex",
+      "source_sha256": "3841c7a9df25763d6cb649954585c27ed14695b04a6f885311b5790a2e4798f4",
+      "copied_sha256": "3841c7a9df25763d6cb649954585c27ed14695b04a6f885311b5790a2e4798f4"
+    },
+    "apps/api/lib/mokaid/members.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/members.ex",
+      "source_sha256": "4c389484c0ef91553e83977676ade838400b2a8642f9fd37f9ce4d75299aaa61",
+      "copied_sha256": "4c389484c0ef91553e83977676ade838400b2a8642f9fd37f9ce4d75299aaa61"
+    },
+    "apps/api/lib/mokaid/release.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid/release.ex",
+      "source_sha256": "f70780a769b7c4bae87fdfcbd9d85a281d1404b4c007e037df96305624a1951c",
+      "copied_sha256": "f70780a769b7c4bae87fdfcbd9d85a281d1404b4c007e037df96305624a1951c"
+    },
+    "apps/api/lib/mokaid/tasks.ex": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/lib/mokaid/tasks.ex",
+      "source_sha256": "1e0420028697ca76dc91a6196a4cb8b3b65f10131c0decc807373b172f1e787a",
+      "copied_sha256": "1e0420028697ca76dc91a6196a4cb8b3b65f10131c0decc807373b172f1e787a"
+    },
+    "apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex",
+      "source_sha256": "2ece70f0b256f3838b4b021534f4800d56bdc06b9892f349e17118c6923f9f8f",
+      "copied_sha256": "2ece70f0b256f3838b4b021534f4800d56bdc06b9892f349e17118c6923f9f8f"
+    },
+    "apps/api/lib/mokaid_web/controllers/mail_controller.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid_web/controllers/mail_controller.ex",
+      "source_sha256": "faa9d1301109e8751ee6da3f67670fe71683962bda336e93b00d9fefac79f8f0",
+      "copied_sha256": "faa9d1301109e8751ee6da3f67670fe71683962bda336e93b00d9fefac79f8f0"
+    },
+    "apps/api/lib/mokaid_web/controllers/mail_oauth_controller.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid_web/controllers/mail_oauth_controller.ex",
+      "source_sha256": "e020b1a27c5bfda130c7869fa4419548e74b5a7f0639620851408398e087e049",
+      "copied_sha256": "e020b1a27c5bfda130c7869fa4419548e74b5a7f0639620851408398e087e049"
+    },
+    "apps/api/lib/mokaid_web/controllers/mail_send_controller.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid_web/controllers/mail_send_controller.ex",
+      "source_sha256": "6172e16de5732f02d93ecb2c81a2267016287493470d36fc94ec719bbc9f5c85",
+      "copied_sha256": "6172e16de5732f02d93ecb2c81a2267016287493470d36fc94ec719bbc9f5c85"
+    },
+    "apps/api/lib/mokaid_web/controllers/native_google_oauth_controller.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid_web/controllers/native_google_oauth_controller.ex",
+      "source_sha256": "cc288b5ff998c5aa2016d6be9180335c9871cf81236fb08259e4d00323e74444",
+      "copied_sha256": "cc288b5ff998c5aa2016d6be9180335c9871cf81236fb08259e4d00323e74444"
+    },
+    "apps/api/lib/mokaid_web/controllers/worker_mail_tools_controller.ex": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/lib/mokaid_web/controllers/worker_mail_tools_controller.ex",
+      "source_sha256": "3ed6dbda398107fe28f7d3461b249fc6700c2f2bda0f62624703083cc6cbc47e",
+      "copied_sha256": "3ed6dbda398107fe28f7d3461b249fc6700c2f2bda0f62624703083cc6cbc47e"
+    },
+    "apps/api/lib/mokaid_web/json.ex": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/lib/mokaid_web/json.ex",
+      "source_sha256": "8bc5570bf03dacc9df6e972f68448f52498b4449d44cfde852c3b9b91a7ed767",
+      "copied_sha256": "8bc5570bf03dacc9df6e972f68448f52498b4449d44cfde852c3b9b91a7ed767"
+    },
+    "apps/api/lib/mokaid_web/router.ex": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/lib/mokaid_web/router.ex",
+      "source_sha256": "20970c9aca2f0f939c93271d5d97b039040dae1d4b66c0112638fe0349db65cb",
+      "copied_sha256": "20970c9aca2f0f939c93271d5d97b039040dae1d4b66c0112638fe0349db65cb"
+    },
+    "apps/api/priv/repo/migrations/20260927100000_extend_native_google_oauth_flows.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/priv/repo/migrations/20260927100000_extend_native_google_oauth_flows.exs",
+      "source_sha256": "9b3feed9e45bdff0c4a60a21d80ff632667f73a5af10c6ff413ba532acc8d368",
+      "copied_sha256": "9b3feed9e45bdff0c4a60a21d80ff632667f73a5af10c6ff413ba532acc8d368"
+    },
+    "apps/api/priv/repo/migrations/20260927100500_seed_google_integration_providers.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/priv/repo/migrations/20260927100500_seed_google_integration_providers.exs",
+      "source_sha256": "841996bd28fa1b91364cfa21f5a461ced7d329238db6065cf0971c8707d0e3f5",
+      "copied_sha256": "841996bd28fa1b91364cfa21f5a461ced7d329238db6065cf0971c8707d0e3f5"
+    },
+    "apps/api/priv/repo/migrations/20260927110000_add_mail_reader_fields.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/priv/repo/migrations/20260927110000_add_mail_reader_fields.exs",
+      "source_sha256": "9a0c154b7957bda15531c8feb148d240a7053ed88c175b93b6103c1ee6d44dbf",
+      "copied_sha256": "9a0c154b7957bda15531c8feb148d240a7053ed88c175b93b6103c1ee6d44dbf"
+    },
+    "apps/api/priv/repo/migrations/20260927111000_add_mail_action_permissions.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/priv/repo/migrations/20260927111000_add_mail_action_permissions.exs",
+      "source_sha256": "9593fa273b1e5694be5908bec28e9562dec326aa627f1f0f91e09df08b637735",
+      "copied_sha256": "9593fa273b1e5694be5908bec28e9562dec326aa627f1f0f91e09df08b637735"
+    },
+    "apps/api/priv/repo/migrations/20260927130000_create_mail_outbox.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/priv/repo/migrations/20260927130000_create_mail_outbox.exs",
+      "source_sha256": "5ff9b21503385c1bc66364ebd5e8feda6408202bb45c28d5b8e4421f9b0d0c8f",
+      "copied_sha256": "5ff9b21503385c1bc66364ebd5e8feda6408202bb45c28d5b8e4421f9b0d0c8f"
+    },
+    "apps/api/priv/repo/migrations/20260927130500_add_outbox_attachments.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/priv/repo/migrations/20260927130500_add_outbox_attachments.exs",
+      "source_sha256": "c3854954b30981830d3666c65f75599ff0decfa32609429679c40894808693f2",
+      "copied_sha256": "c3854954b30981830d3666c65f75599ff0decfa32609429679c40894808693f2"
+    },
+    "apps/api/priv/repo/seeds.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/priv/repo/seeds.exs",
+      "source_sha256": "1b40d860767365645f08dc333e136a26cdd1c657e05d82246263ded66ce38581",
+      "copied_sha256": "1b40d860767365645f08dc333e136a26cdd1c657e05d82246263ded66ce38581"
+    },
+    "apps/api/test/mokaid/dispatch_worker_test.exs": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/test/mokaid/dispatch_worker_test.exs",
+      "source_sha256": "ddc3d8299023a83f403738de70f4308e071e682f4ac02c10a98a95b302cf0ec2",
+      "copied_sha256": "ddc3d8299023a83f403738de70f4308e071e682f4ac02c10a98a95b302cf0ec2"
+    },
+    "apps/api/test/mokaid/integrations/microsoft_oauth_test.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/test/mokaid/integrations/microsoft_oauth_test.exs",
+      "source_sha256": "59406bab37adea0f2fe6d26fe343d47896b622d8a06109f23da02eff609fb4dd",
+      "copied_sha256": "59406bab37adea0f2fe6d26fe343d47896b622d8a06109f23da02eff609fb4dd"
+    },
+    "apps/api/test/mokaid/mail_agent_access_test.exs": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/test/mokaid/mail_agent_access_test.exs",
+      "source_sha256": "a5887b98ce17e4f12955156c57c4103c1ffa781f530e99337b35624043987f75",
+      "copied_sha256": "a5887b98ce17e4f12955156c57c4103c1ffa781f530e99337b35624043987f75"
+    },
+    "apps/api/test/mokaid/mail_agent_tools_test.exs": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/test/mokaid/mail_agent_tools_test.exs",
+      "source_sha256": "cba3e7b528296622894a4f7447a9094a891b150edeb2d5fd370ad409dfbb93cf",
+      "copied_sha256": "cba3e7b528296622894a4f7447a9094a891b150edeb2d5fd370ad409dfbb93cf"
+    },
+    "apps/api/test/mokaid/mail_composer_test.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/test/mokaid/mail_composer_test.exs",
+      "source_sha256": "65104d8899fb6ea4cdc22d17abe3dd31f1be117fb365fdf51288d90dec9aaae2",
+      "copied_sha256": "65104d8899fb6ea4cdc22d17abe3dd31f1be117fb365fdf51288d90dec9aaae2"
+    },
+    "apps/api/test/mokaid/mail_reader_test.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/test/mokaid/mail_reader_test.exs",
+      "source_sha256": "715e8eccad63a410557558bb61ea12a4c0c7e61fa563b88c2cf5f7873bf0754b",
+      "copied_sha256": "715e8eccad63a410557558bb61ea12a4c0c7e61fa563b88c2cf5f7873bf0754b"
+    },
+    "apps/api/test/mokaid/mail_test.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/test/mokaid/mail_test.exs",
+      "source_sha256": "47c5f4357edade694d8470b250b34b9856d878ad490119044143393cfbf1338e",
+      "copied_sha256": "47c5f4357edade694d8470b250b34b9856d878ad490119044143393cfbf1338e"
+    },
+    "apps/api/test/mokaid/mcp_google_test.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/test/mokaid/mcp_google_test.exs",
+      "source_sha256": "94d2ba1d69ca826ed17185bf71b862b3ec9b116ecefd5ecabdcdd5f77db45cb9",
+      "copied_sha256": "94d2ba1d69ca826ed17185bf71b862b3ec9b116ecefd5ecabdcdd5f77db45cb9"
+    },
+    "apps/api/test/mokaid/native_google_integrations_test.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/test/mokaid/native_google_integrations_test.exs",
+      "source_sha256": "3b1dee8a65daebc213f67829b5f710228a872c52334493842e135373bd3557e2",
+      "copied_sha256": "3b1dee8a65daebc213f67829b5f710228a872c52334493842e135373bd3557e2"
+    },
+    "apps/api/test/mokaid/orchestrator_test.exs": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/test/mokaid/orchestrator_test.exs",
+      "source_sha256": "6bc32351bfb71b5cd1e6788042be5fd4a95c8fdbbc9bcccbcb344bf14f1683f2",
+      "copied_sha256": "6bc32351bfb71b5cd1e6788042be5fd4a95c8fdbbc9bcccbcb344bf14f1683f2"
+    },
+    "apps/api/test/mokaid/permissions_test.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/test/mokaid/permissions_test.exs",
+      "source_sha256": "a44918214e85c61e6f787db2c2bea71f2cd0645873ce8a1ff376f955c2807a39",
+      "copied_sha256": "a44918214e85c61e6f787db2c2bea71f2cd0645873ce8a1ff376f955c2807a39"
+    },
+    "apps/api/test/mokaid_web/mail_oauth_controller_test.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/test/mokaid_web/mail_oauth_controller_test.exs",
+      "source_sha256": "56b53b2c5fb580810f9697381aa6a6dfa0b53899cbb76364346df32ef3443997",
+      "copied_sha256": "56b53b2c5fb580810f9697381aa6a6dfa0b53899cbb76364346df32ef3443997"
+    },
+    "apps/api/test/mokaid_web/mail_send_controller_test.exs": {
+      "origin": "validated_previous_release",
+      "source": "/private/tmp/mokaid-mail-center-release-20260927/apps/api/test/mokaid_web/mail_send_controller_test.exs",
+      "source_sha256": "83c6ad6dfe544fb9548be351edbf2ded317b9a4dddc4898ac4606c5ac29c48e0",
+      "copied_sha256": "83c6ad6dfe544fb9548be351edbf2ded317b9a4dddc4898ac4606c5ac29c48e0"
+    },
+    "apps/api/test/mokaid_web/orchestrator_controller_test.exs": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/test/mokaid_web/orchestrator_controller_test.exs",
+      "source_sha256": "993ad1bf9147058a8dcc398aa59abcda25e212291cf467bfd719fc600c62cc7c",
+      "copied_sha256": "993ad1bf9147058a8dcc398aa59abcda25e212291cf467bfd719fc600c62cc7c"
+    },
+    "apps/api/test/mokaid_web/worker_mail_tools_controller_test.exs": {
+      "origin": "current_workspace",
+      "source": "/Users/olimservice/mokaid/apps/api/test/mokaid_web/worker_mail_tools_controller_test.exs",
+      "source_sha256": "e5841a4e2618d5657a22a07f71a1c97b86bc036c442f3d7718d58d5441b20689",
+      "copied_sha256": "e5841a4e2618d5657a22a07f71a1c97b86bc036c442f3d7718d58d5441b20689"
+    }
+  },
+  "excluded_changes": [
+    "dispatcher/Jev sources, API fallback change and related tests",
+    "web changes",
+    "native application changes"
+  ],
+  "partial_overlay": {
+    "apps/ai-worker/app/main.py": "previous frozen main.py plus app.tools.mail import and orchestrator timeout 22 to 55 only"
+  },
+  "build_context_note": "API-specific dockerignore copied to isolated root for legacy builder; base asset-cooker retained for API image only",
+  "api_dockerignore_sha256": "428e6a4698c06bd9eb12170af43926b34ffdb18e5a472887702ac3af616ed667",
+  "release_script_sha256": "9d1fcf6e371f255269a88465f0e54048a225b6ab41bad725f901d2706c890ced"
+}

@@ -1,0 +1,50 @@
+{
+  "verified_at_utc": "2026-09-26T22:02:16.451040+00:00",
+  "services": [
+    {
+      "service": "mokaid-prod-api",
+      "task_definition": "arn:aws:ecs:il-central-1:660601648321:task-definition/mokaid-prod-api:57",
+      "running": 1,
+      "pending": 0,
+      "rollout": "COMPLETED"
+    },
+    {
+      "service": "mokaid-prod-ai-worker",
+      "task_definition": "arn:aws:ecs:il-central-1:660601648321:task-definition/mokaid-prod-ai-worker:50",
+      "running": 1,
+      "pending": 0,
+      "rollout": "COMPLETED"
+    }
+  ],
+  "migrations": [
+    "20260927100000_extend_native_google_oauth_flows",
+    "20260927100500_seed_google_integration_providers"
+  ],
+  "migration_task": "edfe0020f60e4d998ad687a4bad17cc8",
+  "http_probes": {
+    "health": 200,
+    "unauthenticated_google_desktop_start": 401,
+    "unauthenticated_mail_start": 401,
+    "invalid_callback": 400,
+    "callback_cache_control": "no-store",
+    "callback_referrer_policy": "no-referrer"
+  },
+  "native_tests": {
+    "controllers": 71,
+    "feature_qml": 7,
+    "native_pages_qml": 47
+  },
+  "native_binary_sha256": "16ec26a5b3b198056da2821b098b02d44a117a63f07095398d063df15accf4fb",
+  "native_google_build": "apps/desktop/build/macos-debug/app/Mokaid.app",
+  "native_restarted": false,
+  "native_restart_note": "User requested the new three-column mail center before restart; Google components remain in the next native build.",
+  "google_apis_enabled": [
+    "gmail",
+    "calendar",
+    "drive",
+    "docs",
+    "sheets",
+    "meet"
+  ],
+  "oauth_audience": "Testing, two permitted users; publication not completed"
+}

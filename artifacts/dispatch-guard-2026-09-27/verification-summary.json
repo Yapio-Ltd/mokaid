@@ -1,0 +1,96 @@
+{
+  "model": "claude-haiku-4-5",
+  "runs": {
+    "live": {
+      "scheduled": 81,
+      "primary": 72,
+      "repeats": 9,
+      "successful": 74,
+      "blocked": 7,
+      "primary_routing_correct": 67,
+      "successful_routing_correct": 74,
+      "primary_profiles_complete": 31,
+      "paired_repeats_consistent": 7,
+      "repair_attempts": 14,
+      "model_calls": 95,
+      "primary_median_seconds": 4.794,
+      "primary_p95_seconds": 13.5285,
+      "estimated_cost_usd": 0.523328,
+      "input_tokens": 331603,
+      "output_tokens": 38345,
+      "failures": [
+        "f19_partial_frontend_mobile_fr__repeat",
+        "f21_partial_content_paid_acquisition_fr",
+        "f19_partial_frontend_mobile_fr",
+        "f19_partial_frontend_mobile_he__repeat",
+        "f16_empty_roster_security_en",
+        "f22_partial_legal_patent_en",
+        "f21_partial_content_paid_acquisition_he"
+      ],
+      "results_sha256": "2fbfce1d4168dedf148f167bb73d245981ae05c0790f00122155e8e6f8dc23f4",
+      "languages": {
+        "en": {
+          "passed": 22,
+          "total": 24
+        },
+        "fr": {
+          "passed": 22,
+          "total": 24
+        },
+        "he": {
+          "passed": 23,
+          "total": 24
+        }
+      }
+    },
+    "live-v2": {
+      "scheduled": 81,
+      "primary": 72,
+      "repeats": 9,
+      "successful": 81,
+      "blocked": 0,
+      "primary_routing_correct": 72,
+      "successful_routing_correct": 81,
+      "primary_profiles_complete": 36,
+      "paired_repeats_consistent": 9,
+      "repair_attempts": 4,
+      "model_calls": 85,
+      "primary_median_seconds": 4.5732,
+      "primary_p95_seconds": 8.3611,
+      "estimated_cost_usd": 0.466093,
+      "input_tokens": 308283,
+      "output_tokens": 31562,
+      "failures": [],
+      "results_sha256": "e9a72d31a08f4439d8242eea055caa403a31ae3eeb9761f17c1b57f8f354c765",
+      "languages": {
+        "en": {
+          "passed": 24,
+          "total": 24
+        },
+        "fr": {
+          "passed": 24,
+          "total": 24
+        },
+        "he": {
+          "passed": 24,
+          "total": 24
+        }
+      }
+    }
+  },
+  "code_sha256": {
+    "apps/ai-worker/app/agents/dispatcher.py": "f1da47d05491ef511298655aafc54588a9b773fefd46e516e720b6ac11147f17",
+    "apps/api/lib/mokaid/ai/dispatcher.ex": "d5e9b98133ebd7d754d859d472f461749aa4e2a986c2924a29bdfccef8a97999",
+    "apps/web/src/components/modals/new-task-modal.tsx": "9f51526ea182d8303ba4530ef87e2f2aa8c896ddda391117b042f6ead1ce6972"
+  },
+  "offline_checks": {
+    "python_and_harness_passed": 491,
+    "python_skipped": 4,
+    "api_targeted_passed": 44,
+    "web_component_passed": 10,
+    "typecheck": "passed",
+    "ruff": "passed"
+  },
+  "deployment": "not deployed",
+  "cost_scope": "Application price table estimates for each scored run only; diagnostic probes excluded."
+}

@@ -1,0 +1,26 @@
+{
+  "status": "built_not_deployed",
+  "blocker": "AWS SSO session expired; user sign-in required",
+  "source_snapshot": "/private/tmp/mokaid-mail-agents-release-20260927",
+  "source_files_verified": 85,
+  "images": {
+    "mokaid-mail-agents-api:20260927": {
+      "image_id": "sha256:0bb6258c59a803581c557df739a3dedb6c0bf19a6598b7256ab5f0e0212a49cd",
+      "os": "linux",
+      "architecture": "arm64"
+    },
+    "mokaid-mail-agents-worker:20260927": {
+      "image_id": "sha256:db51acbf81b046c58e1708dd010c45f693ddbc22f4d408fab110144df9d504de",
+      "os": "linux",
+      "architecture": "arm64"
+    }
+  },
+  "tests": {
+    "api": 100,
+    "worker": 236,
+    "desktop_qtest": 12
+  },
+  "live_account_validation": "pending deployment",
+  "emails_sent": 0,
+  "provider_mutations": 0
+}

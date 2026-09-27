@@ -1,0 +1,11 @@
+Checkpoint: 2026-09-27
+Configuration: separate apps/desktop/build/asan directory, MOKAID_ENABLE_SANITIZERS=ON
+Target: mokaid_mail_center_tests
+Build result: success (39/39 build steps, no compiler errors)
+Run: QT_QPA_PLATFORM=offscreen ASAN_OPTIONS=abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1
+     ./build/asan/application/features/mokaid_mail_center_tests
+Bound: Python subprocess.run timeout=50 seconds; no real external endpoints.
+Captured test-process output: none
+Watchdog output: Sanitizer test timed out after 50 seconds
+Exit status: 124
+Conclusion: no sanitizer pass claimed; the process did not reach Qt test output.

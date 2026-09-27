@@ -1,0 +1,8 @@
+********* Start testing of NativePagesQmlTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by Apple LLVM 16.0.0 (clang-1600.0.26.3)), macos 26.5.1
+PASS   : NativePagesQmlTests::initTestCase()
+QWARN  : NativePagesQmlTests::mailCenterReaderComposerAndAttachmentsFitWideAndCompact() qt.qpa.fonts: Populating font family aliases took 38 ms. Replace uses of missing font family "Sans Serif" with one that exists to avoid this cost. 
+PASS   : NativePagesQmlTests::mailCenterReaderComposerAndAttachmentsFitWideAndCompact()
+PASS   : NativePagesQmlTests::cleanupTestCase()
+Totals: 3 passed, 0 failed, 0 skipped, 0 blacklisted, 687ms
+********* Finished testing of NativePagesQmlTests *********

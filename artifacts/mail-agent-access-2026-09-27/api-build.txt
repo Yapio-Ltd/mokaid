@@ -1,0 +1,119 @@
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon   24.3MB
+Step 1/30 : FROM node:22-bookworm-slim AS avatar-cooker
+ ---> 43ac6c60b8f8
+Step 2/30 : WORKDIR /opt/avatar-cooker
+ ---> Using cache
+ ---> 83866d282b63
+Step 3/30 : COPY apps/desktop/tools/asset-cooker/package*.json ./
+ ---> Using cache
+ ---> 606184467dac
+Step 4/30 : RUN npm ci --omit=dev && npm cache clean --force
+ ---> Using cache
+ ---> bee3957c0ef0
+Step 5/30 : COPY apps/desktop/tools/asset-cooker/cook-custom.mjs apps/desktop/tools/asset-cooker/source-policy.mjs ./
+ ---> Using cache
+ ---> 2fdc8c32a94a
+Step 6/30 : FROM hexpm/elixir:1.17.3-erlang-27.1.2-debian-bookworm-20241016-slim AS build
+ ---> e40a549e62c3
+Step 7/30 : RUN apt-get update -y && apt-get install -y build-essential git     && apt-get clean && rm -rf /var/lib/apt/lists/*
+ ---> Using cache
+ ---> 0c249476a7c7
+Step 8/30 : WORKDIR /app
+ ---> Using cache
+ ---> 5201066f5412
+Step 9/30 : ENV MIX_ENV=prod
+ ---> Using cache
+ ---> eef40c2e801a
+Step 10/30 : RUN mix local.hex 2.5.1 --force && mix local.rebar --force
+ ---> Using cache
+ ---> bf5d1a37fdf5
+Step 11/30 : COPY apps/api/mix.exs apps/api/mix.lock* ./
+ ---> Using cache
+ ---> 1bd722e6bccf
+Step 12/30 : RUN mix deps.get --only prod && mix hex.audit && mix deps.compile
+ ---> Using cache
+ ---> 4f4e627746d5
+Step 13/30 : COPY apps/api/config ./config
+ ---> Using cache
+ ---> f79dd19921ed
+Step 14/30 : COPY apps/api/lib ./lib
+ ---> 6ca85e902594
+Step 15/30 : COPY apps/api/priv ./priv
+ ---> 1dddbe8e6aa8
+Step 16/30 : RUN mix compile && mix release
+ ---> Running in c5e24bd99ee2
+Compiling 254 files (.ex)
+Generated mokaid app
+* assembling mokaid-0.1.0 on MIX_ENV=prod
+* using config/runtime.exs to configure the release at runtime
+* skipping elixir.bat for windows (bin/elixir.bat not found in the Elixir installation)
+* skipping iex.bat for windows (bin/iex.bat not found in the Elixir installation)
+
+Release created at _build/prod/rel/mokaid
+
+    # To start your system
+    _build/prod/rel/mokaid/bin/mokaid start
+
+Once the release is running:
+
+    # To connect to it remotely
+    _build/prod/rel/mokaid/bin/mokaid remote
+
+    # To stop it gracefully (you may also send SIGINT/SIGTERM)
+    _build/prod/rel/mokaid/bin/mokaid stop
+
+To list all commands:
+
+    _build/prod/rel/mokaid/bin/mokaid
+
+ ---> Removed intermediate container c5e24bd99ee2
+ ---> 3afffada42d0
+Step 17/30 : FROM debian:bookworm-slim AS runtime
+ ---> 3783cc01769c
+Step 18/30 : RUN apt-get update -y     && apt-get install -y --no-install-recommends         libstdc++6 libatomic1 openssl libncurses6 locales ca-certificates libpcre2-8-0     && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libpcre2-8-0)" ge '10.42-1+deb12u1'     && apt-get clean && rm -rf /var/lib/apt/lists/*     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+ ---> Using cache
+ ---> ff6c4ad8d332
+Step 19/30 : ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
+ ---> Using cache
+ ---> b83ae93f5d0c
+Step 20/30 : WORKDIR /app
+ ---> Using cache
+ ---> 9c032d76cb11
+Step 21/30 : RUN useradd --create-home mokaid
+ ---> Using cache
+ ---> 44cc216d34d6
+Step 22/30 : USER mokaid
+ ---> Using cache
+ ---> 3455ae0fe308
+Step 23/30 : COPY --from=build --chown=mokaid:mokaid /app/_build/prod/rel/mokaid ./
+ ---> b3248e289050
+Step 24/30 : COPY --from=avatar-cooker /usr/local/bin/node /usr/local/bin/node
+ ---> 38a0e3412575
+Step 25/30 : COPY --from=avatar-cooker --chown=mokaid:mokaid /opt/avatar-cooker /opt/avatar-cooker
+ ---> 4e193ca7f150
+Step 26/30 : RUN node --input-type=module -e "await import('/opt/avatar-cooker/cook-custom.mjs')"
+ ---> Running in bb8d56137d4e
+ ---> Removed intermediate container bb8d56137d4e
+ ---> 70b881b5c4a6
+Step 27/30 : ENV MESHY_NATIVE_COOKER=/opt/avatar-cooker/cook-custom.mjs MESHY_NODE_BIN=/usr/local/bin/node
+ ---> Running in d8841f67bbe1
+ ---> Removed intermediate container d8841f67bbe1
+ ---> 12e982f2082d
+Step 28/30 : ENV PHX_SERVER=true
+ ---> Running in 23405df593e1
+ ---> Removed intermediate container 23405df593e1
+ ---> acc817383610
+Step 29/30 : EXPOSE 4000
+ ---> Running in bdb28b1d66a9
+ ---> Removed intermediate container bdb28b1d66a9
+ ---> 0ee651294dbb
+Step 30/30 : CMD ["bin/mokaid", "start"]
+ ---> Running in f43f2d9bca17
+ ---> Removed intermediate container f43f2d9bca17
+ ---> 0bb6258c59a8
+Successfully built 0bb6258c59a8
+Successfully tagged mokaid-mail-agents-api:20260927

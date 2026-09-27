@@ -1,0 +1,19 @@
+********* Start testing of PreviewNavigationTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by Apple LLVM 16.0.0 (clang-1600.0.26.3)), macos 26.5.1
+PASS   : PreviewNavigationTests::initTestCase()
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() qt.qpa.fonts: Populating font family aliases took 39 ms. Replace uses of missing font family "Sans Serif" with one that exists to avoid this cost. 
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() GPUInfo not initialized on GpuInfoUpdate
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+QWARN  : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts() <Unknown File>: QML WebEngineProfile: Please use WebEngineProfilePrototype for profile creation from 6.9, as this function will be deprecated in the future releases
+PASS   : PreviewNavigationTests::galleryAndFormatAwareViewerUseAuthenticatedArtifacts()
+PASS   : PreviewNavigationTests::filesButtonRequestsNativeNavigationWithoutEvictingPreviewState()
+PASS   : PreviewNavigationTests::cleanupTestCase()
+Totals: 4 passed, 0 failed, 0 skipped, 0 blacklisted, 4725ms
+********* Finished testing of PreviewNavigationTests *********

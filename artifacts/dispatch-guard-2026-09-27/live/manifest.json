@@ -1,0 +1,18 @@
+{
+  "version": "1.0.1",
+  "started_at": "2026-09-26T22:09:39.045315+00:00",
+  "dataset_sha256": "6e93b4b2a3dda52ab1ea7601b6ea3ff23e1ab846b13f7b89aab35c26501457c0",
+  "runner_sha256": "2b74d5e5e734381c9614cd20d04ae5ff79906d8661a2136a38fb2ec261d861d6",
+  "providers": [
+    "haiku"
+  ],
+  "cases_with_repeats": 81,
+  "unique_cases": 72,
+  "haiku_configured_model": "claude-haiku-4-5",
+  "jev_url": "https://www.jevai.org/api/v1/decisions",
+  "jev_model": "gateway default; version not disclosed",
+  "full_fit_gate": 0.5,
+  "seed": 20260927,
+  "latency_scope": "Haiku generates the full dispatch proposal; Jev only makes the routing decision. Not equivalent end-to-end costs.",
+  "cost_scope": "Haiku estimate from application price table, not supplier invoice. Community Jev pricing/usage unavailable unless API returns it."
+}

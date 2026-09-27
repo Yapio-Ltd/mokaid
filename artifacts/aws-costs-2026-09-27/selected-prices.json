@@ -1,0 +1,3612 @@
+[
+  {
+    "service": "AmazonECS",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/il-central-1/index.json",
+    "publication_date": "2026-09-11T12:44:25Z",
+    "products": [
+      {
+        "sku": "ZHG56RVX4HK533C7",
+        "attributes": {
+          "servicecode": "AmazonECS",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "tenancy": "Shared",
+          "usagetype": "ILC1-Fargate-ARM-GB-Hours",
+          "operation": "",
+          "cpuArchitecture": "ARM",
+          "memorytype": "perGB",
+          "regionCode": "il-central-1",
+          "resource": "per GB per hour",
+          "servicename": "Amazon Elastic Container Service"
+        },
+        "on_demand": {
+          "ZHG56RVX4HK533C7.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "ZHG56RVX4HK533C7",
+            "effectiveDate": "2026-07-01T00:00:00Z",
+            "priceDimensions": {
+              "ZHG56RVX4HK533C7.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "ZHG56RVX4HK533C7.JRTCKXETXF.6YS6EN2CT7",
+                "description": "AWS Fargate - ARM - Memory - Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "hours",
+                "pricePerUnit": {
+                  "USD": "0.0045516800"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "3NA8QXV6GTNSJ8EB",
+        "attributes": {
+          "servicecode": "AmazonECS",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "tenancy": "Shared",
+          "usagetype": "ILC1-Fargate-ARM-vCPU-Hours:perCPU",
+          "operation": "",
+          "cpuArchitecture": "ARM",
+          "cputype": "perCPU",
+          "regionCode": "il-central-1",
+          "resource": "per vCPU per hour",
+          "servicename": "Amazon Elastic Container Service"
+        },
+        "on_demand": {
+          "3NA8QXV6GTNSJ8EB.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "3NA8QXV6GTNSJ8EB",
+            "effectiveDate": "2026-07-01T00:00:00Z",
+            "priceDimensions": {
+              "3NA8QXV6GTNSJ8EB.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "3NA8QXV6GTNSJ8EB.JRTCKXETXF.6YS6EN2CT7",
+                "description": "AWS Fargate - ARM - vCPU - Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "hours",
+                "pricePerUnit": {
+                  "USD": "0.0414515200"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "DMGCS295S8DJGYXM",
+        "attributes": {
+          "servicecode": "AmazonECS",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "tenancy": "Shared",
+          "usagetype": "ILC1-Fargate-vCPU-Hours:perCPU",
+          "operation": "",
+          "cputype": "perCPU",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Elastic Container Service"
+        },
+        "on_demand": {
+          "DMGCS295S8DJGYXM.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "DMGCS295S8DJGYXM",
+            "effectiveDate": "2026-07-01T00:00:00Z",
+            "priceDimensions": {
+              "DMGCS295S8DJGYXM.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "DMGCS295S8DJGYXM.JRTCKXETXF.6YS6EN2CT7",
+                "description": "AWS Fargate - vCPU - Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "hours",
+                "pricePerUnit": {
+                  "USD": "0.0518144000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "QGFXSYAAGCM9CBRZ",
+        "attributes": {
+          "servicecode": "AmazonECS",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "tenancy": "Shared",
+          "usagetype": "ILC1-Fargate-GB-Hours",
+          "operation": "",
+          "memorytype": "perGB",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Elastic Container Service"
+        },
+        "on_demand": {
+          "QGFXSYAAGCM9CBRZ.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "QGFXSYAAGCM9CBRZ",
+            "effectiveDate": "2026-07-01T00:00:00Z",
+            "priceDimensions": {
+              "QGFXSYAAGCM9CBRZ.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "QGFXSYAAGCM9CBRZ.JRTCKXETXF.6YS6EN2CT7",
+                "description": "AWS Fargate - Memory  - Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "hours",
+                "pricePerUnit": {
+                  "USD": "0.0056896000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AmazonRDS",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/il-central-1/index.json",
+    "publication_date": "2026-09-24T21:10:11Z",
+    "products": [
+      {
+        "sku": "UU99T2BJAW52D9U9",
+        "attributes": {
+          "servicecode": "AmazonRDS",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "instanceType": "db.t4g.micro",
+          "currentGeneration": "Yes",
+          "instanceFamily": "General purpose",
+          "vcpu": "2",
+          "physicalProcessor": "AWS Graviton2",
+          "memory": "1 GiB",
+          "storage": "EBS Only",
+          "networkPerformance": "Up to 5 Gigabit",
+          "processorArchitecture": "64-bit",
+          "engineCode": "14",
+          "databaseEngine": "PostgreSQL",
+          "licenseModel": "No license required",
+          "deploymentOption": "Single-AZ",
+          "usagetype": "ILC1-InstanceUsage:db.t4g.micro",
+          "operation": "CreateDBInstance:0014",
+          "instanceTypeFamily": "T4G",
+          "normalizationSizeFactor": "0.5",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Relational Database Service",
+          "unbundledLicensing": "FALSE"
+        },
+        "on_demand": {
+          "UU99T2BJAW52D9U9.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "UU99T2BJAW52D9U9",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "UU99T2BJAW52D9U9.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "UU99T2BJAW52D9U9.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$ 0.018 per RDS db.t4g.micro Single-AZ instance hour (or partial hour) running PostgreSQL",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Hrs",
+                "pricePerUnit": {
+                  "USD": "0.0180000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "F3R5NHU4X87K2Q7K",
+        "attributes": {
+          "servicecode": "AmazonRDS",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "storageMedia": "SSD",
+          "volumeType": "General Purpose-GP3",
+          "minVolumeSize": "5 GB",
+          "maxVolumeSize": "16 TB",
+          "engineCode": "14",
+          "databaseEngine": "PostgreSQL",
+          "deploymentOption": "Single-AZ",
+          "usagetype": "ILC1-RDS:GP3-Storage",
+          "operation": "CreateDBInstance:0014",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Relational Database Service"
+        },
+        "on_demand": {
+          "F3R5NHU4X87K2Q7K.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "F3R5NHU4X87K2Q7K",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "F3R5NHU4X87K2Q7K.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "F3R5NHU4X87K2Q7K.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.153 per GB-month of provisioned GP3 storage running PostgreSQL",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.1530000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AmazonEC2",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/il-central-1/index.json",
+    "publication_date": "2026-09-25T17:45:21Z",
+    "products": [
+      {
+        "sku": "BJX7K25RRJHGBMHR",
+        "attributes": {
+          "servicecode": "AmazonEC2",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "NGW:NatGateway",
+          "groupDescription": "Hourly charge for Regional NAT Gateways",
+          "usagetype": "ILC1-RegionalNatGateway-Hours",
+          "operation": "RegionalNatGateway",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Elastic Compute Cloud"
+        },
+        "on_demand": {
+          "BJX7K25RRJHGBMHR.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "BJX7K25RRJHGBMHR",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "BJX7K25RRJHGBMHR.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "BJX7K25RRJHGBMHR.JRTCKXETXF.6YS6EN2CT7",
+                "description": "Hourly charge for Regional NAT Gateways",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Hrs",
+                "pricePerUnit": {
+                  "USD": "0.0504000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "GWY29GZUYMC5A2RK",
+        "attributes": {
+          "servicecode": "AmazonEC2",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "NGW:NatGateway",
+          "groupDescription": "Charge for per GB data processed by NatGateways",
+          "usagetype": "ILC1-NatGateway-Bytes",
+          "operation": "NatGateway",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Elastic Compute Cloud"
+        },
+        "on_demand": {
+          "GWY29GZUYMC5A2RK.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "GWY29GZUYMC5A2RK",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "GWY29GZUYMC5A2RK.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "GWY29GZUYMC5A2RK.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.0504 per GB Data Processed by NAT Gateways",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0504000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "CV5ZUBAHD2XVMVJN",
+        "attributes": {
+          "servicecode": "AmazonEC2",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "NGW:NatGateway",
+          "groupDescription": "Hourly charge for NAT Gateways",
+          "usagetype": "ILC1-NatGateway-Hours",
+          "operation": "NatGateway",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Elastic Compute Cloud"
+        },
+        "on_demand": {
+          "CV5ZUBAHD2XVMVJN.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "CV5ZUBAHD2XVMVJN",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "CV5ZUBAHD2XVMVJN.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "CV5ZUBAHD2XVMVJN.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.0504 per NAT gateway Hour",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Hrs",
+                "pricePerUnit": {
+                  "USD": "0.0504000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "UHJJPCER8YPVQNTY",
+        "attributes": {
+          "servicecode": "AmazonEC2",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "NGW:NatGateway",
+          "groupDescription": "Charge for per GB data processed by NAT Gateways",
+          "usagetype": "ILC1-RegionalNatGateway-Bytes",
+          "operation": "RegionalNatGateway",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Elastic Compute Cloud"
+        },
+        "on_demand": {
+          "UHJJPCER8YPVQNTY.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "UHJJPCER8YPVQNTY",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "UHJJPCER8YPVQNTY.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "UHJJPCER8YPVQNTY.JRTCKXETXF.6YS6EN2CT7",
+                "description": "Charge for per GB data processed by NAT Gateways",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0504000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AWSELB",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/il-central-1/index.json",
+    "publication_date": "2026-09-11T12:45:44Z",
+    "products": [
+      {
+        "sku": "78PM2DJZWQHYSV26",
+        "attributes": {
+          "servicecode": "AWSELB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "ELB:Balancing",
+          "groupDescription": "Used Application Load Balancer capacity units-hr",
+          "usagetype": "ILC1-LCUUsage",
+          "operation": "LoadBalancing:Application",
+          "regionCode": "il-central-1",
+          "servicename": "Elastic Load Balancing"
+        },
+        "on_demand": {
+          "78PM2DJZWQHYSV26.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "78PM2DJZWQHYSV26",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "78PM2DJZWQHYSV26.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "78PM2DJZWQHYSV26.JRTCKXETXF.6YS6EN2CT7",
+                "description": "USD0.0084 per LCU-Hrs for LCUUsage:LoadBalancing:Application in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "LCU-Hrs",
+                "pricePerUnit": {
+                  "USD": "0.0084000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "PHZDQPJQ72SH6M66",
+        "attributes": {
+          "servicecode": "AWSELB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "ELB:Balancing",
+          "groupDescription": "Reserved Application Load Balancer capacity units-hr",
+          "usagetype": "ILC1-ReservedLCUUsage",
+          "operation": "LoadBalancing:Application",
+          "regionCode": "il-central-1",
+          "servicename": "Elastic Load Balancing"
+        },
+        "on_demand": {
+          "PHZDQPJQ72SH6M66.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "PHZDQPJQ72SH6M66",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "PHZDQPJQ72SH6M66.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "PHZDQPJQ72SH6M66.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.0084 per reserved Application load balancer capacity unit-hour",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "ReservedLCU-Hr",
+                "pricePerUnit": {
+                  "USD": "0.0084000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "FBU3282AX96TRXMU",
+        "attributes": {
+          "servicecode": "AWSELB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "ELB:Balancing",
+          "groupDescription": "TS hourly usage by Application Load Balancer",
+          "usagetype": "ILC1-TS-LoadBalancerUsage",
+          "operation": "LoadBalancing:Application",
+          "regionCode": "il-central-1",
+          "servicename": "Elastic Load Balancing"
+        },
+        "on_demand": {
+          "FBU3282AX96TRXMU.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "FBU3282AX96TRXMU",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "FBU3282AX96TRXMU.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "FBU3282AX96TRXMU.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.0059 per associated Application load balancer Trust Store unit-hour ",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Hrs",
+                "pricePerUnit": {
+                  "USD": "0.0059000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "6B9WKYCFR7ZVVNEG",
+        "attributes": {
+          "servicecode": "AWSELB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Outposts",
+          "group": "ELB:Balancing",
+          "groupDescription": "Used Application Load Balancer capacity On Outposts units-hr",
+          "usagetype": "ILC1-Outposts-LCUUsage",
+          "operation": "LoadBalancing:Application",
+          "regionCode": "il-central-1",
+          "servicename": "Elastic Load Balancing"
+        },
+        "on_demand": {
+          "6B9WKYCFR7ZVVNEG.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "6B9WKYCFR7ZVVNEG",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "6B9WKYCFR7ZVVNEG.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "6B9WKYCFR7ZVVNEG.JRTCKXETXF.6YS6EN2CT7",
+                "description": "USD0.0 per LCU-Hrs for Outposts-LCUUsage:LoadBalancing:Application in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "LCU-Hrs",
+                "pricePerUnit": {
+                  "USD": "0.0000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "VRNM8NQ3U3S8XCFS",
+        "attributes": {
+          "servicecode": "AWSELB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Outposts",
+          "group": "ELB:Balancing",
+          "groupDescription": "LoadBalancer hourly usage by Application Load Balancer on Outposts",
+          "usagetype": "ILC1-Outposts-LoadBalancerUsage",
+          "operation": "LoadBalancing:Application",
+          "regionCode": "il-central-1",
+          "servicename": "Elastic Load Balancing"
+        },
+        "on_demand": {
+          "VRNM8NQ3U3S8XCFS.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "VRNM8NQ3U3S8XCFS",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "VRNM8NQ3U3S8XCFS.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "VRNM8NQ3U3S8XCFS.JRTCKXETXF.6YS6EN2CT7",
+                "description": "USD0.02646 per Hrs for Outposts-LoadBalancerUsage:LoadBalancing:Application in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Hrs",
+                "pricePerUnit": {
+                  "USD": "0.0264600000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "ZECT7KWA4TMXYWVM",
+        "attributes": {
+          "servicecode": "AWSELB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "ELB:Balancing",
+          "groupDescription": "LoadBalancer hourly usage by Application Load Balancer",
+          "usagetype": "ILC1-LoadBalancerUsage",
+          "operation": "LoadBalancing:Application",
+          "regionCode": "il-central-1",
+          "servicename": "Elastic Load Balancing"
+        },
+        "on_demand": {
+          "ZECT7KWA4TMXYWVM.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "ZECT7KWA4TMXYWVM",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "ZECT7KWA4TMXYWVM.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "ZECT7KWA4TMXYWVM.JRTCKXETXF.6YS6EN2CT7",
+                "description": "USD0.02646 per Hrs for LoadBalancerUsage:LoadBalancing:Application in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Hrs",
+                "pricePerUnit": {
+                  "USD": "0.0264600000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AmazonVPC",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/il-central-1/index.json",
+    "publication_date": "2026-09-17T19:05:28Z",
+    "products": [
+      {
+        "sku": "BW7N6GVRPKKB8C5M",
+        "attributes": {
+          "servicecode": "AmazonVPC",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "VPCPublicIPv4Address",
+          "groupDescription": "Hourly charge for In-use Public IPv4 Addresses",
+          "usagetype": "ILC1-PublicIPv4:InUseAddress",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Virtual Private Cloud"
+        },
+        "on_demand": {
+          "BW7N6GVRPKKB8C5M.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "BW7N6GVRPKKB8C5M",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "BW7N6GVRPKKB8C5M.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "BW7N6GVRPKKB8C5M.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.005 per In-use public IPv4 address per hour",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Hrs",
+                "pricePerUnit": {
+                  "USD": "0.0050000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AWSSecretsManager",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSSecretsManager/current/il-central-1/index.json",
+    "publication_date": "2026-09-11T12:46:10Z",
+    "products": [
+      {
+        "sku": "3XUFUKZVD7K96R6R",
+        "attributes": {
+          "servicecode": "AWSSecretsManager",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "AWSSecretsManager-Secret",
+          "usagetype": "ILC1-AWSSecretsManager-Secrets",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS Secrets Manager"
+        },
+        "on_demand": {
+          "3XUFUKZVD7K96R6R.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "3XUFUKZVD7K96R6R",
+            "effectiveDate": "2025-07-01T00:00:00Z",
+            "priceDimensions": {
+              "3XUFUKZVD7K96R6R.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "3XUFUKZVD7K96R6R.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.40 per Secret",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Secrets",
+                "pricePerUnit": {
+                  "USD": "0.4000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "RE5JNKFADUXRN8HP",
+        "attributes": {
+          "servicecode": "AWSSecretsManager",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "AWSSecretsManager-APIRequest",
+          "usagetype": "ILC1-AWSSecretsManagerAPIRequest",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS Secrets Manager"
+        },
+        "on_demand": {
+          "RE5JNKFADUXRN8HP.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "RE5JNKFADUXRN8HP",
+            "effectiveDate": "2025-07-01T00:00:00Z",
+            "priceDimensions": {
+              "RE5JNKFADUXRN8HP.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "RE5JNKFADUXRN8HP.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.05 per 10000 API Requests",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "API Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000050000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "awswaf",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/awswaf/current/il-central-1/index.json",
+    "publication_date": "2026-09-14T16:39:21Z",
+    "products": [
+      {
+        "sku": "R7XF6CSCHP8RHZY4",
+        "attributes": {
+          "servicecode": "awswaf",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Web ACL",
+          "groupDescription": "Web ACL Activated",
+          "usagetype": "ILC1-WebACLV2",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS WAF"
+        },
+        "on_demand": {
+          "R7XF6CSCHP8RHZY4.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "R7XF6CSCHP8RHZY4",
+            "effectiveDate": "2025-12-01T00:00:00Z",
+            "priceDimensions": {
+              "R7XF6CSCHP8RHZY4.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "R7XF6CSCHP8RHZY4.JRTCKXETXF.6YS6EN2CT7",
+                "description": "USD5.0 per Month for WebACLV2 in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Month",
+                "pricePerUnit": {
+                  "USD": "5.0000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "9YTC7W2V9ZFS6GR7",
+        "attributes": {
+          "servicecode": "awswaf",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "AMR Anti-DDoS Request (Shield Protected)",
+          "groupDescription": "AMR Anti-DDoS Request (Capped) Processed (Shield Protected) Tier 0",
+          "usagetype": "ILC1-ShieldProtected-Capped-RequestV2-Tier0",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS WAF"
+        },
+        "on_demand": {
+          "9YTC7W2V9ZFS6GR7.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "9YTC7W2V9ZFS6GR7",
+            "effectiveDate": "2025-12-01T00:00:00Z",
+            "priceDimensions": {
+              "9YTC7W2V9ZFS6GR7.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "9YTC7W2V9ZFS6GR7.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.15 per million requests for ShieldProtected-Capped-RequestV2-Tier0 in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Request",
+                "pricePerUnit": {
+                  "USD": "0.0000001500"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "83CFXVQSKGZ3VZE4",
+        "attributes": {
+          "servicecode": "awswaf",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Web ACL (Shield Protected)",
+          "groupDescription": "Web ACL Activated (Shield Protected)",
+          "usagetype": "ILC1-ShieldProtected-WebACLV2",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS WAF"
+        },
+        "on_demand": {
+          "83CFXVQSKGZ3VZE4.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "83CFXVQSKGZ3VZE4",
+            "effectiveDate": "2025-12-01T00:00:00Z",
+            "priceDimensions": {
+              "83CFXVQSKGZ3VZE4.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "83CFXVQSKGZ3VZE4.JRTCKXETXF.6YS6EN2CT7",
+                "description": "USD0.0 per Month for ShieldProtected-WebACLV2 in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Month",
+                "pricePerUnit": {
+                  "USD": "0.0000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "RY3GXG5H9GPQN5BY",
+        "attributes": {
+          "servicecode": "awswaf",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Rule",
+          "groupDescription": "Rule Activated",
+          "usagetype": "ILC1-RuleV2",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS WAF"
+        },
+        "on_demand": {
+          "RY3GXG5H9GPQN5BY.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "RY3GXG5H9GPQN5BY",
+            "effectiveDate": "2025-12-01T00:00:00Z",
+            "priceDimensions": {
+              "RY3GXG5H9GPQN5BY.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "RY3GXG5H9GPQN5BY.JRTCKXETXF.6YS6EN2CT7",
+                "description": "USD1.0 per Month for RuleV2 in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Month",
+                "pricePerUnit": {
+                  "USD": "1.0000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "Y9WU3HN7EKDY9U7Z",
+        "attributes": {
+          "servicecode": "awswaf",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Rule (Shield Protected)",
+          "groupDescription": "Rule Activated (Shield Protected)",
+          "usagetype": "ILC1-ShieldProtected-RuleV2",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS WAF"
+        },
+        "on_demand": {
+          "Y9WU3HN7EKDY9U7Z.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "Y9WU3HN7EKDY9U7Z",
+            "effectiveDate": "2025-12-01T00:00:00Z",
+            "priceDimensions": {
+              "Y9WU3HN7EKDY9U7Z.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "Y9WU3HN7EKDY9U7Z.JRTCKXETXF.6YS6EN2CT7",
+                "description": "USD0.0 per Month for ShieldProtected-RuleV2 in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Month",
+                "pricePerUnit": {
+                  "USD": "0.0000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "8GAM73WAAPU5EMGV",
+        "attributes": {
+          "servicecode": "awswaf",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Request",
+          "groupDescription": "Request Processed Tier0",
+          "usagetype": "ILC1-RequestV2-Tier0",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS WAF"
+        },
+        "on_demand": {
+          "8GAM73WAAPU5EMGV.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "8GAM73WAAPU5EMGV",
+            "effectiveDate": "2025-12-01T00:00:00Z",
+            "priceDimensions": {
+              "8GAM73WAAPU5EMGV.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "8GAM73WAAPU5EMGV.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.60 per million Request for Request Processed Tier0 in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Request",
+                "pricePerUnit": {
+                  "USD": "0.0000006000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "RF8TNMEPNSC4FKJG",
+        "attributes": {
+          "servicecode": "awswaf",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Request (Shield Protected)",
+          "groupDescription": "Request Processed Tier0 (Shield Protected)",
+          "usagetype": "ILC1-ShieldProtected-RequestV2-Tier0",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS WAF"
+        },
+        "on_demand": {
+          "RF8TNMEPNSC4FKJG.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "RF8TNMEPNSC4FKJG",
+            "effectiveDate": "2025-12-01T00:00:00Z",
+            "priceDimensions": {
+              "RF8TNMEPNSC4FKJG.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "RF8TNMEPNSC4FKJG.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.00 per Request for Request Processed Tier0 (Shield Protected) in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Request",
+                "pricePerUnit": {
+                  "USD": "0.0000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "awskms",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/awskms/current/il-central-1/index.json",
+    "publication_date": "2026-09-11T12:46:01Z",
+    "products": [
+      {
+        "sku": "FGR36ZJVBPA6PP5D",
+        "attributes": {
+          "servicecode": "awskms",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "aws-kms-Requests-Asymmetric-RSA_2048",
+          "groupDescription": "AWS KMS Asymmetric Requests RSA_2048",
+          "usagetype": "il-central-1-KMS-Requests-Asymmetric-RSA_2048",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS Key Management Service"
+        },
+        "on_demand": {
+          "FGR36ZJVBPA6PP5D.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "FGR36ZJVBPA6PP5D",
+            "effectiveDate": "2025-07-01T00:00:00Z",
+            "priceDimensions": {
+              "FGR36ZJVBPA6PP5D.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "FGR36ZJVBPA6PP5D.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.03 per 10000 KMS RSA 2048 requests in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000030000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "YV7729SUY8GKWMEE",
+        "attributes": {
+          "servicecode": "awskms",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "usagetype": "il-central-1-KMS-Keys",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS Key Management Service"
+        },
+        "on_demand": {
+          "YV7729SUY8GKWMEE.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "YV7729SUY8GKWMEE",
+            "effectiveDate": "2025-07-01T00:00:00Z",
+            "priceDimensions": {
+              "YV7729SUY8GKWMEE.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "YV7729SUY8GKWMEE.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$1 per customer managed KMS key version in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Keys",
+                "pricePerUnit": {
+                  "USD": "1.0000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "VTFSAGP364M6QE4A",
+        "attributes": {
+          "servicecode": "awskms",
+          "location": "Any",
+          "locationType": "Other",
+          "group": "awskms-Requests",
+          "groupDescription": "Monthly free usage of KMS API Requests",
+          "usagetype": "Global-KMS-Requests",
+          "operation": "",
+          "regionCode": "",
+          "servicename": "AWS Key Management Service"
+        },
+        "on_demand": {
+          "VTFSAGP364M6QE4A.A429C66SYZ": {
+            "offerTermCode": "A429C66SYZ",
+            "sku": "VTFSAGP364M6QE4A",
+            "effectiveDate": "2025-07-01T00:00:00Z",
+            "priceDimensions": {
+              "VTFSAGP364M6QE4A.A429C66SYZ.7K6Z2V4Y4Q": {
+                "rateCode": "VTFSAGP364M6QE4A.A429C66SYZ.7K6Z2V4Y4Q",
+                "description": "$0.00 per request - Monthly Global Free Tier for KMS requests",
+                "beginRange": "0",
+                "endRange": "20000",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000000000"
+                },
+                "appliesTo": [
+                  "A3247YR2SJRYKDEX",
+                  "MFEBZPX8NHM5FY7Z",
+                  "GAG46BCKTJNCPRCD",
+                  "H4VQ25AJP5STBY2V",
+                  "MG69RRR3V9FG2YMF",
+                  "WCDV7H2SEWSQDPHE",
+                  "2S77H5MZU5BVWEXS",
+                  "GKJ2WA9PUPY889NV",
+                  "8XH9DBV4329CDSSS",
+                  "74AFRTWKY4BVPBF7",
+                  "22NGFM2U7FQGBC49",
+                  "EZCZH4NG992U5FTR",
+                  "XV5CERB5VJ728MSB",
+                  "KHS2JMB7WKYW8C7Z",
+                  "GNYCWMXMCTZC5JHT",
+                  "Y2YQ2HC2B26TT67Y",
+                  "UM499D63PU3S76VD",
+                  "5Y7QS22JD2KZBNBG",
+                  "9XXHSZC4PS7S6AY2",
+                  "UBKP744W7HW7MT76",
+                  "GKZE5RA8VKSV68NC",
+                  "H9GF6XQC7UBUWPRJ",
+                  "49JKURJSSQHXXAKH",
+                  "4H6XVYZMMD8MKVZD",
+                  "7AVHXGCZK6D9ARBK",
+                  "3QRVDNCQFVZRB88M",
+                  "HZSWET2JVDK3QKYM",
+                  "N8ZHDTY86X2AN7DE",
+                  "MPVASE9XEU8AVWM6",
+                  "23PVFMNC6R4J3AB6",
+                  "QCRBRVP4WHFE4RN9",
+                  "SE9KXT6M6JTP7E4W",
+                  "2V8H8RKD5G49TF84",
+                  "ERNZKT7S85V564AK",
+                  "SN4PUPSHPREACEHV",
+                  "ZXP6ZS4WWG9FNXHG",
+                  "EVSMZX4D7HGSBAQF"
+                ]
+              }
+            },
+            "termAttributes": {
+              "Restriction": "Limited SKU Usage"
+            }
+          }
+        }
+      },
+      {
+        "sku": "6SHQMD5EABKE33FT",
+        "attributes": {
+          "servicecode": "awskms",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "awskms-Requests-GenerateDatakeyPair-ECC",
+          "groupDescription": "AWS KMS API Requests GenerateDatakeyPair ECC",
+          "usagetype": "il-central-1-KMS-Requests-GenerateDatakeyPair-ECC",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS Key Management Service"
+        },
+        "on_demand": {
+          "6SHQMD5EABKE33FT.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "6SHQMD5EABKE33FT",
+            "effectiveDate": "2025-07-01T00:00:00Z",
+            "priceDimensions": {
+              "6SHQMD5EABKE33FT.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "6SHQMD5EABKE33FT.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.1 per 10000 ECC Generate Data Key Pair Requests in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000100000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "GKZE5RA8VKSV68NC",
+        "attributes": {
+          "servicecode": "awskms",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "awskms-APIRequest-All",
+          "groupDescription": "All AWS KMS API requests",
+          "usagetype": "il-central-1-KMS-Requests",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS Key Management Service"
+        },
+        "on_demand": {
+          "GKZE5RA8VKSV68NC.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "GKZE5RA8VKSV68NC",
+            "effectiveDate": "2025-07-01T00:00:00Z",
+            "priceDimensions": {
+              "GKZE5RA8VKSV68NC.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "GKZE5RA8VKSV68NC.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.03 per 10000 KMS requests in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000030000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "X443BEERWW9VQ5AU",
+        "attributes": {
+          "servicecode": "awskms",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "awskms-Requests-Asymmetric",
+          "groupDescription": "AWS KMS Asymmetric Requests except RSA_2048API",
+          "usagetype": "il-central-1-KMS-Requests-Asymmetric",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS Key Management Service"
+        },
+        "on_demand": {
+          "X443BEERWW9VQ5AU.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "X443BEERWW9VQ5AU",
+            "effectiveDate": "2025-07-01T00:00:00Z",
+            "priceDimensions": {
+              "X443BEERWW9VQ5AU.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "X443BEERWW9VQ5AU.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.15 per 10000 KMS Asymmetric Requests excluding RSA 2048 in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000150000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "XFVMTB67X7K7E23V",
+        "attributes": {
+          "servicecode": "awskms",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "awskms-Requests-GenerateDatakeyPair-RSA",
+          "groupDescription": "AWS KMS API Requests GenerateDatakeyPair RSA",
+          "usagetype": "il-central-1-KMS-Requests-GenerateDatakeyPair-RSA",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS Key Management Service"
+        },
+        "on_demand": {
+          "XFVMTB67X7K7E23V.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "XFVMTB67X7K7E23V",
+            "effectiveDate": "2025-07-01T00:00:00Z",
+            "priceDimensions": {
+              "XFVMTB67X7K7E23V.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "XFVMTB67X7K7E23V.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$12 per 10000 RSA Generate Data Key Pair Requests in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0012000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AWSCloudMap",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSCloudMap/current/il-central-1/index.json",
+    "publication_date": "2026-09-11T12:45:31Z",
+    "products": [
+      {
+        "sku": "6YNTW8W4T9TPYF2M",
+        "attributes": {
+          "servicecode": "AWSCloudMap",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "usagetype": "ILC1-Cloud-Map-Resources",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AWS Cloud Map",
+          "type": "Resource-Month"
+        },
+        "on_demand": {
+          "6YNTW8W4T9TPYF2M.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "6YNTW8W4T9TPYF2M",
+            "effectiveDate": "2025-08-01T00:00:00Z",
+            "priceDimensions": {
+              "6YNTW8W4T9TPYF2M.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "6YNTW8W4T9TPYF2M.JRTCKXETXF.6YS6EN2CT7",
+                "description": "USD0.1 per CloudMapResource for Cloud-Map-Resources in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "CloudMapResource",
+                "pricePerUnit": {
+                  "USD": "0.1000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AmazonRoute53",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRoute53/current/index.json",
+    "publication_date": "2026-09-11T12:45:04Z",
+    "products": [
+      {
+        "sku": "KVPGEJE88UW8S779",
+        "attributes": {
+          "servicecode": "AmazonRoute53",
+          "description": "Route53 Hosted Zone",
+          "location": "Any",
+          "locationType": "AWS Region",
+          "usagetype": "HostedZone",
+          "operation": "",
+          "regionCode": "",
+          "servicename": "Amazon Route 53"
+        },
+        "on_demand": {
+          "KVPGEJE88UW8S779.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "KVPGEJE88UW8S779",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "KVPGEJE88UW8S779.JRTCKXETXF.G2A93NZ7DT": {
+                "rateCode": "KVPGEJE88UW8S779.JRTCKXETXF.G2A93NZ7DT",
+                "description": "$0.50 per Hosted Zone for the first 25 Hosted Zones",
+                "beginRange": "0",
+                "endRange": "25",
+                "unit": "HostedZone",
+                "pricePerUnit": {
+                  "USD": "0.5000000000"
+                },
+                "appliesTo": []
+              },
+              "KVPGEJE88UW8S779.JRTCKXETXF.VYAP54KATQ": {
+                "rateCode": "KVPGEJE88UW8S779.JRTCKXETXF.VYAP54KATQ",
+                "description": "$0.10 per Hosted Zone for additional Hosted Zones",
+                "beginRange": "25",
+                "endRange": "Inf",
+                "unit": "HostedZone",
+                "pricePerUnit": {
+                  "USD": "0.1000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AmazonS3",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/il-central-1/index.json",
+    "publication_date": "2026-09-26T01:55:12Z",
+    "products": [
+      {
+        "sku": "RJ7BUHG2D92QSTS3",
+        "attributes": {
+          "servicecode": "AmazonS3",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "availability": "99.99%",
+          "storageClass": "General Purpose",
+          "volumeType": "Standard",
+          "usagetype": "ILC1-TimedStorage-ByteHrs",
+          "operation": "",
+          "durability": "99.999999999%",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Simple Storage Service"
+        },
+        "on_demand": {
+          "RJ7BUHG2D92QSTS3.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "RJ7BUHG2D92QSTS3",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "RJ7BUHG2D92QSTS3.JRTCKXETXF.PGHJ3S3EYE": {
+                "rateCode": "RJ7BUHG2D92QSTS3.JRTCKXETXF.PGHJ3S3EYE",
+                "description": "$0.025 per GB - first 50 TB / month of storage used",
+                "beginRange": "0",
+                "endRange": "51200",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.0250000000"
+                },
+                "appliesTo": []
+              },
+              "RJ7BUHG2D92QSTS3.JRTCKXETXF.D42MF2PVJS": {
+                "rateCode": "RJ7BUHG2D92QSTS3.JRTCKXETXF.D42MF2PVJS",
+                "description": "$0.024 per GB - next 450 TB / month of storage used",
+                "beginRange": "51200",
+                "endRange": "512000",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.0240000000"
+                },
+                "appliesTo": []
+              },
+              "RJ7BUHG2D92QSTS3.JRTCKXETXF.PXJDJ3YRG3": {
+                "rateCode": "RJ7BUHG2D92QSTS3.JRTCKXETXF.PXJDJ3YRG3",
+                "description": "$0.023 per GB - storage used / month over 500 TB",
+                "beginRange": "512000",
+                "endRange": "Inf",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.0230000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "YRWUHUHKYHGSUQBX",
+        "attributes": {
+          "servicecode": "AmazonS3",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "storageClass": "Files",
+          "volumeType": "Files",
+          "usagetype": "ILC1-Files-TimedStorage-ByteHrs",
+          "operation": "Storage",
+          "durability": "99.999999999%",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Simple Storage Service"
+        },
+        "on_demand": {
+          "YRWUHUHKYHGSUQBX.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "YRWUHUHKYHGSUQBX",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "YRWUHUHKYHGSUQBX.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "YRWUHUHKYHGSUQBX.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.40 per GB-Mo of Storage in Files ",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.4000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "TCY5UPCWMZF5RG5S",
+        "attributes": {
+          "servicecode": "AmazonS3",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "storageClass": "Analytics",
+          "volumeType": "Tables",
+          "usagetype": "ILC1-Tables-TimedStorage-ByteHrs",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Simple Storage Service"
+        },
+        "on_demand": {
+          "TCY5UPCWMZF5RG5S.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "TCY5UPCWMZF5RG5S",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "TCY5UPCWMZF5RG5S.JRTCKXETXF.PGHJ3S3EYE": {
+                "rateCode": "TCY5UPCWMZF5RG5S.JRTCKXETXF.PGHJ3S3EYE",
+                "description": "$0.0288 per GB-Mo for First 50 TB of Storage in S3 Table Buckets ",
+                "beginRange": "0",
+                "endRange": "51200",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.0288000000"
+                },
+                "appliesTo": []
+              },
+              "TCY5UPCWMZF5RG5S.JRTCKXETXF.D42MF2PVJS": {
+                "rateCode": "TCY5UPCWMZF5RG5S.JRTCKXETXF.D42MF2PVJS",
+                "description": "$0.0276 per GB-Mo for Next 450 TB of Storage in S3 Table Buckets ",
+                "beginRange": "51200",
+                "endRange": "512000",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.0276000000"
+                },
+                "appliesTo": []
+              },
+              "TCY5UPCWMZF5RG5S.JRTCKXETXF.PXJDJ3YRG3": {
+                "rateCode": "TCY5UPCWMZF5RG5S.JRTCKXETXF.PXJDJ3YRG3",
+                "description": "$0.0265 per GB-Mo for Over 500 TB of Storage in S3 Table Buckets ",
+                "beginRange": "512000",
+                "endRange": "Inf",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.0265000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "VK49NBAH5DAD2H3M",
+        "attributes": {
+          "servicecode": "AmazonS3",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "storageClass": "General Purpose",
+          "volumeType": "Annotations",
+          "usagetype": "ILC1-Annotation-TimedStorage-ByteHrs",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Simple Storage Service"
+        },
+        "on_demand": {
+          "VK49NBAH5DAD2H3M.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "VK49NBAH5DAD2H3M",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "VK49NBAH5DAD2H3M.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "VK49NBAH5DAD2H3M.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.025 per GB-Mo of Storage in Annotations ",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.0250000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "5AFYSUB3MSRS9BNT",
+        "attributes": {
+          "servicecode": "AmazonS3",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "S3-API-Tables-Tier2",
+          "groupDescription": "GET and all other requests to S3 Table Buckets",
+          "usagetype": "ILC1-Tables-Requests-Tier2",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Simple Storage Service"
+        },
+        "on_demand": {
+          "5AFYSUB3MSRS9BNT.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "5AFYSUB3MSRS9BNT",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "5AFYSUB3MSRS9BNT.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "5AFYSUB3MSRS9BNT.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.00044 per 1,000 GET and All Other Requests to S3 Table Buckets",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000004400"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "Q2RMUYRD6HY2B5CD",
+        "attributes": {
+          "servicecode": "AmazonS3",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "S3-API-Tier1",
+          "groupDescription": "PUT/COPY/POST or LIST requests",
+          "usagetype": "ILC1-Requests-Tier1",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Simple Storage Service"
+        },
+        "on_demand": {
+          "Q2RMUYRD6HY2B5CD.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "Q2RMUYRD6HY2B5CD",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "Q2RMUYRD6HY2B5CD.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "Q2RMUYRD6HY2B5CD.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.0055 per 1,000 PUT, COPY, POST, or LIST requests",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000055000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "Z3ABME9MRDBKZVAR",
+        "attributes": {
+          "servicecode": "AmazonS3",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "S3-API-Tables-Tier1",
+          "groupDescription": "PUT/COPY/POST or LIST requests to S3 Table Buckets",
+          "usagetype": "ILC1-Tables-Requests-Tier1",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Simple Storage Service"
+        },
+        "on_demand": {
+          "Z3ABME9MRDBKZVAR.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "Z3ABME9MRDBKZVAR",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "Z3ABME9MRDBKZVAR.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "Z3ABME9MRDBKZVAR.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.0055 per 1,000 PUT Requests/COPY/POST or LIST Requests to S3 Table Buckets",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000055000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "WD988PZJAZGRGP65",
+        "attributes": {
+          "servicecode": "AmazonS3",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "S3-API-Tier2",
+          "groupDescription": "GET and all other requests",
+          "usagetype": "ILC1-Requests-Tier2",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Simple Storage Service"
+        },
+        "on_demand": {
+          "WD988PZJAZGRGP65.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "WD988PZJAZGRGP65",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "WD988PZJAZGRGP65.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "WD988PZJAZGRGP65.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.0044 per 10,000 GET and all other requests",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000004400"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AmazonECR",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECR/current/il-central-1/index.json",
+    "publication_date": "2026-09-11T12:44:25Z",
+    "products": [
+      {
+        "sku": "QQ2HR3Z5EQ89ZTKW",
+        "attributes": {
+          "servicecode": "AmazonECR",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "usagetype": "ILC1-TimedStorage-ByteHrs",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon EC2 Container Registry (ECR)",
+          "storageType": "S3"
+        },
+        "on_demand": {
+          "QQ2HR3Z5EQ89ZTKW.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "QQ2HR3Z5EQ89ZTKW",
+            "effectiveDate": "2025-11-01T00:00:00Z",
+            "priceDimensions": {
+              "QQ2HR3Z5EQ89ZTKW.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "QQ2HR3Z5EQ89ZTKW.JRTCKXETXF.6YS6EN2CT7",
+                "description": "USD0.1 per GB-Mo for TimedStorage-ByteHrs in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.1000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AmazonCloudWatch",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/il-central-1/index.json",
+    "publication_date": "2026-09-22T02:17:15Z",
+    "products": [
+      {
+        "sku": "FADPDWZ7PDFSPJAA",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Alarm",
+          "groupDescription": "CloudWatch Alarms",
+          "usagetype": "ILC1-CW:CompositeAlarmMonitorUsage",
+          "operation": "",
+          "alarmType": "Composite",
+          "regionCode": "il-central-1",
+          "servicename": "AmazonCloudWatch"
+        },
+        "on_demand": {
+          "FADPDWZ7PDFSPJAA.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "FADPDWZ7PDFSPJAA",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "FADPDWZ7PDFSPJAA.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "FADPDWZ7PDFSPJAA.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.50 per composite alarm month - Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Alarms",
+                "pricePerUnit": {
+                  "USD": "0.5000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "9N4333FNECUE85PM",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Log Alarm",
+          "groupDescription": "CloudWatch Alarms evaluting log queries",
+          "usagetype": "ILC1-CW:LogAlarmMonitorUsage",
+          "operation": "",
+          "alarmType": "Standard",
+          "regionCode": "il-central-1",
+          "servicename": "AmazonCloudWatch"
+        },
+        "on_demand": {
+          "9N4333FNECUE85PM.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "9N4333FNECUE85PM",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "9N4333FNECUE85PM.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "9N4333FNECUE85PM.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.10 per Alarm in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Alarms",
+                "pricePerUnit": {
+                  "USD": "0.1000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "3ZJZSGX8K87XPW4R",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Any",
+          "locationType": "AWS Region",
+          "group": "CW-MonthlyFree-Metric",
+          "groupDescription": "Monthly free usage of metrics",
+          "usagetype": "Global-CW:MetricMonitorUsage",
+          "operation": "",
+          "regionCode": "",
+          "servicename": "AmazonCloudWatch"
+        },
+        "on_demand": {
+          "3ZJZSGX8K87XPW4R.A429C66SYZ": {
+            "offerTermCode": "A429C66SYZ",
+            "sku": "3ZJZSGX8K87XPW4R",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "3ZJZSGX8K87XPW4R.A429C66SYZ.DGNP37V5JW": {
+                "rateCode": "3ZJZSGX8K87XPW4R.A429C66SYZ.DGNP37V5JW",
+                "description": "Global",
+                "beginRange": "0",
+                "endRange": "10",
+                "unit": "Metrics",
+                "pricePerUnit": {
+                  "USD": "0.0000000000"
+                },
+                "appliesTo": [
+                  "2BF5WZ4QVWF9XRRT",
+                  "334SFV86A6WNMFNJ",
+                  "87QZ4R3ZZFSYDE9H",
+                  "F52S8X9YS2XFUA7F",
+                  "WJ3EWCKXHHAM5583",
+                  "7EGPKS3JK9S6Q5CN",
+                  "8CM49YJM6J2SHVD6",
+                  "7SYRGKEV5V5MPRNN",
+                  "9UKGFPRV59MVNQ9B",
+                  "KG586CTNGQ4VRZKZ",
+                  "PN3YV46EU5ACM6BK",
+                  "HG8MEN8HX36WXZEB",
+                  "58YXNUN4MF8JD9ZA",
+                  "UGRFB4VC4JYPMT8N",
+                  "D2PNJKT8WN7K2RVT",
+                  "FTCJZJXP4KVANG9Z",
+                  "JKURJ8SGYYTKEM35",
+                  "92QAN7T7PQUAG6NQ",
+                  "F96ZRPX8AM4T93NV",
+                  "39ZCDVRBDD64YRU5",
+                  "S22PNETSG7RFR82N",
+                  "WJAN9NR7AQ8KWB2U",
+                  "XYVXGVVGJFDZSJPN",
+                  "3BA3NXPZKGKAV6N5",
+                  "XK7C3D2X45XTHURD",
+                  "U85NJU5Y5H86CA23",
+                  "FCAUCKXNQCW596F7",
+                  "N47P8G79TMZTGMFR",
+                  "7P2NFGK75QN2W5S9",
+                  "P8WWN4FPGA3H5CMY",
+                  "CN6TP6ZEVS58RK7M",
+                  "ZZJWHRRU5C9SD452",
+                  "DUQMFHT4YRFWADP8",
+                  "69U4T5WYC2VZMA9G",
+                  "25WHJB4GX3FRTNER",
+                  "9X3C8NV865ERU3CD",
+                  "D8QWPGZQF8DEFNQD"
+                ]
+              }
+            },
+            "termAttributes": {
+              "Restriction": "Limited SKU Usage"
+            }
+          }
+        }
+      },
+      {
+        "sku": "P37N4G6MGPJBAZBQ",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "storageMedia": "Amazon S3",
+          "group": "Amazon CloudWatch Standard Storage pricing current",
+          "groupDescription": "Amazon CloudWatch Logs Storage Current version",
+          "usagetype": "ILC1-TimedStorage-ByteHrs",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AmazonCloudWatch",
+          "version": "Current"
+        },
+        "on_demand": {
+          "P37N4G6MGPJBAZBQ.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "P37N4G6MGPJBAZBQ",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "P37N4G6MGPJBAZBQ.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "P37N4G6MGPJBAZBQ.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.03 per GB-mo of log storage - Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.0300000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "5K3E2DWHBCH9JY62",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Alarm",
+          "groupDescription": "CloudWatch Alarms",
+          "usagetype": "ILC1-CW:HighResAlarmMonitorUsage",
+          "operation": "",
+          "alarmType": "High Resolution",
+          "regionCode": "il-central-1",
+          "servicename": "AmazonCloudWatch"
+        },
+        "on_demand": {
+          "5K3E2DWHBCH9JY62.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "5K3E2DWHBCH9JY62",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "5K3E2DWHBCH9JY62.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "5K3E2DWHBCH9JY62.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.30 per alarm metric month (high resolution) - Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Alarms",
+                "pricePerUnit": {
+                  "USD": "0.3000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "BDMZAB92H275Y748",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "PromQL Alarm",
+          "groupDescription": "CloudWatch Alarms Evaluating PromQL Queries",
+          "usagetype": "ILC1-CW:PromQLAlarmMonitorUsage",
+          "operation": "",
+          "alarmType": "Standard",
+          "regionCode": "il-central-1",
+          "servicename": "AmazonCloudWatch"
+        },
+        "on_demand": {
+          "BDMZAB92H275Y748.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "BDMZAB92H275Y748",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "BDMZAB92H275Y748.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "BDMZAB92H275Y748.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.10 per Alarm in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Alarms",
+                "pricePerUnit": {
+                  "USD": "0.1000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "UAUWCAX3V7YSU8JB",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Alarm",
+          "groupDescription": "CloudWatch Alarms",
+          "usagetype": "ILC1-CW:AlarmMonitorUsage",
+          "operation": "",
+          "alarmType": "Standard",
+          "regionCode": "il-central-1",
+          "servicename": "AmazonCloudWatch"
+        },
+        "on_demand": {
+          "UAUWCAX3V7YSU8JB.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "UAUWCAX3V7YSU8JB",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "UAUWCAX3V7YSU8JB.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "UAUWCAX3V7YSU8JB.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.10 per alarm metric month (standard resolution) - Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Alarms",
+                "pricePerUnit": {
+                  "USD": "0.1000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "3EGQC4SXGQRXZ5HW",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Ingested Logs",
+          "groupDescription": "Existing system, application, and custom log files",
+          "usagetype": "ILC1-DataProcessing-Bytes",
+          "operation": "PutLogEvents",
+          "logsDestination": "Amazon CloudWatch Logs",
+          "regionCode": "il-central-1",
+          "servicename": "AmazonCloudWatch",
+          "version": "Current"
+        },
+        "on_demand": {
+          "3EGQC4SXGQRXZ5HW.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "3EGQC4SXGQRXZ5HW",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "3EGQC4SXGQRXZ5HW.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "3EGQC4SXGQRXZ5HW.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.50 per GB custom log data ingested in Standard log class - Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.5000000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "FCH8WPMWVXA4B6VM",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Any",
+          "locationType": "AWS Region",
+          "group": "CW-MonthlyFree-Alarm",
+          "groupDescription": "Monthly free usage of alarms",
+          "usagetype": "Global-CW:AlarmMonitorUsage",
+          "operation": "",
+          "regionCode": "",
+          "servicename": "AmazonCloudWatch"
+        },
+        "on_demand": {
+          "FCH8WPMWVXA4B6VM.A429C66SYZ": {
+            "offerTermCode": "A429C66SYZ",
+            "sku": "FCH8WPMWVXA4B6VM",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "FCH8WPMWVXA4B6VM.A429C66SYZ.DGNP37V5JW": {
+                "rateCode": "FCH8WPMWVXA4B6VM.A429C66SYZ.DGNP37V5JW",
+                "description": "Global",
+                "beginRange": "0",
+                "endRange": "10",
+                "unit": "Alarms",
+                "pricePerUnit": {
+                  "USD": "0.0000000000"
+                },
+                "appliesTo": [
+                  "H7K9WCM7G7GJWU8G",
+                  "UAUWCAX3V7YSU8JB",
+                  "5BQR3BDGFPFQSNDF",
+                  "5N7VW7DQ2PTDRMTN",
+                  "VJ934U28PCG8EKRA",
+                  "3MF6FXCJU86TGGBQ",
+                  "2BEDYVXZZ2HP3NDC",
+                  "PRDBYUGVEHFG9C2J",
+                  "RMVZFCS654FAQEU4",
+                  "C35BNHBF5J24QNGG",
+                  "UCRWJMR8A6TBZNRB",
+                  "8JFRJZU4SGUUHYGZ",
+                  "JG84GZN6AVPA7YPG",
+                  "Y6CMMZRHD9WZV9UY",
+                  "KHXSGTZMMGBPGXCK",
+                  "FBMB6TVC844YGZ3J",
+                  "SJTFAZNHSW2WVZB2",
+                  "SVP946B565GUWCW8",
+                  "GDMKAEDCSYJAKBZQ",
+                  "6635AWWTXTJVSCUQ",
+                  "VU6CBY3UVQ6KVEAN",
+                  "XWA5C8TQDRYG6RN7",
+                  "9FZA8ZKS9CGQBUTK",
+                  "A7TRWKDQUDZB33E6",
+                  "XR2MH4YW2VKGCB7S",
+                  "EVETVUGEN3MUTMXM",
+                  "KA492SRV4GHWCEFX",
+                  "UXRHCNMUCGV73M7Q",
+                  "MBFPHE42AKJWSCZH",
+                  "ERS2PGV5BX4XH4WQ",
+                  "C4ZR2PYDTCXZP6AW",
+                  "GRKUN5HJWB3DHKUV",
+                  "HNAU5YRN3PNFRYMT",
+                  "9C2QWAEUK46DHUMX",
+                  "28VSMYRVQXUWCTMA"
+                ]
+              }
+            },
+            "termAttributes": {
+              "Restriction": "Limited SKU Usage"
+            }
+          }
+        }
+      },
+      {
+        "sku": "SSNSJENVU973ECHE",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Any",
+          "locationType": "AWS Region",
+          "group": "CW-MonthlyFree-DataProcessing",
+          "groupDescription": "Monthly free usage of data ingestion",
+          "usagetype": "Global-DataProcessing-Bytes",
+          "operation": "PutLogEvents",
+          "regionCode": "",
+          "servicename": "AmazonCloudWatch"
+        },
+        "on_demand": {
+          "SSNSJENVU973ECHE.A429C66SYZ": {
+            "offerTermCode": "A429C66SYZ",
+            "sku": "SSNSJENVU973ECHE",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "SSNSJENVU973ECHE.A429C66SYZ.V7GB4D473V": {
+                "rateCode": "SSNSJENVU973ECHE.A429C66SYZ.V7GB4D473V",
+                "description": "Global",
+                "beginRange": "0",
+                "endRange": "5",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0000000000"
+                },
+                "appliesTo": [
+                  "MU4VYEK7567CBFM8",
+                  "UWFXSEC78NVKJ866",
+                  "3YB7X822BH75JRG8",
+                  "8ADEUCE83N5DGRGQ",
+                  "P3922U6DZD3KYH67",
+                  "AZ9Y8SWTB6NPRKUH",
+                  "8746XTRS8JT9UQWQ",
+                  "2K34FXXNGZYAEDYQ",
+                  "BETNE3ZXTBDY4N53",
+                  "6TJW6C3DAH7ZU9BT",
+                  "T9SSZSYCYBFHG4D6",
+                  "3QNCYBJPMHGVX4CR",
+                  "FWS8E495NB7QWUA8",
+                  "X4FEGEYQBY79N6ES",
+                  "T823CHHAN8KYRRAD",
+                  "2WR8HHAGXYTTC2QM",
+                  "H8JBQRYKZM5XXBPS",
+                  "KM89CSTAVUNWAFKE",
+                  "V37HB4UFT9TAPYP4",
+                  "EYGDVU35MAYMYMB3",
+                  "DSMG4X852GQURSNZ",
+                  "HAPXVH832K2PZY5N",
+                  "S9T455EP2J2BR9R9",
+                  "TEGV4YYYZV52BCEY",
+                  "VS7PC55ANPDDDDHA",
+                  "YJ9RHYP3NGTZ42J2",
+                  "HUTS4YUF7528PRXB",
+                  "DH4TGQJVH62Z8F6H",
+                  "HCHHF6QQ5Q5TVCV6",
+                  "N22RBVSYYBS6RVQR",
+                  "GX6TH5TJ9BZ2GC3Q",
+                  "5K24Y2B74CCWQGP6",
+                  "UUM422255FNUXTNZ",
+                  "EG94SH6HSR99TH2Q",
+                  "UWR3X4AAHG36DM9X",
+                  "U6DKW5J9QDXNY8C3",
+                  "DS2JWSP85U8MUZZ5",
+                  "843KMSNV3BEUDUSV",
+                  "9P2ZW8U8WJ99HZKX",
+                  "ZKHNZ649UTPXJAAE",
+                  "FBMSUYQSNNFTZJ7Q",
+                  "DRBTN6B33X4VMRF6",
+                  "9M6C7WBCHT2UCEJZ",
+                  "JJD7ETHQRCRPV2E7",
+                  "GEMV55Q7E32YTXC5",
+                  "4F8XH5736XHF7G7D",
+                  "B92ZFFJEMMCRT56E",
+                  "K6GZJZH7GJE4J6GR",
+                  "KJBTQPDHW2H92B8Y",
+                  "HDXEHTHRPCEXBV9S",
+                  "3EGQC4SXGQRXZ5HW",
+                  "7UQAEKYNQRQFZSNU",
+                  "2WXCZPMH3FF7XAAZ",
+                  "JKW4EKWH654WGP55",
+                  "WMNA5ZB3WX336Z89",
+                  "AZY8NTRUZXE2UBMV",
+                  "FMJ8PB8PGJSBYBJR",
+                  "828F3YCWG3C62QPP",
+                  "YKB48866348783H8",
+                  "937PEEG5P5VVDPCA",
+                  "3Q73U9ZHRERYQ3UC",
+                  "GHRXAWYBWDN7X39F",
+                  "N5RGUJR4ZRMDUDV7",
+                  "ABGBCZ7MJCXV27PS",
+                  "QSAUWHUAMRV524T4",
+                  "363UNFAAD2EV4TKV",
+                  "5T6Z6V26DSR7SZ49",
+                  "W4BWT7VF6GWTJZQ9",
+                  "TH5QAY5JZZD6U7GV",
+                  "8X7RBKCDP3W8T38F",
+                  "DT6GH6EZ832BXU25",
+                  "CVBCEPVBU74WNUEB",
+                  "F3YY5GF4V4PF6WRW",
+                  "2ERU965RBAKY8CBH",
+                  "ANTPRG5Q64AAEAPM",
+                  "V83ZMXGTQFZA3HP2",
+                  "V757EAXTZGQ6DB7P",
+                  "AW4EB5RGNN8S75Q8",
+                  "G47NP568D8ZB4SY8",
+                  "5VW3S7BAB2MHTQS3",
+                  "SE32AUTPX8WYQ7ZG",
+                  "MQJTDXBKPTCGNRCF",
+                  "GB65G5RZA75AHM8W",
+                  "MNUN3FXBXDMY2ADM",
+                  "VZZBDGCSPVEBT2WE",
+                  "T4VETUGV9G6G2YV8",
+                  "ZA2W7A6M3NTXDRBC",
+                  "V8W3W7ZJ946FHS6E",
+                  "QFUY425SYUQ952PA",
+                  "EJYMG2ZG33QGAQD3",
+                  "YAPY2PNXMS8653NP",
+                  "64X9TQ9T333MVUBS",
+                  "RF5WYSBKEE29WJ8F",
+                  "Z8D9MJY62N5AQG4D",
+                  "E8CCM9AP7VGG6WJB",
+                  "2993PWAAFGFX88UU",
+                  "FF4UR7H9QS2XTH44",
+                  "RAZ3276X95W4AQJB",
+                  "YAKFM6Y6QVBWFXVE",
+                  "QE6NSKVEDRXDRB3M",
+                  "YUS6XF2GUCZP8YRA",
+                  "F7T7X4XJ36CK9JE6",
+                  "FRNS744C2V67KB8K",
+                  "J7BMBJ7VXGT7BA4B",
+                  "CC7U9J2PR97DTXQC",
+                  "98C9K3W7XUC89RF9",
+                  "5ZMGB8RQ4VVKKXG3",
+                  "K7DUHGFTRU72EV8G",
+                  "VEV24XRJ8B79XENZ",
+                  "ATDCUXNPBY2G9K7X",
+                  "J363T28JMFCAX67H",
+                  "5REUTR6B8PQK6ZVP",
+                  "BRJJH4QD66CDAC79",
+                  "NC5ZRDSGXUMRV5DE",
+                  "UXQAZ4S3WTT4S5HM",
+                  "82HEF545XWU5KFVP",
+                  "NPHCPMBKPYU83H2M",
+                  "W47259G39TKQB7G7",
+                  "HCJJPFF4ZVEPCFRV",
+                  "467VTCQDZUVP3S5E",
+                  "D7P3ZZ53Q49BUPAQ",
+                  "9W76CXUDDPH7P7XJ",
+                  "NSFN9RBTR77BZ3Q3",
+                  "5DK397DECESU9D9E",
+                  "X9ABQTJ25QPMNEV7",
+                  "PT398JDKAWJQ4JK5",
+                  "3J4T745N7D37NHNB",
+                  "EAZF8MQREYYR5XDV",
+                  "XZTC7X65S94HT73Y",
+                  "TWKRGUYYSX5XVKR9",
+                  "VNWUKAP85K467VXM",
+                  "ZGZRUQ3995QJW8GQ",
+                  "HGVP7H52EUY69A69",
+                  "KSVH23BH2A49SVM4",
+                  "DTHQBHKEUATGFU5F",
+                  "DN2XNRPNQVETWAE7",
+                  "PF7ZK6UHNQYNQXWK",
+                  "6UFJRKKRPQE5FRVT",
+                  "FEY43V68MGC79HUY",
+                  "7BTCU3S22RYWY8GP",
+                  "Z6HS6ZBZ2F3GHQSF",
+                  "A3AVM3BGV5X7AURK",
+                  "YRZ9U6YKVFHBTPFU",
+                  "9SMM2FUEBKEVJYZB",
+                  "S3DYWJV2KFZU83A7",
+                  "V4BXPQG5EZS9G75B",
+                  "BBNTCQB6YQUV9DVX",
+                  "AY544984PCPXFEAD",
+                  "Q54ZCCX6MXHXK3SX",
+                  "CV9UTNXC4XT65GJE",
+                  "GC5DG6JGUMNQSSRG",
+                  "JQF5GQJUANQRC9HY",
+                  "XTKXXASJGAMTNKGU",
+                  "6YUV8TJDUM2SMVAP",
+                  "Z3NZJQGYDQK52JBD",
+                  "VF5Y59MSB8K58NN8",
+                  "WAPVQP75TKAHVY3Y",
+                  "XXRFXH4MFXP3FERE",
+                  "UW6QY9MWVCYQ6WDK",
+                  "TFZ6KWWKEB2WBA2T",
+                  "BKB7V8VJBP777MAB",
+                  "4V5RRT4PFB977CJQ",
+                  "MGTYTNZN78CWRT7S",
+                  "HF4Q3BTJCYQQX7J7",
+                  "6XE3HQEGVEBTPDYD",
+                  "CHAJACYVZXSFZFDH",
+                  "KZ679BSP3MDWE3GC",
+                  "VSJ57WXDQXM2VKQK",
+                  "6C5Z3YCFSCK2MPZN",
+                  "QG3RXUKXF67KG66U",
+                  "EPN8XQQ6DVPYXUQT",
+                  "NTFW2BATCBJ2M2DB",
+                  "6HW7NQKTE2EV8CHY",
+                  "SXCRFA49822ZJ8RV",
+                  "AMAG2GCMAUCJ6FPG",
+                  "82AN785DR83WPA2H",
+                  "AE8F379985SPX4XJ",
+                  "V5HPH6AJGNTRBA74",
+                  "VGQ2HFAXNYY8F4NF",
+                  "PVB64TZB37M8DNR3",
+                  "KD4KZ56BE7TRMGZB",
+                  "KXFGJ53B6BG8GEKG",
+                  "32H6VZGQ943G9EC3",
+                  "T4KR5PUCCAF3KZA2",
+                  "Y8BPG58X6938X9RT",
+                  "TXZXKP6MFDMFRA2R",
+                  "JXNUVHXFZFU5RHH9",
+                  "J72VV69AM2UVHTKN",
+                  "Y89WVTJ9AEZQU5PE",
+                  "HYGQDT54G4RKQKPX",
+                  "EDW5ASC5MMDEUPE4",
+                  "RWV3KK8NBRTCTMM7",
+                  "C4ZDCDY2M578AXVN",
+                  "A9FFCQD4ZRQGABNX",
+                  "QCTVB68KD3VS4HZT",
+                  "GWH4EJ8BP3RW82EJ",
+                  "3W4W9FJUSD2XECDJ",
+                  "CNBGYFZ4UUFZCHN7",
+                  "3V9XCKZE6GNAFE78",
+                  "E4SVQFAW3W652QMT",
+                  "92JV9T35ZXEC5DMN",
+                  "U7UCEAJVU9WQRHMT",
+                  "YWUMKQNEN4876WQE",
+                  "S8QGXX5R2BKKMDSJ",
+                  "HNWVPEX9J57DXGCJ",
+                  "KSFVF97SY9GVBX56",
+                  "9DHW2ZQAS4WZNTSY",
+                  "XAE7GPNAZR6AWCQK",
+                  "C7RZ368GFBYRUJD6",
+                  "85VJ6UXNV6CBA4Z2",
+                  "REC3TM9A3PZTMGDU",
+                  "ZQZVEJJY7MRQHAQV",
+                  "ZEKCE7VGMSM5XZPW",
+                  "TYESYJWZM8U22H4H",
+                  "VMFD24YCB483ETH9",
+                  "5AGVRB5ZW8NN444G",
+                  "SQWWNN7DJU38ZK4J",
+                  "8F6VXFPPPW3MWGAY",
+                  "EKCEWM2X6E4X89F7",
+                  "DUJKANM8S68EB3QT",
+                  "TM4HQ3JXRH8P3VYN",
+                  "TGVXFG4CFEHZXFYE",
+                  "EZ678ZREMJ2ZQR7A",
+                  "FBEH44HC4AMA9C2X",
+                  "Q9AA2UKZN8J3MZ5X",
+                  "3364S6PQZ8WNP6CS",
+                  "96K55R2PV3ZZZ3AM",
+                  "X2TA5KHSFS24YARW",
+                  "ZQX4EQZDJ4P37NDG",
+                  "W6ZRKEAN43XA8EA9",
+                  "SRRNBUPDXXSNA5D3",
+                  "DCYKMC2EYW3S259N",
+                  "KTUAXBD6YRYWWDWD",
+                  "VT8YJYBNHPX2Y3W2",
+                  "3UJ4CNNE27C2XT9B",
+                  "FQ9KY4HSWP5U6JEV",
+                  "4GE37REQN34XY4QA",
+                  "9EGJB4K96KA35T4T",
+                  "S28KQA3N24PBFFX4",
+                  "36A9UZ9C8WB6CTBA",
+                  "5DE8QXFAAKPV54AC",
+                  "VG5TD6VDQHEK9RZF",
+                  "Z5YTDVRRND5R67NT",
+                  "AQ53AYG3UWDJK89G",
+                  "JQTEE42Z5HPHJ2KT",
+                  "JBQP6QEETS2BK5DQ",
+                  "FU6E9YYY5YV4DMX9",
+                  "AK6XVVG8UD7USYTF",
+                  "DK4R8ZB63HKYMD6J",
+                  "452WTUS2DZ9HSNAF",
+                  "BR2QFT9ZTTFDQ376",
+                  "CWY7X4MZ4F3MP5SD",
+                  "UP6HAQNVD4H7Q5R7",
+                  "E6VKQFF7MF5V3QPF",
+                  "RZ39UNNQQ9ARRG47",
+                  "XGHNFX4XT79MBJ2U",
+                  "TS3D8HDDH4M7DE98",
+                  "7VZ7U7X6AVAP4GMF",
+                  "6ZB7RM95XCBYM4TJ",
+                  "HCNEBQ3AMS4Q2MQZ",
+                  "YEASP5HXKY9HDU5U",
+                  "3RZ87SJ3Z9H6G3ZQ",
+                  "KRTQTJVMB3KBWRKQ",
+                  "86TN7X56UY38DYBY",
+                  "7EKVJYXRRKV4UN4Z",
+                  "YN63VB9KKR2KECUB",
+                  "ZPSDGYCHVPYJ36GJ",
+                  "Z267DYTHRBSG6W8U",
+                  "JFKSG7FCEM383WNS",
+                  "BTZPA6X5CHFQZBX9",
+                  "KAY4X4RHZ7GGAHB3",
+                  "4RVDG642Y3ZTESVR",
+                  "HB5KJ3VQFP9EFJZ5",
+                  "C39BVYQ72323RDSJ",
+                  "YPVNHSKKWGN8CKCP",
+                  "KDR7BFFEQ6YUEKKB",
+                  "G6BYFXDCZTW7Y85H",
+                  "CTEUUAR6BATAA9HS",
+                  "NMSSQWGD7JMSYGMZ",
+                  "SY92ANYQC2R2CNBM",
+                  "5QTYVDRMGQSNB3HQ",
+                  "V6GEU2W68M6VAH37",
+                  "PX8JWH5BQ2WDX3TS",
+                  "P3U5A6X6CRJSDY5T",
+                  "X47SZ7H38ED6QS5Y",
+                  "J7D5QPW2U38VBTEG",
+                  "7R4CQZA99P4J374Q",
+                  "Y3TRTWWUZYZVS7A8",
+                  "G2FTEKDCR2A3NJXJ",
+                  "J77SWGFGQREUJMMP",
+                  "QDB6CQWAGEKD98N8",
+                  "V2VBGT3PQ6Y7MM3A",
+                  "YCV7F8EWDUYYFCRN",
+                  "6Q7YDD7AQPUZNWPQ",
+                  "8WJB7YF3JJYY4A2Y",
+                  "5HVN34RE5DBYRA86",
+                  "4HCKZNT83DVYQ967",
+                  "UC8WHRTDVPN53GSD",
+                  "D34CGME7Z329T937",
+                  "ZTZXYM48Z43DP2BT",
+                  "MGH2C7Q6RBVDVDP9",
+                  "PRXGWKFJ46PX74MD",
+                  "TKUUCDBQ4U4W7RF3",
+                  "U65VNQAHT6AAZD4A",
+                  "Q66QSYMRQMGM69RZ",
+                  "HR2W3QCECCC3DZ8B",
+                  "7BEMJ64EM379PZU7",
+                  "5P9Q77R2ADUJCNJ2",
+                  "PYW69AFQ4NE3MMPT",
+                  "E6SNEJU7Q3Y5CENX",
+                  "RCYAKD7QW6WPJVYF",
+                  "NPXB7RSMBUNWHGFS",
+                  "TKW2ZA5JVQF2GVYV",
+                  "XXFMBWKU94MQA9AR",
+                  "EC4P6AAQW57AKVYX",
+                  "9S6BM6E4HCB59BFR",
+                  "R8SY33QBD2TCC8FN",
+                  "WBFC5VDNJ4GYJWGK",
+                  "DYBC4P9BZVMEKEYG",
+                  "KE6P4ZQ7EFUTKPBE",
+                  "TDKFZS2JHWZ5G8X2",
+                  "GM54AHB4QPERAHYP",
+                  "GS5366DJGXFAYS5A",
+                  "UH2YAGGG5WBV3A3N",
+                  "UWETXXM95WSXMPQY",
+                  "JPJSEQMRVBRKT2MX",
+                  "RNSXWDMY2XXXGGEX",
+                  "UH7XX2ZWQQH4CDHR",
+                  "4XWZGMKAPX4UR725",
+                  "WMUESPUEJGUR2AMQ",
+                  "QQHKV9BHWW5X53GD",
+                  "94E63GRG2CNCBWSX",
+                  "EPH6WSR2MQMZ5TUH",
+                  "9H6CF78HYXNF6MRS",
+                  "YNMHHX23Q74XFD74",
+                  "ZK3MXZ64ZARVUJVV",
+                  "Q6Q3EFG6PYMCN9E4",
+                  "6H4GHNH9T8D46GMT",
+                  "UJ6V5ETAHD4837NX",
+                  "R7B33ZZFBXPS6QUV",
+                  "RB6JKDQ5NE5HFZP4",
+                  "PNFR8U52WDXBKT3W",
+                  "MDX5ASP4VJJW7JVF",
+                  "BE2YZJNECMM6RB8T",
+                  "QNDJQTXQT845KEGP",
+                  "UVFHC3WYJQNJUXAZ",
+                  "FXC96JPT5C3MSJ75",
+                  "QMA7HJHZJJ7HHEZU",
+                  "P97BUJPXDNFGABD5",
+                  "24R3DTNY5U3ATWVB",
+                  "RDDG2CQS8MXWQMY6",
+                  "ZRZA2KNZG7482AK5",
+                  "ZUNTB4GP88UN9BYX",
+                  "CWB2GTZJXNX3TA6H",
+                  "WDA9FJKYMWEGFNJ9",
+                  "BN4XSGJA9MMZKCP7",
+                  "ZXT58JTHJR7JAV7P",
+                  "WW28UNCFQ8BQCS9D",
+                  "335T3H2NKGNBM5BG",
+                  "F7S2QJE6Y6B2DWZS"
+                ]
+              }
+            },
+            "termAttributes": {
+              "Restriction": "Limited SKU Usage"
+            }
+          }
+        }
+      },
+      {
+        "sku": "6XTVPDAM3VF25UTA",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Any",
+          "locationType": "AWS Region",
+          "group": "CW-MonthlyFree-Archival",
+          "groupDescription": "Monthly free usage  of archived storage",
+          "usagetype": "Global-TimedStorage-ByteHrs",
+          "operation": "",
+          "regionCode": "",
+          "servicename": "AmazonCloudWatch"
+        },
+        "on_demand": {
+          "6XTVPDAM3VF25UTA.A429C66SYZ": {
+            "offerTermCode": "A429C66SYZ",
+            "sku": "6XTVPDAM3VF25UTA",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "6XTVPDAM3VF25UTA.A429C66SYZ.V7GB4D473V": {
+                "rateCode": "6XTVPDAM3VF25UTA.A429C66SYZ.V7GB4D473V",
+                "description": "Global",
+                "beginRange": "0",
+                "endRange": "5",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.0000000000"
+                },
+                "appliesTo": [
+                  "PPHQV9E7X7VR7VB5",
+                  "STBFYZWB58P4MVPU",
+                  "KMUK8K25JPDJ8HNM",
+                  "M9PG5USRE2QBB6FU",
+                  "WWDS9PE2PZJ2ZBNA",
+                  "DY493XSZ7GX879VC",
+                  "EN7BQG2DNS74U8PU",
+                  "97DMBVS93ZXUQRKP",
+                  "M2BK6EN5UBXJU9ZB",
+                  "YT43EP9X6G2Y3FME",
+                  "ZQM53HG8BZ5XNN4P",
+                  "D8WRNJMGYSRNPEER",
+                  "3T6BNWZT673PJUXY",
+                  "ZCM3MJRQPU2BK43T",
+                  "UFJNSHBBVW392WBE",
+                  "39BBSWH5322BJZCW",
+                  "Q62QABE8XVDSWYMG",
+                  "SXS5MH23MB3SHA9C",
+                  "SCQQQD62DYMMFZ3Q",
+                  "BMS8PG9FH98TUEJA",
+                  "VMG4B547G2TW72UB",
+                  "BXP4TANAT8US6WEZ",
+                  "UZ73JTNK9WU66Y7C",
+                  "C8B8YK83MVE7Q8YQ",
+                  "XKVME9XA4JZJXEAC",
+                  "6K9ADYQAHV5KX9KZ",
+                  "RKCBFFXUWXG8KUQY",
+                  "Q66EE3E3KFUWYBX2",
+                  "P37N4G6MGPJBAZBQ",
+                  "4VRR4NRNWJWSSBV8",
+                  "V8UFUXAG7QAKP43D",
+                  "VDSHF2QYZZNWQXQK",
+                  "469924TPM97ZXHVM",
+                  "WFPV2P7684TGJBJK",
+                  "8X6DH2P8VWE9MUAZ",
+                  "AE9KVTFR6C7X294D",
+                  "M8GRD2GQYW8PTTSF",
+                  "22PYPNHZFW97E48U",
+                  "MX92A75BCRXDYUJ6",
+                  "FC3W9RUMP83VDX52",
+                  "22RDCR2CGPGYFAET",
+                  "5BNH7PS3QKAATSNN",
+                  "SH89EVE8P5RJ8RGK",
+                  "FBFJU32JSNXUXZZS",
+                  "7YQ22RBNQBPK86VK",
+                  "HTBGKZX92SMR7C7M",
+                  "UX79W2ABYHCP7796",
+                  "MHB7RSAKVPU2A4CS",
+                  "JXPPEEC65JT5WGXV",
+                  "3FU69WUQHC2VG2Y3",
+                  "MN45SJANDTCPR9QA",
+                  "JRHJQ2UMPUB5K73A",
+                  "RAZY9E76R9JUCNQK",
+                  "S5BUETMSYRVPJQ3E",
+                  "X29B4N6M8XXU5FFH",
+                  "PU4T2Y7PTXZTAYN2",
+                  "WNKZXJZJN9UQFFK8",
+                  "E7V5NF3GN7MQKCB6",
+                  "BTV6924ZXEUV5BGS",
+                  "FAWGXDNS4EYSENUA",
+                  "XS3CKRHZW3T4FGSC",
+                  "H2CVGDVKZM5DPVKJ",
+                  "M93YPPU987S2T6U9",
+                  "4V9YKJHUP3C55Q2R",
+                  "RWXUQY9X8YFV2UM3",
+                  "HU5XFM3B8NAR4CGP",
+                  "TQE57M97TNHAHHPQ",
+                  "EY2XK3FFHSSFGF36",
+                  "6DNTFZY2MPPW5ZSD",
+                  "55E45XT4XVXZM796",
+                  "3T6X5KHFU2223A3S",
+                  "6ZEZHSEF2C23NEDH",
+                  "Y9D9AJXRG6XKG3GM",
+                  "J36DJGHS7UWJKMP4",
+                  "HBPDDTSQMQNYXVC6",
+                  "A2U5G2V8PAN8BBGE",
+                  "ARD5JQCWQSS5W94X",
+                  "9HWF5X6FAUJBV5PS",
+                  "5HWUHD5X4SGJ2X2K",
+                  "SGDTPWUEKBXYTP87",
+                  "42CVQU4BPES8AWHC",
+                  "RGPMCX8H2XW8PNXT",
+                  "DRQ4M2FZWK27BHWS",
+                  "X7X4WD4A95NDR9U5",
+                  "RCT78AHKABFEVSY4",
+                  "WXWKYDHWQG2HJXRP",
+                  "HQTF3SN9EXAENXWB",
+                  "9EFY7HZP4AV78HZ6",
+                  "NBPC97XNAGQK47NP",
+                  "BW7H4WPX3XKVNNE9",
+                  "Y2BERTJ9GBTB6UNF",
+                  "G75GA44VZQKSXZUX",
+                  "Y6NC5F9ADK3E6AMD",
+                  "V4Z57YFP6RRKRH6B",
+                  "BTXKN5Z2SQJXF5QK",
+                  "WJVSQSNFECAUN2QQ",
+                  "JFD7NSVT9M62HB3A",
+                  "DWTSMZ8Q6EW55WCB",
+                  "ZDUJA9MN7TRSFJTT",
+                  "QKY45VTV7BQZA5M9",
+                  "EX3KTWBGQYPT9RWT",
+                  "ZYEXGHXNT2NRXUWY",
+                  "Z92F9RWWJJDUQN7C",
+                  "XE6KR5WJP66BR24V"
+                ]
+              }
+            },
+            "termAttributes": {
+              "Restriction": "Limited SKU Usage"
+            }
+          }
+        }
+      },
+      {
+        "sku": "JKURJ8SGYYTKEM35",
+        "attributes": {
+          "servicecode": "AmazonCloudWatch",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "Metric",
+          "groupDescription": "CloudWatch Custom Metrics",
+          "usagetype": "ILC1-CW:MetricMonitorUsage",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "AmazonCloudWatch"
+        },
+        "on_demand": {
+          "JKURJ8SGYYTKEM35.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "JKURJ8SGYYTKEM35",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "JKURJ8SGYYTKEM35.JRTCKXETXF.A6VD9GXV7W": {
+                "rateCode": "JKURJ8SGYYTKEM35.JRTCKXETXF.A6VD9GXV7W",
+                "description": "$0.30 per metric-month for the first 10,000 metrics - Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "10000",
+                "unit": "Metrics",
+                "pricePerUnit": {
+                  "USD": "0.3000000000"
+                },
+                "appliesTo": []
+              },
+              "JKURJ8SGYYTKEM35.JRTCKXETXF.FG3KHZ79QN": {
+                "rateCode": "JKURJ8SGYYTKEM35.JRTCKXETXF.FG3KHZ79QN",
+                "description": "$0.10 per metric-month for the next 240,000 metrics - Israel (Tel Aviv)",
+                "beginRange": "10000",
+                "endRange": "250000",
+                "unit": "Metrics",
+                "pricePerUnit": {
+                  "USD": "0.1000000000"
+                },
+                "appliesTo": []
+              },
+              "JKURJ8SGYYTKEM35.JRTCKXETXF.95SDKRWVHH": {
+                "rateCode": "JKURJ8SGYYTKEM35.JRTCKXETXF.95SDKRWVHH",
+                "description": "$0.05 per metric-month for the next 750,000 metrics - Israel (Tel Aviv)",
+                "beginRange": "250000",
+                "endRange": "1000000",
+                "unit": "Metrics",
+                "pricePerUnit": {
+                  "USD": "0.0500000000"
+                },
+                "appliesTo": []
+              },
+              "JKURJ8SGYYTKEM35.JRTCKXETXF.VNJQCFJPS4": {
+                "rateCode": "JKURJ8SGYYTKEM35.JRTCKXETXF.VNJQCFJPS4",
+                "description": "$0.02 per metric-month for over 1,000,000 metrics - Israel (Tel Aviv)",
+                "beginRange": "1000000",
+                "endRange": "Inf",
+                "unit": "Metrics",
+                "pricePerUnit": {
+                  "USD": "0.0200000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AWSQueueService",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSQueueService/current/il-central-1/index.json",
+    "publication_date": "2026-09-11T12:46:07Z",
+    "products": [
+      {
+        "sku": "EAQ7C37E8H4G9TA2",
+        "attributes": {
+          "servicecode": "AWSQueueService",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "SQS-APIRequest-Tier1",
+          "groupDescription": "Amazon SQS Requests",
+          "usagetype": "ILC1-Requests-Tier1",
+          "operation": "",
+          "messageDeliveryFrequency": "At Least Once",
+          "messageDeliveryOrder": "Not Guaranteed",
+          "queueType": "Standard",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Simple Queue Service"
+        },
+        "on_demand": {
+          "EAQ7C37E8H4G9TA2.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "EAQ7C37E8H4G9TA2",
+            "effectiveDate": "2025-08-01T00:00:00Z",
+            "priceDimensions": {
+              "EAQ7C37E8H4G9TA2.JRTCKXETXF.VXGXCWQKTY": {
+                "rateCode": "EAQ7C37E8H4G9TA2.JRTCKXETXF.VXGXCWQKTY",
+                "description": "$0.42 per million Amazon SQS standard requests in Tier1 in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "100000000000",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000004200"
+                },
+                "appliesTo": []
+              },
+              "EAQ7C37E8H4G9TA2.JRTCKXETXF.9JVYQWEJJY": {
+                "rateCode": "EAQ7C37E8H4G9TA2.JRTCKXETXF.9JVYQWEJJY",
+                "description": "$0.32 per million Amazon SQS standard requests in Tier2 in Israel (Tel Aviv)",
+                "beginRange": "100000000000",
+                "endRange": "200000000000",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000003200"
+                },
+                "appliesTo": []
+              },
+              "EAQ7C37E8H4G9TA2.JRTCKXETXF.27HCEGFCXT": {
+                "rateCode": "EAQ7C37E8H4G9TA2.JRTCKXETXF.27HCEGFCXT",
+                "description": "$0.26 per million Amazon SQS standard requests in Tier3 in Israel (Tel Aviv)",
+                "beginRange": "200000000000",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000002600"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AmazonCognito",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCognito/current/il-central-1/index.json",
+    "publication_date": "2026-09-25T19:31:08Z",
+    "products": [
+      {
+        "sku": "BARM6XXPJNRY73CQ",
+        "attributes": {
+          "servicecode": "AmazonCognito",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "usagetype": "ILC1-CognitoLiteMAU",
+          "operation": "CognitoLiteOperation",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Cognito"
+        },
+        "on_demand": {
+          "BARM6XXPJNRY73CQ.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "BARM6XXPJNRY73CQ",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "BARM6XXPJNRY73CQ.JRTCKXETXF.VV2AUKAVFP": {
+                "rateCode": "BARM6XXPJNRY73CQ.JRTCKXETXF.VV2AUKAVFP",
+                "description": "Cognito Lite il-central-1 tier 1 pricing",
+                "beginRange": "0",
+                "endRange": "90000",
+                "unit": "CognitoUserPoolsMAU",
+                "pricePerUnit": {
+                  "USD": "0.0055000000"
+                },
+                "appliesTo": []
+              },
+              "BARM6XXPJNRY73CQ.JRTCKXETXF.Q9R5NSMVGC": {
+                "rateCode": "BARM6XXPJNRY73CQ.JRTCKXETXF.Q9R5NSMVGC",
+                "description": "Cognito Lite il-central-1 tier 2 pricing",
+                "beginRange": "90000",
+                "endRange": "990000",
+                "unit": "CognitoUserPoolsMAU",
+                "pricePerUnit": {
+                  "USD": "0.0046000000"
+                },
+                "appliesTo": []
+              },
+              "BARM6XXPJNRY73CQ.JRTCKXETXF.KQSJQ3YMHA": {
+                "rateCode": "BARM6XXPJNRY73CQ.JRTCKXETXF.KQSJQ3YMHA",
+                "description": "Cognito Lite il-central-1 tier 3 pricing",
+                "beginRange": "990000",
+                "endRange": "9990000",
+                "unit": "CognitoUserPoolsMAU",
+                "pricePerUnit": {
+                  "USD": "0.0032500000"
+                },
+                "appliesTo": []
+              },
+              "BARM6XXPJNRY73CQ.JRTCKXETXF.75WZUA4FXN": {
+                "rateCode": "BARM6XXPJNRY73CQ.JRTCKXETXF.75WZUA4FXN",
+                "description": "Cognito Lite il-central-1 tier 4 pricing",
+                "beginRange": "9990000",
+                "endRange": "Inf",
+                "unit": "CognitoUserPoolsMAU",
+                "pricePerUnit": {
+                  "USD": "0.0025000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "A9PPNVZPBYVT98Q9",
+        "attributes": {
+          "servicecode": "AmazonCognito",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "usagetype": "ILC1-CognitoPlusMAU",
+          "operation": "CognitoPlusOperation",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Cognito"
+        },
+        "on_demand": {
+          "A9PPNVZPBYVT98Q9.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "A9PPNVZPBYVT98Q9",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "A9PPNVZPBYVT98Q9.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "A9PPNVZPBYVT98Q9.JRTCKXETXF.6YS6EN2CT7",
+                "description": "Cognito Plus il-central-1 tier 1 pricing",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "CognitoUserPoolsMAU",
+                "pricePerUnit": {
+                  "USD": "0.0200000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "UJ4M5FKHAN4TA9VD",
+        "attributes": {
+          "servicecode": "AmazonCognito",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "usagetype": "ILC1-CognitoEssentialsMAU",
+          "operation": "CognitoEssentialsOperation",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon Cognito"
+        },
+        "on_demand": {
+          "UJ4M5FKHAN4TA9VD.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "UJ4M5FKHAN4TA9VD",
+            "effectiveDate": "2026-09-01T00:00:00Z",
+            "priceDimensions": {
+              "UJ4M5FKHAN4TA9VD.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "UJ4M5FKHAN4TA9VD.JRTCKXETXF.6YS6EN2CT7",
+                "description": "Cognito Essentials il-central-1 tier 1 pricing",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "CognitoUserPoolsMAU",
+                "pricePerUnit": {
+                  "USD": "0.0150000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AmazonCloudFront",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudFront/current/index.json",
+    "publication_date": "2026-09-16T13:22:08Z",
+    "products": [
+      {
+        "sku": "NPFD6SEH9MXS8M4J",
+        "attributes": {
+          "servicecode": "AmazonCloudFront",
+          "location": "United States",
+          "locationType": "AWS Edge Location",
+          "usagetype": "US-Requests-Tier2-HTTPS",
+          "operation": "",
+          "regionCode": "",
+          "requestDescription": "HTTPS GET and HEAD requests",
+          "requestType": "CloudFront-Request-Tier2",
+          "servicename": "Amazon CloudFront"
+        },
+        "on_demand": {
+          "NPFD6SEH9MXS8M4J.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "NPFD6SEH9MXS8M4J",
+            "effectiveDate": "2025-04-01T00:00:00Z",
+            "priceDimensions": {
+              "NPFD6SEH9MXS8M4J.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "NPFD6SEH9MXS8M4J.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.0100 per 10,000 HTTPS Requests",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000010000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "GV2WFGX37Q9PDSHF",
+        "attributes": {
+          "servicecode": "AmazonCloudFront",
+          "transferType": "CloudFront Outbound",
+          "fromLocation": "United States",
+          "fromLocationType": "AWS Edge Location",
+          "toLocation": "External",
+          "toLocationType": "Other",
+          "usagetype": "US-DataTransfer-Out-Bytes",
+          "operation": "",
+          "fromRegionCode": "",
+          "servicename": "Amazon CloudFront",
+          "toRegionCode": ""
+        },
+        "on_demand": {
+          "GV2WFGX37Q9PDSHF.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "GV2WFGX37Q9PDSHF",
+            "effectiveDate": "2025-04-01T00:00:00Z",
+            "priceDimensions": {
+              "GV2WFGX37Q9PDSHF.JRTCKXETXF.Q3Z75P77EN": {
+                "rateCode": "GV2WFGX37Q9PDSHF.JRTCKXETXF.Q3Z75P77EN",
+                "description": "$0.085 per GB - first 10 TB / month data transfer out",
+                "beginRange": "0",
+                "endRange": "10240",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0850000000"
+                },
+                "appliesTo": []
+              },
+              "GV2WFGX37Q9PDSHF.JRTCKXETXF.VF6T3GAUKQ": {
+                "rateCode": "GV2WFGX37Q9PDSHF.JRTCKXETXF.VF6T3GAUKQ",
+                "description": "$0.080 per GB - next 40 TB / month data transfer out",
+                "beginRange": "10240",
+                "endRange": "51200",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0800000000"
+                },
+                "appliesTo": []
+              },
+              "GV2WFGX37Q9PDSHF.JRTCKXETXF.N9EW5UVVPA": {
+                "rateCode": "GV2WFGX37Q9PDSHF.JRTCKXETXF.N9EW5UVVPA",
+                "description": "$0.060 per GB - next 100 TB / month data transfer out",
+                "beginRange": "51200",
+                "endRange": "153600",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0600000000"
+                },
+                "appliesTo": []
+              },
+              "GV2WFGX37Q9PDSHF.JRTCKXETXF.AZ7GJS7NVF": {
+                "rateCode": "GV2WFGX37Q9PDSHF.JRTCKXETXF.AZ7GJS7NVF",
+                "description": "$0.040 per GB - next 350 TB / month data transfer out",
+                "beginRange": "153600",
+                "endRange": "512000",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0400000000"
+                },
+                "appliesTo": []
+              },
+              "GV2WFGX37Q9PDSHF.JRTCKXETXF.3B9CK5AZ6J": {
+                "rateCode": "GV2WFGX37Q9PDSHF.JRTCKXETXF.3B9CK5AZ6J",
+                "description": "$0.030 per GB - next 524 TB / month data transfer out",
+                "beginRange": "512000",
+                "endRange": "1048576",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0300000000"
+                },
+                "appliesTo": []
+              },
+              "GV2WFGX37Q9PDSHF.JRTCKXETXF.RBMR72YW69": {
+                "rateCode": "GV2WFGX37Q9PDSHF.JRTCKXETXF.RBMR72YW69",
+                "description": "$0.025 per GB - next 4 PB / month data transfer out",
+                "beginRange": "1048576",
+                "endRange": "5242880",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0250000000"
+                },
+                "appliesTo": []
+              },
+              "GV2WFGX37Q9PDSHF.JRTCKXETXF.SW9U2ZKBYX": {
+                "rateCode": "GV2WFGX37Q9PDSHF.JRTCKXETXF.SW9U2ZKBYX",
+                "description": "$0.020 per GB - data transfer out / month over 5 PB",
+                "beginRange": "5242880",
+                "endRange": "Inf",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0200000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "VU3485RNDU6HBQF6",
+        "attributes": {
+          "servicecode": "AmazonCloudFront",
+          "transferType": "CloudFront Outbound",
+          "fromLocation": "Europe",
+          "fromLocationType": "AWS Edge Location",
+          "toLocation": "External",
+          "toLocationType": "Other",
+          "usagetype": "EU-DataTransfer-Out-Bytes",
+          "operation": "",
+          "fromRegionCode": "",
+          "servicename": "Amazon CloudFront",
+          "toRegionCode": ""
+        },
+        "on_demand": {
+          "VU3485RNDU6HBQF6.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "VU3485RNDU6HBQF6",
+            "effectiveDate": "2025-04-01T00:00:00Z",
+            "priceDimensions": {
+              "VU3485RNDU6HBQF6.JRTCKXETXF.Q3Z75P77EN": {
+                "rateCode": "VU3485RNDU6HBQF6.JRTCKXETXF.Q3Z75P77EN",
+                "description": "$0.085 per GB - first 10 TB / month data transfer out",
+                "beginRange": "0",
+                "endRange": "10240",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0850000000"
+                },
+                "appliesTo": []
+              },
+              "VU3485RNDU6HBQF6.JRTCKXETXF.VF6T3GAUKQ": {
+                "rateCode": "VU3485RNDU6HBQF6.JRTCKXETXF.VF6T3GAUKQ",
+                "description": "$0.080 per GB - next 40 TB / month data transfer out",
+                "beginRange": "10240",
+                "endRange": "51200",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0800000000"
+                },
+                "appliesTo": []
+              },
+              "VU3485RNDU6HBQF6.JRTCKXETXF.N9EW5UVVPA": {
+                "rateCode": "VU3485RNDU6HBQF6.JRTCKXETXF.N9EW5UVVPA",
+                "description": "$0.060 per GB - next 100 TB / month data transfer out",
+                "beginRange": "51200",
+                "endRange": "153600",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0600000000"
+                },
+                "appliesTo": []
+              },
+              "VU3485RNDU6HBQF6.JRTCKXETXF.AZ7GJS7NVF": {
+                "rateCode": "VU3485RNDU6HBQF6.JRTCKXETXF.AZ7GJS7NVF",
+                "description": "$0.040 per GB - next 350 TB / month data transfer out",
+                "beginRange": "153600",
+                "endRange": "512000",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0400000000"
+                },
+                "appliesTo": []
+              },
+              "VU3485RNDU6HBQF6.JRTCKXETXF.3B9CK5AZ6J": {
+                "rateCode": "VU3485RNDU6HBQF6.JRTCKXETXF.3B9CK5AZ6J",
+                "description": "$0.030 per GB - next 524 TB / month data transfer out",
+                "beginRange": "512000",
+                "endRange": "1048576",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0300000000"
+                },
+                "appliesTo": []
+              },
+              "VU3485RNDU6HBQF6.JRTCKXETXF.RBMR72YW69": {
+                "rateCode": "VU3485RNDU6HBQF6.JRTCKXETXF.RBMR72YW69",
+                "description": "$0.025 per GB - next 4 PB / month data transfer out",
+                "beginRange": "1048576",
+                "endRange": "5242880",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0250000000"
+                },
+                "appliesTo": []
+              },
+              "VU3485RNDU6HBQF6.JRTCKXETXF.SW9U2ZKBYX": {
+                "rateCode": "VU3485RNDU6HBQF6.JRTCKXETXF.SW9U2ZKBYX",
+                "description": "$0.020 per GB - data transfer out / month over 5 PB",
+                "beginRange": "5242880",
+                "endRange": "Inf",
+                "unit": "GB",
+                "pricePerUnit": {
+                  "USD": "0.0200000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "YA5QZD7XG45UGHCH",
+        "attributes": {
+          "servicecode": "AmazonCloudFront",
+          "location": "Europe",
+          "locationType": "AWS Edge Location",
+          "usagetype": "EU-Requests-Tier2-HTTPS",
+          "operation": "",
+          "regionCode": "",
+          "requestDescription": "HTTPS GET and HEAD requests",
+          "requestType": "CloudFront-Request-Tier2",
+          "servicename": "Amazon CloudFront"
+        },
+        "on_demand": {
+          "YA5QZD7XG45UGHCH.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "YA5QZD7XG45UGHCH",
+            "effectiveDate": "2025-04-01T00:00:00Z",
+            "priceDimensions": {
+              "YA5QZD7XG45UGHCH.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "YA5QZD7XG45UGHCH.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.0120 per 10,000 HTTPS Requests",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000012000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "NJD45NCV7D7JXRXJ",
+        "attributes": {
+          "servicecode": "AmazonCloudFront",
+          "location": "United States",
+          "locationType": "AWS Edge Location",
+          "usagetype": "US-Requests-Tier1",
+          "operation": "",
+          "regionCode": "",
+          "requestDescription": "HTTP GET and HEAD requests",
+          "requestType": "CloudFront-Request-Tier1",
+          "servicename": "Amazon CloudFront"
+        },
+        "on_demand": {
+          "NJD45NCV7D7JXRXJ.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "NJD45NCV7D7JXRXJ",
+            "effectiveDate": "2025-04-01T00:00:00Z",
+            "priceDimensions": {
+              "NJD45NCV7D7JXRXJ.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "NJD45NCV7D7JXRXJ.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.0075 per 10,000 HTTP Requests",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000007500"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "9MS5ZWGYNFR5NURG",
+        "attributes": {
+          "servicecode": "AmazonCloudFront",
+          "location": "Europe",
+          "locationType": "AWS Edge Location",
+          "usagetype": "EU-Requests-Tier1",
+          "operation": "",
+          "regionCode": "",
+          "requestDescription": "HTTP GET and HEAD requests",
+          "requestType": "CloudFront-Request-Tier1",
+          "servicename": "Amazon CloudFront"
+        },
+        "on_demand": {
+          "9MS5ZWGYNFR5NURG.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "9MS5ZWGYNFR5NURG",
+            "effectiveDate": "2025-04-01T00:00:00Z",
+            "priceDimensions": {
+              "9MS5ZWGYNFR5NURG.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "9MS5ZWGYNFR5NURG.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.0090 per 10,000 HTTP Requests",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "Requests",
+                "pricePerUnit": {
+                  "USD": "0.0000009000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  },
+  {
+    "service": "AmazonDynamoDB",
+    "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonDynamoDB/current/il-central-1/index.json",
+    "publication_date": "2026-09-11T12:44:22Z",
+    "products": [
+      {
+        "sku": "744KC92YHNN43UDT",
+        "attributes": {
+          "servicecode": "AmazonDynamoDB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "DDB-ReadUnits",
+          "groupDescription": "DynamoDB PayPerRequest Read Request Units",
+          "usagetype": "ILC1-ReadRequestUnits",
+          "operation": "PayPerRequestThroughput",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon DynamoDB"
+        },
+        "on_demand": {
+          "744KC92YHNN43UDT.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "744KC92YHNN43UDT",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "744KC92YHNN43UDT.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "744KC92YHNN43UDT.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.17 per million read request units in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "ReadRequestUnits",
+                "pricePerUnit": {
+                  "USD": "0.0000001700"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "2MKBPX84HAJMCZGM",
+        "attributes": {
+          "servicecode": "AmazonDynamoDB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "DDB-ReplicatedWriteUnitsIA",
+          "groupDescription": "DynamoDB PayPerRequest Replicated Write Request Units IA",
+          "usagetype": "ILC1-IA-ReplWriteRequestUnits",
+          "operation": "PayPerRequestThroughput",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon DynamoDB"
+        },
+        "on_demand": {
+          "2MKBPX84HAJMCZGM.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "2MKBPX84HAJMCZGM",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "2MKBPX84HAJMCZGM.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "2MKBPX84HAJMCZGM.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$1.06 per million ReplicatedWriteRequestUnits in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "ReplicatedWriteRequestUnits",
+                "pricePerUnit": {
+                  "USD": "0.0000010600"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "EYXBUG9M85SZH2VV",
+        "attributes": {
+          "servicecode": "AmazonDynamoDB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "volumeType": "Amazon DynamoDB - Indexed DataStore",
+          "usagetype": "ILC1-TimedStorage-ByteHrs",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon DynamoDB"
+        },
+        "on_demand": {
+          "EYXBUG9M85SZH2VV.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "EYXBUG9M85SZH2VV",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "EYXBUG9M85SZH2VV.JRTCKXETXF.G2A93NZ7DT": {
+                "rateCode": "EYXBUG9M85SZH2VV.JRTCKXETXF.G2A93NZ7DT",
+                "description": "$0.0 per GB-Mo for TimedStorage-ByteHrs in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "25",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.0000000000"
+                },
+                "appliesTo": []
+              },
+              "EYXBUG9M85SZH2VV.JRTCKXETXF.VYAP54KATQ": {
+                "rateCode": "EYXBUG9M85SZH2VV.JRTCKXETXF.VYAP54KATQ",
+                "description": "$0.3396 per GB-Mo for TimedStorage-ByteHrs in Israel (Tel Aviv)",
+                "beginRange": "25",
+                "endRange": "Inf",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.3396000000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "4CRJGFH8MTKRP3PG",
+        "attributes": {
+          "servicecode": "AmazonDynamoDB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "DDB-ReadUnitsIA",
+          "groupDescription": "DynamoDB PayPerRequest Read Request Units IA",
+          "usagetype": "ILC1-IA-ReadRequestUnits",
+          "operation": "PayPerRequestThroughput",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon DynamoDB"
+        },
+        "on_demand": {
+          "4CRJGFH8MTKRP3PG.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "4CRJGFH8MTKRP3PG",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "4CRJGFH8MTKRP3PG.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "4CRJGFH8MTKRP3PG.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.177 per million IA read request units in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "ReadRequestUnits",
+                "pricePerUnit": {
+                  "USD": "0.0000001770"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "M3VRNBCDHN9SMJY7",
+        "attributes": {
+          "servicecode": "AmazonDynamoDB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "DDB-WriteUnits",
+          "groupDescription": "DynamoDB PayPerRequest Write Request Units",
+          "usagetype": "ILC1-WriteRequestUnits",
+          "operation": "PayPerRequestThroughput",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon DynamoDB"
+        },
+        "on_demand": {
+          "M3VRNBCDHN9SMJY7.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "M3VRNBCDHN9SMJY7",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "M3VRNBCDHN9SMJY7.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "M3VRNBCDHN9SMJY7.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.85 per million write request units in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "WriteRequestUnits",
+                "pricePerUnit": {
+                  "USD": "0.0000008500"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "QPX7GZUVG4YSFVDF",
+        "attributes": {
+          "servicecode": "AmazonDynamoDB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "DDB-WriteUnitsIA",
+          "groupDescription": "DynamoDB PayPerRequest Write Request Units IA",
+          "usagetype": "ILC1-IA-WriteRequestUnits",
+          "operation": "PayPerRequestThroughput",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon DynamoDB"
+        },
+        "on_demand": {
+          "QPX7GZUVG4YSFVDF.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "QPX7GZUVG4YSFVDF",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "QPX7GZUVG4YSFVDF.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "QPX7GZUVG4YSFVDF.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$1.06 per million write request units in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "WriteRequestUnits",
+                "pricePerUnit": {
+                  "USD": "0.0000010600"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "52GGV2PZK4CAKZ3P",
+        "attributes": {
+          "servicecode": "AmazonDynamoDB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "volumeType": "Amazon DynamoDB - Indexed DataStore - IA",
+          "usagetype": "ILC1-IA-TimedStorage-ByteHrs",
+          "operation": "",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon DynamoDB"
+        },
+        "on_demand": {
+          "52GGV2PZK4CAKZ3P.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "52GGV2PZK4CAKZ3P",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "52GGV2PZK4CAKZ3P.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "52GGV2PZK4CAKZ3P.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.13584 per GB-Mo for IA-TimedStorage-ByteHrs in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "GB-Mo",
+                "pricePerUnit": {
+                  "USD": "0.1358400000"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      },
+      {
+        "sku": "S36PFRZNRSM82YR2",
+        "attributes": {
+          "servicecode": "AmazonDynamoDB",
+          "location": "Israel (Tel Aviv)",
+          "locationType": "AWS Region",
+          "group": "DDB-ReplicatedWriteUnits",
+          "groupDescription": "DynamoDB PayPerRequest Replicated Write Request Units",
+          "usagetype": "ILC1-ReplWriteRequestUnits",
+          "operation": "PayPerRequestThroughput",
+          "regionCode": "il-central-1",
+          "servicename": "Amazon DynamoDB"
+        },
+        "on_demand": {
+          "S36PFRZNRSM82YR2.JRTCKXETXF": {
+            "offerTermCode": "JRTCKXETXF",
+            "sku": "S36PFRZNRSM82YR2",
+            "effectiveDate": "2026-08-01T00:00:00Z",
+            "priceDimensions": {
+              "S36PFRZNRSM82YR2.JRTCKXETXF.6YS6EN2CT7": {
+                "rateCode": "S36PFRZNRSM82YR2.JRTCKXETXF.6YS6EN2CT7",
+                "description": "$0.85 per million ReplicatedWriteRequestUnits in Israel (Tel Aviv)",
+                "beginRange": "0",
+                "endRange": "Inf",
+                "unit": "ReplicatedWriteRequestUnits",
+                "pricePerUnit": {
+                  "USD": "0.0000008500"
+                },
+                "appliesTo": []
+              }
+            },
+            "termAttributes": {}
+          }
+        }
+      }
+    ]
+  }
+]

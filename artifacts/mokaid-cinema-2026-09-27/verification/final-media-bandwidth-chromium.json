@@ -1,0 +1,43 @@
+{
+  "status": "passed",
+  "fixtureSubstitution": false,
+  "timestamp": "2026-09-27T12:07:13.758Z",
+  "engine": "chromium",
+  "source": "/assets/mokaid-office-journey.adac1c365481.mp4",
+  "upstreamOrigin": "http://127.0.0.1:5197",
+  "scenario": "Actual HTTP byte-range stream at an aggregate low bandwidth; entering before readiness retains the video and stable scroll track.",
+  "configuredKiBPerSecond": 16,
+  "maximumTestMs": 9000,
+  "chunksBytes": 1024,
+  "limitations": "Validates loading continuity over a bounded slow connection, not full media readiness or fluent 1080p decoding at this rate.",
+  "version": "153.0.8010.53",
+  "beforeEntry": {
+    "mode": "loading",
+    "height": 11700,
+    "readyState": 0,
+    "presentedTime": 0
+  },
+  "transport": {
+    "bytesPerSecond": 16384,
+    "chunkBytes": 1024,
+    "elapsedMs": 941,
+    "transferredBytes": 4096,
+    "requests": [
+      {
+        "range": "bytes=0-",
+        "status": 206,
+        "bytes": 4096,
+        "startedMs": 665,
+        "firstByteMs": 700,
+        "lastByteMs": 890,
+        "aborted": false
+      }
+    ]
+  },
+  "afterEntry": {
+    "mode": "loading",
+    "videoElements": 1,
+    "scrollTrackPreserved": true,
+    "skipAvailable": true
+  }
+}

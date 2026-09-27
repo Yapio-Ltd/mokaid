@@ -1,0 +1,16 @@
+{
+  "observed_at_utc": "2026-09-26T21:50:00.351333Z",
+  "mailbox": "tom@monpetitparfait.fr",
+  "flow_status": "connected",
+  "flow_completed_at_utc": "2026-09-26T21:48:58.086366Z",
+  "mailbox_status": "active",
+  "message_count": 25,
+  "last_sync_at_utc": "2026-09-26T21:50:00.351333Z",
+  "desktop": "Connect dialog closed automatically; Mailboxes (1)",
+  "browser": "Gmail connected \u00b7 Mokaid",
+  "evidence": "Native accessibility state and read-only database metadata; no message bodies read",
+  "catalog_repair_task": "9dbc99f1b7c74f4e9566803cae86bb1a",
+  "verification_task": "8cd3c315986b4ccca989b9a50dec49b6",
+  "api_revision_at_test": 56,
+  "worker_revision_at_test": 49
+}

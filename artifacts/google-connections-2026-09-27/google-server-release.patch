@@ -1,0 +1,2310 @@
+diff --git a/apps/ai-worker/app/mcp/client.py b/apps/ai-worker/app/mcp/client.py
+index 784ecb0..a7b131a 100644
+--- a/apps/ai-worker/app/mcp/client.py
++++ b/apps/ai-worker/app/mcp/client.py
+@@ -12,6 +12,7 @@ from typing import Any
+ 
+ import structlog
+ 
++from app.mcp import google
+ from app.schemas import McpServerGrant
+ 
+ log = structlog.get_logger()
+@@ -115,6 +116,9 @@ class McpToolbox:
+         )
+ 
+     async def _list_tools(self, grant: McpServerGrant) -> list[dict[str, Any]]:
++        if grant.transport == "google":
++            return google.list_tools(grant.key)
++
+         from mcp import ClientSession
+         from mcp.client.streamable_http import streamablehttp_client
+ 
+@@ -138,6 +142,9 @@ class McpToolbox:
+     async def _call_tool(
+         self, grant: McpServerGrant, tool_name: str, arguments: dict[str, Any]
+     ) -> Any:
++        if grant.transport == "google":
++            return await google.call_tool(grant, tool_name, arguments)
++
+         from mcp import ClientSession
+         from mcp.client.streamable_http import streamablehttp_client
+ 
+diff --git a/apps/api/lib/mokaid/integrations.ex b/apps/api/lib/mokaid/integrations.ex
+index ef77d66..7d4a4c0 100644
+--- a/apps/api/lib/mokaid/integrations.ex
++++ b/apps/api/lib/mokaid/integrations.ex
+@@ -21,11 +21,26 @@ defmodule Mokaid.Integrations do
+   alias Mokaid.Vault
+ 
+   def list_providers do
++    Mokaid.Integrations.GoogleCatalog.ensure()
+     Repo.all(from p in IntegrationProvider, where: p.enabled, order_by: p.name)
+   end
+ 
+   def get_provider_by_key(key), do: Repo.get_by(IntegrationProvider, key: key)
+ 
++  def ensure_google_provider(key) do
++    if GoogleOAuth.google_provider?(key) do
++      Mokaid.Integrations.GoogleCatalog.ensure()
++
++      case get_provider_by_key(key) do
++        %IntegrationProvider{enabled: true} -> :ok
++        %IntegrationProvider{enabled: false} -> {:error, :provider_disabled}
++        nil -> {:error, :provider_not_found}
++      end
++    else
++      {:error, :invalid_provider}
++    end
++  end
++
+   def list_connections(workspace_id) do
+     Repo.all(
+       from c in IntegrationConnection,
+@@ -255,6 +270,7 @@ defmodule Mokaid.Integrations do
+     member = Repo.preload(member, :user)
+ 
+     with true <- GoogleOAuth.google_provider?(provider_key),
++         :ok <- ensure_google_provider(provider_key),
+          {:ok, connection} <-
+            connect_with_credentials(workspace_id, provider_key, member, credentials, account) do
+       {:ok, [connection]}
+@@ -275,8 +291,16 @@ defmodule Mokaid.Integrations do
+                result.account,
+                result.provider_key
+              ),
+-           {:ok, account} <- register_google_mailbox(result, member, connections) do
+-        %{connections: connections, mail_account: account}
++           {:ok, account} <- register_google_mailbox(result, member, connections),
++           {:ok, mcp} <-
++             sync_google_mcp_installations(
++               result.workspace_id,
++               member,
++               result.credentials,
++               result.account,
++               result.provider_key
++             ) do
++        %{connections: connections, mail_account: account, mcp: mcp}
+       else
+         {:error, reason} -> Repo.rollback(reason)
+       end
+@@ -302,25 +326,90 @@ defmodule Mokaid.Integrations do
+ 
+   defp register_google_mailbox(_, _, _), do: {:ok, nil}
+ 
+-  @doc "Mirrors only the requested Google integration into the MCP Hub."
++  @doc "Binds the requested Google integration to the MCP Hub without changing an existing account."
+   def sync_google_mcp_installations(
+         workspace_id,
+         member,
+-        credentials,
++        _credentials,
+         account,
+         provider_key \\ "gmail"
+       ) do
+-    with {:ok, installation} <- MCP.install(workspace_id, provider_key, member, %{}) do
+-      # The MCP catalog currently has one installation per provider. A second
+-      # mailbox must never silently change the identity used by an existing one.
+-      if installation.connected_account in [nil, account] do
+-        MCP.store_credentials(installation, credentials, account)
++    Repo.transaction(fn ->
++      case MCP.ensure_oauth_installation(workspace_id, provider_key, member) do
++        {:ok, installation} ->
++          installation =
++            Repo.one!(
++              from i in Mokaid.MCP.Installation,
++                where: i.id == ^installation.id,
++                lock: "FOR UPDATE"
++            )
++
++          same_account? =
++            normalized_account(installation.connected_account) == normalized_account(account)
++
++          unbound? =
++            installation.status == "pending" and is_nil(installation.encrypted_credentials) and
++              is_nil(installation.settings["integration_connection_id"])
++
++          if same_account? or unbound? do
++            connection =
++              Repo.one(
++                from c in IntegrationConnection,
++                  join: p in assoc(c, :provider),
++                  where:
++                    c.workspace_id == ^workspace_id and p.key == ^provider_key and
++                      c.connected_account == ^account and c.status == "connected"
++              )
++
++            if is_nil(connection), do: Repo.rollback(:not_found)
++
++            installation
++            |> Ecto.Changeset.change(
++              status: "connected",
++              connected_account: account,
++              connected_by_member_id: member.id,
++              encrypted_credentials: nil,
++              error: nil,
++              settings: Map.put(installation.settings, "integration_connection_id", connection.id)
++            )
++            |> Repo.update!()
++
++            %{status: "connected", connected_account: account}
++          else
++            # Existing grants refer to this installation. Switching identities
++            # would silently transfer those grants to a different Google account.
++            %{status: "different_account", connected_account: installation.connected_account}
++          end
++
++        {:error, reason} when reason in [:server_not_found, :mcp_integration_limit_reached] ->
++          %{status: "unavailable", connected_account: nil}
++
++        {:error, reason} ->
++          Repo.rollback(reason)
+       end
+-    end
++    end)
++  end
++
++  def google_mcp_status(workspace_id, provider_key, account) do
++    case MCP.get_installation_by_server_key(workspace_id, provider_key) do
++      %{status: "connected"} = installation ->
++        status =
++          if normalized_account(installation.connected_account) == normalized_account(account),
++            do: "connected",
++            else: "different_account"
+ 
+-    {:ok, :synced}
++        %{mcp_status: status, mcp_connected_account: installation.connected_account}
++
++      _ ->
++        %{mcp_status: "unavailable", mcp_connected_account: nil}
++    end
+   end
+ 
++  defp normalized_account(account) when is_binary(account),
++    do: account |> String.trim() |> String.downcase()
++
++  defp normalized_account(_), do: nil
++
+   defp connect_with_credentials(
+          workspace_id,
+          provider_key,
+@@ -363,16 +452,15 @@ defmodule Mokaid.Integrations do
+     end
+   end
+ 
+-  defp require_refresh_token("gmail", connection, credentials) do
++  defp require_refresh_token(provider_key, connection, credentials) do
+     merged = merge_credentials(connection, credentials)
+ 
+-    if is_binary(merged["refresh_token"]) and merged["refresh_token"] != "",
+-      do: :ok,
+-      else: {:error, :missing_refresh_token}
++    if not GoogleOAuth.google_provider?(provider_key) or
++         (is_binary(merged["refresh_token"]) and merged["refresh_token"] != ""),
++       do: :ok,
++       else: {:error, :missing_refresh_token}
+   end
+ 
+-  defp require_refresh_token(_, _, _), do: :ok
+-
+   defp connect_mock(workspace_id, provider_key, member) do
+     with %IntegrationProvider{} = provider <- get_provider_by_key(provider_key) do
+       result =
+diff --git a/apps/api/lib/mokaid/integrations/google_oauth.ex b/apps/api/lib/mokaid/integrations/google_oauth.ex
+index 02439dd..2707b6e 100644
+--- a/apps/api/lib/mokaid/integrations/google_oauth.ex
++++ b/apps/api/lib/mokaid/integrations/google_oauth.ex
+@@ -8,11 +8,31 @@ defmodule Mokaid.Integrations.GoogleOAuth do
+   @state_max_age 600
+   @provider_scopes %{
+     "gmail" => ["https://www.googleapis.com/auth/gmail.modify"],
+-    "google_drive" => ["https://www.googleapis.com/auth/drive"],
+-    "google_calendar" => ["https://www.googleapis.com/auth/calendar"],
+-    "google_docs" => ["https://www.googleapis.com/auth/documents"],
+-    "google_sheets" => ["https://www.googleapis.com/auth/spreadsheets"],
+-    "google_meet" => ["https://www.googleapis.com/auth/meetings.space.created"]
++    "google_drive" => ["https://www.googleapis.com/auth/drive.readonly"],
++    "google_calendar" => ["https://www.googleapis.com/auth/calendar.readonly"],
++    "google_docs" => ["https://www.googleapis.com/auth/documents.readonly"],
++    "google_sheets" => ["https://www.googleapis.com/auth/spreadsheets.readonly"],
++    "google_meet" => ["https://www.googleapis.com/auth/meetings.space.readonly"]
++  }
++
++  # Google may return a previously granted broader scope for a service. Accept
++  # those documented supersets while requesting only the read access we use.
++  @scope_supersets %{
++    "https://www.googleapis.com/auth/gmail.modify" => ["https://mail.google.com/"],
++    "https://www.googleapis.com/auth/drive.readonly" => ["https://www.googleapis.com/auth/drive"],
++    "https://www.googleapis.com/auth/calendar.readonly" => [
++      "https://www.googleapis.com/auth/calendar"
++    ],
++    "https://www.googleapis.com/auth/documents.readonly" => [
++      "https://www.googleapis.com/auth/documents",
++      "https://www.googleapis.com/auth/drive",
++      "https://www.googleapis.com/auth/drive.readonly"
++    ],
++    "https://www.googleapis.com/auth/spreadsheets.readonly" => [
++      "https://www.googleapis.com/auth/spreadsheets",
++      "https://www.googleapis.com/auth/drive",
++      "https://www.googleapis.com/auth/drive.readonly"
++    ]
+   }
+ 
+   def google_provider_keys, do: Map.keys(@provider_scopes)
+@@ -187,9 +207,11 @@ defmodule Mokaid.Integrations.GoogleOAuth do
+   defp validate_granted_scopes(%{"scope" => granted}, key) when is_binary(granted) do
+     granted = String.split(granted)
+ 
+-    if Enum.all?(Map.fetch!(@provider_scopes, key), &(&1 in granted)),
+-      do: :ok,
+-      else: {:error, :missing_required_scopes}
++    if Enum.all?(Map.fetch!(@provider_scopes, key), fn required ->
++         Enum.any?([required | Map.get(@scope_supersets, required, [])], &(&1 in granted))
++       end),
++       do: :ok,
++       else: {:error, :missing_required_scopes}
+   end
+ 
+   # Google may omit scope when it matches the requested scope (RFC 6749 §5.1).
+diff --git a/apps/api/lib/mokaid/integrations/mail_oauth_flow.ex b/apps/api/lib/mokaid/integrations/mail_oauth_flow.ex
+index 137452d..4c0f0cb 100644
+--- a/apps/api/lib/mokaid/integrations/mail_oauth_flow.ex
++++ b/apps/api/lib/mokaid/integrations/mail_oauth_flow.ex
+@@ -1,5 +1,5 @@
+ defmodule Mokaid.Integrations.MailOAuthFlow do
+-  @moduledoc "Short-lived, member-bound completion state for native mailbox authorization."
++  @moduledoc "Short-lived, member-bound completion state shared by native Google integrations."
+   use Ecto.Schema
+   import Ecto.Query
+ 
+@@ -15,21 +15,24 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
+     field :member_id, :binary_id
+     field :status, :string, default: "pending"
+     field :account_id, :binary_id
++    field :provider_key, :string, default: "gmail"
++    field :connection_id, :binary_id
+     field :error, :string
+     field :expires_at, :utc_datetime_usec
+     timestamps()
+   end
+ 
+-  def start(workspace_id, member) do
++  def start(workspace_id, member, provider_key \\ "gmail") do
+     id = Ecto.UUID.generate()
+ 
+     with :ok <- Permissions.authorize(member, "integrations.connect"),
++         :ok <- Integrations.ensure_google_provider(provider_key),
+          {:ok, url} <-
+            GoogleOAuth.authorize_url(
+              workspace_id,
+              member.id,
+              GoogleOAuth.desktop_redirect_uri(),
+-             "gmail",
++             provider_key,
+              flow_id: id
+            ),
+          {:ok, _flow} <-
+@@ -37,6 +40,7 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
+              id: id,
+              workspace_id: workspace_id,
+              member_id: member.id,
++             provider_key: provider_key,
+              expires_at: DateTime.add(DateTime.utc_now(), 600, :second)
+            }) do
+       # Retain completed flows long enough for clients to resume polling; old
+@@ -47,23 +51,47 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
+     end
+   end
+ 
+-  def get(workspace_id, member_id, id) do
++  def get(workspace_id, member_id, id, opts \\ []) do
+     with {:ok, id} <- Ecto.UUID.cast(id),
+          %__MODULE__{} = flow <-
+            Repo.get_by(__MODULE__, id: id, workspace_id: workspace_id, member_id: member_id) do
+       if flow.status in ["pending", "completing"] and
+            DateTime.compare(flow.expires_at, DateTime.utc_now()) != :gt do
+-        {:ok, %{status: "failed", error: "authorization_expired", account_id: nil}}
++        {:ok, response(flow, "failed", "authorization_expired", opts)}
+       else
+         status = if flow.status == "completing", do: "pending", else: flow.status
+-        {:ok, %{status: status, error: flow.error, account_id: flow.account_id}}
++        {:ok, response(flow, status, flow.error, opts)}
+       end
+     else
+       _ -> {:error, :not_found}
+     end
+   end
+ 
+-  def cancel(workspace_id, member_id, id) do
++  defp response(flow, status, error, opts) do
++    result = %{status: status, error: error, account_id: flow.account_id}
++
++    if Keyword.get(opts, :details, false) do
++      connection =
++        flow.connection_id && Integrations.get_connection(flow.workspace_id, flow.connection_id)
++
++      Map.merge(result, %{
++        provider_key: flow.provider_key,
++        connection_id: flow.connection_id,
++        connected_account: connection && connection.connected_account
++      })
++      |> Map.merge(
++        Integrations.google_mcp_status(
++          flow.workspace_id,
++          flow.provider_key,
++          connection && connection.connected_account
++        )
++      )
++    else
++      result
++    end
++  end
++
++  def cancel(workspace_id, member_id, id, opts \\ []) do
+     with {:ok, id} <- Ecto.UUID.cast(id),
+          {:ok, _} <- get(workspace_id, member_id, id) do
+       Repo.update_all(
+@@ -75,13 +103,13 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
+         set: [status: "failed", error: "authorization_cancelled", updated_at: DateTime.utc_now()]
+       )
+ 
+-      get(workspace_id, member_id, id)
++      get(workspace_id, member_id, id, opts)
+     else
+       _ -> {:error, :not_found}
+     end
+   end
+ 
+-  def complete(params) do
++  def complete(params, opts \\ []) do
+     redirect_uri = GoogleOAuth.desktop_redirect_uri()
+ 
+     with {:ok, %{flow_id: id} = state} when is_binary(id) <-
+@@ -90,18 +118,21 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
+            Repo.get_by(__MODULE__,
+              id: id,
+              workspace_id: state.workspace_id,
+-             member_id: state.member_id
++             member_id: state.member_id,
++             provider_key: state.provider_key
+            ),
+          true <- DateTime.compare(flow.expires_at, DateTime.utc_now()) == :gt,
+          :ok <- claim(flow) do
+       result = finish(flow, params, redirect_uri)
+ 
+       case result do
+-        {:ok, _completed} ->
+-          {:ok, :connected}
++        {:ok, completed} ->
++          if Keyword.get(opts, :details, false),
++            do: {:ok, %{provider_key: completed.provider_key}},
++            else: {:ok, :connected}
+ 
+         {:error, reason} ->
+-          error = public_error(reason)
++          error = public_error(reason, flow.provider_key)
+ 
+           Repo.update_all(
+             from(f in __MODULE__, where: f.id == ^flow.id and f.status == "completing"),
+@@ -176,8 +207,17 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
+ 
+       case Integrations.complete_google_connection(result, member) do
+         {:ok, %{mail_account: account} = completed} ->
+-          Repo.update!(Ecto.Changeset.change(locked, status: "connected", account_id: account.id))
+-          completed
++          [connection | _] = completed.connections
++
++          Repo.update!(
++            Ecto.Changeset.change(locked,
++              status: "connected",
++              account_id: account && account.id,
++              connection_id: connection.id
++            )
++          )
++
++          Map.put(completed, :provider_key, result.provider_key)
+ 
+         {:error, reason} ->
+           Repo.rollback(reason)
+@@ -185,6 +225,14 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
+     end)
+   end
+ 
++  def public_error(reason, provider_key) do
++    if reason == :missing_required_scopes and provider_key != "gmail",
++      do: "integration_permission_required",
++      else: public_error(reason)
++  end
++
++  def public_error(:provider_not_found), do: "provider_unavailable"
++  def public_error(:provider_disabled), do: "provider_disabled"
+   def public_error(:authorization_expired), do: "authorization_expired"
+   def public_error(:access_denied), do: "authorization_cancelled"
+   def public_error(:missing_required_scopes), do: "mail_permission_required"
+diff --git a/apps/api/lib/mokaid/mcp.ex b/apps/api/lib/mokaid/mcp.ex
+index 890616b..008ba8c 100644
+--- a/apps/api/lib/mokaid/mcp.ex
++++ b/apps/api/lib/mokaid/mcp.ex
+@@ -8,6 +8,7 @@ defmodule Mokaid.MCP do
+   import Ecto.Query
+ 
+   alias Mokaid.Audit
++  alias Mokaid.Integrations.{GoogleOAuth, IntegrationConnection, TokenRefresher}
+   alias Mokaid.MCP.{AgentGrant, Catalog, Installation, Server}
+   alias Mokaid.Repo
+   alias Mokaid.Vault
+@@ -130,6 +131,26 @@ defmodule Mokaid.MCP do
+     end
+   end
+ 
++  @doc "Ensures an OAuth installation exists without overwriting an existing account or grants."
++  def ensure_oauth_installation(workspace_id, server_key, member) do
++    with %Server{enabled: true, auth_kind: "oauth2"} = server <- get_server_by_key(server_key),
++         :ok <- check_integration_limit(workspace_id, server.id),
++         {:ok, _} <-
++           %Installation{}
++           |> Installation.changeset(%{
++             "workspace_id" => workspace_id,
++             "server_id" => server.id,
++             "status" => "pending",
++             "connected_by_member_id" => member && member.id
++           })
++           |> Repo.insert(on_conflict: :nothing, conflict_target: [:workspace_id, :server_id]) do
++      {:ok, get_installation_by_server_key(workspace_id, server_key)}
++    else
++      {:error, reason} -> {:error, reason}
++      _ -> {:error, :server_not_found}
++    end
++  end
++
+   # Plan tiering: each plan caps how many distinct MCP servers a workspace may
+   # install (-1 = unlimited). Reconnecting an already-installed server never
+   # counts as a new integration.
+@@ -253,27 +274,123 @@ defmodule Mokaid.MCP do
+     Enum.flat_map(grants, fn grant ->
+       installation = grant.installation
+       server = installation.server
+-      url = installation.settings["server_url"] || server.server_url
+-
+-      if url do
+-        credentials = decrypted_credentials(installation) || %{}
+-
+-        [
+-          %{
+-            key: server.key,
+-            name: server.name,
+-            url: url,
+-            transport: server.transport,
+-            auth_kind: server.auth_kind,
+-            credentials: credentials
+-          }
+-        ]
++
++      if GoogleOAuth.google_provider?(server.key) do
++        native_google_descriptor(grant)
+       else
+-        []
++        url = installation.settings["server_url"] || server.server_url
++
++        if url do
++          [
++            %{
++              key: server.key,
++              name: server.name,
++              url: url,
++              transport: server.transport,
++              auth_kind: server.auth_kind,
++              credentials: decrypted_credentials(installation) || %{}
++            }
++          ]
++        else
++          []
++        end
+       end
+     end)
+   end
+ 
++  defp native_google_descriptor(grant) do
++    installation = grant.installation
++
++    with %IntegrationConnection{} = connection <- google_connection(installation),
++         {:ok, _fresh} <- TokenRefresher.fresh_credentials(connection),
++         # Refresh can involve network I/O. Recheck permissions and identity after
++         # it finishes; a revoked grant or disconnected account must fail closed.
++         %AgentGrant{} = current <- current_google_grant(grant),
++         true <- same_google_binding?(installation, current.installation),
++         %IntegrationConnection{id: id} = live <- google_connection(current.installation),
++         true <- id == connection.id,
++         {:ok, credentials} <- Vault.decrypt_map(live.encrypted_credentials),
++         token when is_binary(token) and token != "" <- credentials["access_token"],
++         false <- TokenRefresher.expiring?(credentials) do
++      [
++        %{
++          key: current.installation.server.key,
++          name: current.installation.server.name,
++          url: "",
++          transport: "google",
++          auth_kind: "oauth2",
++          credentials:
++            Map.take(credentials, ["access_token", "scope", "expires_at", "token_type"])
++        }
++      ]
++    else
++      _ -> []
++    end
++  end
++
++  defp current_google_grant(grant) do
++    Repo.one(
++      from g in AgentGrant,
++        join: i in assoc(g, :installation),
++        join: s in assoc(i, :server),
++        where:
++          g.id == ^grant.id and g.workspace_id == ^grant.workspace_id and
++            g.agent_id == ^grant.agent_id and g.granted and
++            i.workspace_id == ^grant.workspace_id and i.status == "connected" and s.enabled,
++        preload: [installation: :server]
++    )
++  end
++
++  defp same_google_binding?(before, after_installation) do
++    before.server_id == after_installation.server_id and
++      normalize_account(before.connected_account) ==
++        normalize_account(after_installation.connected_account) and
++      before.settings["integration_connection_id"] ==
++        after_installation.settings["integration_connection_id"]
++  end
++
++  defp google_connection(installation) do
++    account = normalize_account(installation.connected_account)
++    key = installation.server.key
++
++    if account == "" do
++      nil
++    else
++      query =
++        from c in IntegrationConnection,
++          join: p in assoc(c, :provider),
++          where:
++            c.workspace_id == ^installation.workspace_id and c.status == "connected" and
++              p.key == ^key and p.enabled and
++              fragment("lower(trim(?))", c.connected_account) == ^account,
++          preload: [:provider],
++          limit: 2
++
++      # Never fall back from an explicit pointer to another account's token.
++      query =
++        case installation.settings["integration_connection_id"] do
++          nil ->
++            query
++
++          id ->
++            case Ecto.UUID.cast(id) do
++              {:ok, uuid} -> from c in query, where: c.id == ^uuid
++              :error -> from c in query, where: false
++            end
++        end
++
++      case Repo.all(query) do
++        [connection] -> connection
++        _ -> nil
++      end
++    end
++  end
++
++  defp normalize_account(account) when is_binary(account),
++    do: account |> String.trim() |> String.downcase()
++
++  defp normalize_account(_), do: ""
++
+   def touch_installation(%Installation{} = installation) do
+     installation
+     |> Ecto.Changeset.change(last_used_at: DateTime.utc_now())
+diff --git a/apps/api/lib/mokaid/release.ex b/apps/api/lib/mokaid/release.ex
+index 44603f1..8220cd2 100644
+--- a/apps/api/lib/mokaid/release.ex
++++ b/apps/api/lib/mokaid/release.ex
+@@ -25,6 +25,9 @@ defmodule Mokaid.Release do
+ 
+     {:ok, _, _} =
+       Ecto.Migrator.with_repo(Mokaid.Repo, fn _repo ->
++        # Provider rows must exist before any OAuth callback can persist credentials.
++        # This targeted catalog seed never provisions users or re-enables disabled services.
++        Mokaid.Integrations.GoogleCatalog.seed()
+         # Catalog rows first so logo stamp can match keys.
+         Mokaid.MCP.seed_catalog()
+         Mokaid.Integrations.LogoAssets.seed_all()
+diff --git a/apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex b/apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex
+index 72281fd..0106586 100644
+--- a/apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex
++++ b/apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex
+@@ -23,6 +23,7 @@ defmodule MokaidWeb.IntegrationOAuthController do
+     provider_key = params["provider_key"] || "google_drive"
+ 
+     with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),
++         :ok <- Integrations.ensure_google_provider(provider_key),
+          {:ok, url} <-
+            GoogleOAuth.authorize_url(
+              workspace_id(conn),
+@@ -51,14 +52,6 @@ defmodule MokaidWeb.IntegrationOAuthController do
+          {:ok, result} <-
+            GoogleOAuth.exchange_code(code, state, redirect_uri, {workspace_id(conn), member.id}),
+          {:ok, completed} <- Integrations.complete_google_connection(result, member) do
+-      Integrations.sync_google_mcp_installations(
+-        result.workspace_id,
+-        member,
+-        result.credentials,
+-        result.account,
+-        result.provider_key
+-      )
+-
+       json(conn, %{
+         data: %{
+           connections: Enum.map(completed.connections, &Serializer.integration_connection/1),
+@@ -87,7 +80,7 @@ defmodule MokaidWeb.IntegrationOAuthController do
+           error: %{
+             code: Mokaid.Integrations.MailOAuthFlow.public_error(reason),
+             message:
+-              "Google mailbox authorization is incomplete. Connect again and allow mail access."
++              "Google authorization is incomplete. Connect again and allow the requested service permissions."
+           }
+         })
+ 
+diff --git a/apps/api/lib/mokaid_web/controllers/mail_oauth_controller.ex b/apps/api/lib/mokaid_web/controllers/mail_oauth_controller.ex
+index 1c89974..8d3e171 100644
+--- a/apps/api/lib/mokaid_web/controllers/mail_oauth_controller.ex
++++ b/apps/api/lib/mokaid_web/controllers/mail_oauth_controller.ex
+@@ -36,14 +36,22 @@ defmodule MokaidWeb.MailOAuthController do
+ 
+   def google_callback(conn, params) do
+     {status, title, message} =
+-      case MailOAuthFlow.complete(params) do
+-        {:ok, :connected} ->
++      case MailOAuthFlow.complete(params, details: true) do
++        {:ok, %{provider_key: "gmail"}} ->
+           {200, "Gmail connected",
+            "Your mailbox is connected and its first synchronization has started. Return to Mokaid Desktop; you can close this tab."}
+ 
++        {:ok, %{provider_key: provider}} ->
++          {200, "#{provider_name(provider)} connected",
++           "Authorization is complete. Return to Mokaid Desktop; you can close this tab."}
++
+         {:error, "authorization_cancelled"} ->
+-          {400, "Connection cancelled",
+-           "No mailbox was connected. Return to Mokaid Desktop to try again."}
++          {400, "Google access was not granted",
++           "Google refused access or sign-in was cancelled. If Google showed an app-testing restriction, select an allowed Google account or contact your workspace administrator. Return to Mokaid Desktop to try again."}
++
++        {:error, "integration_permission_required"} ->
++          {400, "Google permission required",
++           "Return to Mokaid Desktop, connect the service again, and allow the permissions requested for that service."}
+ 
+         {:error, "mail_permission_required"} ->
+           {400, "Gmail permission required",
+@@ -51,7 +59,7 @@ defmodule MokaidWeb.MailOAuthController do
+ 
+         {:error, _} ->
+           {400, "Connection could not be completed",
+-           "Return to Mokaid Desktop and try connecting Gmail again. The app will show the connection status."}
++           "Return to Mokaid Desktop and try connecting again. The app will show the connection status."}
+       end
+ 
+     conn
+@@ -68,4 +76,11 @@ defmodule MokaidWeb.MailOAuthController do
+     <main><p>Mokaid</p><h1>#{title}</h1><p>#{message}</p></main></html>
+     """)
+   end
++
++  defp provider_name("google_drive"), do: "Google Drive"
++  defp provider_name("google_calendar"), do: "Google Calendar"
++  defp provider_name("google_docs"), do: "Google Docs"
++  defp provider_name("google_sheets"), do: "Google Sheets"
++  defp provider_name("google_meet"), do: "Google Meet"
++  defp provider_name(_), do: "Google"
+ end
+diff --git a/apps/api/lib/mokaid_web/router.ex b/apps/api/lib/mokaid_web/router.ex
+index 7051113..8980750 100644
+--- a/apps/api/lib/mokaid_web/router.ex
++++ b/apps/api/lib/mokaid_web/router.ex
+@@ -185,6 +185,9 @@ defmodule MokaidWeb.Router do
+     get "/integrations", IntegrationController, :index
+     post "/integrations/:provider/connect", IntegrationController, :connect
+     post "/integrations/:id/disconnect", IntegrationController, :disconnect
++    post "/integrations/google/desktop/start", NativeGoogleOAuthController, :start
++    get "/integrations/google/desktop/:id", NativeGoogleOAuthController, :show
++    delete "/integrations/google/desktop/:id", NativeGoogleOAuthController, :cancel
+     post "/integrations/google/oauth/start", IntegrationOAuthController, :google_start
+     post "/integrations/google/oauth/callback", IntegrationOAuthController, :google_callback
+     post "/integrations/github/oauth/start", IntegrationOAuthController, :github_start
+diff --git a/apps/api/priv/repo/seeds.exs b/apps/api/priv/repo/seeds.exs
+index 1f7e57c..74898d6 100644
+--- a/apps/api/priv/repo/seeds.exs
++++ b/apps/api/priv/repo/seeds.exs
+@@ -20,31 +20,23 @@ Billing.seed_plans()
+ 
+ ## ---------- Integrations ----------
+ 
+-provider_specs = [
+-  {"slack", "Slack", "Communication", "Send messages, alerts and notifications.", "slack"},
+-  {"google_drive", "Google Drive", "Storage", "Store, access and share files.", "googledrive"},
+-  {"gmail", "Gmail", "Communication", "Send and receive email.", "gmail"},
+-  {"outlook", "Outlook", "Communication", "Read, analyze and send email through Outlook.",
+-   "outlook"},
+-  {"notion", "Notion", "Productivity", "Sync pages and databases.", "notion"},
+-  {"trello", "Trello", "Project Management", "Manage tasks and boards.", "trello"},
+-  {"github", "GitHub", "Developer", "Sync repositories, issues and PRs.", "github"},
+-  {"zapier", "Zapier", "Automation", "Automate workflows between apps.", "zapier"},
+-  {"hubspot", "HubSpot", "CRM", "CRM, contacts and marketing.", "hubspot"},
+-  {"microsoft_teams", "Microsoft Teams", "Communication", "Notifications and team collaboration.",
+-   "microsoftteams"},
+-  {"dropbox", "Dropbox", "Storage", "Cloud storage and file sharing.", "dropbox"},
+-  {"stripe", "Stripe", "Finance", "Payments and billing.", "stripe"},
+-  {"jira", "Jira", "Project Management", "Issue tracking and agile boards.", "jira"},
+-  {"linear", "Linear", "Project Management", "Modern issue tracking.", "linear"},
+-  {"google_calendar", "Google Calendar", "Productivity", "Sync events and schedules.",
+-   "googlecalendar"},
+-  {"google_docs", "Google Docs", "Productivity", "Create and edit documents.", "googledocs"},
+-  {"google_sheets", "Google Sheets", "Productivity", "Read and write spreadsheets.",
+-   "googlesheets"},
+-  {"google_meet", "Google Meet", "Communication", "Schedule and manage video meetings.",
+-   "googlemeet"}
+-]
++provider_specs =
++  [
++    {"slack", "Slack", "Communication", "Send messages, alerts and notifications.", "slack"},
++    {"outlook", "Outlook", "Communication", "Read, analyze and send email through Outlook.",
++     "outlook"},
++    {"notion", "Notion", "Productivity", "Sync pages and databases.", "notion"},
++    {"trello", "Trello", "Project Management", "Manage tasks and boards.", "trello"},
++    {"github", "GitHub", "Developer", "Sync repositories, issues and PRs.", "github"},
++    {"zapier", "Zapier", "Automation", "Automate workflows between apps.", "zapier"},
++    {"hubspot", "HubSpot", "CRM", "CRM, contacts and marketing.", "hubspot"},
++    {"microsoft_teams", "Microsoft Teams", "Communication",
++     "Notifications and team collaboration.", "microsoftteams"},
++    {"dropbox", "Dropbox", "Storage", "Cloud storage and file sharing.", "dropbox"},
++    {"stripe", "Stripe", "Finance", "Payments and billing.", "stripe"},
++    {"jira", "Jira", "Project Management", "Issue tracking and agile boards.", "jira"},
++    {"linear", "Linear", "Project Management", "Modern issue tracking.", "linear"}
++  ] ++ Mokaid.Integrations.GoogleCatalog.specs()
+ 
+ for {key, name, category, description, icon_slug} <- provider_specs do
+   Repo.insert!(
+diff --git a/apps/api/test/mokaid_web/mail_oauth_controller_test.exs b/apps/api/test/mokaid_web/mail_oauth_controller_test.exs
+index a9fc803..c477063 100644
+--- a/apps/api/test/mokaid_web/mail_oauth_controller_test.exs
++++ b/apps/api/test/mokaid_web/mail_oauth_controller_test.exs
+@@ -129,4 +129,50 @@ defmodule MokaidWeb.MailOAuthControllerTest do
+     assert cancelled["data"]["status"] == "failed"
+     assert cancelled["data"]["error"] == "authorization_cancelled"
+   end
++
++  test "generic Google desktop routes keep provider details and support cancellation", %{
++    conn: conn,
++    workspace: workspace,
++    user: user
++  } do
++    token = native_token(user)
++
++    response =
++      conn
++      |> authenticate(token, workspace)
++      |> post("/api/integrations/google/desktop/start", %{provider_key: "google_calendar"})
++      |> json_response(200)
++
++    id = response["data"]["flow_id"]
++    query = URI.decode_query(URI.parse(response["data"]["authorize_url"]).query)
++    assert query["scope"] =~ "auth/calendar"
++    refute query["scope"] =~ "gmail"
++
++    status =
++      conn
++      |> authenticate(token, workspace)
++      |> get("/api/integrations/google/desktop/" <> id)
++      |> json_response(200)
++
++    assert status["data"]["provider_key"] == "google_calendar"
++    assert status["data"]["status"] == "pending"
++
++    cancelled =
++      conn
++      |> authenticate(token, workspace)
++      |> delete("/api/integrations/google/desktop/" <> id)
++      |> json_response(200)
++
++    assert cancelled["data"]["error"] == "authorization_cancelled"
++
++    assert conn
++           |> authenticate(token, workspace)
++           |> post("/api/integrations/google/desktop/start", %{provider_key: "unknown"})
++           |> json_response(422)
++
++    assert conn
++           |> authenticate(Token.sign(user.id), workspace)
++           |> post("/api/integrations/google/desktop/start", %{provider_key: "google_drive"})
++           |> json_response(403)
++  end
+ end
+diff --git a/apps/api/lib/mokaid/integrations/google_catalog.ex b/apps/api/lib/mokaid/integrations/google_catalog.ex
+new file mode 100644
+index 0000000..298ff3f
+--- /dev/null
++++ b/apps/api/lib/mokaid/integrations/google_catalog.ex
+@@ -0,0 +1,51 @@
++defmodule Mokaid.Integrations.GoogleCatalog do
++  @moduledoc "Canonical supported Google providers, seeded without altering administrator choices."
++  import Ecto.Query
++  alias Mokaid.Integrations.IntegrationProvider
++  alias Mokaid.Repo
++
++  @specs [
++    {"gmail", "Gmail", "Communication", "Connect and synchronize Gmail mailboxes.", "gmail"},
++    {"google_drive", "Google Drive", "Storage", "Read files and documents in Google Drive.",
++     "googledrive"},
++    {"google_calendar", "Google Calendar", "Productivity",
++     "Read calendar events and availability.", "googlecalendar"},
++    {"google_docs", "Google Docs", "Productivity", "Read Google documents.", "googledocs"},
++    {"google_sheets", "Google Sheets", "Productivity", "Read spreadsheets and cell values.",
++     "googlesheets"},
++    {"google_meet", "Google Meet", "Communication", "Read Google Meet meeting details.",
++     "googlemeet"}
++  ]
++
++  def specs, do: @specs
++
++  def ensure do
++    keys = Enum.map(@specs, &elem(&1, 0))
++    count = Repo.aggregate(from(p in IntegrationProvider, where: p.key in ^keys), :count)
++    if count < length(keys), do: seed(), else: :ok
++  end
++
++  def seed do
++    now = DateTime.utc_now()
++
++    rows =
++      Enum.map(@specs, fn {key, name, category, description, icon_slug} ->
++        %{
++          id: Ecto.UUID.generate(),
++          key: key,
++          name: name,
++          category: category,
++          description: description,
++          icon_slug: icon_slug,
++          auth_kind: "oauth2",
++          capabilities: %{},
++          enabled: true,
++          inserted_at: now,
++          updated_at: now
++        }
++      end)
++
++    Repo.insert_all(IntegrationProvider, rows, on_conflict: :nothing, conflict_target: :key)
++    :ok
++  end
++end
+diff --git a/apps/api/lib/mokaid_web/controllers/native_google_oauth_controller.ex b/apps/api/lib/mokaid_web/controllers/native_google_oauth_controller.ex
+new file mode 100644
+index 0000000..9bf944b
+--- /dev/null
++++ b/apps/api/lib/mokaid_web/controllers/native_google_oauth_controller.ex
+@@ -0,0 +1,41 @@
++defmodule MokaidWeb.NativeGoogleOAuthController do
++  @moduledoc "Member-bound Google integration authorization for the desktop client."
++  use MokaidWeb, :controller
++
++  alias Mokaid.Integrations.MailOAuthFlow
++
++  def start(conn, params) do
++    with {:ok, result} <-
++           MailOAuthFlow.start(workspace_id(conn), current_member(conn), params["provider_key"]) do
++      json(conn, %{data: result})
++    else
++      {:error, :oauth_not_configured} ->
++        conn
++        |> put_status(:service_unavailable)
++        |> json(%{
++          error: %{
++            code: "oauth_not_configured",
++            message:
++              "Google connection is temporarily unavailable. Contact your workspace administrator."
++          }
++        })
++
++      other ->
++        other
++    end
++  end
++
++  def show(conn, %{"id" => id}) do
++    with {:ok, result} <-
++           MailOAuthFlow.get(workspace_id(conn), current_member(conn).id, id, details: true) do
++      json(conn, %{data: result})
++    end
++  end
++
++  def cancel(conn, %{"id" => id}) do
++    with {:ok, result} <-
++           MailOAuthFlow.cancel(workspace_id(conn), current_member(conn).id, id, details: true) do
++      json(conn, %{data: result})
++    end
++  end
++end
+diff --git a/apps/api/priv/repo/migrations/20260927100000_extend_native_google_oauth_flows.exs b/apps/api/priv/repo/migrations/20260927100000_extend_native_google_oauth_flows.exs
+new file mode 100644
+index 0000000..ba54559
+--- /dev/null
++++ b/apps/api/priv/repo/migrations/20260927100000_extend_native_google_oauth_flows.exs
+@@ -0,0 +1,12 @@
++defmodule Mokaid.Repo.Migrations.ExtendNativeGoogleOauthFlows do
++  use Ecto.Migration
++
++  def change do
++    alter table(:mail_oauth_flows) do
++      add :provider_key, :string, null: false, default: "gmail"
++
++      add :connection_id,
++          references(:integration_connections, type: :binary_id, on_delete: :nilify_all)
++    end
++  end
++end
+diff --git a/apps/api/priv/repo/migrations/20260927100500_seed_google_integration_providers.exs b/apps/api/priv/repo/migrations/20260927100500_seed_google_integration_providers.exs
+new file mode 100644
+index 0000000..7e73d81
+--- /dev/null
++++ b/apps/api/priv/repo/migrations/20260927100500_seed_google_integration_providers.exs
+@@ -0,0 +1,23 @@
++defmodule Mokaid.Repo.Migrations.SeedGoogleIntegrationProviders do
++  use Ecto.Migration
++
++  # Frozen catalog data makes this migration reproducible without invoking
++  # changing application code. Future releases also ensure the same catalog.
++  def up do
++    execute """
++    INSERT INTO integration_providers
++      (id, key, name, category, description, icon_slug, auth_kind, capabilities, enabled, inserted_at, updated_at)
++    VALUES
++      (gen_random_uuid(), 'gmail', 'Gmail', 'Communication', 'Connect and synchronize Gmail mailboxes.', 'gmail', 'oauth2', '{}', true, NOW(), NOW()),
++      (gen_random_uuid(), 'google_drive', 'Google Drive', 'Storage', 'Read files and documents in Google Drive.', 'googledrive', 'oauth2', '{}', true, NOW(), NOW()),
++      (gen_random_uuid(), 'google_calendar', 'Google Calendar', 'Productivity', 'Read calendar events and availability.', 'googlecalendar', 'oauth2', '{}', true, NOW(), NOW()),
++      (gen_random_uuid(), 'google_docs', 'Google Docs', 'Productivity', 'Read Google documents.', 'googledocs', 'oauth2', '{}', true, NOW(), NOW()),
++      (gen_random_uuid(), 'google_sheets', 'Google Sheets', 'Productivity', 'Read spreadsheets and cell values.', 'googlesheets', 'oauth2', '{}', true, NOW(), NOW()),
++      (gen_random_uuid(), 'google_meet', 'Google Meet', 'Communication', 'Read Google Meet meeting details.', 'googlemeet', 'oauth2', '{}', true, NOW(), NOW())
++    ON CONFLICT (key) DO NOTHING
++    """
++  end
++
++  # Provider rows can own live credentials; a rollback must not delete them.
++  def down, do: :ok
++end
+diff --git a/apps/api/test/mokaid/mcp_google_test.exs b/apps/api/test/mokaid/mcp_google_test.exs
+new file mode 100644
+index 0000000..ff75750
+--- /dev/null
++++ b/apps/api/test/mokaid/mcp_google_test.exs
+@@ -0,0 +1,298 @@
++defmodule Mokaid.MCPGoogleTest do
++  use Mokaid.DataCase, async: false
++
++  alias Mokaid.{Agents, Billing, Integrations, MCP, Repo, Vault}
++  alias Mokaid.Integrations.{IntegrationConnection, IntegrationProvider}
++  alias Mokaid.MCP.{AgentGrant, Installation, Server}
++
++  setup do
++    {workspace, owner} = workspace_fixture()
++    member = owner_member(workspace, owner)
++
++    {:ok, agent} =
++      Agents.create_agent(workspace.id, %{"display_name" => "Reader", "kind" => "ai"}, member)
++
++    server =
++      Repo.insert!(
++        %Server{
++          key: "google_drive",
++          name: "Drive",
++          auth_kind: "oauth2",
++          category: "storage",
++          enabled: true
++        }, on_conflict: {:replace, [:name, :enabled]}, conflict_target: :key, returning: true)
++
++    provider =
++      Repo.insert!(
++        %IntegrationProvider{
++          key: "google_drive",
++          name: "Drive",
++          category: "storage",
++          enabled: true
++        }, on_conflict: {:replace, [:name, :enabled]}, conflict_target: :key, returning: true)
++
++    credentials = %{
++      "access_token" => "live-access",
++      "refresh_token" => "private-refresh",
++      "expires_at" => DateTime.to_iso8601(DateTime.add(DateTime.utc_now(), 3600)),
++      "scope" => "https://www.googleapis.com/auth/drive.readonly"
++    }
++
++    connection =
++      Repo.insert!(%IntegrationConnection{
++        workspace_id: workspace.id,
++        provider_id: provider.id,
++        connected_account: "external@example.com",
++        status: "connected",
++        encrypted_credentials: Vault.encrypt(credentials)
++      })
++
++    installation =
++      Repo.insert!(%Installation{
++        workspace_id: workspace.id,
++        server_id: server.id,
++        connected_account: "EXTERNAL@example.com",
++        status: "connected",
++        settings: %{
++          "integration_connection_id" => connection.id,
++          "server_url" => "https://untrusted.test"
++        },
++        encrypted_credentials: Vault.encrypt(%{"access_token" => "stale-duplicate"})
++      })
++
++    %{
++      workspace: workspace,
++      member: member,
++      agent: agent,
++      installation: installation,
++      connection: connection,
++      provider: provider,
++      credentials: credentials
++    }
++  end
++
++  defp allow(context) do
++    {:ok, _} =
++      MCP.set_grant(
++        context.workspace.id,
++        context.agent.id,
++        context.installation.id,
++        true,
++        context.member
++      )
++  end
++
++  defp resolve(context),
++    do: MCP.authorized_servers_for_agent(context.workspace.id, context.agent.id, "google_drive")
++
++  test "native tools require explicit grants and expose only the live exact account token",
++       context do
++    assert resolve(context) == []
++    allow(context)
++    assert [descriptor] = resolve(context)
++    assert descriptor.transport == "google"
++    assert descriptor.url == ""
++    assert descriptor.credentials["access_token"] == "live-access"
++    refute Map.has_key?(descriptor.credentials, "refresh_token")
++
++    {:ok, _} =
++      Integrations.store_credentials(
++        context.connection,
++        Map.put(context.credentials, "access_token", "rotated")
++      )
++
++    assert [descriptor] = resolve(context)
++    assert descriptor.credentials["access_token"] == "rotated"
++
++    {:ok, _} =
++      MCP.set_grant(
++        context.workspace.id,
++        context.agent.id,
++        context.installation.id,
++        false,
++        context.member
++      )
++
++    assert resolve(context) == []
++  end
++
++  test "wrong account or explicit pointer never falls back to a usable connection", context do
++    allow(context)
++
++    for change <- [
++          [connected_account: "different@example.com"],
++          [settings: %{"integration_connection_id" => Ecto.UUID.generate()}],
++          [settings: %{"integration_connection_id" => "malformed"}],
++          [status: "disconnected"]
++        ] do
++      Repo.update!(Ecto.Changeset.change(context.installation, change))
++      assert resolve(context) == []
++
++      Repo.update!(
++        Ecto.Changeset.change(Repo.get!(Installation, context.installation.id),
++          connected_account: context.installation.connected_account,
++          settings: context.installation.settings,
++          status: "connected"
++        )
++      )
++    end
++  end
++
++  test "provider, workspace and connection status are checked", context do
++    allow(context)
++    {other_workspace, _} = workspace_fixture()
++
++    for change <- [
++          [workspace_id: other_workspace.id],
++          [status: "disconnected"],
++          [connected_account: "different@example.com"]
++        ] do
++      Repo.update!(Ecto.Changeset.change(context.connection, change))
++      assert resolve(context) == []
++
++      Repo.update!(
++        Ecto.Changeset.change(Repo.get!(IntegrationConnection, context.connection.id),
++          workspace_id: context.workspace.id,
++          status: "connected",
++          connected_account: context.connection.connected_account
++        )
++      )
++    end
++
++    Repo.update!(Ecto.Changeset.change(context.provider, enabled: false))
++    assert resolve(context) == []
++  end
++
++  test "legacy pointer-free installs resolve only an unambiguous exact account", context do
++    allow(context)
++    Repo.update!(Ecto.Changeset.change(context.installation, settings: %{}))
++    assert [_] = resolve(context)
++
++    Repo.insert!(%IntegrationConnection{
++      workspace_id: context.workspace.id,
++      provider_id: context.provider.id,
++      connected_account: "EXTERNAL@example.com",
++      status: "connected",
++      encrypted_credentials: context.connection.encrypted_credentials
++    })
++
++    assert resolve(context) == []
++  end
++
++  defp refreshing(context, callback) do
++    previous = Application.get_env(:mokaid, :google_oauth)
++    previous_http = Application.get_env(:mokaid, :google_oauth_http_options)
++
++    Application.put_env(:mokaid, :google_oauth,
++      client_id: "test-client",
++      client_secret: "test-secret"
++    )
++
++    Application.put_env(:mokaid, :google_oauth_http_options, plug: {Req.Test, __MODULE__})
++
++    on_exit(fn ->
++      Application.put_env(:mokaid, :google_oauth, previous)
++      Application.put_env(:mokaid, :google_oauth_http_options, previous_http)
++    end)
++
++    {:ok, _} =
++      Integrations.store_credentials(
++        context.connection,
++        Map.put(
++          context.credentials,
++          "expires_at",
++          DateTime.to_iso8601(DateTime.add(DateTime.utc_now(), -60))
++        )
++      )
++
++    Req.Test.stub(__MODULE__, fn conn ->
++      callback.()
++      Req.Test.json(conn, %{access_token: "fresh-access", expires_in: 3600})
++    end)
++  end
++
++  test "expired token is refreshed before handing it to the worker", context do
++    allow(context)
++    refreshing(context, fn -> :ok end)
++    assert [descriptor] = resolve(context)
++    assert descriptor.credentials["access_token"] == "fresh-access"
++    refute Map.has_key?(descriptor.credentials, "refresh_token")
++  end
++
++  test "grant revoked during token refresh is not returned", context do
++    allow(context)
++
++    refreshing(context, fn ->
++      {:ok, _} =
++        MCP.set_grant(
++          context.workspace.id,
++          context.agent.id,
++          context.installation.id,
++          false,
++          context.member
++        )
++    end)
++
++    assert resolve(context) == []
++  end
++
++  test "account disconnected during refresh is not resurrected", context do
++    allow(context)
++
++    refreshing(context, fn ->
++      Repo.update!(
++        Ecto.Changeset.change(context.connection,
++          status: "disconnected",
++          encrypted_credentials: nil
++        )
++      )
++    end)
++
++    assert resolve(context) == []
++    assert Repo.get!(IntegrationConnection, context.connection.id).encrypted_credentials == nil
++  end
++
++  test "account binding changed during refresh fails closed", context do
++    allow(context)
++
++    refreshing(context, fn ->
++      Repo.update!(
++        Ecto.Changeset.change(context.installation, connected_account: "other@example.com")
++      )
++    end)
++
++    assert resolve(context) == []
++  end
++
++  test "ensuring OAuth install preserves existing identity, credentials, settings and grants",
++       context do
++    allow(context)
++
++    assert {:ok, existing} =
++             MCP.ensure_oauth_installation(context.workspace.id, "google_drive", context.member)
++
++    for field <- [:id, :status, :connected_account, :encrypted_credentials, :settings] do
++      assert Map.get(existing, field) == Map.get(context.installation, field)
++    end
++
++    assert Repo.aggregate(AgentGrant, :count) == 1
++  end
++
++  test "new OAuth install checks plan and starts without an account or grants", context do
++    Repo.delete!(context.installation)
++    Billing.seed_plans()
++
++    assert {:error, :mcp_integration_limit_reached} =
++             MCP.ensure_oauth_installation(context.workspace.id, "google_drive", context.member)
++
++    {:ok, _} = Billing.change_plan(context.workspace.id, "professional")
++
++    assert {:ok, pending} =
++             MCP.ensure_oauth_installation(context.workspace.id, "google_drive", context.member)
++
++    assert pending.status == "pending"
++    assert pending.connected_account == nil
++    assert pending.encrypted_credentials == nil
++    assert Repo.aggregate(AgentGrant, :count) == 0
++  end
++end
+diff --git a/apps/api/test/mokaid/native_google_integrations_test.exs b/apps/api/test/mokaid/native_google_integrations_test.exs
+new file mode 100644
+index 0000000..59066b8
+--- /dev/null
++++ b/apps/api/test/mokaid/native_google_integrations_test.exs
+@@ -0,0 +1,237 @@
++defmodule Mokaid.Integrations.NativeGoogleIntegrationsTest do
++  use Mokaid.DataCase, async: false
++  use Oban.Testing, repo: Mokaid.Repo
++  alias Mokaid.{Billing, Integrations, Mail, MCP, Repo}
++  alias Mokaid.Integrations.{GoogleOAuth, IntegrationProvider, MailOAuthFlow}
++
++  setup do
++    previous = Application.get_env(:mokaid, :google_oauth)
++    previous_http = Application.get_env(:mokaid, :google_oauth_http_options)
++
++    Application.put_env(:mokaid, :google_oauth,
++      client_id: "test-client",
++      client_secret: "test-secret",
++      desktop_redirect_uri: "https://mokaid.com/api/mail/oauth/google/callback"
++    )
++
++    Application.put_env(:mokaid, :google_oauth_http_options, plug: {Req.Test, __MODULE__})
++
++    on_exit(fn ->
++      Application.put_env(:mokaid, :google_oauth, previous)
++      Application.put_env(:mokaid, :google_oauth_http_options, previous_http)
++    end)
++
++    {workspace, user} = workspace_fixture()
++    member = owner_member(workspace, user)
++
++    for key <- GoogleOAuth.google_provider_keys() do
++      Repo.insert!(
++        %IntegrationProvider{key: key, name: key, category: "productivity", enabled: true},
++        on_conflict: :nothing,
++        conflict_target: :key
++      )
++    end
++
++    %{workspace: workspace, member: member}
++  end
++
++  defp authorize(workspace, member, key, email, tokens \\ %{}) do
++    Req.Test.stub(__MODULE__, fn conn ->
++      case conn.request_path do
++        "/token" ->
++          Req.Test.json(
++            conn,
++            Map.merge(
++              %{
++                access_token: "access-#{key}-#{email}",
++                refresh_token: "refresh-#{key}-#{email}",
++                scope: Enum.join(GoogleOAuth.scopes(key), " ")
++              },
++              tokens
++            )
++          )
++
++        "/oauth2/v2/userinfo" ->
++          Req.Test.json(conn, %{email: email, verified_email: true})
++      end
++    end)
++
++    {:ok, started} = MailOAuthFlow.start(workspace.id, member, key)
++    query = URI.decode_query(URI.parse(started.authorize_url).query)
++    assert String.split(query["scope"]) == GoogleOAuth.scopes(key)
++    {started, %{"state" => query["state"], "code" => "test-code"}}
++  end
++
++  test "all six native Google providers complete independently with only their own scopes", %{
++    workspace: workspace,
++    member: member
++  } do
++    Oban.Testing.with_testing_mode(:manual, fn ->
++      for key <- GoogleOAuth.google_provider_keys() do
++        {started, params} = authorize(workspace, member, key, "external@example.com")
++        assert {:ok, :connected} = MailOAuthFlow.complete(params)
++
++        assert {:ok,
++                %{
++                  status: "connected",
++                  provider_key: ^key,
++                  connection_id: connection_id,
++                  connected_account: "external@example.com"
++                } = status} =
++                 MailOAuthFlow.get(workspace.id, member.id, started.flow_id, details: true)
++
++        assert Integrations.get_connection(workspace.id, connection_id).provider.key == key
++        assert is_binary(status.account_id) == (key == "gmail")
++        refute Map.has_key?(status, :credentials)
++
++        assert {:error, :not_found} =
++                 MailOAuthFlow.get(workspace.id, Ecto.UUID.generate(), started.flow_id,
++                   details: true
++                 )
++      end
++
++      assert length(Integrations.list_connections(workspace.id)) == 6
++      assert length(Mail.list_accounts(workspace.id)) == 1
++      assert length(all_enqueued(worker: Mokaid.Mail.Workers.SyncWorker)) == 1
++    end)
++  end
++
++  test "Google Drive requires durable credentials and denies incomplete consent", %{
++    workspace: workspace,
++    member: member
++  } do
++    {started, params} =
++      authorize(workspace, member, "google_drive", "external@example.com", %{refresh_token: nil})
++
++    assert {:error, "reconnect_with_consent"} = MailOAuthFlow.complete(params)
++
++    assert {:ok, %{status: "failed"}} =
++             MailOAuthFlow.get(workspace.id, member.id, started.flow_id)
++
++    assert Integrations.list_connections(workspace.id) == []
++
++    {_, params} =
++      authorize(workspace, member, "google_drive", "external@example.com", %{
++        scope: "openid email"
++      })
++
++    assert {:error, "integration_permission_required"} = MailOAuthFlow.complete(params)
++    assert Mail.list_accounts(workspace.id) == []
++  end
++
++  test "previous broader grants satisfy new read-only service consent", %{
++    workspace: workspace,
++    member: member
++  } do
++    for {provider, broad} <- [
++          {"google_drive", "drive"},
++          {"google_calendar", "calendar"},
++          {"google_docs", "documents"},
++          {"google_sheets", "spreadsheets"}
++        ] do
++      {_, params} =
++        authorize(workspace, member, provider, "external@example.com", %{
++          scope: "https://www.googleapis.com/auth/" <> broad
++        })
++
++      assert {:ok, :connected} = MailOAuthFlow.complete(params)
++    end
++
++    assert length(Integrations.list_connections(workspace.id)) == 4
++  end
++
++  test "provider is bound to the persisted flow as well as its encrypted state", %{
++    workspace: workspace,
++    member: member
++  } do
++    {started, params} = authorize(workspace, member, "google_calendar", "external@example.com")
++
++    Repo.get!(MailOAuthFlow, started.flow_id)
++    |> Ecto.Changeset.change(provider_key: "google_drive")
++    |> Repo.update!()
++
++    assert {:error, "authorization_expired"} = MailOAuthFlow.complete(params)
++    assert Integrations.list_connections(workspace.id) == []
++    assert {:error, :invalid_provider} = MailOAuthFlow.start(workspace.id, member, "google_admin")
++  end
++
++  test "MCP binding preserves a different Google account and never grants agents implicitly", %{
++    workspace: workspace,
++    member: member
++  } do
++    MCP.seed_catalog()
++    Billing.seed_plans()
++    {:ok, _} = Billing.change_plan(workspace.id, "professional")
++    {first, params} = authorize(workspace, member, "google_calendar", "first@example.com")
++    assert {:ok, :connected} = MailOAuthFlow.complete(params)
++    installation = MCP.get_installation_by_server_key(workspace.id, "google_calendar")
++    assert installation.status == "connected"
++    assert installation.connected_account == "first@example.com"
++    assert is_nil(installation.encrypted_credentials)
++
++    assert {:ok, %{mcp_status: "connected", connection_id: first_connection_id}} =
++             MailOAuthFlow.get(workspace.id, member.id, first.flow_id, details: true)
++
++    assert installation.settings["integration_connection_id"] == first_connection_id
++
++    {second, params} = authorize(workspace, member, "google_calendar", "second@example.com")
++    assert {:ok, :connected} = MailOAuthFlow.complete(params)
++
++    assert {:ok,
++            %{
++              mcp_status: "different_account",
++              mcp_connected_account: "first@example.com",
++              connected_account: "second@example.com"
++            }} =
++             MailOAuthFlow.get(workspace.id, member.id, second.flow_id, details: true)
++
++    unchanged = MCP.get_installation_by_server_key(workspace.id, "google_calendar")
++    assert unchanged.connected_account == installation.connected_account
++    assert unchanged.status == "connected"
++    assert unchanged.settings == installation.settings
++    assert Repo.aggregate(Mokaid.MCP.AgentGrant, :count) == 0
++    assert length(Integrations.list_connections(workspace.id)) == 2
++  end
++
++  test "a deployment with an empty provider catalog repairs Gmail before starting consent", %{
++    workspace: workspace,
++    member: member
++  } do
++    keys = GoogleOAuth.google_provider_keys()
++    providers = from p in IntegrationProvider, where: p.key in ^keys
++    Repo.delete_all(providers)
++    assert Repo.aggregate(providers, :count) == 0
++
++    Oban.Testing.with_testing_mode(:manual, fn ->
++      {started, params} = authorize(workspace, member, "gmail", "external@example.com")
++      assert Repo.aggregate(providers, :count) == 6
++      assert {:ok, :connected} = MailOAuthFlow.complete(params)
++
++      assert {:ok, %{status: "connected", account_id: id}} =
++               MailOAuthFlow.get(workspace.id, member.id, started.flow_id)
++
++      assert Mail.get_account(workspace.id, id).email_address == "external@example.com"
++    end)
++  end
++
++  test "catalog repair is idempotent and never re-enables an administrator-disabled provider", %{
++    workspace: workspace,
++    member: member
++  } do
++    provider = Integrations.get_provider_by_key("google_drive")
++    Repo.update!(Ecto.Changeset.change(provider, enabled: false, name: "Restricted Drive"))
++    Repo.delete_all(from p in IntegrationProvider, where: p.key == "google_sheets")
++    assert :ok = Mokaid.Integrations.GoogleCatalog.seed()
++    assert :ok = Mokaid.Integrations.GoogleCatalog.seed()
++    keys = GoogleOAuth.google_provider_keys()
++    assert Repo.aggregate(from(p in IntegrationProvider, where: p.key in ^keys), :count) == 6
++    unchanged = Integrations.get_provider_by_key("google_drive")
++    refute unchanged.enabled
++    assert unchanged.name == "Restricted Drive"
++
++    assert {:error, :provider_disabled} =
++             MailOAuthFlow.start(workspace.id, member, "google_drive")
++
++    refute Enum.any?(Integrations.list_providers(), &(&1.key == "google_drive"))
++  end
++end
+diff --git a/apps/ai-worker/app/mcp/google.py b/apps/ai-worker/app/mcp/google.py
+new file mode 100644
+index 0000000..0b7ce81
+--- /dev/null
++++ b/apps/ai-worker/app/mcp/google.py
+@@ -0,0 +1,405 @@
++"""Bounded, read-only Google tools for explicitly granted OAuth integrations.
++
++Every operation has a fixed HTTPS origin and path template. Account selection and
++live grant/token resolution happen in the API before every managed tool call.
++"""
++
++import base64
++import binascii
++import copy
++import json
++import re
++from typing import Any
++from urllib.parse import quote
++
++import httpx
++
++from app.mail.normalize import html_to_text
++from app.schemas import McpServerGrant
++
++MAX_RESPONSE_BYTES = 2_000_000
++MAX_TEXT_CHARS = 60_000
++TIMEOUT = httpx.Timeout(20.0, connect=5.0)
++
++
++def _string(description: str, maximum: int = 1024) -> dict[str, Any]:
++    return {"type": "string", "description": description, "minLength": 1, "maxLength": maximum}
++
++
++PAGE = {
++    "page_size": {"type": "integer", "minimum": 1, "maximum": 100, "default": 50},
++    "page_token": _string("Continuation token from the previous result.", 4096),
++}
++ID = _string("Resource ID, not a URL.", 256)
++
++
++def _tool(
++    name: str, description: str, properties: dict[str, Any], required: tuple[str, ...] = ()
++) -> dict[str, Any]:
++    return {
++        "name": name,
++        "description": description,
++        "input_schema": {
++            "type": "object",
++            "properties": properties,
++            "required": list(required),
++            "additionalProperties": False,
++        },
++    }
++
++
++TOOLS: dict[str, list[dict[str, Any]]] = {
++    "gmail": [
++        _tool(
++            "list_messages",
++            "List one page of Gmail message IDs using Gmail search syntax. Use get_message for content.",
++            {**PAGE, "q": _string("Gmail search query.")},
++        ),
++        _tool(
++            "get_message",
++            "Read one Gmail message, including headers and text. Attachments are not downloaded.",
++            {"message_id": ID},
++            ("message_id",),
++        ),
++    ],
++    "google_calendar": [
++        _tool(
++            "list_calendars",
++            "List one page of calendars accessible to the connected Google account.",
++            PAGE,
++        ),
++        _tool(
++            "list_events",
++            "Read one page of calendar events. Provide time_min and time_max (RFC3339) to limit the interval.",
++            {
++                **PAGE,
++                "calendar_id": _string("Calendar ID or primary.", 512),
++                "time_min": _string("RFC3339 lower bound.", 64),
++                "time_max": _string("RFC3339 upper bound.", 64),
++                "q": _string("Free text event search."),
++            },
++        ),
++    ],
++    "google_drive": [
++        _tool(
++            "list_files",
++            "List one page of accessible Drive files. Optional q uses Google Drive query syntax.",
++            {**PAGE, "q": _string("Drive query, for example name contains 'budget'.", 2048)},
++        ),
++        _tool(
++            "get_file",
++            "Read Drive file metadata, not its binary content.",
++            {"file_id": ID},
++            ("file_id",),
++        ),
++        _tool(
++            "export_file",
++            "Export a supported Google Workspace file as bounded text. Use Docs/Sheets tools for structured content.",
++            {
++                "file_id": ID,
++                "mime_type": {
++                    "type": "string",
++                    "enum": ["text/plain", "text/csv", "text/tab-separated-values"],
++                    "default": "text/plain",
++                },
++            },
++            ("file_id",),
++        ),
++    ],
++    "google_docs": [
++        _tool(
++            "get_document",
++            "Read text from all Google document tabs and tables. Returns bounded text and title.",
++            {"document_id": ID},
++            ("document_id",),
++        ),
++    ],
++    "google_sheets": [
++        _tool(
++            "get_spreadsheet",
++            "Read spreadsheet title and sheet metadata. Use get_range for cell values.",
++            {"spreadsheet_id": ID},
++            ("spreadsheet_id",),
++        ),
++        _tool(
++            "get_range",
++            "Read cells in an explicit A1 range. Choose a bounded range, for example Sheet1!A1:F100.",
++            {"spreadsheet_id": ID, "range": _string("A1 range to read.", 1024)},
++            ("spreadsheet_id", "range"),
++        ),
++    ],
++    "google_meet": [
++        _tool(
++            "get_space",
++            "Read an accessible Meet space by ID or meeting code. Legacy app-created permissions only allow spaces created by this app.",
++            {"space_id": ID},
++            ("space_id",),
++        ),
++        _tool(
++            "list_conference_records",
++            "Read one page of accessible Meet conference records. Legacy app-created permissions limit accessible records.",
++            {
++                **PAGE,
++                "filter": _string(
++                    'Meet filter expression, for example space.meeting_code = "abc-mnop-xyz".', 2048
++                ),
++            },
++        ),
++    ],
++}
++
++
++class GoogleToolError(Exception):
++    """A deliberately credential-free error suitable for model output."""
++
++
++def list_tools(provider: str) -> list[dict[str, Any]]:
++    """Return static definitions without making requests or exposing credentials."""
++    return copy.deepcopy(TOOLS.get(provider, []))
++
++
++def _validate(provider: str, name: str, arguments: dict[str, Any]) -> None:
++    definition = next((tool for tool in TOOLS.get(provider, []) if tool["name"] == name), None)
++    if definition is None:
++        raise GoogleToolError("Unknown Google read tool.")
++    schema = definition["input_schema"]
++    if not isinstance(arguments, dict) or set(arguments) - set(schema["properties"]):
++        raise GoogleToolError("Unsupported tool arguments.")
++    if any(key not in arguments for key in schema["required"]):
++        raise GoogleToolError("A required tool argument is missing.")
++    for key, value in arguments.items():
++        spec = schema["properties"][key]
++        if spec["type"] == "integer":
++            if type(value) is not int or not spec["minimum"] <= value <= spec["maximum"]:
++                raise GoogleToolError("Page size must be an integer between 1 and 100.")
++        elif (
++            not isinstance(value, str)
++            or not value
++            or len(value) > spec.get("maxLength", 4096)
++            or any(ord(char) < 32 for char in value)
++        ):
++            raise GoogleToolError(
++                "A text argument is empty, too long or contains control characters."
++            )
++        elif "enum" in spec and value not in spec["enum"]:
++            raise GoogleToolError("Unsupported export format.")
++
++
++def _id(arguments: dict[str, Any], name: str) -> str:
++    value: str = arguments[name]
++    if not re.fullmatch(r"[A-Za-z0-9_-]+", value):
++        raise GoogleToolError("Use a resource ID rather than a URL or path.")
++    return value
++
++
++def _page(arguments: dict[str, Any], size_key: str = "pageSize") -> dict[str, Any]:
++    result: dict[str, Any] = {size_key: arguments.get("page_size", 50)}
++    if "page_token" in arguments:
++        result["pageToken"] = arguments["page_token"]
++    return result
++
++
++FILE_FIELDS = "id,name,mimeType,size,modifiedTime,webViewLink,description,parents,exportLinks"
++
++
++def _request(provider: str, name: str, args: dict[str, Any]) -> tuple[str, dict[str, Any], bool]:
++    """Build only fixed Google endpoints. User input cannot choose a host/method."""
++    if provider == "gmail":
++        base = "https://gmail.googleapis.com/gmail/v1/users/me/messages"
++        if name == "list_messages":
++            params = _page(args, "maxResults")
++            if "q" in args:
++                params["q"] = args["q"]
++            return base, params, False
++        return f"{base}/{_id(args, 'message_id')}", {"format": "full"}, False
++    if provider == "google_calendar":
++        base = "https://www.googleapis.com/calendar/v3"
++        params = _page(args, "maxResults")
++        if name == "list_calendars":
++            return f"{base}/users/me/calendarList", params, False
++        calendar = args.get("calendar_id", "primary")
++        if calendar in {".", ".."} or "/" in calendar or "\\" in calendar:
++            raise GoogleToolError("Invalid calendar ID.")
++        params.update({"singleEvents": "true", "orderBy": "startTime"})
++        for source, target in [("time_min", "timeMin"), ("time_max", "timeMax"), ("q", "q")]:
++            if source in args:
++                params[target] = args[source]
++        return f"{base}/calendars/{quote(calendar, safe='')}/events", params, False
++    if provider == "google_drive":
++        base = "https://www.googleapis.com/drive/v3/files"
++        if name == "list_files":
++            params = {
++                **_page(args),
++                "fields": f"nextPageToken,incompleteSearch,files({FILE_FIELDS})",
++                "q": args.get("q", "trashed = false"),
++                "includeItemsFromAllDrives": "true",
++                "supportsAllDrives": "true",
++            }
++            return base, params, False
++        base += f"/{_id(args, 'file_id')}"
++        if name == "export_file":
++            return f"{base}/export", {"mimeType": args.get("mime_type", "text/plain")}, True
++        return base, {"fields": FILE_FIELDS, "supportsAllDrives": "true"}, False
++    if provider == "google_docs":
++        return (
++            f"https://docs.googleapis.com/v1/documents/{_id(args, 'document_id')}",
++            {"includeTabsContent": "true"},
++            False,
++        )
++    if provider == "google_sheets":
++        base = f"https://sheets.googleapis.com/v4/spreadsheets/{_id(args, 'spreadsheet_id')}"
++        if name == "get_range":
++            return (
++                f"{base}/values/{quote(args['range'], safe='')}",
++                {"valueRenderOption": "FORMATTED_VALUE"},
++                False,
++            )
++        return (
++            base,
++            {
++                "includeGridData": "false",
++                "fields": "spreadsheetId,spreadsheetUrl,properties,sheets(properties)",
++            },
++            False,
++        )
++    if provider == "google_meet":
++        base = "https://meet.googleapis.com/v2"
++        if name == "get_space":
++            return f"{base}/spaces/{_id(args, 'space_id')}", {}, False
++        params = _page(args)
++        if "filter" in args:
++            params["filter"] = args["filter"]
++        return f"{base}/conferenceRecords", params, False
++    raise GoogleToolError("Unknown Google provider.")
++
++
++def _message(data: dict[str, Any]) -> dict[str, Any]:
++    payload = data.get("payload", {})
++    headers = {
++        item.get("name", "").lower(): item.get("value", "") for item in payload.get("headers", [])
++    }
++    parts = [payload]
++    bodies: list[str] = []
++    html_bodies: list[str] = []
++    while parts:
++        part = parts.pop()
++        parts.extend(part.get("parts", []))
++        encoded = part.get("body", {}).get("data")
++        if (
++            encoded
++            and part.get("mimeType", "text/plain") in {"text/plain", "text/html"}
++            and not part.get("filename")
++        ):
++            try:
++                target = html_bodies if part.get("mimeType") == "text/html" else bodies
++                target.append(
++                    base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)).decode(
++                        "utf-8", errors="replace"
++                    )
++                )
++            except (ValueError, binascii.Error):
++                continue
++    text = "\n".join(reversed(bodies)) or html_to_text("\n".join(reversed(html_bodies)))
++    return {
++        "id": data.get("id"),
++        "thread_id": data.get("threadId"),
++        "labels": data.get("labelIds", []),
++        "headers": {
++            key: headers[key] for key in ("subject", "from", "to", "cc", "date") if key in headers
++        },
++        "snippet": data.get("snippet", ""),
++        "text": text[:MAX_TEXT_CHARS],
++        "text_truncated": len(text) > MAX_TEXT_CHARS,
++    }
++
++
++def _document(data: dict[str, Any]) -> dict[str, Any]:
++    # Walk all tabs, tables, headers and footnotes without recursive call depth.
++    pending: list[Any] = [data]
++    runs: list[str] = []
++    while pending:
++        item = pending.pop()
++        if isinstance(item, dict):
++            text_run = item.get("textRun")
++            if isinstance(text_run, dict) and isinstance(text_run.get("content"), str):
++                runs.append(text_run["content"])
++            pending.extend(reversed(list(item.values())))
++        elif isinstance(item, list):
++            pending.extend(reversed(item))
++    text = "".join(runs)
++    return {
++        "document_id": data.get("documentId"),
++        "title": data.get("title"),
++        "text": text[:MAX_TEXT_CHARS],
++        "text_truncated": len(text) > MAX_TEXT_CHARS,
++    }
++
++
++def _http_error(status: int) -> GoogleToolError:
++    if status == 401:
++        return GoogleToolError("Google authorization expired. Reconnect this account.")
++    if status == 403:
++        return GoogleToolError(
++            "Google denied access. Check the account permissions and that this Google API is enabled."
++        )
++    if status == 404:
++        return GoogleToolError("The requested Google resource is unavailable to this account.")
++    if status == 429:
++        return GoogleToolError("Google rate limit reached. Try again later.")
++    if status == 400:
++        return GoogleToolError(
++            "Google rejected the query or resource format. Check the tool arguments."
++        )
++    return GoogleToolError("Google request failed. Try again later.")
++
++
++async def call_tool(grant: McpServerGrant, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
++    """Execute one bounded GET, returning sanitized errors and no credentials."""
++    result: dict[str, Any] = {"server": grant.key, "tool": name, "is_error": False}
++    try:
++        _validate(grant.key, name, arguments)
++        token = grant.credentials.get("access_token")
++        if not isinstance(token, str) or not token or any(ord(char) < 32 for char in token):
++            raise GoogleToolError("Google authorization is unavailable. Reconnect this account.")
++        url, params, export = _request(grant.key, name, arguments)
++        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=False) as client:
++            async with client.stream(
++                "GET", url, params=params, headers={"Authorization": f"Bearer {token}"}
++            ) as response:
++                if not 200 <= response.status_code < 300:
++                    raise _http_error(response.status_code)
++                body = bytearray()
++                async for chunk in response.aiter_bytes():
++                    body.extend(chunk)
++                    if len(body) > MAX_RESPONSE_BYTES:
++                        raise GoogleToolError(
++                            "Google result is too large. Request a smaller page, range or document."
++                        )
++        data: Any
++        if export:
++            text = body.decode("utf-8", errors="replace")
++            data = {"text": text[:MAX_TEXT_CHARS], "truncated": len(text) > MAX_TEXT_CHARS}
++        else:
++            data = json.loads(body)
++            if not isinstance(data, dict):
++                raise GoogleToolError("Google returned an invalid response.")
++            if grant.key == "gmail" and name == "get_message":
++                data = _message(data)
++            elif grant.key == "google_docs":
++                data = _document(data)
++        serialized = json.dumps(data, ensure_ascii=False)
++        if len(serialized) > MAX_TEXT_CHARS + 8000:
++            raise GoogleToolError(
++                "Google result is too large. Request a smaller page or cell range."
++            )
++        result["content"] = [serialized]
++    except GoogleToolError as exc:
++        result.update(is_error=True, content=[str(exc)])
++    except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError, RecursionError):
++        # Do not log upstream exception text, URLs or response bodies: providers
++        # can echo authorization data or private content in error messages.
++        result.update(
++            is_error=True,
++            content=["Google request could not be completed. Try again or reconnect this account."],
++        )
++    return result
+diff --git a/apps/ai-worker/tests/test_google_mcp.py b/apps/ai-worker/tests/test_google_mcp.py
+new file mode 100644
+index 0000000..4e70852
+--- /dev/null
++++ b/apps/ai-worker/tests/test_google_mcp.py
+@@ -0,0 +1,349 @@
++import base64
++import json
++
++import httpx
++import pytest
++
++from app.mcp import google
++from app.mcp.client import McpToolbox, is_write_tool
++from app.schemas import McpServerGrant
++
++
++def grant(provider):
++    # Native tools must ignore even a poisoned installation URL.
++    return McpServerGrant(
++        key=provider,
++        name=provider,
++        url="http://127.0.0.1/private",
++        transport="google",
++        credentials={"access_token": "secret-access"},
++    )
++
++
++def mock_http(monkeypatch, handler):
++    original = httpx.AsyncClient
++
++    def client(**kwargs):
++        assert kwargs["follow_redirects"] is False
++        assert kwargs["timeout"].connect == 5
++        return original(**kwargs, transport=httpx.MockTransport(handler))
++
++    monkeypatch.setattr(google.httpx, "AsyncClient", client)
++
++
++@pytest.mark.parametrize("provider", list(google.TOOLS))
++async def test_native_discovery_has_no_network_or_tokens(provider):
++    tools = await McpToolbox([grant(provider)]).discover()
++    assert tools
++    assert "secret-access" not in json.dumps(tools)
++    for tool in tools:
++        assert tool["name"].startswith(f"mcp:{provider}:")
++        assert not is_write_tool(tool["tool"])
++        assert tool["input_schema"]["additionalProperties"] is False
++
++
++@pytest.mark.parametrize(
++    "provider,name,args,host,path,param",
++    [
++        (
++            "gmail",
++            "list_messages",
++            {"q": "is:unread", "page_size": 3, "page_token": "next"},
++            "gmail.googleapis.com",
++            "/gmail/v1/users/me/messages",
++            ("maxResults", "3"),
++        ),
++        (
++            "gmail",
++            "get_message",
++            {"message_id": "abc"},
++            "gmail.googleapis.com",
++            "/gmail/v1/users/me/messages/abc",
++            ("format", "full"),
++        ),
++        (
++            "google_calendar",
++            "list_calendars",
++            {},
++            "www.googleapis.com",
++            "/calendar/v3/users/me/calendarList",
++            ("maxResults", "50"),
++        ),
++        (
++            "google_calendar",
++            "list_events",
++            {"calendar_id": "my@email.test", "time_min": "2026-09-01T00:00:00Z"},
++            "www.googleapis.com",
++            "/calendar/v3/calendars/my@email.test/events",
++            ("timeMin", "2026-09-01T00:00:00Z"),
++        ),
++        (
++            "google_drive",
++            "list_files",
++            {"page_size": 1},
++            "www.googleapis.com",
++            "/drive/v3/files",
++            ("pageSize", "1"),
++        ),
++        (
++            "google_drive",
++            "get_file",
++            {"file_id": "abc"},
++            "www.googleapis.com",
++            "/drive/v3/files/abc",
++            ("supportsAllDrives", "true"),
++        ),
++        (
++            "google_drive",
++            "export_file",
++            {"file_id": "abc", "mime_type": "text/csv"},
++            "www.googleapis.com",
++            "/drive/v3/files/abc/export",
++            ("mimeType", "text/csv"),
++        ),
++        (
++            "google_docs",
++            "get_document",
++            {"document_id": "abc"},
++            "docs.googleapis.com",
++            "/v1/documents/abc",
++            ("includeTabsContent", "true"),
++        ),
++        (
++            "google_sheets",
++            "get_spreadsheet",
++            {"spreadsheet_id": "abc"},
++            "sheets.googleapis.com",
++            "/v4/spreadsheets/abc",
++            ("includeGridData", "false"),
++        ),
++        (
++            "google_sheets",
++            "get_range",
++            {"spreadsheet_id": "abc", "range": "'My Sheet'!A1:C5"},
++            "sheets.googleapis.com",
++            "/v4/spreadsheets/abc/values/'My Sheet'!A1:C5",
++            ("valueRenderOption", "FORMATTED_VALUE"),
++        ),
++        (
++            "google_meet",
++            "get_space",
++            {"space_id": "abc-mnop-xyz"},
++            "meet.googleapis.com",
++            "/v2/spaces/abc-mnop-xyz",
++            None,
++        ),
++        (
++            "google_meet",
++            "list_conference_records",
++            {"filter": 'space.meeting_code = "abc-mnop-xyz"'},
++            "meet.googleapis.com",
++            "/v2/conferenceRecords",
++            ("pageSize", "50"),
++        ),
++    ],
++)
++async def test_fixed_read_endpoints(monkeypatch, provider, name, args, host, path, param):
++    requests = []
++
++    def handler(request):
++        requests.append(request)
++        assert request.method == "GET"
++        assert request.url.scheme == "https"
++        assert request.url.host == host
++        assert request.url.path == path
++        assert request.headers["authorization"] == "Bearer secret-access"
++        if param:
++            assert request.url.params[param[0]] == param[1]
++        return httpx.Response(200, json={"nextPageToken": "next", "id": "abc"})
++
++    mock_http(monkeypatch, handler)
++    toolbox = McpToolbox([grant(provider)])
++    await toolbox.discover()
++    result = await toolbox.call(f"mcp:{provider}:{name}", args)
++    assert not result["is_error"]
++    assert len(requests) == 1  # Pagination is explicit; never fetch an unbounded mailbox.
++    assert "secret-access" not in json.dumps(result)
++
++
++@pytest.mark.parametrize(
++    "provider,name,args",
++    [
++        ("gmail", "list_messages", {"page_size": 101}),
++        ("gmail", "list_messages", {"page_size": True}),
++        ("gmail", "get_message", {"message_id": "../../secrets"}),
++        ("gmail", "get_message", {"message_id": "https://evil.test"}),
++        ("gmail", "list_messages", {"url": "https://evil.test"}),
++        ("gmail", "list_messages", {"q": "secret\nheader"}),
++        ("google_drive", "export_file", {"file_id": "abc", "mime_type": "application/pdf"}),
++        ("google_calendar", "list_events", {"calendar_id": ".."}),
++        ("google_sheets", "get_range", {"spreadsheet_id": "abc"}),
++        ("gmail", "send_message", {}),
++    ],
++)
++async def test_invalid_input_never_opens_network(monkeypatch, provider, name, args):
++    def unexpected(**kwargs):
++        pytest.fail("invalid tool input reached network")
++
++    monkeypatch.setattr(google.httpx, "AsyncClient", unexpected)
++    assert (await google.call_tool(grant(provider), name, args))["is_error"]
++
++
++@pytest.mark.parametrize("status", [301, 400, 401, 403, 404, 429, 500])
++async def test_remote_errors_and_redirects_are_sanitized(monkeypatch, status):
++    requests = []
++
++    def handler(request):
++        requests.append(request)
++        return httpx.Response(
++            status,
++            text="secret-access private response",
++            headers={"location": "https://evil.test/steal"},
++        )
++
++    mock_http(monkeypatch, handler)
++    result = await google.call_tool(grant("google_drive"), "get_file", {"file_id": "abc"})
++    assert result["is_error"]
++    assert "secret-access" not in json.dumps(result)
++    assert len(requests) == 1
++
++
++async def test_network_errors_do_not_echo_credentials(monkeypatch):
++    def handler(request):
++        raise httpx.ConnectError("secret-access", request=request)
++
++    mock_http(monkeypatch, handler)
++    result = await google.call_tool(grant("gmail"), "list_messages", {})
++    assert result["is_error"]
++    assert "secret-access" not in json.dumps(result)
++
++
++async def test_large_responses_are_rejected(monkeypatch):
++    mock_http(
++        monkeypatch,
++        lambda request: httpx.Response(200, content=b"x" * (google.MAX_RESPONSE_BYTES + 1)),
++    )
++    result = await google.call_tool(grant("google_drive"), "export_file", {"file_id": "abc"})
++    assert result["is_error"]
++    assert "too large" in result["content"][0]
++
++
++async def test_gmail_decodes_text_but_does_not_download_attachments(monkeypatch):
++    body = base64.urlsafe_b64encode("Bonjour été".encode()).decode().rstrip("=")
++    mock_http(
++        monkeypatch,
++        lambda request: httpx.Response(
++            200,
++            json={
++                "id": "abc",
++                "payload": {
++                    "headers": [{"name": "Subject", "value": "Test"}],
++                    "parts": [
++                        {"mimeType": "text/plain", "body": {"data": body}},
++                        {
++                            "mimeType": "text/plain",
++                            "filename": "secret.txt",
++                            "body": {"data": "YXR0YWNobWVudA"},
++                        },
++                    ],
++                },
++            },
++        ),
++    )
++    result = await google.call_tool(grant("gmail"), "get_message", {"message_id": "abc"})
++    data = json.loads(result["content"][0])
++    assert data["text"] == "Bonjour été"
++    assert data["headers"]["subject"] == "Test"
++
++
++async def test_docs_returns_text_from_all_tabs(monkeypatch):
++    mock_http(
++        monkeypatch,
++        lambda request: httpx.Response(
++            200,
++            json={
++                "title": "Doc",
++                "tabs": [
++                    {
++                        "documentTab": {
++                            "body": {
++                                "content": [
++                                    {
++                                        "paragraph": {
++                                            "elements": [{"textRun": {"content": "First\n"}}]
++                                        }
++                                    }
++                                ]
++                            }
++                        }
++                    },
++                    {
++                        "documentTab": {
++                            "body": {
++                                "content": [
++                                    {
++                                        "paragraph": {
++                                            "elements": [{"textRun": {"content": "Second\n"}}]
++                                        }
++                                    }
++                                ]
++                            }
++                        }
++                    },
++                ],
++            },
++        ),
++    )
++    result = await google.call_tool(grant("google_docs"), "get_document", {"document_id": "abc"})
++    assert json.loads(result["content"][0])["text"] == "First\nSecond\n"
++
++
++@pytest.mark.parametrize("token", [None, "", "access\nmalformed"])
++async def test_missing_token_fails_before_network(monkeypatch, token):
++    current = grant("gmail")
++    current.credentials = {"access_token": token}
++
++    def unexpected(**kwargs):
++        pytest.fail("invalid credentials reached network")
++
++    monkeypatch.setattr(google.httpx, "AsyncClient", unexpected)
++    assert (await google.call_tool(current, "list_messages", {}))["is_error"]
++
++
++@pytest.mark.parametrize("content", [b"not-json secret-access", b"[]"])
++async def test_invalid_upstream_data_is_sanitized(monkeypatch, content):
++    mock_http(monkeypatch, lambda request: httpx.Response(200, content=content))
++    result = await google.call_tool(grant("gmail"), "list_messages", {})
++    assert result["is_error"]
++    assert "secret-access" not in json.dumps(result)
++
++
++async def test_large_sheet_requires_a_smaller_range(monkeypatch):
++    mock_http(
++        monkeypatch, lambda request: httpx.Response(200, json={"values": [["value" * 15000]]})
++    )
++    result = await google.call_tool(
++        grant("google_sheets"), "get_range", {"spreadsheet_id": "abc", "range": "A1:Z1000"}
++    )
++    assert result["is_error"]
++    assert "smaller page or cell range" in result["content"][0]
++
++
++async def test_export_truncation_is_explicit(monkeypatch):
++    mock_http(monkeypatch, lambda request: httpx.Response(200, text="x" * 60001))
++    result = await google.call_tool(grant("google_drive"), "export_file", {"file_id": "abc"})
++    data = json.loads(result["content"][0])
++    assert data["truncated"]
++    assert len(data["text"]) == 60000
++
++
++async def test_gmail_html_only_content_is_readable(monkeypatch):
++    body = base64.urlsafe_b64encode(b"<p>Hello <b>world</b></p><script>hidden</script>").decode()
++    mock_http(
++        monkeypatch,
++        lambda request: httpx.Response(
++            200, json={"payload": {"mimeType": "text/html", "body": {"data": body}}}
++        ),
++    )
++    result = await google.call_tool(grant("gmail"), "get_message", {"message_id": "abc"})
++    assert json.loads(result["content"][0])["text"] == "Hello world"

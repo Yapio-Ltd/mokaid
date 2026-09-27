@@ -1,0 +1,8 @@
+{
+  "model": "claude-haiku-4-5",
+  "cases_sha256": "710aee03a9cb835d27fe8c732d1995cd82624dc843faaed4acbd6d53cd3ddba7",
+  "dispatcher_sha256": "8a8af08f896e9b8af8694514fd1abc0e4678ec8056e514188c659b608daefdf7",
+  "orchestrator_chat_sha256": "44a1fb0704ad01f874261ecc4f7fb28f91e7390dc8e11f67af655248242635fc",
+  "runner_sha256": "4be12fed14d45f3d73cf06c39cab5cc6ebe5c985d87aa9400c3f528dc97c58b3",
+  "scope": "8 direct routing cases + 3 full chat-to-dispatch repetitions; no task confirmation or execution."
+}

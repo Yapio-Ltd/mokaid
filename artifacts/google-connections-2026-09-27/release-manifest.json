@@ -1,0 +1,27 @@
+{
+  "base": "4716998a35123c85e19bdbe2013e8f4ff3d69669",
+  "files": {
+    "apps/ai-worker/app/mcp/client.py": "8c3fed2613adf4f75369496c176be5a9caa0693240b07515cad2a4305655ad86",
+    "apps/api/lib/mokaid/integrations.ex": "50e5254df2147d91ac71cd6e5ae8b13d9432a18f374870816e3141840b8233f2",
+    "apps/api/lib/mokaid/integrations/google_oauth.ex": "b1dcace2040a988349f57d3783fe1a9a026fb76bd01b943d7e56360b892b2fcb",
+    "apps/api/lib/mokaid/integrations/mail_oauth_flow.ex": "850584cb8c894bb8087dd7c9a292d088e2d12e70e5fae55519c32a4a97f20408",
+    "apps/api/lib/mokaid/mcp.ex": "3841c7a9df25763d6cb649954585c27ed14695b04a6f885311b5790a2e4798f4",
+    "apps/api/lib/mokaid/release.ex": "f70780a769b7c4bae87fdfcbd9d85a281d1404b4c007e037df96305624a1951c",
+    "apps/api/lib/mokaid_web/controllers/integration_oauth_controller.ex": "2ece70f0b256f3838b4b021534f4800d56bdc06b9892f349e17118c6923f9f8f",
+    "apps/api/lib/mokaid_web/controllers/mail_oauth_controller.ex": "e020b1a27c5bfda130c7869fa4419548e74b5a7f0639620851408398e087e049",
+    "apps/api/lib/mokaid_web/router.ex": "a8133449c2f2e792aa0ed0338336f5da7b5dbf18fb2bd851ac6a52e096c7e928",
+    "apps/api/priv/repo/seeds.exs": "1b40d860767365645f08dc333e136a26cdd1c657e05d82246263ded66ce38581",
+    "apps/api/test/mokaid_web/mail_oauth_controller_test.exs": "56b53b2c5fb580810f9697381aa6a6dfa0b53899cbb76364346df32ef3443997",
+    "apps/api/lib/mokaid/integrations/google_catalog.ex": "f1cfa9e7d15f95b7e94e9e5831ccc6c3a8749a2ccb027484e8de6f433cc63884",
+    "apps/api/lib/mokaid_web/controllers/native_google_oauth_controller.ex": "cc288b5ff998c5aa2016d6be9180335c9871cf81236fb08259e4d00323e74444",
+    "apps/api/priv/repo/migrations/20260927100000_extend_native_google_oauth_flows.exs": "9b3feed9e45bdff0c4a60a21d80ff632667f73a5af10c6ff413ba532acc8d368",
+    "apps/api/priv/repo/migrations/20260927100500_seed_google_integration_providers.exs": "841996bd28fa1b91364cfa21f5a461ced7d329238db6065cf0971c8707d0e3f5",
+    "apps/api/test/mokaid/mcp_google_test.exs": "94d2ba1d69ca826ed17185bf71b862b3ec9b116ecefd5ecabdcdd5f77db45cb9",
+    "apps/api/test/mokaid/native_google_integrations_test.exs": "3b1dee8a65daebc213f67829b5f710228a872c52334493842e135373bd3557e2",
+    "apps/ai-worker/app/mcp/google.py": "150500923811ebbf6659e5f35ae6446c90950f8525fcffe8f8e84fd566443a94",
+    "apps/ai-worker/tests/test_google_mcp.py": "b40d8934a42c3a77ff210529aacc08b835751c03b5ce825bc70fc833ae308cf1"
+  },
+  "build_context_note": "Docker legacy builder uses the tracked API-specific dockerignore as the isolated root dockerignore, to include only the existing avatar-cooker sources.",
+  "runtime_architecture": "linux/arm64",
+  "patch_sha256": "ea4e576619ac0d6fbb8fedd224f6864e19d2e09c4ccd2343b00f9fac33f3c01d"
+}

@@ -1,0 +1,72 @@
+Desktop and conversational Mail access validation — 2026-09-27
+
+Scope
+- Moked and agent DM call mail_conversation_context with allow_save=False.
+- The signed workspace_mail token never enters conversational LLM prompts.
+- Prompt data explicitly marks email content untrusted and synchronized-cache
+  coverage incomplete; relative dates use server_time_utc.
+- Read answers cannot create a mission, including a misleading model brief.
+- Mail exports preserve the full latest user request, or a resolved request
+  for short confirmations, and use the existing real mission dispatch.
+- Desktop honors response_kind=answer, persists it and does not reinterpret
+  the answer as work after a confirmation or restored conversation.
+- No real email was sent, marked read, changed, or deleted by these tests.
+- No UI was opened/restarted and no deployment was performed by this agent.
+
+Commands and results
+1. cd apps/ai-worker
+   .venv/bin/python -m pytest tests/test_orchestrator_chat.py tests/test_direct_chat.py -q
+   35 passed in 0.59s (8 new Python regression cases).
+2. cd apps/ai-worker
+   .venv/bin/python -m ruff check app/agents/orchestrator_chat.py app/agents/direct_chat.py tests/test_orchestrator_chat.py tests/test_direct_chat.py
+   All checks passed.
+3. cmake --build apps/desktop/build/macos-debug --target mokaid_orchestrator_tests mokaid_desktop -j 3
+   Successful; final desktop executable linked.
+4. ctest --test-dir apps/desktop/build/macos-debug -R '^desktop-orchestrator-contracts$' --output-on-failure -V
+   1/1 CTest passed, 1.50 sec.
+   QtTest: 12 passed, 0 failed, 0 skipped (10 scenarios plus init/cleanup).
+   New scenario: groundedMailAnswerDoesNotBecomeMissionOrConfirmationFallback.
+5. git diff --check on the six changed source/test files: clean.
+
+Runnable artifact
+/Users/olimservice/mokaid/apps/desktop/build/macos-debug/app/Mokaid.app
+Executable: Contents/MacOS/Mokaid
+SHA-256: 516581567cb83107d82dad6e3158b3b27311dddd230ae9bcc7953ee7d74dc552
+Modified: 2026-09-27 08:52:50 IDT
+Size: 37911032 bytes
+
+Limits
+Tests use local/mocked transports and model responses. Actual account access
+depends on the signed server capability and workspace permission checks in the
+separately implemented Phoenix mail gateway. Live UI/production validation is
+owned by the root agent. API-client transfer timeout is not set, so the updated
+60-second server chat timeout does not conflict with a native 30-second cutoff.
+
+Additional mission routing validation
+- Private mailbox reads use mission kind mail, exports of original attachments
+  use mail_export, and requested written reports remain document missions.
+- Mailbox requests and mail follow-ups never require public web_search unless
+  the user explicitly requests a separate public-web lookup. An email address
+  alone is not a website audit. Existing public-research checks are preserved.
+- save_mail_attachment counts as a producer only after a persisted file_id;
+  denied/error results and generated placeholder filenames do not count.
+- Export quality evidence includes saved IDs and per-attachment source identity;
+  success on another attachment cannot hide a prior error. Exports request review.
+- Deep-runner mail prompts and planner fallback cannot invent private message or
+  attachment IDs or replace an export with generated invoices.
+
+Command (from apps/ai-worker):
+.venv/bin/python -m pytest tests/test_mail_mission_routing.py tests/test_research_delivery.py tests/test_research_repair.py tests/test_direct_chat.py tests/test_orchestrator_chat.py tests/test_mission_delivery.py tests/test_runtime_dispatch.py -q
+Result: 119 passed, 5 pre-existing PyMuPDF/SWIG deprecation warnings in 1.10s.
+Includes 24 new mail-routing regression cases and the 35 conversation cases above.
+Ruff check for mission_kind/runtime/quality/planner, both conversational modules
+and their new/updated tests: all checks passed. Targeted git diff --check: clean.
+
+Additional source files owned in this change:
+app/agents/mission_kind.py
+app/agents/runtime.py (requirements_for: mail_export artifact requirement only)
+app/agents/quality.py
+app/agents/planner.py
+app/agents/deep_runner.py (_deliverable_rule and _mission_kind_rule only;
+  other concurrent changes are owned by the tool-bridge agent)
+tests/test_mail_mission_routing.py

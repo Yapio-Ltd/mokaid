@@ -1,0 +1,33 @@
+{
+  "status": "passed",
+  "timestamp": "2026-09-27T12:13:38.004Z",
+  "origin": "http://127.0.0.1:5198",
+  "media": {
+    "source": "/assets/mokaid-office-journey.adac1c365481.mp4",
+    "sha256": "adac1c36548182a4b68137fdba12dbe084290d6729ff75f5be6adc1a87281ff3",
+    "bytes": 70724025,
+    "width": 1920,
+    "height": 1080,
+    "duration": 74,
+    "fps": 24,
+    "codec": "h264",
+    "audio": false
+  },
+  "fixtureSubstitution": false,
+  "limitations": "Automated desktop engines; not native Safari, real mobile hardware or a creative continuity review. Timing includes concurrent browser execution.",
+  "engines": [
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "status": "passed",
+      "seekSummary": {
+        "count": 16,
+        "medianMs": 126,
+        "p95Ms": 487,
+        "maxMs": 487,
+        "maxErrorFrames": 1.0080000000000382
+      },
+      "report": "final-media-webkit.json"
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "status": "passed",
+  "origin": "http://127.0.0.1:5197",
+  "movie": "/assets/mokaid-office-journey.adac1c365481.mp4",
+  "engine": "webkit",
+  "simulation": "Override document.hidden/visibilityState and dispatch visibilitychange; real media decoding and the production GSAP ticker remain active.",
+  "limitation": "Tests application suspension/resumption only. Does not emulate Safari OS window occlusion, native rAF throttling or an actual background tab.",
+  "version": "26.5",
+  "tracingScreenshots": false,
+  "pageErrors": [],
+  "beforeHidden": {
+    "mode": "cinematic",
+    "hidden": false,
+    "currentTime": 20,
+    "presentedTime": 20,
+    "paused": true,
+    "seeking": false,
+    "mediaError": null,
+    "recoveryVisible": false,
+    "seekEvents": [
+      {
+        "time": 0.041666666666666664,
+        "hidden": false
+      },
+      {
+        "time": 0,
+        "hidden": false
+      },
+      {
+        "time": 20,
+        "hidden": false
+      }
+    ]
+  },
+  "whileHidden": {
+    "mode": "cinematic",
+    "hidden": true,
+    "currentTime": 20,
+    "presentedTime": 20,
+    "paused": true,
+    "seeking": false,
+    "mediaError": null,
+    "recoveryVisible": false,
+    "seekEvents": [
+      {
+        "time": 0.041666666666666664,
+        "hidden": false
+      },
+      {
+        "time": 0,
+        "hidden": false
+      },
+      {
+        "time": 20,
+        "hidden": false
+      }
+    ]
+  },
+  "resumed": {
+    "mode": "cinematic",
+    "hidden": false,
+    "currentTime": 51,
+    "presentedTime": 51,
+    "paused": true,
+    "seeking": false,
+    "mediaError": null,
+    "recoveryVisible": false,
+    "seekEvents": [
+      {
+        "time": 0.041666666666666664,
+        "hidden": false
+      },
+      {
+        "time": 0,
+        "hidden": false
+      },
+      {
+        "time": 20,
+        "hidden": false
+      },
+      {
+        "time": 51,
+        "hidden": false
+      }
+    ]
+  },
+  "resumeSettledMs": 49,
+  "resumedSeeks": [
+    {
+      "time": 51,
+      "hidden": false
+    }
+  ],
+  "reverseAfterResume": {
+    "mode": "cinematic",
+    "hidden": false,
+    "currentTime": 7,
+    "presentedTime": 7,
+    "paused": true,
+    "seeking": false,
+    "mediaError": null,
+    "recoveryVisible": false,
+    "seekEvents": [
+      {
+        "time": 0.041666666666666664,
+        "hidden": false
+      },
+      {
+        "time": 0,
+        "hidden": false
+      },
+      {
+        "time": 20,
+        "hidden": false
+      },
+      {
+        "time": 51,
+        "hidden": false
+      },
+      {
+        "time": 7,
+        "hidden": false
+      }
+    ]
+  },
+  "visibilityEvents": [
+    {
+      "hidden": true,
+      "timeMs": 438
+    },
+    {
+      "hidden": false,
+      "timeMs": 575
+    }
+  ]
+}

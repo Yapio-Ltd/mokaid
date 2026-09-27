@@ -1,0 +1,56 @@
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon   24.3MB
+Step 1/15 : FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea AS python-runtime
+ ---> 78387bc3881b
+Step 2/15 : RUN apt-get update     && apt-get install -y --no-install-recommends --only-upgrade        gzip libpcre2-8-0 libsqlite3-0 perl-base     && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' gzip)" ge '1.13-1+deb13u1'     && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libpcre2-8-0)" ge '10.46-1~deb13u2'     && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libsqlite3-0)" ge '3.46.1-7+deb13u2'     && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' perl-base)" ge '5.40.1-6+deb13u1'     && rm -rf /var/lib/apt/lists/*
+ ---> Using cache
+ ---> 147d993fd087
+Step 3/15 : FROM python-runtime AS build
+ ---> 147d993fd087
+Step 4/15 : WORKDIR /app
+ ---> Using cache
+ ---> dbf332e2053a
+Step 5/15 : COPY apps/ai-worker/requirements.txt ./
+ ---> Using cache
+ ---> 430165ddb4e6
+Step 6/15 : RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+ ---> Using cache
+ ---> 864491fe7f67
+Step 7/15 : FROM python-runtime AS runtime
+ ---> 147d993fd087
+Step 8/15 : RUN useradd --create-home mokaid
+ ---> Using cache
+ ---> e724e5cb9a76
+Step 9/15 : WORKDIR /app
+ ---> Using cache
+ ---> 1ff4cf8c66d4
+Step 10/15 : COPY --from=build /install /usr/local
+ ---> Using cache
+ ---> bb8f6dcc9b47
+Step 11/15 : COPY --chown=mokaid:mokaid apps/ai-worker/app ./app
+ ---> 61e46f893bbf
+Step 12/15 : RUN python -m pip uninstall --yes pip     && python -c "import importlib.util; assert importlib.util.find_spec('pip') is None"     && ! command -v pip && ! command -v pip3
+ ---> Running in d17da9465a20
+Found existing installation: pip 25.0.1
+Uninstalling pip-25.0.1:
+  Successfully uninstalled pip-25.0.1
+[91mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+[0m ---> Removed intermediate container d17da9465a20
+ ---> 4524e075c438
+Step 13/15 : USER mokaid
+ ---> Running in 1e85bbef5cab
+ ---> Removed intermediate container 1e85bbef5cab
+ ---> 2b59cbb762f4
+Step 14/15 : EXPOSE 8100
+ ---> Running in c2418c14f00e
+ ---> Removed intermediate container c2418c14f00e
+ ---> 937b0d311da0
+Step 15/15 : CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8100"]
+ ---> Running in 622b1e3c647f
+ ---> Removed intermediate container 622b1e3c647f
+ ---> db51acbf81b0
+Successfully built db51acbf81b0
+Successfully tagged mokaid-mail-agents-worker:20260927

@@ -1,0 +1,3 @@
+mailContentHasNoScriptOrResourcePrivileges()
+origins()
+builtInPdfResourcesAreLimitedToPdfProfiles()

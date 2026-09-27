@@ -1,0 +1,16 @@
+********* Start testing of MailCenterTests *********
+Config: Using QtTest library 6.11.2, Qt 6.11.2 (arm64-little_endian-lp64 shared (dynamic) release build; by Apple LLVM 16.0.0 (clang-1600.0.26.3)), macos 26.5.1
+PASS   : MailCenterTests::initTestCase()
+PASS   : MailCenterTests::htmlIsRebuiltWithoutActiveContentOrResources()
+PASS   : MailCenterTests::externalLinksRequireExplicitSafeSchemes()
+PASS   : MailCenterTests::permissionsAndOfflineStatePreventSubmission()
+PASS   : MailCenterTests::foldersFilteringAndPaginationUseServerResponses()
+PASS   : MailCenterTests::changingTheViewedMailboxDoesNotChangeAnExistingDraftSender()
+PASS   : MailCenterTests::ambiguousDeliveryThenForbiddenKeepsTheSameRequestAndDraftLocked()
+PASS   : MailCenterTests::firstValidationRejectionPreservesAnEditableDraftAndAllowsANewRequest()
+PASS   : MailCenterTests::knownOutboxIsPolledWithGetAndDefiniteFailureAllowsANewRequest()
+PASS   : MailCenterTests::attachmentsAreBoundedAndOnlySelectedMessageAttachmentsCanOpen()
+PASS   : MailCenterTests::switchingWorkspaceClearsPrivateCompositionAndIgnoresOldResponses()
+PASS   : MailCenterTests::cleanupTestCase()
+Totals: 12 passed, 0 failed, 0 skipped, 0 blacklisted, 1662ms
+********* Finished testing of MailCenterTests *********

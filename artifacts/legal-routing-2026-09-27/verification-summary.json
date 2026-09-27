@@ -1,0 +1,46 @@
+{
+  "targeted_live": {
+    "total": 11,
+    "successful": 11,
+    "strict_existing_mode_and_agent_correct": 10,
+    "legal_cases": 9,
+    "legal_candidate_taya": 9,
+    "legal_automatic_existing": 8,
+    "legal_explicit_user_choice": 1,
+    "technical_controls_correct": 2,
+    "limitations": "One generated brief proposes Taya plus a legal specialist instead of direct assignment. No legal case selects Sira."
+  },
+  "broad_live": {
+    "total": 81,
+    "primary_correct": 72,
+    "repeats_correct": 9,
+    "paired_repeats_consistent": 9,
+    "schema_valid": 81,
+    "model_calls": 85,
+    "repair_attempts": 4,
+    "median_primary_seconds": 4.59645,
+    "p95_primary_seconds": 7.2965,
+    "estimated_cost_usd": 0.476118
+  },
+  "offline": {
+    "api_targeted": 72,
+    "python_targeted": 69,
+    "desktop_cases": 13,
+    "desktop_qtest_checks_including_init_cleanup": 15,
+    "ruff": "passed",
+    "mix_format": "passed",
+    "diff_check": "passed"
+  },
+  "deployment": {
+    "performed": false,
+    "desktop_origin": "https://mokaid.com",
+    "aws_read_status": "SSO token expired; exact live ECS revision not verified"
+  },
+  "sha256": {
+    "apps/ai-worker/app/agents/dispatcher.py": "8a8af08f896e9b8af8694514fd1abc0e4678ec8056e514188c659b608daefdf7",
+    "apps/api/lib/mokaid/ai/dispatcher.ex": "a694c7bbc5c3ef7bf93a3027fb45b6a6e43f1014dd3928da1470f95eecba6592",
+    "apps/desktop/application/orchestrator_controller.cpp": "e18a6344d91e2b79fc05eb98f0f3344076ebd256684db62fd00155d87769b68c",
+    "artifacts/legal-routing-2026-09-27/final-results.jsonl": "b0bf867badb6c09874b56190b01999a473b597a6f09e5c5e50ac5de6bdbdcc5c",
+    "artifacts/legal-routing-2026-09-27/broad-regression/results.jsonl": "8c51686e3dec3f65be6e72a0b9e21bc5669ecb906b6c65cddcbae61cc919964d"
+  }
+}

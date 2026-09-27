@@ -1,0 +1,8 @@
+{
+  "task": "arn:aws:ecs:il-central-1:660601648321:task/mokaid-prod/302f3a8578594b0f96ed75b31e786b3a",
+  "revision": "arn:aws:ecs:il-central-1:660601648321:task-definition/mokaid-prod-api:58",
+  "operation": "mokaid-mail-reader-check-7cd12ec42f05",
+  "provider_read_only": true,
+  "local_hydration_permitted": true,
+  "emails_sent": 0
+}

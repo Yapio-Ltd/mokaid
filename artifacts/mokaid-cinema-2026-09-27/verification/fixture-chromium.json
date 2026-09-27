@@ -1,0 +1,248 @@
+{
+  "fixtureOnly": true,
+  "testMode": "fixture",
+  "disclaimer": "Synthetic 320×180 H.264 decoder fixture. Does not validate Higgsfield footage, 1080p performance, native Safari or real mobile hardware.",
+  "timestamp": "2026-09-27T12:06:11.967Z",
+  "engine": "chromium",
+  "origin": "http://127.0.0.1:5197",
+  "media": {
+    "duration": 74,
+    "fps": 24,
+    "width": 320,
+    "height": 180,
+    "gopFrames": 6,
+    "bFrames": 0,
+    "audio": false,
+    "bytes": 5165282,
+    "rangeResponses": true
+  },
+  "passed": [
+    "existing prerender without JavaScript: three visible moments, CTA, no film layers or MP4 requests",
+    "first presented frame + full seekable range before promotion",
+    "all scroll milestones, reversal to zero, large jumps",
+    "latest target coalescing",
+    "paused/muted/inline throughout",
+    "five notifications + fully visible final CTA",
+    "exit has no captions",
+    "desktop: SPA navigation away and back/home restores video scrubbing and captions",
+    "mobile viewport: full inline film, every caption, SPA back/home, rotation, reverse seeks, CTA, no horizontal overflow",
+    "tablet viewport: full inline film, every caption, SPA back/home, rotation, reverse seeks, CTA, no horizontal overflow",
+    "reduced motion: static access without video requests, reversible preference changes restore scrubbing",
+    "direct story hash entry promotes the film and supports forward/reverse seeks",
+    "failed media keeps the scroll track and can retry into forward/reverse video scrubbing",
+    "visitor enters before readiness: loading retains the film and scroll geometry, then catches up without another scroll",
+    "without requestVideoFrameCallback: loadeddata/seeked compatibility path"
+  ],
+  "samples": [
+    {
+      "requestedTime": 7,
+      "targetTime": 7,
+      "presentedTime": 7,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 57
+    },
+    {
+      "requestedTime": 13,
+      "targetTime": 13,
+      "presentedTime": 13,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 270
+    },
+    {
+      "requestedTime": 20,
+      "targetTime": 20,
+      "presentedTime": 20,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 162
+    },
+    {
+      "requestedTime": 32,
+      "targetTime": 32,
+      "presentedTime": 32,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 51
+    },
+    {
+      "requestedTime": 42,
+      "targetTime": 42,
+      "presentedTime": 42,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 90
+    },
+    {
+      "requestedTime": 51,
+      "targetTime": 51,
+      "presentedTime": 51,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 40
+    },
+    {
+      "requestedTime": 61,
+      "targetTime": 61,
+      "presentedTime": 61,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 53
+    },
+    {
+      "requestedTime": 67,
+      "targetTime": 67,
+      "presentedTime": 67,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 49
+    },
+    {
+      "requestedTime": 74,
+      "targetTime": 73.95833333333333,
+      "presentedTime": 73.917,
+      "errorSeconds": 0.041333333333327005,
+      "errorFrames": 0.9919999999998481,
+      "settledMs": 52
+    },
+    {
+      "requestedTime": 0,
+      "targetTime": 0,
+      "presentedTime": 0,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 145
+    },
+    {
+      "requestedTime": 72,
+      "targetTime": 72,
+      "presentedTime": 71.958,
+      "errorSeconds": 0.04200000000000159,
+      "errorFrames": 1.0080000000000382,
+      "settledMs": 54
+    },
+    {
+      "requestedTime": 2,
+      "targetTime": 2,
+      "presentedTime": 2,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 49
+    },
+    {
+      "requestedTime": 55,
+      "targetTime": 55,
+      "presentedTime": 55,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 50
+    },
+    {
+      "requestedTime": 18,
+      "targetTime": 18,
+      "presentedTime": 17.958,
+      "errorSeconds": 0.04200000000000159,
+      "errorFrames": 1.0080000000000382,
+      "settledMs": 52
+    },
+    {
+      "requestedTime": 65,
+      "targetTime": 65,
+      "presentedTime": 65,
+      "errorSeconds": 0,
+      "errorFrames": 0,
+      "settledMs": 49
+    },
+    {
+      "requestedTime": 74,
+      "targetTime": 73.95833333333333,
+      "presentedTime": 73.917,
+      "errorSeconds": 0.041333333333327005,
+      "errorFrames": 0.9919999999998481,
+      "settledMs": 51
+    }
+  ],
+  "version": "153.0.8010.53",
+  "prerender": {
+    "status": "passed",
+    "source": "apps/web/dist/index.html",
+    "sha256": "0c1ef937a0885bde86e325847aeb3e069dac7db65029aa717b43cc5395b81a2b",
+    "javaScriptEnabled": false,
+    "illustratedMoments": 3,
+    "filmLayers": 0,
+    "videoElements": 0,
+    "mp4Requests": 0
+  },
+  "readiness": {
+    "mode": "cinematic",
+    "top": 1620,
+    "height": 11700,
+    "viewport": 900,
+    "scroll": 0,
+    "hidden": false,
+    "currentTime": 0,
+    "presentedTime": 0,
+    "readyState": 4,
+    "duration": 74,
+    "seeking": false,
+    "paused": true,
+    "muted": true,
+    "playsInline": true,
+    "playsInlineProperty": true,
+    "hasVideoFrameCallback": true,
+    "seekable": [
+      [
+        0,
+        74
+      ]
+    ]
+  },
+  "rangeRequests": [
+    "bytes=0-",
+    "bytes=0-",
+    "bytes=3833856-",
+    "bytes=0-",
+    "bytes=3833856-"
+  ],
+  "mediaResponses": [
+    {
+      "status": 206,
+      "contentRange": "bytes 0-5165281/5165282",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 0-5165281/5165282",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 3833856-5165281/5165282",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 0-5165281/5165282",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    },
+    {
+      "status": 206,
+      "contentRange": "bytes 3833856-5165281/5165282",
+      "acceptRanges": "bytes",
+      "contentType": "video/mp4"
+    }
+  ],
+  "seekSummary": {
+    "count": 16,
+    "medianMs": 52,
+    "p95Ms": 270,
+    "maxMs": 270,
+    "maxErrorFrames": 1.0080000000000382
+  },
+  "status": "passed"
+}

@@ -1,0 +1,397 @@
+[
+  {
+    "name": "phone",
+    "time": "7.000",
+    "mode": "cinematic",
+    "cue": {
+      "left": 23.390625,
+      "right": 366.578125,
+      "top": 132,
+      "bottom": 227.46875,
+      "width": 343.1875,
+      "height": 95.46875
+    },
+    "notes": null,
+    "bottom": {
+      "left": 23.390625,
+      "right": 366.609375,
+      "top": 794,
+      "bottom": 820,
+      "width": 343.21875,
+      "height": 26
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "phone",
+    "time": "44.958",
+    "mode": "cinematic",
+    "cue": {
+      "left": 23.390625,
+      "right": 366.578125,
+      "top": 132,
+      "bottom": 227.46875,
+      "width": 343.1875,
+      "height": 95.46875
+    },
+    "notes": null,
+    "bottom": {
+      "left": 23.390625,
+      "right": 366.609375,
+      "top": 794,
+      "bottom": 820,
+      "width": 343.21875,
+      "height": 26
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "phone",
+    "time": "72.958",
+    "mode": "cinematic",
+    "cue": {
+      "left": 23.390625,
+      "right": 366.578125,
+      "top": 132,
+      "bottom": 256.46875,
+      "width": 343.1875,
+      "height": 124.46875
+    },
+    "notes": {
+      "left": 23.390625,
+      "right": 366.609375,
+      "top": 631.40625,
+      "bottom": 774,
+      "width": 343.21875,
+      "height": 142.59375
+    },
+    "bottom": {
+      "left": 23.390625,
+      "right": 366.609375,
+      "top": 794,
+      "bottom": 820,
+      "width": 343.21875,
+      "height": 26
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "small-phone",
+    "time": "6.958",
+    "mode": "cinematic",
+    "cue": {
+      "left": 19.1875,
+      "right": 300.78125,
+      "top": 132,
+      "bottom": 223.15625,
+      "width": 281.59375,
+      "height": 91.15625
+    },
+    "notes": null,
+    "bottom": {
+      "left": 19.1875,
+      "right": 300.8125,
+      "top": 518,
+      "bottom": 544,
+      "width": 281.625,
+      "height": 26
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "small-phone",
+    "time": "44.958",
+    "mode": "cinematic",
+    "cue": {
+      "left": 19.1875,
+      "right": 300.78125,
+      "top": 132,
+      "bottom": 223.15625,
+      "width": 281.59375,
+      "height": 91.15625
+    },
+    "notes": null,
+    "bottom": {
+      "left": 19.1875,
+      "right": 300.8125,
+      "top": 518,
+      "bottom": 544,
+      "width": 281.625,
+      "height": 26
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "small-phone",
+    "time": "72.958",
+    "mode": "cinematic",
+    "cue": {
+      "left": 19.1875,
+      "right": 300.78125,
+      "top": 132,
+      "bottom": 252.15625,
+      "width": 281.59375,
+      "height": 120.15625
+    },
+    "notes": {
+      "left": 19.1875,
+      "right": 300.8125,
+      "top": 386,
+      "bottom": 512,
+      "width": 281.625,
+      "height": 126
+    },
+    "bottom": {
+      "left": 19.1875,
+      "right": 300.8125,
+      "top": 518,
+      "bottom": 544,
+      "width": 281.625,
+      "height": 26
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "tablet",
+    "time": "7.000",
+    "mode": "cinematic",
+    "cue": {
+      "left": 46.078125,
+      "right": 706.078125,
+      "top": 133.109375,
+      "bottom": 209.578125,
+      "width": 660,
+      "height": 76.46875
+    },
+    "notes": null,
+    "bottom": {
+      "left": 46.078125,
+      "right": 721.921875,
+      "top": 985,
+      "bottom": 1000,
+      "width": 675.84375,
+      "height": 15
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "tablet",
+    "time": "45.000",
+    "mode": "cinematic",
+    "cue": {
+      "left": 46.078125,
+      "right": 706.078125,
+      "top": 133.109375,
+      "bottom": 209.578125,
+      "width": 660,
+      "height": 76.46875
+    },
+    "notes": null,
+    "bottom": {
+      "left": 46.078125,
+      "right": 721.921875,
+      "top": 985,
+      "bottom": 1000,
+      "width": 675.84375,
+      "height": 15
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "tablet",
+    "time": "73.000",
+    "mode": "cinematic",
+    "cue": {
+      "left": 46.078125,
+      "right": 706.078125,
+      "top": 133.109375,
+      "bottom": 280.046875,
+      "width": 660,
+      "height": 146.9375
+    },
+    "notes": {
+      "left": 46.078125,
+      "right": 721.921875,
+      "top": 816,
+      "bottom": 954,
+      "width": 675.84375,
+      "height": 138
+    },
+    "bottom": {
+      "left": 46.078125,
+      "right": 721.921875,
+      "top": 985,
+      "bottom": 1000,
+      "width": 675.84375,
+      "height": 15
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "phone-landscape",
+    "time": "7.000",
+    "mode": "cinematic",
+    "cue": {
+      "left": 50.625,
+      "right": 405.09375,
+      "top": 168.15780639648438,
+      "bottom": 267.1265563964844,
+      "width": 354.46875,
+      "height": 98.96875
+    },
+    "notes": null,
+    "bottom": {
+      "left": 42.1875,
+      "right": 801.8125,
+      "top": 361,
+      "bottom": 376,
+      "width": 759.625,
+      "height": 15
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "phone-landscape",
+    "time": "45.000",
+    "mode": "cinematic",
+    "cue": {
+      "left": 50.625,
+      "right": 405.09375,
+      "top": 168.15780639648438,
+      "bottom": 267.1265563964844,
+      "width": 354.46875,
+      "height": 98.96875
+    },
+    "notes": null,
+    "bottom": {
+      "left": 42.1875,
+      "right": 801.8125,
+      "top": 361,
+      "bottom": 376,
+      "width": 759.625,
+      "height": 15
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "phone-landscape",
+    "time": "73.000",
+    "mode": "cinematic",
+    "cue": {
+      "left": 50.625,
+      "right": 405.09375,
+      "top": 158.42343139648438,
+      "bottom": 285.2046813964844,
+      "width": 354.46875,
+      "height": 126.78125
+    },
+    "notes": {
+      "left": 531.8125,
+      "right": 801.8125,
+      "top": 118,
+      "bottom": 269,
+      "width": 270,
+      "height": 151
+    },
+    "bottom": {
+      "left": 42.1875,
+      "right": 801.8125,
+      "top": 361,
+      "bottom": 376,
+      "width": 759.625,
+      "height": 15
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "small-landscape",
+    "time": "7.000",
+    "mode": "cinematic",
+    "cue": {
+      "left": 34.078125,
+      "right": 272.625,
+      "top": 131.90469360351562,
+      "bottom": 230.43594360351562,
+      "width": 238.546875,
+      "height": 98.53125
+    },
+    "notes": null,
+    "bottom": {
+      "left": 28.390625,
+      "right": 539.609375,
+      "top": 280,
+      "bottom": 306,
+      "width": 511.21875,
+      "height": 26
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "small-landscape",
+    "time": "44.958",
+    "mode": "cinematic",
+    "cue": {
+      "left": 34.078125,
+      "right": 272.625,
+      "top": 138.2703094482422,
+      "bottom": 218.6140594482422,
+      "width": 238.546875,
+      "height": 80.34375
+    },
+    "notes": null,
+    "bottom": {
+      "left": 28.390625,
+      "right": 539.609375,
+      "top": 280,
+      "bottom": 306,
+      "width": 511.21875,
+      "height": 26
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  },
+  {
+    "name": "small-landscape",
+    "time": "72.958",
+    "mode": "cinematic",
+    "cue": {
+      "left": 34.078125,
+      "right": 272.625,
+      "top": 128.5359344482422,
+      "bottom": 236.6921844482422,
+      "width": 238.546875,
+      "height": 108.15625
+    },
+    "notes": {
+      "left": 335.140625,
+      "right": 539.609375,
+      "top": 118,
+      "bottom": 269,
+      "width": 204.46875,
+      "height": 151
+    },
+    "bottom": {
+      "left": 28.390625,
+      "right": 539.609375,
+      "top": 280,
+      "bottom": 306,
+      "width": 511.21875,
+      "height": 26
+    },
+    "overlap": false,
+    "notesHitFooter": false
+  }
+]
