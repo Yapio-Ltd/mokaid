@@ -57,6 +57,11 @@ No global Lifeline plugin is enabled.
 
 ## Image and executable contract
 
+Deployment uses a native x64 runner, matching the CI architecture for the
+Blender worker image and renderer verification. The ARM64 API variant uses
+QEMU during the multi-architecture build. This avoids running the x64 BEAM
+compiler and Blender checks through x64 emulation on an ARM64 runner.
+
 The API remains Linux ARM64. The avatar worker uses Linux AMD64 because the
 [official Blender 5.2.0 manifest](https://download.blender.org/release/Blender5.2/blender-5.2.0.sha256)
 does not publish a Linux ARM64 binary. Both variants share one immutable image

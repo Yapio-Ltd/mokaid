@@ -24,6 +24,21 @@ def command_step(steps, command):
     return matches[0]
 
 
+def test_renderer_runs_natively_and_cross_architecture_builds_have_emulation():
+    job = deployment()
+    assert job["runs-on"] in {"ubuntu-24.04", "ubuntu-latest"}
+    native_platform = "linux/amd64"
+    steps = job["steps"]
+    renderer = command_step(steps, "--entrypoint /opt/blender/blender")
+    assert f"--platform {native_platform}" in renderer["run"]
+    qemu = next(step for step in steps if "setup-qemu-action@" in step.get("uses", ""))
+    emulated = {"linux/" + arch for arch in qemu["with"]["platforms"].split(",")}
+    builds = [step for step in steps if "build-push-action@" in step.get("uses", "")]
+    for build in builds:
+        platforms = set(build["with"]["platforms"].split(","))
+        assert platforms <= emulated | {native_platform}
+
+
 def test_production_requires_exact_successful_push_ci_before_cloud_access():
     data = workflow("deploy.yml")
     job = data["jobs"]["deploy"]
