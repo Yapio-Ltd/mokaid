@@ -1,0 +1,57 @@
+{
+  "frames": {
+    "digest": "10b39734a90b",
+    "quality": 84,
+    "desktop": {
+      "pattern": "/assets/cinematic-frames.10b39734a90b/desktop/frame-%05d.webp",
+      "firstIndex": 1,
+      "count": 1776,
+      "fps": 24,
+      "width": 1280,
+      "height": 720,
+      "bytes": 139385278
+    },
+    "mobile": {
+      "pattern": "/assets/cinematic-frames.10b39734a90b/mobile/frame-%05d.webp",
+      "firstIndex": 1,
+      "count": 888,
+      "fps": 12,
+      "width": 960,
+      "height": 540,
+      "bytes": 51200684
+    }
+  },
+  "qualityReport": [
+    {
+      "time": 0,
+      "frame": "frame-00001.webp",
+      "psnrAverage": 38.030297
+    },
+    {
+      "time": 7,
+      "frame": "frame-00169.webp",
+      "psnrAverage": 38.358784
+    },
+    {
+      "time": 13,
+      "frame": "frame-00313.webp",
+      "psnrAverage": 36.046558
+    },
+    {
+      "time": 20,
+      "frame": "frame-00481.webp",
+      "psnrAverage": 36.473555
+    },
+    {
+      "time": 32,
+      "frame": "frame-00769.webp",
+      "psnrAverage": 36.148898
+    },
+    {
+      "time": 42,
+      "frame": "frame-01009.webp",
+      "psnrAverage": 36.856295
+    }
+  ],
+  "publicDir": "/Users/olimservice/mokaid/apps/web/public/assets/cinematic-frames.10b39734a90b"
+}

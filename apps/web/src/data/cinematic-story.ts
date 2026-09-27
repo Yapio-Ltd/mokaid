@@ -1,4 +1,5 @@
 import manifest from "./cinematic-story.json";
+import type { FramePack } from "@/lib/cinematic-frame-controller";
 
 export interface StoryWaypoint {
   progress: number;
@@ -15,13 +16,22 @@ export interface StoryCue {
   cta?: boolean;
 }
 
+export interface StoryFramePack extends FramePack {
+  bytes?: number;
+}
+
 export interface CinematicStoryManifest {
   version: number;
   duration: number;
   fps: number;
   logoAt: number;
   cta: { text: string; href: string };
-  video: string;
+  frames: {
+    digest: string;
+    quality: number;
+    desktop: StoryFramePack;
+    mobile: StoryFramePack;
+  };
   poster: string;
   stills: { entry: string; work: string; life: string };
   scrollMap: StoryWaypoint[];

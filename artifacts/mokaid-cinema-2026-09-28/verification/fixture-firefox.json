@@ -1,0 +1,150 @@
+{
+  "status": "passed",
+  "fixtureSubstitution": true,
+  "timestamp": "2026-09-27T21:56:31.348Z",
+  "engine": "firefox",
+  "origin": "http://127.0.0.1:5197",
+  "media": {
+    "fixture": true,
+    "bytes": 76
+  },
+  "passed": [
+    "prerender/no-JS: illustrated moments, no frame pack requests",
+    "desktop: full pack, scroll milestones, SPA restore, fullscreen cover",
+    "mobile viewport: fullscreen cover, captions, rotation",
+    "tablet viewport: fullscreen cover, captions, rotation",
+    "reduced motion reversible",
+    "failed pack retry restores scrubbing",
+    "slow-loading retry preserves track"
+  ],
+  "samples": [
+    {
+      "requestedTime": 7,
+      "targetTime": 7,
+      "presentedTime": 7,
+      "errorSeconds": 0,
+      "settledMs": 23
+    },
+    {
+      "requestedTime": 13,
+      "targetTime": 13,
+      "presentedTime": 13,
+      "errorSeconds": 0,
+      "settledMs": 38
+    },
+    {
+      "requestedTime": 20,
+      "targetTime": 20,
+      "presentedTime": 20,
+      "errorSeconds": 0,
+      "settledMs": 35
+    },
+    {
+      "requestedTime": 32,
+      "targetTime": 32,
+      "presentedTime": 32,
+      "errorSeconds": 0,
+      "settledMs": 39
+    },
+    {
+      "requestedTime": 42,
+      "targetTime": 42,
+      "presentedTime": 42,
+      "errorSeconds": 0,
+      "settledMs": 37
+    },
+    {
+      "requestedTime": 51,
+      "targetTime": 51,
+      "presentedTime": 51,
+      "errorSeconds": 0,
+      "settledMs": 37
+    },
+    {
+      "requestedTime": 61,
+      "targetTime": 61,
+      "presentedTime": 61,
+      "errorSeconds": 0,
+      "settledMs": 28
+    },
+    {
+      "requestedTime": 67,
+      "targetTime": 67,
+      "presentedTime": 67,
+      "errorSeconds": 0,
+      "settledMs": 34
+    },
+    {
+      "requestedTime": 74,
+      "targetTime": 73.95833333333333,
+      "presentedTime": 73.958,
+      "errorSeconds": 0.000333333333330188,
+      "settledMs": 45
+    },
+    {
+      "requestedTime": 0,
+      "targetTime": 0,
+      "presentedTime": 0,
+      "errorSeconds": 0,
+      "settledMs": 42
+    },
+    {
+      "requestedTime": 72,
+      "targetTime": 72,
+      "presentedTime": 72,
+      "errorSeconds": 0,
+      "settledMs": 43
+    },
+    {
+      "requestedTime": 2,
+      "targetTime": 2,
+      "presentedTime": 2,
+      "errorSeconds": 0,
+      "settledMs": 37
+    },
+    {
+      "requestedTime": 55,
+      "targetTime": 55,
+      "presentedTime": 55,
+      "errorSeconds": 0,
+      "settledMs": 33
+    },
+    {
+      "requestedTime": 18,
+      "targetTime": 18,
+      "presentedTime": 18,
+      "errorSeconds": 0,
+      "settledMs": 33
+    },
+    {
+      "requestedTime": 65,
+      "targetTime": 65,
+      "presentedTime": 65,
+      "errorSeconds": 0,
+      "settledMs": 34
+    },
+    {
+      "requestedTime": 74,
+      "targetTime": 73.95833333333333,
+      "presentedTime": 73.958,
+      "errorSeconds": 0.000333333333330188,
+      "settledMs": 35
+    }
+  ],
+  "version": "153.0",
+  "readiness": {
+    "mode": "cinematic",
+    "top": 1620,
+    "height": 11700,
+    "viewport": 900,
+    "scroll": 0,
+    "presentedTime": 0,
+    "canvasCount": 1,
+    "stageWidth": 1440,
+    "stageHeight": 900,
+    "canvasWidth": 1440,
+    "canvasHeight": 900,
+    "canvasTop": 1620,
+    "stageTop": 1620
+  }
+}

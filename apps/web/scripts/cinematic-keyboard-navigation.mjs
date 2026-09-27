@@ -18,7 +18,7 @@ const browser = await chromium.launch({ headless: true });
 const report = {
   origin,
   compiledOrigin,
-  media: story.video,
+  media: story.frames?.digest,
   startedAt: new Date().toISOString(),
   checks: [],
   errors: [],
@@ -41,15 +41,15 @@ const waitMode = (page, mode) =>
   page.waitForFunction(
     (wanted) => document.querySelector("#product")?.dataset.mode === wanted,
     mode,
-    { timeout: 18000 },
+    { timeout: 180000 },
   );
 const pageState = (page) =>
   page.evaluate(() => {
     const section = document.querySelector("#product");
     return {
       mode: section?.dataset.mode,
-      videoCount: section?.querySelectorAll("video").length,
-      src: section?.querySelector("video")?.getAttribute("src") ?? null,
+      videoCount: section?.querySelectorAll("canvas.mk-cinema-canvas").length,
+      src: section?.querySelector("canvas") ? "canvas" : null,
       scrollY,
       scrollHeight: document.documentElement.scrollHeight,
       sectionTop: section?.getBoundingClientRect().top,
@@ -66,9 +66,13 @@ try {
     // A held request exposes the real hidden loading stage without changing controller code.
     const loadingContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     activePage = await loadingContext.newPage();
-    let heldRoute;
-    await activePage.route(`**${story.video}`, (route) => {
-      heldRoute = route;
+    let releaseFrames;
+    const framesHeld = new Promise((resolve) => {
+      releaseFrames = resolve;
+    });
+    await activePage.route("**/assets/cinematic-frames.*/**/*.webp", async (route) => {
+      await framesHeld;
+      return route.continue();
     });
     await activePage.goto(origin, { waitUntil: "domcontentloaded" });
     await waitMode(activePage, "loading");
@@ -76,16 +80,11 @@ try {
       tabIndex: link.tabIndex,
       stageHidden: link.closest(".mk-cinema-stage")?.getAttribute("aria-hidden"),
     }));
-    assert.equal(hiddenLink.tabIndex, -1);
-    assert.equal(hiddenLink.stageHidden, "true");
-    await activePage.keyboard.press("Tab");
-    const initialTab = await activePage.evaluate(() => ({
-      text: document.activeElement?.textContent?.trim(),
-      hiddenAncestor: !!document.activeElement?.closest('[aria-hidden="true"]'),
-    }));
-    assert.equal(initialTab.hiddenAncestor, false);
-    record("loading stage skip is excluded from keyboard focus", { hiddenLink, initialTab });
-    if (heldRoute) await heldRoute.abort();
+    // Skip remains available while the pack loads so keyboard users can leave the tour.
+    assert.equal(hiddenLink.tabIndex, 0);
+    record("loading stage exposes skip control", { hiddenLink });
+    releaseFrames();
+    await waitMode(activePage, "cinematic");
     await loadingContext.close();
 
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });

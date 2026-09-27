@@ -7,7 +7,6 @@
     "text": "Build your team",
     "href": "/download"
   },
-  "video": "/assets/mokaid-office-journey.adac1c365481.mp4",
   "poster": "/assets/mokaid-cafe.f62fa55fc5e6.webp",
   "stills": {
     "entry": "/assets/office-entry.ef8a91f3c674.webp",
@@ -210,5 +209,27 @@
       "time": 70.4,
       "text": "Inbox processed"
     }
-  ]
+  ],
+  "frames": {
+    "digest": "10b39734a90b",
+    "quality": 84,
+    "desktop": {
+      "pattern": "/assets/cinematic-frames.10b39734a90b/desktop/frame-%05d.webp",
+      "firstIndex": 1,
+      "count": 1776,
+      "fps": 24,
+      "width": 1280,
+      "height": 720,
+      "bytes": 139385278
+    },
+    "mobile": {
+      "pattern": "/assets/cinematic-frames.10b39734a90b/mobile/frame-%05d.webp",
+      "firstIndex": 1,
+      "count": 888,
+      "fps": 12,
+      "width": 960,
+      "height": 540,
+      "bytes": 51200684
+    }
+  }
 }

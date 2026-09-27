@@ -2,7 +2,8 @@ import { webkit } from "playwright";
 import { readFile, writeFile } from "node:fs/promises";
 
 const origin = process.argv[2] || "http://127.0.0.1:4173";
-const source = process.argv[3] || JSON.parse(await readFile(new URL("../src/data/cinematic-story.json", import.meta.url), "utf8")).video;
+const story = JSON.parse(await readFile(new URL("../src/data/cinematic-story.json", import.meta.url), "utf8"));
+const source = process.argv[3] || story.frames?.desktop?.pattern?.replace("%05d", "00001");
 const browser = await webkit.launch();
 const report = { origin, source, engine: browser.version(), responses: [] };
 try {

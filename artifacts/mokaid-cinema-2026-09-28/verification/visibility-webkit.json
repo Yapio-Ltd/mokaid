@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "digest": "10b39734a90b",
+  "timestamp": "2026-09-27T21:58:13.724Z",
+  "beforeHidden": {
+    "presentedTime": 20,
+    "hidden": false
+  },
+  "whileHidden": {
+    "presentedTime": 20,
+    "hidden": true
+  },
+  "afterVisible": {
+    "presentedTime": 42
+  }
+}

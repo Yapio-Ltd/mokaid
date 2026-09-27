@@ -117,6 +117,7 @@
   pointer-events: none;
 }
 .mk-cinema-video,
+.mk-cinema-canvas,
 .mk-cinema-poster {
   position: absolute;
   inset: 0;
@@ -124,11 +125,17 @@
   height: 100%;
   object-fit: cover;
 }
-.mk-cinema-video {
+.mk-cinema-canvas {
+  display: block;
+}
+.mk-cinema-video,
+.mk-cinema-canvas {
   z-index: 1;
   opacity: 0;
 }
-.mk-cinematic-story[data-video-ready="true"] .mk-cinema-video {
+.mk-cinematic-story[data-video-ready="true"] .mk-cinema-video,
+.mk-cinematic-story[data-frames-ready="true"] .mk-cinema-canvas,
+.mk-cinematic-story[data-video-ready="true"] .mk-cinema-canvas {
   opacity: 1;
 }
 .mk-cinema-shade {
@@ -372,31 +379,42 @@
   }
 }
 
-/* Portrait screens keep the whole landscape film in view. The copy and the
-   completion receipts use the surrounding space instead of cropping the film. */
+/* Portrait phones fill the viewport edge-to-edge (cover). Copy and receipts
+   sit on a stronger scrim over the cropped film — no letterbox bars. */
 @media (orientation: portrait) and (max-width: 1200px) {
   .mk-cinema-video,
+  .mk-cinema-canvas,
   .mk-cinema-poster {
-    object-fit: contain;
-    object-position: center 48%;
+    object-fit: cover;
+    object-position: center center;
   }
   .mk-cinema-shade {
-    background: linear-gradient(
-      180deg,
-      rgb(8 8 13 / 48%),
-      transparent 40%,
-      transparent 60%,
-      rgb(8 8 13 / 48%)
-    );
+    background:
+      linear-gradient(
+        180deg,
+        rgb(8 8 13 / 72%) 0%,
+        rgb(8 8 13 / 28%) 28%,
+        transparent 48%,
+        transparent 58%,
+        rgb(8 8 13 / 55%) 82%,
+        rgb(8 8 13 / 78%) 100%
+      ),
+      linear-gradient(90deg, rgb(4 3 9 / 40%) 0%, transparent 35%, transparent 65%, rgb(4 3 9 / 35%) 100%);
   }
   .mk-cinema-cue,
   .mk-cinema-cue--center {
-    top: max(132px, 13svh);
+    top: max(120px, calc(env(safe-area-inset-top) + 96px));
     left: max(6vw, env(safe-area-inset-left));
-    width: 88vw;
-    max-width: 660px;
+    width: min(88vw, 560px);
+    max-width: none;
     transform: none;
     text-align: left;
+  }
+  .mk-cinema-cue--center {
+    left: 50%;
+    width: min(88vw, 540px);
+    transform: translateX(-50%);
+    text-align: center;
   }
   .mk-cinema-cue h2 {
     max-width: 560px;
@@ -435,22 +453,9 @@
   }
 }
 
-/* Fit the full film between the copy and receipts on shorter portrait screens. */
 @media (orientation: portrait) and (max-height: 650px) {
-  .mk-cinema-video,
-  .mk-cinema-poster {
-    top: 290px;
-    bottom: auto;
-    height: calc(100% - 356px);
-    object-position: center;
-  }
   .mk-cinema-cue h2 {
     font-size: 26px;
-  }
-  .mk-cinema-stage:has(.mk-cinema-notifications) .mk-cinema-video,
-  .mk-cinema-stage:has(.mk-cinema-notifications) .mk-cinema-poster {
-    top: 260px;
-    height: calc(100% - 450px);
   }
   .mk-cinema-notifications {
     bottom: max(56px, calc(env(safe-area-inset-bottom) + 44px));
@@ -461,7 +466,6 @@
     font-size: 10px;
   }
   .mk-cinema-final-logo {
-    top: calc(260px + (100% - 450px) / 2);
     width: 30px;
   }
 }
