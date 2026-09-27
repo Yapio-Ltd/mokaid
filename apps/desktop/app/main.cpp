@@ -107,6 +107,7 @@ int main(int argc, char* argv[]) {
         static_cast<DriveDownload*>(features.driveDownload())->request(file);
     });
     QObject::connect(&features, &FeatureController::requestExternal, &system, &SystemController::openBrowser);
+    QObject::connect(&features, &FeatureController::requestMailLink, &system, &SystemController::openMailLink);
     QObject::connect(&realtime, &PhoenixClient::rejoined, &features, &FeatureController::refresh);
     QObject::connect(&activity, &ActivityController::navigateRequested, &features, &FeatureController::openRecord);
     mokaid::registerViewportTypes();

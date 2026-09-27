@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { apiFetch, apiUpload } from "./client";
 import type { Asset3d } from "./hooks";
@@ -20,16 +21,25 @@ export interface AvatarGeneration {
   updated_at: string;
 }
 
-export type CreateAvatarGeneration =
-  { mode: "image"; file: File; name?: string } | { mode: "text"; prompt: string; name?: string };
+export interface AvatarGenerationQuote {
+  pricing: { credits: number };
+  credits: { spendable: number; unlimited: boolean };
+}
+
+type AvatarGenerationHistory = Omit<Envelope<AvatarGeneration[]>, "meta"> & {
+  meta?: AvatarGenerationQuote;
+};
+
+export type CreateAvatarGeneration = (
+  { mode: "image"; file: File; name?: string } | { mode: "text"; prompt: string; name?: string }
+) & { expected_credits: number };
 export const AVATAR_PHOTO_MAX_BYTES = 10_000_000;
 export const AVATAR_PROMPT_MAX_LENGTH = 600;
 export const avatarGenerationIsActive = (generation: AvatarGeneration) =>
   generation.status !== "ready" && generation.status !== "failed";
 
 export function validateAvatarPhoto(file: File): string | null {
-  if (!["image/jpeg", "image/png"].includes(file.type))
-    return "Choose a JPG or PNG photo.";
+  if (!["image/jpeg", "image/png"].includes(file.type)) return "Choose a JPG or PNG photo.";
   if (file.size === 0) return "This photo is empty. Choose another file.";
   if (file.size > AVATAR_PHOTO_MAX_BYTES)
     return "This photo is too large. Choose a file under 10 MB.";
@@ -39,22 +49,27 @@ export function validateAvatarPhoto(file: File): string | null {
 export function useAvatarGenerations() {
   const workspaceId = useAuthStore((state) => state.workspaceId);
   const userId = useAuthStore((state) => state.user?.id);
-  return useQuery({
+  const query = useQuery({
     queryKey: ["avatar-generations", workspaceId, userId],
     enabled: Boolean(workspaceId && userId),
-    queryFn: () =>
-      apiFetch<Envelope<AvatarGeneration[]>>("/api/avatar-generations").then(
-        (result) => result.data,
-      ),
-    refetchInterval: (query) => (query.state.data?.some(avatarGenerationIsActive) ? 5_000 : false),
+    queryFn: () => apiFetch<AvatarGenerationHistory>("/api/avatar-generations"),
+    refetchInterval: (query) =>
+      query.state.data?.data.some(avatarGenerationIsActive) ? 5_000 : false,
     retry: 1,
   });
+  return {
+    ...query,
+    data: query.data?.data,
+    pricing: query.data?.meta?.pricing,
+    credits: query.data?.meta?.credits,
+  };
 }
 
 export function useAvatarGeneration(id: string | null) {
+  const client = useQueryClient();
   const workspaceId = useAuthStore((state) => state.workspaceId);
   const userId = useAuthStore((state) => state.user?.id);
-  return useQuery({
+  const query = useQuery({
     queryKey: ["avatar-generations", workspaceId, userId, id],
     enabled: Boolean(id && workspaceId && userId),
     queryFn: () =>
@@ -65,6 +80,17 @@ export function useAvatarGeneration(id: string | null) {
       query.state.data && !avatarGenerationIsActive(query.state.data) ? false : 3_000,
     retry: 1,
   });
+  const terminal = query.data?.status === "ready" || query.data?.status === "failed";
+  useEffect(() => {
+    if (!terminal) return;
+    // A failed job returns its credits; refresh the balance and the creation quote.
+    void client.invalidateQueries({ queryKey: ["billing"] });
+    void client.invalidateQueries({
+      queryKey: ["avatar-generations", workspaceId, userId],
+      exact: true,
+    });
+  }, [terminal, id, client, workspaceId, userId]);
+  return query;
 }
 
 export function useCreateAvatarGeneration() {
@@ -75,6 +101,7 @@ export function useCreateAvatarGeneration() {
         const body = new FormData();
         body.append("mode", "image");
         body.append("file", input.file);
+        body.append("expected_credits", String(input.expected_credits));
         if (input.name) body.append("name", input.name);
         return apiUpload<Envelope<AvatarGeneration>>("/api/avatar-generations", body).then(
           (result) => result.data,
@@ -87,6 +114,10 @@ export function useCreateAvatarGeneration() {
     },
     // Never automatically repeat a paid generation request after a lost response.
     retry: false,
-    onSettled: () => client.invalidateQueries({ queryKey: ["avatar-generations"] }),
+    onSettled: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ["avatar-generations"] }),
+        client.invalidateQueries({ queryKey: ["billing"] }),
+      ]),
   });
 }

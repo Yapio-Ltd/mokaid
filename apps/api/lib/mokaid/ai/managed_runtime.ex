@@ -503,6 +503,20 @@ defmodule Mokaid.AI.ManagedRuntime do
           lease_seconds: @lease_seconds
         })
 
+      # Long-lived/recovered runtime snapshots retain old transport tokens.
+      # Renew Mail authority only after today's run, member, agent and policy
+      # checks; the opaque capability never enters the model's tool result.
+      response =
+        if tool in ~w(list_mail_accounts search_mail read_mail_message save_mail_attachment) do
+          Map.put(
+            response,
+            :workspace_mail,
+            Mokaid.Mail.AgentAccess.for_run(run, task, [%{id: agent.id}])
+          )
+        else
+          response
+        end
+
       # Resolve credentials only for this already-authorized call. This worker
       # callback is private; descriptors must never enter provider/model context.
       case is_binary(tool) && String.split(tool, ":", parts: 3) do

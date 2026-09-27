@@ -11,6 +11,7 @@ public:
     using Completion = std::function<void(ArtifactResult)>;
     ArtifactService(ApiClient&, SessionController&, CacheStore&, QObject* parent = nullptr);
     void fetch(const QString& id, QObject* owner, Completion completion);
+    void fetchMailAttachment(const QString& messageId, const QString& attachmentId, QObject* owner, Completion completion);
 private:
     ApiClient& api_;
     SessionController& session_;

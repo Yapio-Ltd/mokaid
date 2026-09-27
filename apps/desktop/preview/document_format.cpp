@@ -5,8 +5,25 @@
 #include <QJsonDocument>
 #include <QMimeDatabase>
 #include <QTextDocument>
+#include <QStringDecoder>
 
 namespace mokaid::desktop {
+QVariantMap describeMailAttachment(const QVariantMap& file, const QByteArray& bytes) {
+    auto format=describeDeliverable(file);
+    QString kind="unsupported",mime="application/octet-stream",label="Attachment";
+    if(bytes.startsWith("%PDF-")) {kind="pdf";mime="application/pdf";label="PDF document";}
+    else if(bytes.startsWith("\x89PNG\r\n\x1a\n") || bytes.startsWith("\xff\xd8\xff") || bytes.startsWith("GIF87a") || bytes.startsWith("GIF89a")
+        || (bytes.startsWith("RIFF")&&bytes.mid(8,4)=="WEBP") || bytes.startsWith("BM")) {kind="image";mime="image/*";label="Image";}
+    else if(!bytes.contains('\0')) {
+        QStringDecoder decoder(QStringDecoder::Utf8); const QString text=decoder(bytes); Q_UNUSED(text);
+        if(!decoder.hasError()) {kind="text";mime="text/plain";label="Document";}
+    }
+    // Mail HTML, SVG and Markdown remain escaped text, regardless of the
+    // provider's MIME declaration or misleading file extension.
+    format.insert("kind",kind);format.insert("mimeType",mime);format.insert("label",label);
+    if(kind=="text") format.insert("extension","TXT");
+    return format;
+}
 QVariantMap normalizeDeliverable(QVariantMap file) {
     if (!file.value("drive_item_id").toString().isEmpty()) file.insert("id", file.value("drive_item_id"));
     if (file.value("name").toString().isEmpty()) file.insert("name", file.value("filename", "Deliverable"));

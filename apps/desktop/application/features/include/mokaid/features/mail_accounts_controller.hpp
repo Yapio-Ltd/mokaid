@@ -14,6 +14,8 @@ class MailAccountsController final : public QObject {
     Q_PROPERTY(QVariantMap selectedAccount READ selectedAccount NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QString message READ message NOTIFY changed)
+    Q_PROPERTY(bool canSend READ canSend NOTIFY changed)
+    Q_PROPERTY(bool canManage READ canManage NOTIFY changed)
     Q_PROPERTY(bool online READ online NOTIFY changed)
     Q_PROPERTY(bool refreshing READ refreshing NOTIFY changed)
     Q_PROPERTY(bool submitting READ submitting NOTIFY changed)
@@ -27,6 +29,8 @@ public:
     QVariantMap selectedAccount() const;
     QString error() const { return error_; }
     QString message() const { return message_; }
+    bool canSend() const { return canSend_; }
+    bool canManage() const { return canManage_; }
     bool online() const { return api_.context().online && api_.context().authenticated; }
     bool refreshing() const { return refreshing_; }
     bool submitting() const { return submitting_; }
@@ -68,6 +72,6 @@ private:
     quint64 contextGeneration_{}, epoch_{};
     qint64 oauthDeadline_{}, syncDeadline_{};
     int syncRequests_{};
-    bool active_{}, refreshing_{}, submitting_{}, syncing_{}, polling_{};
+    bool canSend_{}, canManage_{}, active_{}, refreshing_{}, submitting_{}, syncing_{}, polling_{};
 };
 }

@@ -18,10 +18,13 @@ Item {
     // Custom locations and unresolved assignments must not borrow another face.
     readonly property string portraitSource: {
         if (agent.kind !== "ai" && agent.kind !== "hybrid") return ""
-        const thumbnail = String(agent.avatar_thumbnail_url || "").trim()
-        if (/^https:\/\/[^/?#]+\//.test(thumbnail)) return thumbnail
+        // Generation thumbnails show the whole body, not a face. Only use the
+        // separately rendered head portrait here; unresolved custom faces keep
+        // their initials until their portrait has been generated.
+        const portrait = String(agent.avatar_portrait_url || "").trim()
+        if (/^https:\/\/[^/?#]+\//.test(portrait)) return portrait
         const path = String(agent.avatar_cdn_path || "").trim()
-        if (!path) return agent.avatar_asset_id ? "" : "qrc:/ui/portrait-male.png"
+        if (!path) return agent.avatar_asset_id || agent.avatar_thumbnail_url || portrait || String(agent.asset_type || "").indexOf("custom:") === 0 ? "" : "qrc:/ui/portrait-male.png"
         const match = /^(?:(?:https?:\/\/[^/?#]+)?\/?assets3d\/|assets\/optimized\/)avatar_(male|design|finance|corporate|developer|research|legal|byte|nyx|moss)(?:\.[a-f0-9]+)?\.glb(?:[?#].*)?$/.exec(path)
         return match ? "qrc:/ui/portrait-" + match[1] + ".png" : ""
     }

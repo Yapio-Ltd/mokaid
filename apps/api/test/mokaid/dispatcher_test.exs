@@ -176,6 +176,64 @@ defmodule Mokaid.AI.DispatcherTest do
     end
   end
 
+  describe "best_agent/2" do
+    test "returns no employee when the roster has no capability match" do
+      {workspace, _owner} = workspace_fixture()
+      create_agent(workspace.id, "Taya", "Legal Specialist", ["contracts", "compliance"])
+
+      assert Dispatcher.best_agent(workspace.id, "Build a website") == nil
+    end
+
+    test "keeps an overloaded competent employee ahead of an unrelated free employee" do
+      {workspace, _owner} = workspace_fixture()
+      engineer = create_agent(workspace.id, "Sira", "Software Engineer", ["coding", "debugging"])
+      create_agent(workspace.id, "Taya", "Legal Specialist", ["contracts", "compliance"])
+      now = DateTime.utc_now()
+
+      Repo.insert_all(
+        Mokaid.Tasks.Task,
+        for index <- 1..200 do
+          %{
+            id: Ecto.UUID.generate(),
+            workspace_id: workspace.id,
+            assigned_agent_id: engineer.id,
+            title: "Queued work #{index}",
+            status: "to_do",
+            inserted_at: now,
+            updated_at: now
+          }
+        end
+      )
+
+      assert Dispatcher.best_agent(workspace.id, "Build a website").id == engineer.id
+    end
+
+    test "composite missions leave unmatched children unassigned and do not start runs" do
+      {workspace, owner} = workspace_fixture()
+      member = owner_member(workspace, owner)
+      create_agent(workspace.id, "Taya", "Legal Specialist", ["contracts", "compliance"])
+      instruction = "Brand identity logo + complete website landing page"
+
+      {:ok, parent} =
+        Tasks.create_task(
+          workspace.id,
+          %{"title" => "Launch", "description" => instruction},
+          member
+        )
+
+      assert {:ok, %{children: children}} =
+               Mokaid.AI.Orchestrator.launch(workspace.id, parent, instruction, member)
+
+      assert length(children) >= 2
+
+      for child <- children do
+        persisted = Tasks.get_task(workspace.id, child.id)
+        assert persisted.assigned_agent_id == nil
+        assert persisted.execution_runs == []
+      end
+    end
+  end
+
   describe "confirm/3" do
     test "creates the task assigned to an existing agent and starts a run" do
       {workspace, owner} = workspace_fixture()

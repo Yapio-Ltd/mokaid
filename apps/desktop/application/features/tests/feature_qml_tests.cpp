@@ -30,12 +30,19 @@ class AvatarCreatorFixture final : public QObject {
     Q_PROPERTY(bool submitting MEMBER submitting NOTIFY changed)
     Q_PROPERTY(bool refreshing MEMBER refreshing NOTIFY changed)
     Q_PROPERTY(bool online MEMBER online NOTIFY changed)
+    Q_PROPERTY(int generationCredits MEMBER generationCredits NOTIFY changed)
+    Q_PROPERTY(int creditsAvailable MEMBER creditsAvailable NOTIFY changed)
+    Q_PROPERTY(bool unlimitedCredits MEMBER unlimitedCredits NOTIFY changed)
+    Q_PROPERTY(bool pricingReady MEMBER pricingReady NOTIFY changed)
+    Q_PROPERTY(bool canAffordGeneration MEMBER canAffordGeneration NOTIFY changed)
 public:
     QVariantList catalog, generations;
     QVariantMap current;
     QString error, submittedPrompt, submittedName;
     QUrl submittedPhoto;
     bool submitting{}, refreshing{}, online{true};
+    int generationCredits{1000}, creditsAvailable{3000};
+    bool unlimitedCredits{}, pricingReady{true}, canAffordGeneration{true};
     int submits{};
     Q_INVOKABLE void refresh() {}
     Q_INVOKABLE void refreshCurrent() {}
@@ -45,7 +52,11 @@ public:
         current={{"id","fixture-generation"},{"mode","text"},{"status","generating"},{"progress",27}};
         generations={current}; emit changed();
     }
-    Q_INVOKABLE void generateImage(const QUrl& photo,const QString& name) { submittedPhoto=photo; submittedName=name; ++submits; }
+    Q_INVOKABLE void generateImage(const QUrl& photo,const QString& name) {
+        submittedPhoto=photo; submittedName=name; ++submits;
+        current={{"id","fixture-generation"},{"mode","image"},{"status","generating"},{"progress",27}};
+        generations={current}; emit changed();
+    }
     Q_INVOKABLE void selectGeneration(const QString& id) {
         for (const auto& row:generations) if (row.toMap().value("id").toString()==id) { current=row.toMap(); emit changed(); return; }
     }
@@ -150,6 +161,110 @@ class FeatureQmlTests final : public QObject {
         return nullptr;
     }
 private slots:
+    void agentCreationPhotoExplainsNextStepUntilCharacterIsAccepted() {
+        QTemporaryDir staging; QVERIFY(staging.isValid());
+        for (const auto& file:QDir(QStringLiteral(MOKAID_FEATURE_QML_DIRECTORY)).entryList({"*.qml","*.js"},QDir::Files))
+            QVERIFY(QFile::copy(QStringLiteral(MOKAID_FEATURE_QML_DIRECTORY)+"/"+file,staging.path()+"/"+file));
+        QFile qmldir(staging.path()+"/qmldir"); QVERIFY(qmldir.open(QIODevice::WriteOnly));
+        qmldir.write("singleton Theme 1.0 Theme.qml\n"); qmldir.close();
+        QFile portrait(staging.path()+"/WorkforcePortrait.qml"); QVERIFY(portrait.open(QIODevice::WriteOnly|QIODevice::Truncate));
+        portrait.write("import QtQuick\nItem { property var agent; property real size; implicitWidth: size; implicitHeight: size }"); portrait.close();
+        QImage photo(60,100,QImage::Format_RGB32); photo.fill(Qt::blue);
+        const auto photoPath=staging.path()+"/character.png"; QVERIFY(photo.save(photoPath));
+        ActionFormFixture features; features.agentCreation=true; features.currentPage="agent-new";
+        QQmlEngine engine; QStringList warnings;
+        connect(&engine,&QQmlEngine::warnings,this,[&](const QList<QQmlError>& errors) { for (const auto& error:errors) warnings.append(error.toString()); });
+        engine.rootContext()->setContextProperty("features",&features);
+        QQmlComponent component(&engine);
+        component.setData("import QtQuick\nRectangle { width: 1000; height: 820; color: Theme.background; ActionDialog { objectName: \"creationDialog\" } }",QUrl::fromLocalFile(staging.path()+"/AgentPhotoFixture.qml"));
+        std::unique_ptr<QObject> root(component.create()); QVERIFY2(root,qPrintable(component.errorString()));
+        auto* item=qobject_cast<QQuickItem*>(root.get()); QVERIFY(item);
+        QQuickWindow window; window.resize(1000,820); item->setParentItem(window.contentItem()); window.show();
+        auto* dialog=root->findChild<QObject*>("creationDialog"); QVERIFY(dialog);
+        const QVariant action=QVariantMap{{"id","create"},{"title","Create agent"},{"enabled",true}};
+        QVERIFY(QMetaObject::invokeMethod(dialog,"showAction",Q_ARG(QVariant,action)));
+        QTRY_VERIFY(dialog->property("opened").toBool());
+        auto* name=visualItem(window.contentItem(),"creationNameField"); QVERIFY(name);
+        QVERIFY(name->setProperty("text","Goku"));
+        auto* submit=visualItem(window.contentItem(),"creationSubmit"); QVERIFY(submit); QTRY_VERIFY(submit->isEnabled());
+        auto* source=visualItem(window.contentItem(),"avatarSource_image"); QVERIFY(source);
+        QVERIFY(QMetaObject::invokeMethod(source,"clicked")); QTRY_VERIFY(!submit->isEnabled());
+        auto* creator=visualItem(window.contentItem(),"avatarCreator"); QVERIFY(creator);
+        auto* hint=visualItem(window.contentItem(),"creationSubmitHint"); QVERIFY(hint);
+        QTRY_VERIFY(hint->isVisible());
+        QCOMPARE(hint->property("text").toString(),QString("Choose a photo, then click “Create 3D character” to continue."));
+
+        // Choosing a photo must explain the remaining explicit steps without
+        // spending generation credits or prematurely creating the teammate.
+        QVERIFY(creator->setProperty("photo",QUrl::fromLocalFile(photoPath)));
+        const QString photoHint="Photo selected. Click “Create 3D character”, then choose “Use this character” when it is ready.";
+        QTRY_COMPARE(hint->property("text").toString(),photoHint);
+        QCOMPARE(features.avatars.submits,0); QCOMPARE(features.submissions,0); QVERIFY(!submit->isEnabled());
+        auto* generate=visualItem(window.contentItem(),"avatarGenerate"); QVERIFY(generate); QVERIFY(generate->isEnabled());
+        QCOMPARE(generate->property("text").toString(),QString("Create 3D character"));
+        auto* cost=visualItem(window.contentItem(),"avatarGenerationCost"); QVERIFY(cost); QVERIFY(cost->isVisible());
+        const auto costText=cost->property("text").toString();
+        QVERIFY(costText.contains("Mokaid credits")); QVERIFY(costText.contains("1,000")); QVERIFY(!costText.contains("Meshy"));
+        features.avatars.pricingReady=false; features.avatars.canAffordGeneration=false; emit features.avatars.changed();
+        QTRY_VERIFY(!generate->isEnabled()); QVERIFY(!submit->isEnabled()); QCOMPARE(features.avatars.submits,0);
+        QVERIFY(!cost->property("text").toString().contains("1,000"));
+        features.avatars.pricingReady=true; features.avatars.creditsAvailable=999; emit features.avatars.changed();
+        QTRY_VERIFY(!generate->isEnabled()); QVERIFY(!submit->isEnabled());
+        QVERIFY(cost->property("text").toString().contains("1,000"));
+        features.avatars.creditsAvailable=3000; features.avatars.canAffordGeneration=true; emit features.avatars.changed();
+        QTRY_VERIFY(generate->isEnabled());
+        QTRY_COMPARE(hint->property("text").toString(),photoHint);
+        const auto captureDirectory=qEnvironmentVariable("MOKAID_NATIVE_CAPTURE_DIR");
+        if (!captureDirectory.isEmpty()) {
+            QDir().mkpath(captureDirectory); QTest::qWait(40);
+            QVERIFY(window.grabWindow().save(captureDirectory+"/avatar-credit-price.png"));
+        }
+
+        // The explanation must remain beside the disabled action when the
+        // form overflows and the photo picker has scrolled out of view.
+        window.resize(750,580); item->setSize(QSizeF(750,580)); QTest::qWait(40);
+        QVERIFY(dialog->property("height").toReal()<=532);
+        QQuickItem* scroll=nullptr;
+        for (auto* ancestor=creator->parentItem();ancestor;ancestor=ancestor->parentItem())
+            if (ancestor->property("contentY").isValid()) { scroll=ancestor; break; }
+        QVERIFY(scroll);
+        const qreal scrollBottom=scroll->property("contentHeight").toReal()-scroll->height(); QVERIFY(scrollBottom>0);
+        const auto hintPosition=hint->mapToScene(QPointF());
+        QVERIFY(scroll->setProperty("contentY",scrollBottom)); QTest::qWait(40);
+        QCOMPARE(hint->mapToScene(QPointF()),hintPosition);
+        QVERIFY(hint->isVisible()); QVERIFY(submit->isVisible());
+        const auto hintBounds=hint->mapRectToScene(QRectF(0,0,hint->width(),hint->height()));
+        QVERIFY(hintBounds.width()>0); QVERIFY(hintBounds.height()>0);
+        QVERIFY(QRectF(0,0,window.width(),window.height()).contains(hintBounds));
+        QVERIFY(hintBounds.bottom()<=submit->mapToScene(QPointF()).y());
+        if (!captureDirectory.isEmpty())
+            QVERIFY(window.grabWindow().save(captureDirectory+"/avatar-next-step-minimum.png"));
+
+        features.avatars.error="Generation service unavailable"; emit features.avatars.changed();
+        QTRY_COMPARE(hint->property("text").toString(),QString("Character creation needs attention: Generation service unavailable"));
+        features.avatars.error.clear(); features.avatars.submitting=true; emit features.avatars.changed();
+        QTRY_COMPARE(hint->property("text").toString(),QString("Starting your 3D character…"));
+        QVERIFY(!submit->isEnabled()); QVERIFY(!generate->isEnabled());
+        features.avatars.submitting=false; emit features.avatars.changed();
+        QTRY_COMPARE(hint->property("text").toString(),photoHint);
+        QVERIFY(QMetaObject::invokeMethod(generate,"clicked"));
+        QCOMPARE(features.avatars.submits,1); QCOMPARE(features.avatars.submittedPhoto,QUrl::fromLocalFile(photoPath));
+        QCOMPARE(features.avatars.submittedName,QString("Goku"));
+        QTRY_COMPARE(hint->property("text").toString(),QString("Your 3D character is still being created. When it is ready, choose “Use this character”."));
+        QVERIFY(!submit->isEnabled()); QVERIFY(!generate->isEnabled()); QCOMPARE(features.submissions,0);
+        features.avatars.finish();
+        QTRY_COMPARE(hint->property("text").toString(),QString("Your 3D character is ready. Click “Use this character” to continue."));
+        QVERIFY(!submit->isEnabled()); QCOMPARE(features.submissions,0);
+        auto* useCharacter=visualItem(window.contentItem(),"avatarUseGenerated"); QVERIFY(useCharacter); QTRY_VERIFY(useCharacter->isVisible());
+        QVERIFY(QMetaObject::invokeMethod(useCharacter,"clicked")); QTRY_VERIFY(submit->isEnabled());
+        QTRY_VERIFY(!hint->isVisible());
+        QCOMPARE(values(dialog).value("avatar_asset_id").toString(),QString("fixture-custom-asset"));
+        QVERIFY(QMetaObject::invokeMethod(submit,"clicked")); QCOMPARE(features.submissions,1);
+        QCOMPARE(features.submitted.value("avatar_asset_id").toString(),QString("fixture-custom-asset"));
+        QCOMPARE(features.submitted.value("display_name").toString(),QString("Goku"));
+        QVERIFY2(warnings.isEmpty(),qPrintable(warnings.join('\n')));
+        item->setParentItem(nullptr);
+    }
     void agentCreationFormPreservesSpecialtyAndSubmitsUserChoices() {
         QTemporaryDir staging; QVERIFY(staging.isValid());
         for (const auto& file:QDir(QStringLiteral(MOKAID_FEATURE_QML_DIRECTORY)).entryList({"*.qml","*.js"},QDir::Files))

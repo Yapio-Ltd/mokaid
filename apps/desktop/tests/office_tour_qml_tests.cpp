@@ -423,8 +423,8 @@ private slots:
         // Isolate network from GPU evidence: inject the exact completed cooker
         // output through the loader completion signal used by production.
         // No source substitution in catalog assets, account access or paid generation.
-        loader->ready("custom:meshy-text-fixture",mokaid::engine::loadScene((directory+"/text.mokaidasset").toStdString()));
-        loader->ready("custom:meshy-image-fixture",mokaid::engine::loadScene((directory+"/image.mokaidasset").toStdString()));
+        loader->ready("custom:meshy-text-fixture",QUrl{},mokaid::engine::loadScene((directory+"/text.mokaidasset").toStdString()));
+        loader->ready("custom:meshy-image-fixture",QUrl{},mokaid::engine::loadScene((directory+"/image.mokaidasset").toStdString()));
         QTRY_VERIFY_WITH_TIMEOUT(view.viewport->diagnostics().value("triangles").toInt()>0,15000);
         QTest::qWait(300);
         QVERIFY(view.capture("meshy-generated-office-overview"));

@@ -28,6 +28,7 @@ from openai import APIConnectionError, APITimeoutError
 
 from app.agents.deep_runner import _Engine
 from app.agents.openai_runtime import OpenAIAgentsAdapter
+from app.agents.quality import unresolved_errors
 from app.agents.runtime import (
     Requirements,
     RuntimeResult,
@@ -42,6 +43,7 @@ from app.config import get_settings
 from app.mcp.client import McpToolbox
 from app.policies.approval import ApprovalPolicy, risk_for_tool
 from app.schemas import Colleague, McpServerGrant, RunRequest, RunState, RunStatus, ToolCall
+from app.tools.mail import MAIL_TOOLS, evidence_error
 from app.tools.registry import RunContext, get_tool
 
 log = structlog.get_logger()
@@ -63,6 +65,10 @@ INTERNAL_TOOLS = {
     "read_team_artifact",
     "send_team_message",
     "read_team_updates",
+    "list_mail_accounts",
+    "search_mail",
+    "read_mail_message",
+    "save_mail_attachment",
 }
 FRESH_TOOLS = {
     "read_team_updates",
@@ -73,6 +79,9 @@ FRESH_TOOLS = {
     "traverse_knowledge",
     "knowledge_path",
     "explain_concept",
+    "list_mail_accounts",
+    "search_mail",
+    "read_mail_message",
 }
 
 
@@ -204,6 +213,7 @@ class ManagedEngine:
             task_title=request.task_title,
             task_description=request.task_description,
             attached_files=[file.model_dump() for file in request.attached_files],
+            workspace_mail=request.workspace_mail,
         )
         self.ctx.phoenix = OutputClient(self)
 
@@ -227,6 +237,12 @@ class ManagedEngine:
         )
         if not data.get("allowed"):
             raise RuntimePaused(str(data.get("reason") or "This action is no longer authorized."))
+        if "workspace_mail" in data:
+            # Private capability renewal follows the API's live actor/policy/lease
+            # check. Keep it only in transport context, never provider instructions.
+            access = data["workspace_mail"] if isinstance(data["workspace_mail"], dict) else {}
+            self.ctx.workspace_mail = access
+            self.request.workspace_mail = access
         return data
 
     def configure_tools(self) -> list[dict[str, Any]]:
@@ -491,10 +507,20 @@ class ManagedEngine:
             )
             if params["file_url"] and file is None:
                 return {"error": "Use an authorized task attachment."}
-        return await fn(
+        output = await fn(
             {**params, "_attached_files": [f.model_dump() for f in self.request.attached_files]},
             self.ctx,
         )
+        if name == "save_mail_attachment" and isinstance(output, dict) and output.get("file_id") and not output.get("error"):
+            if not any(item["id"] == output["file_id"] for item in self.result.artifacts):
+                self.result.artifacts.append({
+                    "id": output["file_id"], "filename": output["name"],
+                    "sha256": output["sha256"], "size_bytes": output["size_bytes"],
+                    "agent_id": self.request.agent_id, "source": "mail_attachment",
+                    "mime_type": "application/octet-stream", "version": 1, "verified": False,
+                })
+                await self.checkpoint()
+        return output
 
     async def handle_action(self, action: dict[str, Any]) -> None:
         self.mission.check_budget()
@@ -1210,6 +1236,14 @@ class ManagedMission:
                     result.searches.extend(engine.result.searches)
                     result.commands.extend(engine.result.commands)
         # Team artifacts count only after actual server-side import.
+        mail_errors = [call for call in unresolved_errors(
+            [call for engine in self.engines.values() for call in engine.tool_calls if call.approved is not False]
+        ) if call.tool in MAIL_TOOLS | {"send_email"}]
+        if mail_errors:
+            raise RuntimePaused("Some requested mailbox actions are incomplete. Saved attachments are preserved; retry the unresolved items.")
+        mail_evidence_error = evidence_error(self.request, [call for engine in self.engines.values() for call in engine.tool_calls])
+        if mail_evidence_error:
+            raise RuntimePaused(mail_evidence_error)
         combined = RuntimeResult(**{**result.to_dict(), "artifacts": self.manifest()})
         result.checks = validate_delivery(combined, self.requirements)
         if not all(check["passed"] for check in result.checks):

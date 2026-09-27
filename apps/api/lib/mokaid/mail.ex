@@ -316,6 +316,7 @@ defmodule Mokaid.Mail do
          workspace_id: account.workspace_id,
          provider: account.provider,
          email_address: account.email_address,
+         last_sync_at: account.last_sync_at,
          settings: account.settings || %{},
          sync_state: account.sync_state || %{},
          credentials: credentials
@@ -353,43 +354,131 @@ defmodule Mokaid.Mail do
 
   ## ─── Messages ───
 
-  def list_messages(workspace_id, opts \\ []) do
-    limit = min(Keyword.get(opts, :limit, 50), 200)
+  def list_messages(workspace_id, opts \\ []), do: page_messages(workspace_id, opts).messages
 
-    query =
-      from m in Message,
-        where: m.workspace_id == ^workspace_id,
-        order_by: [desc: m.received_at],
-        limit: ^limit
+  def page_messages(workspace_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50) |> max(1) |> min(200)
+    offset = Keyword.get(opts, :offset, 0) |> max(0) |> min(1_000_000)
+    query = message_query(workspace_id, opts)
+    total = Repo.aggregate(query, :count)
+
+    ordering =
+      case Keyword.get(opts, :sort, "newest") do
+        "oldest" -> [asc: :received_at, asc: :id]
+        "sender" -> [asc: :from_email, desc: :received_at, asc: :id]
+        "subject" -> [asc: :subject, desc: :received_at, asc: :id]
+        _ -> [desc: :received_at, asc: :id]
+      end
+
+    messages = Repo.all(from m in query, order_by: ^ordering, limit: ^limit, offset: ^offset)
+
+    %{
+      messages: messages,
+      meta: %{
+        total: total,
+        limit: limit,
+        offset: offset,
+        has_more: offset + length(messages) < total
+      }
+    }
+  end
+
+  def list_folders(workspace_id, account_id \\ nil) do
+    base = message_query(workspace_id, account_id: account_id)
+
+    folders =
+      Enum.map(~w(inbox starred sent drafts spam trash all), fn key ->
+        query = filter_folder(base, key)
+
+        %{
+          key: key,
+          count: Repo.aggregate(query, :count),
+          unread_count: Repo.aggregate(from(m in query, where: not m.is_read), :count)
+        }
+      end)
+
+    labels =
+      Repo.all(from m in base, select: m.labels)
+      |> List.flatten()
+      |> Enum.frequencies()
+      |> Enum.sort()
+      |> Enum.map(fn {name, count} -> %{name: name, count: count} end)
+
+    %{data: folders, meta: %{labels: labels}}
+  end
+
+  defp message_query(workspace_id, opts) do
+    query = from m in Message, where: m.workspace_id == ^workspace_id
 
     query =
       case Keyword.get(opts, :account_id) do
-        nil -> query
-        id -> from m in query, where: m.mail_account_id == ^id
+        nil ->
+          query
+
+        id ->
+          case Ecto.UUID.cast(id) do
+            {:ok, uuid} -> from m in query, where: m.mail_account_id == ^uuid
+            _ -> from m in query, where: false
+          end
+      end
+
+    query = filter_folder(query, Keyword.get(opts, :folder, "all"))
+
+    query =
+      case Keyword.get(opts, :label) do
+        label when is_binary(label) -> from m in query, where: ^label in m.labels
+        _ -> query
+      end
+
+    query =
+      case Keyword.get(opts, :filter) do
+        "unread" -> from m in query, where: not m.is_read
+        "flagged" -> from m in query, where: m.is_starred
+        _ -> query
       end
 
     query =
       case Keyword.get(opts, :min_importance) do
         nil -> query
-        min -> from m in query, where: m.ai_importance >= ^min
+        minimum -> from m in query, where: m.ai_importance >= ^minimum
       end
 
-    query =
-      case Keyword.get(opts, :search) do
-        nil ->
-          query
+    case Keyword.get(opts, :search) do
+      nil ->
+        query
 
-        term ->
-          pattern = "%#{term}%"
+      term ->
+        pattern = "%#{String.slice(term, 0, 500)}%"
 
-          from m in query,
-            where:
-              ilike(m.subject, ^pattern) or ilike(m.from_email, ^pattern) or
-                ilike(m.snippet, ^pattern)
-      end
-
-    Repo.all(query)
+        from m in query,
+          where:
+            ilike(m.subject, ^pattern) or ilike(m.from_email, ^pattern) or
+              ilike(m.from_name, ^pattern) or ilike(m.snippet, ^pattern)
+    end
   end
+
+  defp filter_folder(query, "starred"), do: from(m in query, where: m.is_starred)
+
+  defp filter_folder(query, key) when key in ~w(inbox sent drafts) do
+    label = %{"inbox" => "INBOX", "sent" => "SENT", "drafts" => "DRAFT"}[key]
+
+    # Gmail labels are non-exclusive: mail sent to oneself belongs to both
+    # Inbox and Sent. Other providers' arbitrary categories must not act as
+    # Gmail system labels, and Spam/Trash remain outside these main folders.
+    from m in query,
+      join: a in Account,
+      on: a.id == m.mail_account_id,
+      where:
+        m.folder not in ["spam", "trash"] and
+          (a.provider != "gmail" or
+             ("SPAM" not in m.labels and "TRASH" not in m.labels)) and
+          (m.folder == ^key or (a.provider == "gmail" and ^label in m.labels))
+  end
+
+  defp filter_folder(query, key) when key in ~w(spam trash),
+    do: from(m in query, where: m.folder == ^key)
+
+  defp filter_folder(query, _), do: query
 
   @doc """
   Batch upsert of worker-normalized messages, then rule/importance side
@@ -400,50 +489,87 @@ defmodule Mokaid.Mail do
 
     new_messages =
       Enum.reduce(entries, [], fn entry, acc ->
-        attrs =
-          entry
-          |> Map.put("mail_account_id", account.id)
-          |> Map.put("workspace_id", account.workspace_id)
+        if entry["_removed"] == true do
+          remove_cached_message(account, entry)
+          acc
+        else
+          attrs =
+            entry
+            |> Map.put("mail_account_id", account.id)
+            |> Map.put("workspace_id", account.workspace_id)
 
-        changeset = Message.changeset(%Message{}, attrs)
+          changeset = Message.changeset(%Message{}, attrs)
 
-        case Repo.insert(changeset,
-               on_conflict:
-                 {:replace,
-                  [
-                    :labels,
-                    :folder,
-                    :ai_importance,
-                    :ai_category,
-                    :ai_summary,
-                    :matched_rule_ids,
-                    :analyzed_at,
-                    :updated_at
-                  ]},
-               conflict_target: [:mail_account_id, :provider_message_id],
-               returning: true
-             ) do
-          {:ok, message} ->
-            if MapSet.member?(known_ids, message.provider_message_id) do
+          case Repo.insert(changeset,
+                 on_conflict:
+                   {:replace,
+                    [
+                      :labels,
+                      :folder,
+                      :body_text,
+                      :body_html,
+                      :rfc_message_id,
+                      :references,
+                      :attachments,
+                      :provider_metadata,
+                      :is_read,
+                      :is_starred,
+                      :has_attachments,
+                      :ai_importance,
+                      :ai_category,
+                      :ai_summary,
+                      :matched_rule_ids,
+                      :analyzed_at,
+                      :updated_at
+                    ]
+                    |> Enum.filter(fn field ->
+                      field == :updated_at or Map.has_key?(entry, Atom.to_string(field)) or
+                        Map.has_key?(entry, field)
+                    end)},
+                 conflict_target: [:mail_account_id, :provider_message_id],
+                 returning: true
+               ) do
+            {:ok, message} ->
+              if MapSet.member?(known_ids, message.provider_message_id) do
+                acc
+              else
+                [message | acc]
+              end
+
+            {:error, changeset} ->
+              Logger.warning("mail message rejected: #{inspect(changeset.errors)}")
               acc
-            else
-              [message | acc]
-            end
-
-          {:error, changeset} ->
-            Logger.warning("mail message rejected: #{inspect(changeset.errors)}")
-            acc
+          end
         end
       end)
       |> Enum.reverse()
 
     Enum.each(new_messages, &apply_side_effects(account, &1))
 
-    if new_messages != [] do
-      broadcast(account.workspace_id, account.id)
-    end
+    if entries != [], do: broadcast(account.workspace_id, account.id)
 
     {:ok, length(new_messages)}
+  end
+
+  # Provider tombstones remove only this account's local cache. No provider
+  # delete/purge is performed, and folder-specific moves cannot erase a copy
+  # already synchronized into its destination.
+  defp remove_cached_message(account, entry) do
+    id = entry["provider_message_id"]
+
+    query =
+      from m in Message,
+        where:
+          m.mail_account_id == ^account.id and m.workspace_id == ^account.workspace_id and
+            m.provider_message_id == ^id
+
+    query =
+      case entry["_from_folder"] do
+        folder when is_binary(folder) -> from m in query, where: m.folder == ^folder
+        _ -> query
+      end
+
+    Repo.delete_all(query)
   end
 
   # Side effects (notifications, alert emails) must fire only for messages the
@@ -530,7 +656,13 @@ defmodule Mokaid.Mail do
   end
 
   def get_message(workspace_id, id) do
-    Repo.one(from m in Message, where: m.workspace_id == ^workspace_id and m.id == ^id)
+    case Ecto.UUID.cast(id) do
+      {:ok, uuid} ->
+        Repo.one(from m in Message, where: m.workspace_id == ^workspace_id and m.id == ^uuid)
+
+      _ ->
+        nil
+    end
   end
 
   def get_message_by_id(id), do: Repo.get(Message, id)

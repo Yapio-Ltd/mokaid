@@ -189,6 +189,8 @@ QString OrchestratorController::earlierWorkRequest() const {
     bool skippedLatest = false;
     for (auto it = messages_.crbegin(); it != messages_.crend(); ++it) {
         const auto item = it->toMap();
+        if (item.value("role") == QStringLiteral("assistant")
+            && item.value("response_kind") == QStringLiteral("answer")) return {};
         if (item.value("role").toString() != QStringLiteral("user")) continue;
         if (!skippedLatest) { skippedLatest = true; continue; }
         const auto body = item.value("body").toString().trimmed();
@@ -207,13 +209,17 @@ QString OrchestratorController::assignmentReply(const QString& reply) const {
 }
 void OrchestratorController::resumeAutomaticAssignment() {
     if (!ready() || busy_ || inlineAssign_ || messages_.isEmpty()) return;
-    QString latestUser, latestAssistant;
+    QString latestUser, latestAssistant, latestResponseKind;
     for (const auto& value : messages_) {
         const auto item = value.toMap();
         const auto role = item.value("role").toString();
         if (role == QStringLiteral("user")) latestUser = item.value("body").toString().trimmed();
-        else if (role == QStringLiteral("assistant")) latestAssistant = item.value("body").toString();
+        else if (role == QStringLiteral("assistant")) {
+            latestAssistant = item.value("body").toString();
+            latestResponseKind = item.value("response_kind").toString();
+        }
     }
+    if (latestResponseKind == QStringLiteral("answer") && pendingInstruction_.trimmed().isEmpty()) return;
     const auto asked = asksPermission(latestAssistant);
     if (pendingInstruction_.trimmed().isEmpty() && !asked) return;
     auto brief = pendingInstruction_.trimmed();
@@ -280,7 +286,7 @@ void OrchestratorController::sendMessage(const QString& text, const QString& lan
     else if (!language.isEmpty()) language_ = language.left(32);
     if (assignmentPhase_ == "assigned") clearAssignment();
     draft_ = message;
-    if (!ready()) { error_ = "Reconnect to speak with Moked. Your message is preserved."; persist(); emit changed(); return; }
+    if (!ready()) { error_ = "Reconnect to speak with Liven. Your message is preserved."; persist(); emit changed(); return; }
     QJsonArray history;
     for (const auto& value : messages_) {
         const auto item = value.toMap();
@@ -302,16 +308,22 @@ void OrchestratorController::sendMessage(const QString& text, const QString& lan
             busy_ = false;
             const auto data = response.json.value("data").toObject(); const auto reply = data.value("reply").toString().trimmed();
             if (!response.ok() || reply.isEmpty()) {
-                error_ = response.ok() ? "Moked returned an empty response. Your message is preserved; try again." : response.error;
+                error_ = response.ok() ? "Liven returned an empty response. Your message is preserved; try again." : response.error;
                 persist(); emit changed(); return;
             }
             const auto language = data.value("language").toString(); if (!language.isEmpty()) language_ = language.left(32);
             auto taskId = data.value("task_id").toString(); if (!knownTask(taskId)) taskId.clear();
-            auto brief = data.value("mission_instruction").toString().trimmed();
-            if (brief.isEmpty() && workRequest(message)) brief = message.trimmed();
-            if (brief.isEmpty() && affirmative(message)) brief = earlierWorkRequest();
+            const bool answered = data.value("response_kind").toString() == "answer";
+            auto brief = answered ? QString{} : data.value("mission_instruction").toString().trimmed();
+            if (!answered && brief.isEmpty() && workRequest(message)) brief = message.trimmed();
+            if (!answered && brief.isEmpty() && affirmative(message)) brief = earlierWorkRequest();
             const auto shown = brief.isEmpty() ? reply : (asksPermission(reply) ? assignmentReply(reply) : reply);
             append("assistant", shown.left(8000), taskId);
+            if (answered) {
+                auto item = messages_.last().toMap();
+                item.insert("response_kind", QStringLiteral("answer"));
+                messages_.last() = item;
+            }
             brief = brief.left(12000);
             if (!brief.isEmpty() && pendingInstruction_ != brief) {
                 pendingInstruction_ = brief;
@@ -387,9 +399,14 @@ void OrchestratorController::assignInline() {
 void OrchestratorController::scheduleLaunch() {
     autoLaunchAttempted_ = true;
     const auto epoch = epoch_; const auto generation = api_.context().generation; const auto context = contextKey();
-    QTimer::singleShot(1200, this, [this, epoch, generation, context] {
+    const auto instruction = mission_.instruction(); const auto agentId = mission_.selectedAgentId();
+    QTimer::singleShot(1200, this, [this, epoch, generation, context, instruction, agentId] {
         if (!current(epoch, generation, context) || !inlineAssign_) return;
-        if (mission_.step() == "recommend" && mission_.canLaunch() && !mission_.customSelected() && mission_.grants().isEmpty())
+        // The selection can change while the assignment animation is running.
+        // Only launch the same recommendation if it still needs no review.
+        if (assignmentPhase_ == "chosen" && mission_.instruction() == instruction && mission_.selectedAgentId() == agentId
+            && mission_.step() == "recommend" && mission_.canLaunch() && !mission_.customSelected()
+            && mission_.capabilityWarning().isEmpty() && mission_.grants().isEmpty())
             mission_.launch();
     });
 }

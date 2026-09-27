@@ -3,6 +3,7 @@ defmodule Mokaid.AvatarsTest do
   import Ecto.Query
   alias Mokaid.{Avatars, Assets3d, Repo}
   alias Mokaid.Avatars.{Generation, Glb, Meshy, Worker}
+  alias Mokaid.Billing.{Credits, CreditTransaction, Subscription}
 
   defmodule MemoryStorage do
     def put_asset(key, data, _type) do
@@ -29,11 +30,33 @@ defmodule Mokaid.AvatarsTest do
   end
 
   defmodule NativeCooker do
-    def cook(_), do: {:ok, "native-asset"}
+    def prepare(glb) do
+      send(self(), {:preparing, Mokaid.Repo.in_transaction?()})
+
+      if Process.get(:fail_preparation) do
+        {:error, :avatar_preparation_failed}
+      else
+        {:ok,
+         %{
+           glb: glb,
+           native: "MOKASSETnative-asset",
+           portrait: <<0x89, "PNG", 13, 10, 26, 10, 0>>,
+           manifest: %{
+             "status" => "ready",
+             "model_sha256" => Base.encode16(:crypto.hash(:sha256, glb), case: :lower),
+             "pipeline_version" => 1,
+             "animation_clips" => Mokaid.Avatars.NativeCooker.required_clips(),
+             "target_height_m" => 1.75,
+             "quality" => %{"clips" => 48},
+             "portrait" => %{"size" => [384, 384], "weighted_head_vertices" => 100}
+           }
+         }}
+      end
+    end
   end
 
   setup %{conn: conn} do
-    for key <- [:meshy, :avatar_storage, :avatar_native_cooker] do
+    for key <- [:meshy, :avatar_storage, :avatar_native_cooker, :avatar_pipeline_enabled] do
       old = Application.get_env(:mokaid, key)
 
       on_exit(fn ->
@@ -49,10 +72,15 @@ defmodule Mokaid.AvatarsTest do
       download_options: [plug: {Req.Test, __MODULE__}]
     )
 
+    Application.put_env(:mokaid, :avatar_pipeline_enabled, true)
     Application.put_env(:mokaid, :avatar_storage, MemoryStorage)
     Application.put_env(:mokaid, :avatar_native_cooker, NativeCooker)
     {workspace, owner} = workspace_fixture()
     member = owner_member(workspace, owner)
+
+    %Subscription{}
+    |> Subscription.changeset(%{workspace_id: workspace.id, credits_balance: 20_000})
+    |> Repo.insert!()
 
     conn =
       conn
@@ -63,6 +91,7 @@ defmodule Mokaid.AvatarsTest do
   end
 
   defp create(workspace, member, input) do
+    input = Map.put_new(input, "expected_credits", Avatars.pricing().credits)
     Oban.Testing.with_testing_mode(:manual, fn -> Avatars.create(workspace.id, member, input) end)
   end
 
@@ -71,6 +100,15 @@ defmodule Mokaid.AvatarsTest do
       Worker.perform(%Oban.Job{args: %{"generation_id" => row.id}, attempt: 1, max_attempts: 12})
 
   defp reload(row), do: Avatars.get(row.workspace_id, row.id)
+
+  defp transactions(workspace_id) do
+    Repo.all(from t in CreditTransaction, where: t.workspace_id == ^workspace_id)
+  end
+
+  defp set_credits(workspace_id, values) do
+    from(s in Subscription, where: s.workspace_id == ^workspace_id)
+    |> Repo.update_all(set: values)
+  end
 
   defp glb(overrides \\ %{}) do
     json =
@@ -144,11 +182,19 @@ defmodule Mokaid.AvatarsTest do
     assert {:snooze, 15} = perform(row)
     assert reload(row).status == "rigging"
     assert :ok = perform(row)
+
+    assert Credits.summary(ctx.workspace.id).spendable == 19_000
+    assert [debit] = transactions(ctx.workspace.id)
+    assert debit.amount == -1_000
+    assert debit.idempotency_key == Avatars.charge_key(row.id)
+    assert debit.metadata["avatar_generation_id"] == row.id
     ready = reload(row)
     assert ready.status == "ready"
     assert ready.progress == 100
     assert ready.asset.workspace_id == ctx.workspace.id
-    assert ready.asset.animation_clips == ["walking"]
+    assert ready.asset.animation_clips == Mokaid.Avatars.NativeCooker.required_clips()
+    assert_received {:preparing, false}
+    assert ready.asset.metadata["portrait_url"] =~ "portrait.png"
     assert ready.asset.metadata["target_height_m"] == 1.75
     assert ready.asset.cdn_path =~ "/api/avatar-assets/#{row.id}/"
     assert ready.asset.metadata["native_cdn_path"] =~ "model.mokaidasset"
@@ -256,7 +302,11 @@ defmodule Mokaid.AvatarsTest do
   test "POST acceptance, polling and unknown generation are scoped", ctx do
     response =
       Oban.Testing.with_testing_mode(:manual, fn ->
-        post(ctx.conn, "/api/avatar-generations", %{mode: "text", prompt: "A curious researcher"})
+        post(ctx.conn, "/api/avatar-generations", %{
+          mode: "text",
+          prompt: "A curious researcher",
+          expected_credits: 1_000
+        })
       end)
 
     assert %{"data" => %{"id" => id, "status" => "queued"}} = json_response(response, 202)
@@ -265,6 +315,151 @@ defmodule Mokaid.AvatarsTest do
              ctx.conn |> get("/api/avatar-generations/#{id}") |> json_response(200)
 
     assert ctx.conn |> get("/api/avatar-generations/#{Ecto.UUID.generate()}") |> response(404)
+  end
+
+  test "quote exposes Mokaid price and workspace balance before a paid submission", ctx do
+    assert %{
+             "data" => [],
+             "meta" => %{
+               "pricing" => %{"credits" => 1_000},
+               "credits" => %{"spendable" => 20_000, "unlimited" => false}
+             }
+           } = ctx.conn |> get("/api/avatar-generations") |> json_response(200)
+
+    for {expected, code} <- [
+          {nil, "avatar_price_confirmation_required"},
+          {500, "avatar_price_changed"},
+          {"1000evil", "avatar_price_changed"},
+          {1000.0, "avatar_price_changed"}
+        ] do
+      input = %{mode: "text", prompt: "A researcher"}
+      input = if is_nil(expected), do: input, else: Map.put(input, :expected_credits, expected)
+
+      assert %{"error" => %{"code" => ^code}} =
+               ctx.conn |> post("/api/avatar-generations", input) |> json_response(422)
+    end
+
+    assert Avatars.list(ctx.workspace.id) == []
+    assert transactions(ctx.workspace.id) == []
+    assert Repo.aggregate(Oban.Job, :count) == 0
+    assert Credits.summary(ctx.workspace.id).spendable == 20_000
+  end
+
+  test "insufficient prepaid balance rolls back generation and enqueue", ctx do
+    set_credits(ctx.workspace.id, credits_balance: 999, auto_recharge_enabled: true)
+
+    assert {:error, :insufficient_credits} =
+             create(ctx.workspace, ctx.member, %{"mode" => "text", "prompt" => "An engineer"})
+
+    assert Avatars.list(ctx.workspace.id) == []
+    assert transactions(ctx.workspace.id) == []
+    assert Repo.aggregate(Oban.Job, :count) == 0
+    assert Credits.summary(ctx.workspace.id).spendable == 999
+
+    from(s in Subscription, where: s.workspace_id == ^ctx.workspace.id) |> Repo.delete_all()
+
+    assert {:error, :insufficient_credits} =
+             create(ctx.workspace, ctx.member, %{"mode" => "text", "prompt" => "An engineer"})
+
+    assert Avatars.list(ctx.workspace.id) == []
+  end
+
+  test "multipart string quote is accepted and creation debits immediately", ctx do
+    {:ok, row} =
+      create(ctx.workspace, ctx.member, %{
+        "mode" => "text",
+        "prompt" => "An engineer",
+        "expected_credits" => "1000"
+      })
+
+    assert row.status == "queued"
+    assert Credits.summary(ctx.workspace.id).spendable == 19_000
+    assert [debit] = transactions(ctx.workspace.id)
+    assert debit.amount == -1_000
+    assert debit.metadata["avatar_generation_id"] == row.id
+    assert Repo.aggregate(Oban.Job, :count) == 1
+  end
+
+  test "terminal failure restores the original credit buckets once", ctx do
+    set_credits(ctx.workspace.id, included_credits_remaining: 600, credits_balance: 400)
+    Req.Test.stub(__MODULE__, &Plug.Conn.send_resp(&1, 402, "private provider failure"))
+    {:ok, row} = create(ctx.workspace, ctx.member, %{"mode" => "text", "prompt" => "An engineer"})
+    assert Credits.summary(ctx.workspace.id).spendable == 0
+    assert :ok = perform(row)
+    assert :ok = perform(row)
+    assert reload(row).status == "failed"
+
+    assert %{included_remaining: 600, balance: 400, spendable: 1_000} =
+             Credits.summary(ctx.workspace.id)
+
+    assert [refund] = Enum.filter(transactions(ctx.workspace.id), &(&1.amount > 0))
+    assert refund.amount == 1_000
+    assert refund.idempotency_key == Avatars.charge_key(row.id) <> ":refund"
+    assert refund.metadata["avatar_generation_id"] == row.id
+    refute reload(row).error =~ "Meshy"
+  end
+
+  test "failed generation refund survives a monthly credit reset", ctx do
+    before_reset = DateTime.add(DateTime.utc_now(), -3600, :second)
+
+    set_credits(ctx.workspace.id,
+      included_credits_remaining: 1_000,
+      credits_balance: 0,
+      credits_period_start: before_reset
+    )
+
+    Req.Test.stub(__MODULE__, &Plug.Conn.send_resp(&1, 402, "unavailable"))
+    {:ok, row} = create(ctx.workspace, ctx.member, %{"mode" => "text", "prompt" => "An engineer"})
+
+    set_credits(ctx.workspace.id,
+      included_credits_remaining: 2_000,
+      credits_period_start: DateTime.utc_now()
+    )
+
+    assert :ok = perform(row)
+
+    assert %{included_remaining: 2_000, balance: 1_000, spendable: 3_000} =
+             Credits.summary(ctx.workspace.id)
+  end
+
+  test "unlimited plans and legacy uncharged failures do not create a refund", ctx do
+    set_credits(ctx.workspace.id,
+      monthly_credits: -1,
+      included_credits_remaining: -1,
+      credits_balance: 0
+    )
+
+    Req.Test.stub(__MODULE__, &Plug.Conn.send_resp(&1, 402, "unavailable"))
+    {:ok, row} = create(ctx.workspace, ctx.member, %{"mode" => "text", "prompt" => "An engineer"})
+    assert :ok = perform(row)
+    assert transactions(ctx.workspace.id) == []
+
+    assert %{included_remaining: -1, balance: 0, unlimited: true} =
+             Credits.summary(ctx.workspace.id)
+
+    legacy =
+      %Generation{}
+      |> Generation.changeset(%{
+        workspace_id: ctx.workspace.id,
+        mode: "text",
+        name: "Legacy",
+        prompt: "A researcher"
+      })
+      |> Repo.insert!()
+
+    assert :ok = perform(legacy)
+    assert transactions(ctx.workspace.id) == []
+  end
+
+  test "previously stored failures expose generic service branding", ctx do
+    {:ok, row} = create(ctx.workspace, ctx.member, %{"mode" => "text", "prompt" => "An engineer"})
+
+    row =
+      row
+      |> Generation.changeset(%{error: "Meshy could not create this character."})
+      |> Repo.update!()
+
+    refute Avatars.serialize(row).error =~ "Meshy"
   end
 
   test "a committed unresolved paid-stage claim is never resubmitted after a crash", ctx do
@@ -289,6 +484,8 @@ defmodule Mokaid.AvatarsTest do
     assert reload(row).status == "failed"
     assert reload(row).error =~ "could not confirm"
     assert :ok = perform(row)
+    assert Credits.summary(ctx.workspace.id).spendable == 20_000
+    assert Enum.sort(Enum.map(transactions(ctx.workspace.id), & &1.amount)) == [-1_000, 1_000]
   end
 
   test "paid POST failures are not retried and expose no provider response", ctx do
@@ -304,6 +501,8 @@ defmodule Mokaid.AvatarsTest do
     assert reload(row).error =~ "credits"
     refute reload(row).error =~ "sensitive"
     assert :ok = perform(row)
+    assert Credits.summary(ctx.workspace.id).spendable == 20_000
+    assert Enum.sort(Enum.map(transactions(ctx.workspace.id), & &1.amount)) == [-1_000, 1_000]
   end
 
   test "webhook payload cannot forge success or asset URL, duplicates don't multiply jobs", ctx do
@@ -378,6 +577,51 @@ defmodule Mokaid.AvatarsTest do
     wrong = "/api/avatar-assets/#{row.id}/wrong/model.glb"
     assert build_conn() |> get(wrong) |> response(404)
     native = URI.parse(ready.asset.metadata["native_cdn_path"]).path
-    assert build_conn() |> get(native) |> response(200) == "native-asset"
+    assert build_conn() |> get(native) |> response(200) == "MOKASSETnative-asset"
+    portrait = URI.parse(ready.asset.metadata["portrait_url"]).path
+    assert <<0x89, "PNG", _::binary>> = build_conn() |> get(portrait) |> response(200)
+  end
+
+  test "generation is unavailable before charging when the complete worker is disabled", ctx do
+    Application.put_env(:mokaid, :avatar_pipeline_enabled, false)
+
+    assert {:error, :avatar_generation_unavailable} =
+             create(ctx.workspace, ctx.member, %{"mode" => "text", "prompt" => "An engineer"})
+
+    assert Credits.summary(ctx.workspace.id).spendable == 20_000
+    assert transactions(ctx.workspace.id) == []
+  end
+
+  test "incomplete animation preparation never becomes ready and refunds once", ctx do
+    stub_pipeline()
+    Process.put(:fail_preparation, true)
+    {:ok, row} = create(ctx.workspace, ctx.member, %{"mode" => "text", "prompt" => "An engineer"})
+    for _ <- 1..4, do: perform(row)
+    failed = reload(row)
+    assert failed.status == "failed"
+    assert failed.asset_id == nil
+    assert failed.error =~ "office animations"
+    assert Credits.summary(ctx.workspace.id).spendable == 20_000
+    assert :ok = perform(row)
+    assert length(transactions(ctx.workspace.id)) == 2
+  end
+
+  test "interrupted local preparation resumes without another paid provider submission", ctx do
+    stub_pipeline()
+    {:ok, row} = create(ctx.workspace, ctx.member, %{"mode" => "text", "prompt" => "An engineer"})
+    for _ <- 1..3, do: perform(row)
+    claim = "preparing:" <> Ecto.UUID.generate() <> ":rig-1"
+    row |> Generation.changeset(%{status: "saving", task_id: claim}) |> Repo.update!()
+    assert {:snooze, 15} = perform(row)
+    refute_received {:preparing, _}
+
+    from(g in Generation, where: g.id == ^row.id)
+    |> Repo.update_all(set: [updated_at: DateTime.add(DateTime.utc_now(), -901, :second)])
+
+    assert :ok = perform(row)
+    assert reload(row).status == "ready"
+    assert Credits.summary(ctx.workspace.id).spendable == 19_000
+    assert_received {:upstream, "POST", "/openapi/v1/rigging", _}
+    refute_received {:upstream, "POST", "/openapi/v1/rigging", _}
   end
 end

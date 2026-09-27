@@ -13,7 +13,7 @@ class Remote final : public QObject {
 public:
     QTcpServer server;
     QList<Request> requests;
-    bool failChat{}, holdChat{}, askInstead{};
+    bool failChat{}, holdChat{}, askInstead{}, mailAnswer{}, legalDispatch{}, partialDispatch{};
     QPointer<QTcpSocket> held;
     Remote() {
         server.listen(QHostAddress::LocalHost, 0);
@@ -36,12 +36,47 @@ public:
                     if (request.path == "/api/orchestrator/chat") {
                         if (holdChat) { held = socket; return; }
                         if (failChat) { reply(socket, {{"error", "Model unavailable"}}, 503); return; }
+                        if (mailAnswer) {
+                            reply(socket, {{"data", QJsonObject{{"reply", "J'ai trouvé deux factures dans les messages synchronisés. Veux-tu le détail ?"},
+                                {"language", "fr"}, {"response_kind", "answer"}, {"mission_instruction", ""}}}});
+                            return;
+                        }
                         if (askInstead) {
                             reply(socket, {{"data", QJsonObject{{"reply", "Je peux préparer une mission de recherche SEO. Veux-tu que je prépare cette mission d'audit SEO ?"}, {"language", "fr"}}}});
                             return;
                         }
+                        if (legalDispatch) {
+                            reply(socket, {{"data", QJsonObject{{"reply", "Je prépare le récapitulatif juridique demandé."},
+                                {"language", "fr"}, {"mission_instruction", request.body.value("message")}}}});
+                            return;
+                        }
                         reply(socket, {{"data", QJsonObject{{"reply", "Voici la mission à préparer."}, {"language", "fr"},
                             {"mission_instruction", "Étudier le marché et livrer un rapport sourcé."}, {"task_id", "foreign-task"}}}});
+                    } else if (legalDispatch && request.path == "/api/agents") {
+                        reply(socket, {{"data", QJsonArray{
+                            QJsonObject{{"id", "sira"}, {"display_name", "Sira"}, {"role_title", "Software Engineer"},
+                                {"kind", "ai"}, {"status", "idle"}, {"ai_enabled", true}},
+                            QJsonObject{{"id", "taya"}, {"display_name", "Taya"}, {"role_title", "Legal Specialist"},
+                                {"kind", "ai"}, {"status", "idle"}, {"ai_enabled", true}}}}});
+                    } else if (legalDispatch && request.path == "/api/dispatch/analyze") {
+                        QJsonObject route{{"mode", partialDispatch ? "user_choice" : "existing_agent"},
+                            {"agent_id", partialDispatch ? "sira" : "taya"}, {"confidence", partialDispatch ? 55 : 95},
+                            {"reason", "Le récapitulatif des lois exige des compétences juridiques."},
+                            {"alternatives", QJsonArray{}}, {"custom_agent", QJsonValue(QJsonValue::Null)}};
+                        if (partialDispatch) route.insert("custom_agent", QJsonObject{
+                            {"display_name", "Legal specialist"}, {"role_title", "Legal Specialist"}, {"archetype_key", "legal"},
+                            {"skills", QJsonArray{QJsonObject{{"name", "Israeli company law"}, {"level", 40}}}}});
+                        reply(socket, {{"data", QJsonObject{
+                            {"task", QJsonObject{{"title", "Lois pour les olim créateurs d’entreprise"},
+                                {"description", request.body.value("instruction")}, {"priority", "medium"}}},
+                            {"recommendation", route}, {"mcp_suggestions", QJsonArray{}}}}});
+                    } else if (legalDispatch && request.path == "/api/dispatch/confirm") {
+                        const auto agentId = request.body.value("agent_id").toString();
+                        reply(socket, {{"data", QJsonObject{
+                            {"task", QJsonObject{{"id", "task-legal"}, {"title", "Lois pour les olim créateurs d’entreprise"},
+                                {"assigned_agent_id", agentId}}},
+                            {"agent", QJsonObject{{"id", agentId}, {"display_name", agentId == "taya" ? "Taya" : "Sira"}}},
+                            {"run_id", "run-legal"}}}}, 201);
                     } else if (request.path == "/api/orchestrator/missions") {
                         const QJsonArray attachments{QJsonObject{{"id", "input-a"}, {"source", "input"}},
                             QJsonObject{{"id", "output-a"}, {"source", "output"}}};
@@ -101,6 +136,43 @@ private slots:
         f.controller.sendMessage("Can you check if the website has a good SEO", "fr");
         QTRY_VERIFY(!f.controller.busy());
         QCOMPARE(f.remote.last("/api/orchestrator/chat").body.value("language").toString(), QString("en"));
+    }
+    void legalMissionUsesRecommendedAgentRatherThanFirstRosterEntry() {
+        Fixture f; f.remote.legalDispatch = true;
+        const auto instruction = QString("Fais moi un recap des lois pour les olim hadashim qui ouvrent une societer en israel");
+        f.controller.sendMessage(instruction, "fr");
+        QTRY_COMPARE(f.controller.assignmentPhase(), QString("assigned"));
+        QCOMPARE(f.remote.count("/api/dispatch/confirm"), 1);
+        QCOMPARE(f.remote.last("/api/dispatch/analyze").body.value("instruction").toString(), instruction);
+        QCOMPARE(f.remote.last("/api/dispatch/confirm").body.value("agent_id").toString(), QString("taya"));
+        QCOMPARE(f.controller.assignmentAgentId(), QString("taya"));
+        QCOMPARE(f.controller.assignmentTaskId(), QString("task-legal"));
+        const auto selected = f.controller.assignmentAgents().first().toMap();
+        QCOMPARE(selected.value("id").toString(), QString("taya"));
+        QCOMPARE(selected.value("display_name").toString(), QString("Taya"));
+        QCOMPARE(selected.value("role_title").toString(), QString("Legal Specialist"));
+    }
+    void partialAgentRecommendationRequiresReviewWithoutAutomaticLaunch() {
+        Fixture f; f.remote.legalDispatch = true; f.remote.partialDispatch = true;
+        f.controller.sendMessage("Fais un recap des lois pour ouvrir une société en Israël", "fr");
+        QTRY_COMPARE(f.controller.assignmentPhase(), QString("unmatched"));
+        QCOMPARE(f.controller.assignmentAgentId(), QString("sira"));
+        QVERIFY(!f.mission.capabilityWarning().isEmpty());
+        QTest::qWait(1400);
+        QCOMPARE(f.remote.count("/api/dispatch/confirm"), 0);
+    }
+    void changedSelectionCannotUseAnEarlierAutomaticLaunchTimer() {
+        Fixture f; f.remote.legalDispatch = true;
+        f.controller.sendMessage("Fais un recap des lois pour ouvrir une société en Israël", "fr");
+        QTRY_COMPARE(f.controller.assignmentPhase(), QString("chosen"));
+        QCOMPARE(f.controller.assignmentAgentId(), QString("taya"));
+        QTRY_COMPARE(f.mission.roster().size(), 2);
+        f.mission.selectAgent("sira");
+        QCOMPARE(f.controller.assignmentPhase(), QString("unmatched"));
+        QVERIFY(!f.mission.capabilityWarning().isEmpty());
+        QTest::qWait(1400);
+        QCOMPARE(f.remote.count("/api/dispatch/confirm"), 0);
+        QCOMPARE(f.controller.assignmentPhase(), QString("unmatched"));
     }
     void failedReplyPreservesDraftAndRetryDoesNotDuplicateUser() {
         Fixture f; f.remote.failChat = true;
@@ -173,6 +245,28 @@ private slots:
         f.controller.sendMessage("oui", "fr");
         QTRY_VERIFY(!f.controller.busy());
         QCOMPARE(f.remote.count("/api/dispatch/analyze"), 1);
+    }
+    void groundedMailAnswerDoesNotBecomeMissionOrConfirmationFallback() {
+        Fixture f; f.remote.mailAnswer = true;
+        f.controller.sendMessage("Cherche les factures dans mes mails", "fr");
+        QTRY_VERIFY(!f.controller.busy());
+        QCOMPARE(f.controller.messages().size(), 2);
+        QVERIFY(f.controller.messages().last().toMap().value("body").toString().contains("deux factures"));
+        QVERIFY(f.controller.pendingInstruction().isEmpty());
+        QCOMPARE(f.remote.count("/api/dispatch/analyze"), 0);
+        f.controller.sendMessage("oui", "fr");
+        QTRY_VERIFY(!f.controller.busy());
+        QVERIFY(f.controller.pendingInstruction().isEmpty());
+        QCOMPARE(f.remote.count("/api/dispatch/analyze"), 0);
+        QCOMPARE(f.remote.count("/api/dispatch/confirm"), 0);
+        // An answered read stays an answer after persistence, even if its
+        // wording contains a clarification that resembles an old proposal.
+        f.api.setWorkspace("workspace-b"); emit f.session.workspaceChanged();
+        f.api.setWorkspace("workspace-a"); emit f.session.workspaceChanged();
+        QTRY_COMPARE(f.controller.messages().size(), 4);
+        QCOMPARE(f.controller.messages().last().toMap().value("response_kind").toString(), QString("answer"));
+        QVERIFY(f.controller.pendingInstruction().isEmpty());
+        QCOMPARE(f.remote.count("/api/dispatch/analyze"), 0);
     }
     void offlineDoesNotPretendToRespond() {
         Fixture f; f.api.setOnline(false); f.controller.sendMessage("Bonjour", "fr");

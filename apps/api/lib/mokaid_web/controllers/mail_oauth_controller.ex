@@ -36,14 +36,22 @@ defmodule MokaidWeb.MailOAuthController do
 
   def google_callback(conn, params) do
     {status, title, message} =
-      case MailOAuthFlow.complete(params) do
-        {:ok, :connected} ->
+      case MailOAuthFlow.complete(params, details: true) do
+        {:ok, %{provider_key: "gmail"}} ->
           {200, "Gmail connected",
            "Your mailbox is connected and its first synchronization has started. Return to Mokaid Desktop; you can close this tab."}
 
+        {:ok, %{provider_key: provider}} ->
+          {200, "#{provider_name(provider)} connected",
+           "Authorization is complete. Return to Mokaid Desktop; you can close this tab."}
+
         {:error, "authorization_cancelled"} ->
-          {400, "Connection cancelled",
-           "No mailbox was connected. Return to Mokaid Desktop to try again."}
+          {400, "Google access was not granted",
+           "Google refused access or sign-in was cancelled. If Google showed an app-testing restriction, select an allowed Google account or contact your workspace administrator. Return to Mokaid Desktop to try again."}
+
+        {:error, "integration_permission_required"} ->
+          {400, "Google permission required",
+           "Return to Mokaid Desktop, connect the service again, and allow the permissions requested for that service."}
 
         {:error, "mail_permission_required"} ->
           {400, "Gmail permission required",
@@ -51,7 +59,7 @@ defmodule MokaidWeb.MailOAuthController do
 
         {:error, _} ->
           {400, "Connection could not be completed",
-           "Return to Mokaid Desktop and try connecting Gmail again. The app will show the connection status."}
+           "Return to Mokaid Desktop and try connecting again. The app will show the connection status."}
       end
 
     conn
@@ -68,4 +76,11 @@ defmodule MokaidWeb.MailOAuthController do
     <main><p>Mokaid</p><h1>#{title}</h1><p>#{message}</p></main></html>
     """)
   end
+
+  defp provider_name("google_drive"), do: "Google Drive"
+  defp provider_name("google_calendar"), do: "Google Calendar"
+  defp provider_name("google_docs"), do: "Google Docs"
+  defp provider_name("google_sheets"), do: "Google Sheets"
+  defp provider_name("google_meet"), do: "Google Meet"
+  defp provider_name(_), do: "Google"
 end

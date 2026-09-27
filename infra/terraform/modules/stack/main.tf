@@ -616,11 +616,13 @@ module "api_service" {
   alb_security_group_id = module.alb.alb_security_group_id
 
   environment = {
-    MIX_ENV    = "prod"
-    PHX_HOST   = var.app_domain != "" ? var.app_domain : module.alb.alb_dns_name
-    PORT       = "4000"
-    AWS_REGION = var.aws_region
-    AUTH_MODE  = var.auth_mode
+    MIX_ENV                        = "prod"
+    PHX_HOST                       = var.app_domain != "" ? var.app_domain : module.alb.alb_dns_name
+    PORT                           = "4000"
+    AWS_REGION                     = var.aws_region
+    AUTH_MODE                      = var.auth_mode
+    MOKAID_AVATAR_WORKER_MODE      = "api"
+    MOKAID_AVATAR_PIPELINE_ENABLED = tostring(var.enable_avatar_worker)
     # This API service accepts ingress only from alb_security_group_id above.
     MOKAID_TRUSTED_ALB_CIDRS        = join(",", module.vpc.public_subnet_cidrs)
     COGNITO_USER_POOL_ID            = module.cognito.user_pool_id

@@ -20,9 +20,43 @@ config :mokaid, :desktop_only_business, desktop_only_business
 config :mokaid, :desktop_auth,
   web_base_url: System.get_env("DESKTOP_AUTH_WEB_BASE_URL") || "https://mokaid.com"
 
-if System.get_env("PHX_SERVER") do
-  config :mokaid, MokaidWeb.Endpoint, server: true
+avatar_worker_mode =
+  case System.get_env("MOKAID_AVATAR_WORKER_MODE") do
+    "api" -> :api
+    "worker" -> :worker
+    nil -> if(config_env() == :prod, do: :api, else: :local)
+    _ -> raise "MOKAID_AVATAR_WORKER_MODE must be api or worker"
+  end
+
+config :mokaid, :avatar_worker_mode, avatar_worker_mode
+
+api_queues = [default: 10, ingestion: 5, ai_dispatch: 10, notifications: 10, billing: 3]
+
+avatar_queues =
+  case avatar_worker_mode do
+    :api -> api_queues
+    :worker -> [avatars: 1]
+    :local -> api_queues ++ [avatars: 1]
+  end
+
+config :mokaid, Oban, queues: avatar_queues
+
+if avatar_worker_mode == :worker do
+  # Schedulers and pruning run on the API; this process does character work only.
+  config :mokaid, Oban, plugins: false, shutdown_grace_period: 110_000
 end
+
+if avatar_worker_mode == :worker or System.get_env("PHX_SERVER") != nil do
+  config :mokaid, MokaidWeb.Endpoint,
+    server: System.get_env("PHX_SERVER") == "true" and avatar_worker_mode != :worker
+end
+
+config :mokaid,
+       :avatar_pipeline_enabled,
+       System.get_env(
+         "MOKAID_AVATAR_PIPELINE_ENABLED",
+         if(config_env() == :prod, do: "false", else: "true")
+       ) == "true"
 
 # Figma OAuth credentials come from the environment (AWS Secrets Manager in
 # deployed environments, .env locally) — never from the repo.

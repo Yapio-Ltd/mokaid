@@ -12,7 +12,7 @@ Item {
     readonly property var pageMeta: Logic.meta(page)
     readonly property var records: features.visibleRecords
     readonly property var statistics: Logic.stats(page,features.allRecords)
-    readonly property var primaryAction: page==="mail" ? ({id:"connect", enabled:features.mailAccounts.online && !features.mailAccounts.submitting}) : features.actions.find(function(a){return a.id===root.pageMeta.primary;}) || ({enabled:false})
+    readonly property var primaryAction: page==="integrations" ? ({id:"connect-google", enabled:features.googleConnections.online && !features.googleConnections.submitting}) : page==="mail" ? ({id:"connect", enabled:features.mailAccounts.online && !features.mailAccounts.submitting}) : features.actions.find(function(a){return a.id===root.pageMeta.primary;}) || ({enabled:false})
     readonly property bool hasSelection: features.selectedId.length>0
     readonly property bool showInspector: hasSelection || inspectOverview || (features.detailView.available && features.detailView.heading!=="Overview" && features.detailView.heading!=="Record details")
     readonly property bool compact: width<900 && page!=="drive"
@@ -23,6 +23,12 @@ Item {
     // Compatibility for native delivery-gallery consumers: metadata stays collapsed.
     readonly property bool metadataExpanded: inspector.browserMode
     function request(action) {
+        if(page==="integrations") {
+            if(action.id==="connect-google") { googleConnectionsDialog.start("",false); return; }
+            if(action.id==="install" && features.googleConnections.services.some(function(s){return s.key===features.selectedRecord.key;})) {
+                googleConnectionsDialog.start(features.selectedRecord.key,true); return;
+            }
+        }
         if(page==="mail") {
             if(action.id==="connect") { mailConnect.start({}); return; }
             if(action.id==="accounts") { mailAccountsDialog.open(); return; }
@@ -54,7 +60,7 @@ Item {
         }
     }
     ColumnLayout {
-        visible: root.page!=="agent-new"
+        visible: root.page!=="agent-new" && root.page!=="mail"
         anchors.fill: parent; anchors.topMargin: 4; anchors.bottomMargin: 8; spacing: 14
         RowLayout {
             Layout.fillWidth: true; spacing: 16
@@ -93,6 +99,11 @@ Item {
             MokaidButton { visible: ["projects","drive","integrations","admin-workspaces","admin-plans","agent-new"].indexOf(root.page)>=0; text: "Grid"; quiet: true; highlighted: root.viewMode==="grid"; onClicked: root.viewMode="grid" }
             MokaidButton { objectName: "featureListMode"; visible: ["tasks","projects","drive","integrations","admin-workspaces","admin-plans","agent-new"].indexOf(root.page)>=0; text: "List"; quiet: true; highlighted: root.viewMode==="list"; onClicked: root.viewMode="list" }
             MokaidButton { objectName: "pageActionsButton"; text: "More"; iconName: "more"; quiet: true; onClicked: viewActions.openFor(this); Accessible.name: "More "+features.title.toLowerCase()+" actions" }
+        }
+        GoogleConnectionsBar {
+            Layout.fillWidth:true; visible:["calendar","drive","integrations"].indexOf(root.page)>=0; controller:features.googleConnections
+            providerKey:root.page==="calendar" ? "google_calendar" : root.page==="drive" ? "google_drive" : ""
+            onManageRequested:function(providerKey,connectNow){googleConnectionsDialog.start(providerKey,connectNow);}
         }
         MailAccountsBar { Layout.fillWidth:true; visible:root.page==="mail"; controller:features.mailAccounts; onManageRequested:mailAccountsDialog.open() }
         DriveNavigation { Layout.fillWidth: true; visible: root.page==="drive" && !(root.compact && root.showInspector); controller: features }
@@ -146,11 +157,17 @@ Item {
             MokaidLabel { text: "Synchronizing…"; font.pixelSize: 11; color: Theme.muted }
         }
     }
+    MailPage {
+        anchors.fill:parent; visible:root.page==="mail"; controller:features.mailCenter; accounts:features.mailAccounts; downloads:features.driveDownload
+        onConnectRequested:mailConnect.start({})
+        onManageRequested:mailAccountsDialog.open()
+    }
     AgentCreationPage {
         anchors.fill: parent
         visible: root.page==="agent-new"
         onActionRequested: function(action) { root.actionRequested(action); }
     }
+    GoogleConnectionsDialog { id:googleConnectionsDialog; controller:features.googleConnections }
     MailConnectDialog { id:mailConnect; controller:features.mailAccounts }
     MailAccountsDialog { id:mailAccountsDialog; controller:features.mailAccounts; onConnectRequested:function(account){mailConnect.start(account);} }
     MokaidMenu {

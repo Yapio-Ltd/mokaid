@@ -27,6 +27,7 @@ defmodule Mokaid.Members do
     drive.restore drive.permanent_delete drive.share drive.manage_permissions drive.view_audit
     drive.read_all_project_files drive.ai_grant_access drive.version_restore
     calendar.view calendar.create calendar.update
+    mail.send mail.manage
     leave_requests.create leave_requests.view_own leave_requests.view_all leave_requests.approve
     integrations.view integrations.connect integrations.disconnect integrations.manage
     billing.view billing.manage

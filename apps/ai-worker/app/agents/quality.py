@@ -26,6 +26,8 @@ class ExecutionProfile:
 def execution_profile(request: RunRequest) -> ExecutionProfile:
     """Classify effort locally so small tasks incur no extra routing LLM call."""
     brief = " ".join((request.task_title or "", request.task_description or "", str(request.input.get("instruction") or "")))
+    if detect_mission_kind(request) == "mail_export":
+        return ExecutionProfile("standard", True, 100)
     complex_task = detect_mission_kind(request) == "webapp" or bool(re.search(
         r"\b(audit|migration|architecture|complex\w*|strat[ée]gi\w*|compar\w*|juridi\w*|financi\w*|security|s[ée]curit[ée])\b",
         brief, re.IGNORECASE,
@@ -52,7 +54,13 @@ def unresolved_errors(calls: list[ToolCall]) -> list[ToolCall]:
         if call.approved is False or not isinstance(call.output, dict):
             continue
         source = call.input.get("file_url") or call.input.get("original_filename") or call.output.get("source_filename")
-        key = ("file", str(source)) if source else ("tool", call.tool)
+        if call.tool in {"read_mail_message", "save_mail_attachment"}:
+            # Saving another attachment cannot resolve this attachment's error.
+            identity = [call.input.get("message_id"), call.input.get("attachment_id"),
+                        call.input.get("folder_id"), call.input.get("folder_name")]
+            key = (call.tool, json.dumps(identity, ensure_ascii=False))
+        else:
+            key = ("file", str(source)) if source else ("tool", call.tool)
         latest[key] = call
     return [call for call in latest.values() if call.output.get("error")]
 
@@ -72,12 +80,19 @@ def review_evidence(files: dict[str, Any], calls: list[ToolCall], summary: str) 
     outcomes = []
     for call in calls[-20:]:
         output = call.output if isinstance(call.output, dict) else {}
-        outcomes.append({
+        evidence = {
             "tool": call.tool, "approved": call.approved,
             **{key: str(output[key])[:2500] for key in (
                 "error", "analysis", "content", "text", "filename", "verification", "runtime", "note",
             ) if key in output},
-        })
+        }
+        if call.tool == "save_mail_attachment":
+            evidence.update({key: str(output[key])[:512] for key in
+                             ("file_id", "name", "folder_id", "size_bytes", "reused") if key in output})
+            source = output.get("source") if isinstance(output.get("source"), dict) else call.input
+            evidence["source"] = {key: str(source[key])[:512] for key in
+                                  ("message_id", "attachment_id", "account_id") if key in source}
+        outcomes.append(evidence)
     return {"deliverables": documents, "tools": outcomes, "closing_message": summary}
 
 

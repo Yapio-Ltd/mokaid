@@ -247,12 +247,12 @@ Item {
                 }
                 ColumnLayout {
                     spacing: 3; Layout.fillWidth: true
-                    MokaidLabel { text: "Moked"; font.pixelSize: 21; font.weight: Font.Bold }
+                    MokaidLabel { text: "Liven"; font.pixelSize: 21; font.weight: Font.Bold }
                     MokaidLabel { Layout.fillWidth: true; text: root.status; font.pixelSize: 11; color: root.recording ? Theme.success : Theme.secondary; elide: Text.ElideRight; Accessible.role: Accessible.StatusBar }
                 }
                 MokaidIconButton { objectName: "mokedNewChat"; iconName: "plus"; hint: qsTr("New conversation"); subtle: true; implicitWidth: 34; enabled: root.signedIn; onClicked: root.startConversation() }
                 MokaidIconButton { objectName: "mokedFullscreen"; iconName: "fit"; hint: root.fullscreen ? qsTr("Exit full screen") : qsTr("Full screen"); subtle: true; implicitWidth: 34; onClicked: root.fullscreen = !root.fullscreen }
-                MokaidIconButton { objectName: "mokedClose"; iconName: "minus"; hint: qsTr("Collapse Moked"); subtle: true; implicitWidth: 34; onClicked: root.hide() }
+                MokaidIconButton { objectName: "mokedClose"; iconName: "minus"; hint: qsTr("Collapse Liven"); subtle: true; implicitWidth: 34; onClicked: root.hide() }
             }
             RowLayout {
                 spacing: 6; Layout.fillWidth: true
@@ -301,7 +301,7 @@ Item {
                                     required property var modelData
                                     width: messages.width - 8; spacing: 6
                                     readonly property bool member: modelData.role === "user"
-                                    MokaidLabel { text: parent.member ? qsTr("You") : "Moked"; color: parent.member ? Theme.secondary : Theme.primary; font.weight: Font.DemiBold; font.pixelSize: 11; Layout.alignment: parent.member ? Qt.AlignRight : Qt.AlignLeft }
+                                    MokaidLabel { text: parent.member ? qsTr("You") : "Liven"; color: parent.member ? Theme.secondary : Theme.primary; font.weight: Font.DemiBold; font.pixelSize: 11; Layout.alignment: parent.member ? Qt.AlignRight : Qt.AlignLeft }
                                     Rectangle {
                                         Layout.fillWidth: true
                                         Layout.leftMargin: parent.member ? 26 : 0
@@ -313,7 +313,7 @@ Item {
                                             readOnly: true; selectByMouse: true; wrapMode: TextEdit.Wrap
                                             font.family: Theme.fontFamily; font.pixelSize: 13
                                             selectionColor: Theme.selection; selectedTextColor: Theme.text
-                                            Accessible.name: (parent.parent.member ? qsTr("You: ") : "Moked : ") + (modelData.body || "")
+                                            Accessible.name: (parent.parent.member ? qsTr("You: ") : "Liven: ") + (modelData.body || "")
                                         }
                                     }
                                     MokaidButton { visible: !!modelData.task_id; text: qsTr("Open mission"); iconName: "arrow-right"; onClicked: { root.controller.reviewMission(modelData.task_id); root.hide() } }
@@ -321,7 +321,7 @@ Item {
                                 ScrollBar.vertical: ScrollBar { }
                             }
                         }
-                        MokaidLabel { visible: root.controller.busy; Layout.fillWidth: true; text: qsTr("Moked is preparing a reply…"); color: Theme.primary; font.pixelSize: 12; Accessible.role: Accessible.StatusBar }
+                        MokaidLabel { visible: root.controller.busy; Layout.fillWidth: true; text: qsTr("Liven is preparing a reply…"); color: Theme.primary; font.pixelSize: 12; Accessible.role: Accessible.StatusBar }
                         Rectangle {
                             id: assignmentCard
                             objectName: "mokedAssignment"
@@ -507,7 +507,7 @@ Item {
                         id: composer; objectName: "mokedComposer"
                         text: root.controller.draft; placeholderText: root.signedIn ? qsTr("What do you want to accomplish?") : qsTr("Sign in to chat…")
                         enabled: root.signedIn && !root.recording && !root.processingAudio
-                        wrapMode: TextEdit.Wrap; Accessible.name: qsTr("Message to Moked")
+                        wrapMode: TextEdit.Wrap; Accessible.name: qsTr("Message to Liven")
                         onTextChanged: if (root.controller.draft !== text) root.controller.draft = text
                         Keys.onPressed: function(event) {
                             if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) { root.send(); event.accepted = true }
@@ -530,7 +530,7 @@ Item {
         visible: !root.fullscreen
         anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.rightMargin: 24; anchors.bottomMargin: 18
         width: root.useOfficeSlot ? root.mascotWidth : 194
-        height: root.useOfficeSlot ? root.mascotExtent : (root.expanded ? 54 : 192)
+        height: root.useOfficeSlot ? root.mascotExtent + 22 : (root.expanded ? 54 : 192)
         states: State {
             name: "underAttention"
             when: root.useOfficeSlot
@@ -554,14 +554,13 @@ Item {
                 when: root.useOfficeSlot
                 AnchorChanges {
                     target: mascot
-                    anchors.left: mascot.parent.left
-                    anchors.right: mascot.parent.right
+                    anchors.right: undefined
+                    anchors.horizontalCenter: mascot.parent.horizontalCenter
                     anchors.top: mascot.parent.top
-                    anchors.bottom: mascot.parent.bottom
+                    anchors.bottom: undefined
                 }
                 PropertyChanges {
                     target: mascot
-                    anchors.leftMargin: 0
                     anchors.rightMargin: 0
                     anchors.topMargin: 0
                     anchors.bottomMargin: 0
@@ -572,8 +571,18 @@ Item {
                 onClicked: root.useOfficeSlot && root.expanded ? root.hide() : root.show()
                 Accessible.ignored: !root.useOfficeSlot
                 Accessible.role: Accessible.Button
-                Accessible.name: qsTr("Open Moked, your orchestrator")
+                Accessible.name: qsTr("Open Liven, your orchestrator")
             }
+        }
+        MokaidLabel {
+            visible: root.useOfficeSlot
+            anchors.top: mascot.bottom
+            anchors.topMargin: 1
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: qsTr("Liven")
+            color: Theme.secondary
+            font.pixelSize: 11
+            font.weight: Font.DemiBold
         }
         Rectangle {
             visible: root.unread > 0 && !root.expanded && !root.useOfficeSlot
@@ -585,17 +594,17 @@ Item {
         RowLayout {
             visible: !root.useOfficeSlot
             anchors.right: parent.right; anchors.bottom: parent.bottom; spacing: 8
-            MokaidIconButton { iconName: root.recording ? "stop" : "microphone"; hint: qsTr("Talk to Moked"); enabled: root.signedIn && !root.controller.busy; onClicked: root.microphone() }
+            MokaidIconButton { iconName: root.recording ? "stop" : "microphone"; hint: qsTr("Talk to Liven"); enabled: root.signedIn && !root.controller.busy; onClicked: root.microphone() }
             AbstractButton {
                 id: launcher; objectName: "mokedLauncher"
                 implicitWidth: 130; implicitHeight: 46; hoverEnabled: true
-                Accessible.name: root.expanded ? qsTr("Collapse Moked") : qsTr("Open Moked, your orchestrator")
+                Accessible.name: root.expanded ? qsTr("Collapse Liven") : qsTr("Open Liven, your orchestrator")
                 onClicked: root.expanded ? root.hide() : root.show()
                 background: Rectangle { radius: 15; color: launcher.hovered ? "#302448" : "#1f1932"; border.color: launcher.visualFocus ? Theme.focusBorder : "#68528f" }
                 contentItem: RowLayout {
                     spacing: 8
                     MokaidIcon { name: "moked"; size: 19; color: Theme.primary; Layout.leftMargin: 14 }
-                    MokaidLabel { text: "Moked"; font.weight: Font.DemiBold; Layout.fillWidth: true }
+                    MokaidLabel { text: "Liven"; font.weight: Font.DemiBold; Layout.fillWidth: true }
                     MokaidIcon { name: root.expanded ? "chevron-down" : "chevron-up"; size: 14; Layout.rightMargin: 12 }
                 }
             }
@@ -603,7 +612,7 @@ Item {
     }
     MokaidDialog {
         id: voiceSettings; objectName: "mokedVoiceSettings"
-        anchors.centerIn: parent; modal: true; width: Math.min(460, root.width - 40); title: qsTr("Moked's voice"); standardButtons: Dialog.Close
+        anchors.centerIn: parent; modal: true; width: Math.min(460, root.width - 40); title: qsTr("Liven's voice"); standardButtons: Dialog.Close
         ColumnLayout {
             width: parent.width; spacing: 16
             MokaidLabel { Layout.fillWidth: true; text: qsTr("Speak in your language."); font.pixelSize: 23; font.weight: Font.DemiBold; wrapMode: Text.Wrap }
@@ -611,7 +620,7 @@ Item {
             MokaidLabel { Layout.fillWidth: true; text: root.voiceController.ready ? qsTr("Whisper multilingual and Kokoro are ready.") : root.voiceState === "preparing" ? qsTr("Checking the models included with the app…") : qsTr("The voice pack is missing or incomplete. Use a Mokaid build that includes the voice models."); wrapMode: Text.Wrap; color: root.voiceController.ready ? Theme.success : Theme.secondary }
             ProgressBar { Layout.fillWidth: true; visible: root.voiceState === "preparing"; indeterminate: true }
             MokaidButton { Layout.fillWidth: true; visible: !root.voiceController.ready; text: qsTr("Check local models"); highlighted: true; enabled: root.voiceState !== "preparing"; onClicked: root.voiceController.setup() }
-            MokaidLabel { Layout.fillWidth: true; text: qsTr("Kokoro speaks supported languages. For others, Moked uses an installed system voice if one exists. Otherwise the reply stays written."); color: Theme.muted; wrapMode: Text.Wrap; font.pixelSize: 12 }
+            MokaidLabel { Layout.fillWidth: true; text: qsTr("Kokoro speaks supported languages. For others, Liven uses an installed system voice if one exists. Otherwise the reply stays written."); color: Theme.muted; wrapMode: Text.Wrap; font.pixelSize: 12 }
             MokaidLabel { Layout.fillWidth: true; text: root.voiceController.error; visible: text.length > 0; color: Theme.warning; wrapMode: Text.Wrap }
         }
     }

@@ -81,6 +81,9 @@ export interface Agent {
   avatar_asset_id: string | null;
   /** Resolved /assets3d/... path from the asset_3d catalog. */
   avatar_cdn_path?: string | null;
+  /** Rendered head portrait. Generation thumbnails may show the whole body. */
+  avatar_portrait_url?: string | null;
+  avatar_thumbnail_url?: string | null;
   role_title: string | null;
   department: string | null;
   status: AgentStatus;

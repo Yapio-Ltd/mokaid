@@ -12,7 +12,7 @@ var pages = {
     settings: { subtitle: "Make this workspace feel like yours.", primary: "edit", action: "Edit workspace", icon: "settings", view: "summary" },
     profile: { subtitle: "Your identity and preferences across the workspace.", primary: "edit", action: "Edit profile", icon: "profile", view: "summary" },
     members: { subtitle: "The people behind your workspace.", primary: "invite", action: "Invite member", icon: "members", empty: "Build your team", hint: "Invite a colleague to collaborate in this workspace.", view: "list" },
-    integrations: { subtitle: "Connect the tools your team depends on.", primary: "browser", action: "Manage connections", icon: "integrations", empty: "No integrations available", hint: "Refresh the catalog or manage your provider connections.", view: "grid" },
+    integrations: { subtitle: "Connect the tools your team depends on.", primary: "connect-google", action: "Connect Google", icon: "integrations", empty: "No integrations available", hint: "Refresh the catalog or manage your provider connections.", view: "grid" },
     billing: { subtitle: "Your plan, available credits, and billing history.", primary: "portal", action: "Billing portal", icon: "billing", view: "summary" },
     "admin-overview": { subtitle: "Platform health and activity at a glance.", primary: "history", action: "Historical metrics", icon: "analytics", view: "summary" },
     "admin-users": { subtitle: "Manage account access and user activity.", icon: "members", empty: "No users match this view", hint: "Try another search or refresh the user directory.", view: "list" },

@@ -33,6 +33,47 @@ variable "memory" {
   default = 1024
 }
 
+variable "cpu_architecture" {
+  type    = string
+  default = "ARM64"
+  validation {
+    condition     = contains(["ARM64", "X86_64"], var.cpu_architecture)
+    error_message = "cpu_architecture must be ARM64 or X86_64."
+  }
+}
+
+variable "container_health_check" {
+  description = "Optional ECS container health check, including non-HTTP workers."
+  type = object({
+    command     = list(string)
+    interval    = number
+    timeout     = number
+    retries     = number
+    startPeriod = number
+  })
+  default = null
+}
+
+variable "deployment_minimum_healthy_percent" {
+  type    = number
+  default = 100
+}
+
+variable "deployment_maximum_percent" {
+  type    = number
+  default = 200
+}
+
+variable "stop_timeout" {
+  description = "Optional graceful stop timeout in seconds; null preserves the existing ECS default."
+  type        = number
+  default     = null
+  validation {
+    condition     = var.stop_timeout == null ? true : var.stop_timeout >= 2 && var.stop_timeout <= 120
+    error_message = "stop_timeout must be between 2 and 120 seconds."
+  }
+}
+
 variable "desired_count" {
   type    = number
   default = 1
@@ -207,11 +248,11 @@ resource "aws_ecs_task_definition" "this" {
 
   runtime_platform {
     operating_system_family = "LINUX"
-    cpu_architecture        = "ARM64"
+    cpu_architecture        = var.cpu_architecture
   }
 
   container_definitions = jsonencode([
-    {
+    merge({
       name      = var.name
       image     = var.container_image
       essential = true
@@ -232,7 +273,7 @@ resource "aws_ecs_task_definition" "this" {
           awslogs-stream-prefix = var.name
         }
       }
-    }
+    }, var.container_health_check == null ? {} : { healthCheck = var.container_health_check }, var.stop_timeout == null ? {} : { stopTimeout = var.stop_timeout })
   ])
 
   tags = var.tags
@@ -267,8 +308,8 @@ resource "aws_ecs_service" "this" {
     }
   }
 
-  deployment_minimum_healthy_percent = 100
-  deployment_maximum_percent         = 200
+  deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
+  deployment_maximum_percent         = var.deployment_maximum_percent
 
   deployment_circuit_breaker {
     enable   = true

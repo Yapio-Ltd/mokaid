@@ -35,6 +35,77 @@ class PhoenixClient:
         self.base_url = settings.phoenix_api_url.rstrip("/")
         self.headers = {"authorization": f"Bearer {settings.worker_auth_token}"}
 
+    async def mail_tool(
+        self, access_token: str, action: str, arguments: dict[str, Any],
+        *, acting_agent_id: str | None = None, allow_refresh: bool = False,
+    ) -> dict[str, Any]:
+        """Private Mail bridge. Credentials and raw transport errors never become tool output."""
+        if not access_token or action not in {"list", "search", "read", "save_attachment"}:
+            return {"error": "mail_access_unavailable"}
+        operation = {"access_token": access_token, "action": action,
+                     "arguments": _sanitize(arguments), "acting_agent_id": acting_agent_id}
+        active_token = access_token
+        try:
+            async with httpx.AsyncClient(timeout=60, follow_redirects=False) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/worker/mail/tools",
+                    json=operation,
+                    headers=self.headers,
+                )
+                if response.status_code == 403 and allow_refresh:
+                    # Only persisted execution contexts opt in. The API verifies
+                    # the original signed scope and all current rights; no actor
+                    # or operation can be broadened by this single renewal.
+                    refreshed = await client.post(
+                        f"{self.base_url}/api/worker/mail/refresh",
+                        json={"access_token": access_token, "action": action,
+                              "acting_agent_id": acting_agent_id},
+                        headers=self.headers,
+                    )
+                    if refreshed.status_code in {401, 403}:
+                        return {"error": "mail_access_denied"}
+                    if refreshed.status_code != 200 or len(refreshed.content) > 20000:
+                        return {"error": "mail_service_unavailable"}
+                    renewal = refreshed.json()
+                    data = renewal.get("data") if isinstance(renewal, dict) else None
+                    token = data.get("token") if isinstance(data, dict) else None
+                    if not isinstance(token, str) or not token.strip() or len(token) > 16384:
+                        return {"error": "mail_service_unavailable"}
+                    active_token = token
+                    response = await client.post(
+                        f"{self.base_url}/api/worker/mail/tools",
+                        json={**operation, "access_token": active_token}, headers=self.headers,
+                    )
+            if response.status_code in {401, 403}:
+                return {"error": "mail_access_denied"}
+            if response.status_code == 404:
+                return {"error": "mail_item_unavailable"}
+            if response.status_code == 422:
+                return {"error": "invalid_mail_arguments"}
+            if response.status_code == 409:
+                return {"error": "mail_reconnect_required"}
+            if response.status_code == 413:
+                return {"error": "mail_attachment_too_large"}
+            if response.status_code == 429:
+                return {"error": "mail_rate_limited"}
+            if not 200 <= response.status_code < 300 or len(response.content) > 2 * 1024 * 1024:
+                return {"error": "mail_service_unavailable"}
+            result = response.json()
+            if not isinstance(result, dict) or not isinstance(result.get("data"), dict):
+                return {"error": "mail_service_unavailable"}
+            def private(value: Any) -> Any:
+                if isinstance(value, str):
+                    return value.replace(access_token, "[redacted]").replace(active_token, "[redacted]")
+                if isinstance(value, list):
+                    return [private(item) for item in value]
+                if isinstance(value, dict):
+                    return {private(key): private(item) for key, item in value.items()}
+                return value
+
+            return private(result["data"])
+        except (httpx.HTTPError, ValueError, TypeError):
+            return {"error": "mail_service_unavailable"}
+
     async def _post(
         self, path: str, payload: dict[str, Any], timeout: float = 15
     ) -> dict[str, Any] | None:

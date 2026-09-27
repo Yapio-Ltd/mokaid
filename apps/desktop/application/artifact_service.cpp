@@ -8,6 +8,21 @@ ArtifactService::ArtifactService(ApiClient& api, SessionController& session, Cac
     connect(&session_, &SessionController::cleared, this, [this] { ++generation_; });
     connect(&session_, &SessionController::workspaceChanged, this, [this] { ++generation_; });
 }
+void ArtifactService::fetchMailAttachment(const QString& messageId, const QString& attachmentId, QObject* owner, Completion completion) {
+    static const QRegularExpression id("^[A-Za-z0-9][A-Za-z0-9_-]{0,511}$");
+    if (!id.match(messageId).hasMatch() || !id.match(attachmentId).hasMatch() || !core::mayRequest(api_.context(),core::Scope::workspace,false)) {
+        completion({{},"Connect to the mailbox workspace to preview this attachment."}); return;
+    }
+    const auto generation=api_.context().generation;
+    const auto guard=QPointer<QObject>(owner);
+    const auto path="/api/mail/messages/"+messageId+"/attachments/"+attachmentId;
+    api_.getBytes(path,core::Scope::workspace,owner,[this,generation,guard,completion=std::move(completion)](ApiResponse response) {
+        if(!guard || generation!=api_.context().generation) return;
+        if(!response.ok()) {completion({{},response.error});return;}
+        if(response.bytes.size()>20*1024*1024) {completion({{},"Mail attachment previews are limited to 20 MB."});return;}
+        completion({std::move(response.bytes),{}});
+    });
+}
 void ArtifactService::fetch(const QString& id, QObject* owner, Completion completion) {
     static const QRegularExpression validId("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
     if (!validId.match(id).hasMatch() || !session_.authenticated() || session_.workspaceId().isEmpty()) {

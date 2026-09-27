@@ -8,7 +8,9 @@ namespace {
 QString oauthError(const QString& code) {
     if (code == "authorization_expired") return "Google sign-in expired. Connect Gmail again.";
     if (code == "authorization_cancelled") return "Google sign-in was cancelled. Connect Gmail when you are ready.";
-    if (code == "mail_permission_required") return "Allow access to Gmail when Google asks, so Mokaid can synchronize your inbox.";
+    if (code == "mail_permission_required" || code == "integration_permission_required") return "Allow access to Gmail when Google asks, so Mokaid can synchronize your inbox.";
+    if (code == "provider_unavailable" || code == "oauth_not_configured") return "Gmail connection is temporarily unavailable. Contact your Mokaid administrator, then try again.";
+    if (code == "provider_disabled") return "Gmail connection is disabled in Mokaid. Ask your administrator to enable it, then try again.";
     if (code == "reconnect_with_consent") return "Connect Gmail again and allow access so synchronization can continue when you are away.";
     if (code == "workspace_access_revoked") return "Your workspace access changed. Sign in again before connecting this mailbox.";
     if (code == "google_account_unverified") return "Verify this email address with Google before connecting it.";
@@ -53,7 +55,7 @@ void MailAccountsController::syncContext() {
     contextGeneration_ = api_.context().generation; ++epoch_;
     for (auto* owner : {&listOwner_, &submitOwner_, &oauthOwner_, &syncOwner_}) api_.cancelRequests(owner);
     poll_.stop(); syncPoll_.stop(); accounts_.clear(); selectedId_.clear(); flowId_.clear(); authorizeUrl_.clear();
-    error_.clear(); message_.clear(); awaitingSync_.clear(); refreshing_ = submitting_ = syncing_ = polling_ = false; syncRequests_ = 0;
+    error_.clear(); message_.clear(); awaitingSync_.clear(); canSend_ = canManage_ = false; refreshing_ = submitting_ = syncing_ = polling_ = false; syncRequests_ = 0;
     emit contextReset(); emit changed();
 }
 void MailAccountsController::fail(const QString& message) { error_ = message; emit changed(); }
@@ -85,6 +87,8 @@ void MailAccountsController::refresh() {
         QVariantList accounts;
         for (const auto& value : response.json.value("data").toArray()) accounts.append(safeAccount(value.toObject().toVariantMap()));
         accounts_ = accounts;
+        const auto meta = response.json.value("meta").toObject();
+        canSend_ = meta.value("can_send").toBool(); canManage_ = meta.value("can_manage").toBool();
         if (syncPoll_.isActive() && !awaitingSync_.isEmpty()) {
             for (const auto& value : accounts_) {
                 const auto account = value.toMap(); const auto id = account.value("id").toString();
@@ -113,7 +117,11 @@ void MailAccountsController::connectGoogle() {
     api_.request("POST", "/api/mail/oauth/google/start", {}, core::Scope::workspace, &submitOwner_, [this, epoch](ApiResponse response) {
         if (epoch != epoch_ || contextGeneration_ != api_.context().generation) return;
         submitting_ = false;
-        if (!response.ok()) { fail(response.error); return; }
+        if (!response.ok()) {
+            const auto problem = response.json.value("error");
+            const auto code = problem.isString() ? problem.toString() : problem.toObject().value("code").toString();
+            fail(code.isEmpty() ? response.error : oauthError(code)); return;
+        }
         const auto data = response.json.value("data").toObject();
         const QUrl url(data.value("authorize_url").toString());
         const auto flow = data.value("flow_id").toString();
@@ -223,6 +231,7 @@ void MailAccountsController::connectImap(const QVariantMap& values, const QStrin
         });
 }
 void MailAccountsController::connectionComplete(const QString& accountId) {
+    if (accountId.isEmpty()) { refresh(); fail("The server did not confirm a saved mailbox. Refresh your connected mailboxes before trying again."); return; }
     awaitingSync_.clear(); if (!accountId.isEmpty()) awaitingSync_.insert(accountId);
     error_.clear(); message_ = "Mailbox connected. Your first synchronization is starting.";
     syncDeadline_ = QDateTime::currentMSecsSinceEpoch() + 2 * 60 * 1000; syncPoll_.start();

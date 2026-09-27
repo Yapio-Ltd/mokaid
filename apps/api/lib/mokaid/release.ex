@@ -25,6 +25,9 @@ defmodule Mokaid.Release do
 
     {:ok, _, _} =
       Ecto.Migrator.with_repo(Mokaid.Repo, fn _repo ->
+        # Provider rows must exist before any OAuth callback can persist credentials.
+        # This targeted catalog seed never provisions users or re-enables disabled services.
+        Mokaid.Integrations.GoogleCatalog.seed()
         # Catalog rows first so logo stamp can match keys.
         Mokaid.MCP.seed_catalog()
         Mokaid.Integrations.LogoAssets.seed_all()

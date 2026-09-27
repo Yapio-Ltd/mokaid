@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QFutureWatcher>
 #include <QImageReader>
+#include <QGuiApplication>
 #include <QRegularExpression>
 #include <QTimer>
 #include <QUuid>
@@ -28,7 +29,7 @@ public:
         using Info = QWebEngineUrlRequestInfo;
         const bool internal = policy_.internal(url);
         bool allowed = (internal || policy_.pdfResource(url)) && (info.requestMethod() == "GET" || info.requestMethod() == "HEAD");
-        if (!policy_.pdfDocument && info.requestMethod() == "GET") {
+        if (!policy_.pdfDocument && !policy_.untrustedMail && info.requestMethod() == "GET") {
             switch (info.resourceType()) {
             case Info::ResourceTypeScript: allowed |= policy_.remote(url, policy_.scriptHosts); break;
             case Info::ResourceTypeStylesheet: allowed |= policy_.remote(url, policy_.styleHosts); break;
@@ -85,12 +86,18 @@ PreviewDocument::PreviewDocument(const QVariantMap& file, QByteArray content)
     title_ = file_.value("name").toString();
     file_.insert("size_bytes", content.size());
     format_ = describeDeliverable(file_);
+    if(file_.contains("mail_attachment_id")) {
+        format_=describeMailAttachment(file_,content);
+        policy_.untrustedMail=true;
+        policy_.scriptHosts.clear();policy_.styleHosts.clear();policy_.fontHosts.clear();policy_.imageHosts.clear();
+    }
     policy_.host = QUuid::createUuid().toString(QUuid::WithoutBraces);
     policy_.pdfDocument = kind() == "pdf";
     url_ = QUrl("mokaid-preview://" + policy_.host + (kind() == "pdf" ? "/document.pdf" : "/index.html"));
     if (localDirectory_.isValid()) {
         auto suffix = QFileInfo(title_).suffix().left(24);
         suffix.remove(QRegularExpression("[^a-zA-Z0-9]"));
+        if(policy_.untrustedMail && kind()=="pdf") suffix="pdf";
         auto base = QFileInfo(title_).completeBaseName().left(120);
         base.replace(QRegularExpression("[^\\p{L}\\p{N}._ -]"), "_");
         if (base.isEmpty() || base == "." || base == "..") base = "deliverable";
@@ -114,7 +121,7 @@ PreviewDocument::PreviewDocument(const QVariantMap& file, QByteArray content)
     activity.setSourceCode(QStringLiteral("globalThis.__mokaidActivity = {dirty:false};"
         "for(const name of ['input','change','submit'])"
         "addEventListener(name,()=>{globalThis.__mokaidActivity.dirty=true},true);"));
-    scripts_.append(activity);
+    if(!policy_.untrustedMail) scripts_.append(activity);
     auto mime = mimeType().toUtf8();
     QByteArray page;
     if (kind() == "text") page = readableDocument(format_, content);
@@ -185,8 +192,7 @@ void PreviewController::loadFile(const QVariantMap& file) {
         loading_ = false; error_.clear(); activate(i); return;
     }
     loading_ = true; visible_ = true; error_.clear(); emit changed();
-    artifacts_.fetch(id, this,
-        [this, file, generation](ArtifactResult response) {
+    auto completion=[this, file, generation](ArtifactResult response) {
             if (generation != generation_) return;
             loading_ = false;
             if (!response.error.isEmpty()) { failedFile_ = file; error_ = response.error; restoreCollectionSelection(); emit changed(); return; }
@@ -197,7 +203,9 @@ void PreviewController::loadFile(const QVariantMap& file) {
             pending_ = file; pendingBytes_ = std::move(response.bytes);
             pendingIndex_ = !documents_[0] ? 0 : !documents_[1] ? 1 : 1 - active_;
             emit changed(); emit replacementRequested(pendingIndex_);
-        });
+        };
+    if(file.contains("mail_attachment_id")) artifacts_.fetchMailAttachment(file.value("mail_message_id").toString(),file.value("mail_attachment_id").toString(),this,std::move(completion));
+    else artifacts_.fetch(id,this,std::move(completion));
 }
 void PreviewController::commitOpen() {
     if (pendingIndex_ < 0 || pending_.isEmpty()) return;
@@ -206,6 +214,11 @@ void PreviewController::commitOpen() {
     files_[active_] = pending_;
     documents_[active_] = std::make_unique<PreviewDocument>(pending_, std::move(pendingBytes_));
     pending_.clear(); pendingIndex_ = -1; visible_ = true; emit changed();
+    // The built-in browser PDF viewer requires JavaScript. Mail PDFs instead
+    // use the existing system preview with an owned, signature-checked .pdf file.
+    const auto* document=documents_[active_].get();
+    if(document->file().contains("mail_attachment_id") && document->kind()=="pdf"
+        && QGuiApplication::platformName()!="offscreen" && nativePreviewAvailable()) openNativePreview();
 }
 void PreviewController::cancelOpen() {
     ++generation_; loading_ = false; pending_.clear(); pendingBytes_.clear(); pendingIndex_ = -1;
@@ -224,6 +237,9 @@ void PreviewController::activate(int index) {
     ++generation_; loading_ = false; pending_.clear(); pendingBytes_.clear(); pendingIndex_ = -1;
     nativePreview_.clear();
     active_ = index; restoreCollectionSelection(); visible_ = true; emit changed();
+    const auto* document=documents_[active_].get();
+    if(document->file().contains("mail_attachment_id") && document->kind()=="pdf"
+        && QGuiApplication::platformName()!="offscreen" && nativePreviewAvailable()) openNativePreview();
 }
 void PreviewController::setVisible(bool visible) {
     if (!visible) {
@@ -232,13 +248,21 @@ void PreviewController::setVisible(bool visible) {
     }
     visible_ = visible; emit changed();
 }
-QVariantMap PreviewController::describe(const QVariantMap& file) const { return describeDeliverable(file); }
+QVariantMap PreviewController::describe(const QVariantMap& file) const {
+    auto description=describeDeliverable(file);
+    if(file.contains("mail_attachment_id")) description.insert("label","Mail attachment");
+    return description;
+}
 void PreviewController::downloadCurrent() {
     if (documents_[active_]) emit downloadRequested(documents_[active_]->file());
     else if (collectionIndex_ >= 0 && collectionIndex_ < collection_.size()) {
         const auto file = collection_[collectionIndex_].toMap();
         if (validId(file.value("id").toString())) emit downloadRequested(file);
     }
+}
+void PreviewController::downloadFile(const QVariantMap& file) {
+    const auto normalized = normalizeDeliverable(file);
+    if (validId(normalized.value("id").toString())) emit downloadRequested(normalized);
 }
 void PreviewController::downloadFailed() {
     if (validId(failedFile_.value("id").toString()) && failedFile_.value("size_bytes").toLongLong() <= 32 * 1024 * 1024)
@@ -247,7 +271,13 @@ void PreviewController::downloadFailed() {
 void PreviewController::retryFailed() {
     if (validId(failedFile_.value("id").toString())) openFile(failedFile_);
 }
+bool PreviewController::nativePreviewAvailable() const {
+    const auto* document=documents_[active_].get();
+    return NativeFilePreview::available() && (!document || !document->file().contains("mail_attachment_id")
+        || (document->kind()=="pdf" && document->localSource().path().endsWith(".pdf")));
+}
 void PreviewController::openNativePreview() {
+    if(!nativePreviewAvailable()) return;
     if (!documents_[active_] || loading_) return;
     if (!nativePreview_.open(documents_[active_]->localSource(), documents_[active_]->title())) {
         error_ = "A system preview is not available for this file. Download it to open in your preferred app."; emit changed();

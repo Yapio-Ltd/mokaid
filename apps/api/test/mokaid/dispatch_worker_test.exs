@@ -52,10 +52,14 @@ defmodule Mokaid.AI.Workers.DispatchWorkerTest do
     ]
 
     {:ok, task} =
-      Tasks.create_task(workspace.id, %{
-        "title" => "Research task",
-        "assigned_agent_id" => lead.id
-      })
+      Tasks.create_task(
+        workspace.id,
+        %{
+          "title" => "Research task",
+          "assigned_agent_id" => lead.id
+        },
+        owner_member(workspace, owner)
+      )
 
     {:ok, run} = Tasks.create_execution_run(task)
     original_config = Application.fetch_env!(:mokaid, :ai_worker)
@@ -82,6 +86,15 @@ defmodule Mokaid.AI.Workers.DispatchWorkerTest do
              })
 
     assert_receive {:dispatch_payload, payload}
+
+    assert {:ok, %{agent_id: actor}} =
+             Mokaid.Mail.AgentAccess.authorize(
+               payload["workspace_mail"]["token"],
+               "search",
+               specialist.id
+             )
+
+    assert actor == specialist.id
     roster = payload["colleagues"]
     ids = Enum.map(roster, & &1["id"])
     assert Enum.sort(ids) == Enum.sort([specialist.id, hybrid.id, busy.id])

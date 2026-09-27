@@ -21,10 +21,25 @@ defmodule Mokaid.Integrations do
   alias Mokaid.Vault
 
   def list_providers do
+    Mokaid.Integrations.GoogleCatalog.ensure()
     Repo.all(from p in IntegrationProvider, where: p.enabled, order_by: p.name)
   end
 
   def get_provider_by_key(key), do: Repo.get_by(IntegrationProvider, key: key)
+
+  def ensure_google_provider(key) do
+    if GoogleOAuth.google_provider?(key) do
+      Mokaid.Integrations.GoogleCatalog.ensure()
+
+      case get_provider_by_key(key) do
+        %IntegrationProvider{enabled: true} -> :ok
+        %IntegrationProvider{enabled: false} -> {:error, :provider_disabled}
+        nil -> {:error, :provider_not_found}
+      end
+    else
+      {:error, :invalid_provider}
+    end
+  end
 
   def list_connections(workspace_id) do
     Repo.all(
@@ -255,6 +270,7 @@ defmodule Mokaid.Integrations do
     member = Repo.preload(member, :user)
 
     with true <- GoogleOAuth.google_provider?(provider_key),
+         :ok <- ensure_google_provider(provider_key),
          {:ok, connection} <-
            connect_with_credentials(workspace_id, provider_key, member, credentials, account) do
       {:ok, [connection]}
@@ -275,8 +291,16 @@ defmodule Mokaid.Integrations do
                result.account,
                result.provider_key
              ),
-           {:ok, account} <- register_google_mailbox(result, member, connections) do
-        %{connections: connections, mail_account: account}
+           {:ok, account} <- register_google_mailbox(result, member, connections),
+           {:ok, mcp} <-
+             sync_google_mcp_installations(
+               result.workspace_id,
+               member,
+               result.credentials,
+               result.account,
+               result.provider_key
+             ) do
+        %{connections: connections, mail_account: account, mcp: mcp}
       else
         {:error, reason} -> Repo.rollback(reason)
       end
@@ -302,24 +326,89 @@ defmodule Mokaid.Integrations do
 
   defp register_google_mailbox(_, _, _), do: {:ok, nil}
 
-  @doc "Mirrors only the requested Google integration into the MCP Hub."
+  @doc "Binds the requested Google integration to the MCP Hub without changing an existing account."
   def sync_google_mcp_installations(
         workspace_id,
         member,
-        credentials,
+        _credentials,
         account,
         provider_key \\ "gmail"
       ) do
-    with {:ok, installation} <- MCP.install(workspace_id, provider_key, member, %{}) do
-      # The MCP catalog currently has one installation per provider. A second
-      # mailbox must never silently change the identity used by an existing one.
-      if installation.connected_account in [nil, account] do
-        MCP.store_credentials(installation, credentials, account)
-      end
-    end
+    Repo.transaction(fn ->
+      case MCP.ensure_oauth_installation(workspace_id, provider_key, member) do
+        {:ok, installation} ->
+          installation =
+            Repo.one!(
+              from i in Mokaid.MCP.Installation,
+                where: i.id == ^installation.id,
+                lock: "FOR UPDATE"
+            )
 
-    {:ok, :synced}
+          same_account? =
+            normalized_account(installation.connected_account) == normalized_account(account)
+
+          unbound? =
+            installation.status == "pending" and is_nil(installation.encrypted_credentials) and
+              is_nil(installation.settings["integration_connection_id"])
+
+          if same_account? or unbound? do
+            connection =
+              Repo.one(
+                from c in IntegrationConnection,
+                  join: p in assoc(c, :provider),
+                  where:
+                    c.workspace_id == ^workspace_id and p.key == ^provider_key and
+                      c.connected_account == ^account and c.status == "connected"
+              )
+
+            if is_nil(connection), do: Repo.rollback(:not_found)
+
+            installation
+            |> Ecto.Changeset.change(
+              status: "connected",
+              connected_account: account,
+              connected_by_member_id: member.id,
+              encrypted_credentials: nil,
+              error: nil,
+              settings: Map.put(installation.settings, "integration_connection_id", connection.id)
+            )
+            |> Repo.update!()
+
+            %{status: "connected", connected_account: account}
+          else
+            # Existing grants refer to this installation. Switching identities
+            # would silently transfer those grants to a different Google account.
+            %{status: "different_account", connected_account: installation.connected_account}
+          end
+
+        {:error, reason} when reason in [:server_not_found, :mcp_integration_limit_reached] ->
+          %{status: "unavailable", connected_account: nil}
+
+        {:error, reason} ->
+          Repo.rollback(reason)
+      end
+    end)
   end
+
+  def google_mcp_status(workspace_id, provider_key, account) do
+    case MCP.get_installation_by_server_key(workspace_id, provider_key) do
+      %{status: "connected"} = installation ->
+        status =
+          if normalized_account(installation.connected_account) == normalized_account(account),
+            do: "connected",
+            else: "different_account"
+
+        %{mcp_status: status, mcp_connected_account: installation.connected_account}
+
+      _ ->
+        %{mcp_status: "unavailable", mcp_connected_account: nil}
+    end
+  end
+
+  defp normalized_account(account) when is_binary(account),
+    do: account |> String.trim() |> String.downcase()
+
+  defp normalized_account(_), do: nil
 
   defp connect_with_credentials(
          workspace_id,
@@ -363,15 +452,14 @@ defmodule Mokaid.Integrations do
     end
   end
 
-  defp require_refresh_token("gmail", connection, credentials) do
+  defp require_refresh_token(provider_key, connection, credentials) do
     merged = merge_credentials(connection, credentials)
 
-    if is_binary(merged["refresh_token"]) and merged["refresh_token"] != "",
-      do: :ok,
-      else: {:error, :missing_refresh_token}
+    if not GoogleOAuth.google_provider?(provider_key) or
+         (is_binary(merged["refresh_token"]) and merged["refresh_token"] != ""),
+       do: :ok,
+       else: {:error, :missing_refresh_token}
   end
-
-  defp require_refresh_token(_, _, _), do: :ok
 
   defp connect_mock(workspace_id, provider_key, member) do
     with %IntegrationProvider{} = provider <- get_provider_by_key(provider_key) do

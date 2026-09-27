@@ -114,6 +114,9 @@ defmodule Mokaid.Tasks do
   defp loaded_assoc(other), do: other
 
   def update_task(%Task{} = task, attrs, actor \\ nil) do
+    # The persisted initiator is authority for delegated workspace resources.
+    # Task edits may not transfer that authority to another member.
+    attrs = Map.drop(attrs, ["created_by_member_id", :created_by_member_id])
     old_status = task.status
     old_agent_id = task.assigned_agent_id
     old_project_id = task.project_id

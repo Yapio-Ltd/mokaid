@@ -23,7 +23,8 @@ config :mokaid, MokaidWeb.Endpoint,
 config :mokaid, Oban,
   engine: Oban.Engines.Basic,
   repo: Mokaid.Repo,
-  queues: [default: 10, avatars: 1, ingestion: 5, ai_dispatch: 10, notifications: 10, billing: 3],
+  # Runtime chooses API queues or the isolated avatar worker's queue. Do not
+  # define a keyword list here: Config merging would retain unwanted queues.
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
     {Oban.Plugins.Cron,

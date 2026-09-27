@@ -3,6 +3,7 @@
 #include <QSettings>
 #include <QVariantMap>
 #include <QUrl>
+class QSoundEffect;
 namespace mokaid::desktop {
 class SystemController final : public QObject {
     Q_OBJECT
@@ -31,10 +32,12 @@ public:
     void setQuality(const QString& value);
     Q_INVOKABLE bool exportDiagnostics(const QUrl& destination, const QVariantMap& graphics, const QVariantMap& presentation = {});
     Q_INVOKABLE void openBrowser(const QUrl& destination);
+    void openMailLink(const QUrl& destination);
 signals:
     void changed();
 private:
     QSettings settings_;
     QString assets_, error_;
+    QSoundEffect* completionSound_ = nullptr;
 };
 }

@@ -217,6 +217,8 @@ Item {
             kind: source.kind || "ai",
             display_name: source.display_name || source.name || "",
             avatar_cdn_path: source.avatar_cdn_path || "",
+            avatar_portrait_url: source.avatar_portrait_url || "",
+            avatar_thumbnail_url: source.avatar_thumbnail_url || "",
             avatar_asset_id: source.avatar_asset_id || ""
         }
     }

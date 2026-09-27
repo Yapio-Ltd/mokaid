@@ -28,6 +28,7 @@ from app.clients.phoenix import PhoenixClient
 from app.mcp.client import TOOL_PREFIX, McpToolbox
 from app.policies.approval import ApprovalPolicy, risk_for_tool
 from app.schemas import ResumeRequest, RunRequest, RunState, RunStatus, ToolCall
+from app.tools import mail as mail_tools  # noqa: F401 — registers native Mail tools
 from app.tools.registry import RunContext, get_tool
 
 log = structlog.get_logger()
@@ -107,6 +108,7 @@ async def execute_run(
         agent_id=request.agent_id,
         phoenix=phoenix,
         attached_files=[f.model_dump() for f in request.attached_files],
+        workspace_mail=request.workspace_mail,
     )
 
     await phoenix.update_run_status(request.run_id, RunStatus.RUNNING.value)
@@ -243,11 +245,12 @@ async def execute_run(
         # retry instead of pretending the work is done.
         executed = [c for c in state.tool_calls if c.approved is not False]
         errors = unresolved_errors(executed)
+        mail_evidence_error = mail_tools.evidence_error(request, state.tool_calls)
         if any(c.output.get("needs_user_input") for c in errors):
             await _pause_for_user_input(request, phoenix, state, kind="analysis")
             return state
-        if errors and not artifacts:
-            summary = "; ".join(str(c.output.get("error"))[:200] for c in errors[:3])
+        if mail_evidence_error or (errors and (not artifacts or any(c.tool in mail_tools.MAIL_TOOLS | {"send_email"} for c in errors))):
+            summary = mail_evidence_error or "; ".join(str(c.output.get("error"))[:200] for c in errors[:3])
             await _post_failure_comment(request, phoenix, ctx.usage, errors)
             state.status = RunStatus.FAILED
             state.error = summary
@@ -398,6 +401,7 @@ async def _execute_deep(
 
         executed = [c for c in state.tool_calls if c.approved is not False]
         errors = unresolved_errors(executed)
+        mail_evidence_error = mail_tools.evidence_error(request, state.tool_calls)
 
         has_deliverable = bool(artifacts) or (not report_requested and producer_tool_succeeded(state.tool_calls))
         producer = kind in PRODUCER_KINDS or report_requested
@@ -447,9 +451,11 @@ async def _execute_deep(
             )
             return state
 
-        if (errors and not has_deliverable) or (producer and not has_deliverable):
+        if mail_evidence_error or (errors and (not has_deliverable or any(c.tool in mail_tools.MAIL_TOOLS | {"send_email"} for c in errors))) or (producer and not has_deliverable):
             lang = language_for_request(request)
-            if errors:
+            if mail_evidence_error:
+                summary = mail_evidence_error
+            elif errors:
                 summary = "; ".join(
                     str(c.output.get("error"))[:200] for c in errors[:3]
                 )

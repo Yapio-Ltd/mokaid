@@ -30,7 +30,9 @@ void AvatarGenerationController::syncContext() {
     contextGeneration_ = api_.context().generation; ++epoch_;
     api_.cancelRequests(&listOwner_); api_.cancelRequests(&submitOwner_); api_.cancelRequests(&pollOwner_);
     poll_.stop(); catalog_.clear(); generations_.clear(); current_.clear(); error_.clear();
-    submitting_ = refreshing_ = polling_ = false; emit changed();
+    submitting_ = refreshing_ = polling_ = false;
+    generationCredits_ = creditsAvailable_ = 0;
+    unlimitedCredits_ = pricingReady_ = false; emit changed();
 }
 bool AvatarGenerationController::available() {
     syncContext();
@@ -39,7 +41,7 @@ bool AvatarGenerationController::available() {
 }
 void AvatarGenerationController::refresh() {
     if (!available() || refreshing_) return;
-    refreshing_ = true; error_.clear(); emit changed();
+    refreshing_ = true; pricingReady_ = false; error_.clear(); emit changed();
     const auto epoch = epoch_;
     api_.request("GET", "/api/assets-3d?kind=character", {}, core::Scope::identity, &listOwner_,
         [this, epoch](ApiResponse response) {
@@ -53,6 +55,7 @@ void AvatarGenerationController::refresh() {
             if (epoch != epoch_) return;
             refreshing_ = false;
             if (response.ok()) {
+                acceptPricing(response.json.value("meta").toObject());
                 generations_ = response.json.value("data").toArray().toVariantList();
                 const auto selectedId = current_.value("id").toString();
                 for (const auto& value : generations_) {
@@ -64,11 +67,32 @@ void AvatarGenerationController::refresh() {
             emit changed();
         });
 }
+void AvatarGenerationController::acceptPricing(const QJsonObject& meta) {
+    const auto price = meta.value("pricing").toObject().value("credits");
+    const auto credits = meta.value("credits").toObject();
+    generationCredits_ = price.toInt(0);
+    creditsAvailable_ = credits.value("spendable").toInt(0);
+    unlimitedCredits_ = credits.value("unlimited").toBool(false);
+    pricingReady_ = generationCredits_ > 0 && price.isDouble()
+        && credits.value("spendable").isDouble() && credits.value("unlimited").isBool();
+}
+bool AvatarGenerationController::billable() {
+    if (!pricingReady_) {
+        error_ = "Refresh your creations to load the character price before starting.";
+        emit changed(); return false;
+    }
+    if (!canAffordGeneration()) {
+        error_ = "Not enough Mokaid credits. Add credits in Billing, then refresh your creations.";
+        emit changed(); return false;
+    }
+    return true;
+}
 void AvatarGenerationController::generateText(const QString& prompt, const QString& name) {
     if (submitting_ || !available()) return;
     const auto text = prompt.trimmed();
     if (text.size() < 3 || text.size() > 600) { error_ = "Describe your character in 3–600 characters."; emit changed(); return; }
-    QJsonObject body{{"mode", "text"}, {"prompt", text}};
+    if (!billable()) return;
+    QJsonObject body{{"mode", "text"}, {"prompt", text}, {"expected_credits", generationCredits_}};
     if (!name.trimmed().isEmpty()) body.insert("name", name.trimmed().left(80));
     submit(body);
 }
@@ -83,7 +107,8 @@ void AvatarGenerationController::generateImage(const QUrl& url, const QString& n
     if (!(bytes.startsWith(QByteArray::fromHex("89504e470d0a1a0a")) || bytes.startsWith(QByteArray::fromHex("ffd8ff")))) {
         error_ = "This file is not a PNG or JPEG image. Choose another photo."; emit changed(); return;
     }
-    QJsonObject body{{"mode", "image"}};
+    if (!billable()) return;
+    QJsonObject body{{"mode", "image"}, {"expected_credits", generationCredits_}};
     if (!name.trimmed().isEmpty()) body.insert("name", name.trimmed().left(80));
     submit(body, url);
 }
@@ -94,10 +119,12 @@ void AvatarGenerationController::submit(const QJsonObject& body, const QUrl& fil
         if (epoch != epoch_) return;
         submitting_ = false;
         if (!response.ok()) {
+            pricingReady_ = false;
             error_ = response.networkError ? "The connection was interrupted. Refresh your creations before trying again to avoid generating twice." : response.error;
             emit changed(); return;
         }
         accept(response.json.value("data").toObject());
+        refresh();
     };
     if (file.isEmpty()) api_.request("POST", "/api/avatar-generations", body, core::Scope::workspace, &submitOwner_, std::move(done));
     else api_.upload("/api/avatar-generations", {file}, body, core::Scope::workspace, &submitOwner_, std::move(done));
@@ -130,7 +157,11 @@ void AvatarGenerationController::refreshCurrent() {
             if (epoch != epoch_) return;
             polling_ = false;
             if (current_.value("id").toString() != id) return;
-            if (response.ok()) { error_.clear(); accept(response.json.value("data").toObject()); }
+            if (response.ok()) {
+                const bool wasPending = pending(current_);
+                error_.clear(); accept(response.json.value("data").toObject());
+                if (wasPending && !pending(current_)) refresh();
+            }
             else { error_ = response.error; emit changed(); }
         });
 }

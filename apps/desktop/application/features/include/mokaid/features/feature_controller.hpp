@@ -6,6 +6,8 @@
 #include <mokaid/features/drive_download.hpp>
 #include <mokaid/features/avatar_generation_controller.hpp>
 #include <mokaid/features/mail_accounts_controller.hpp>
+#include <mokaid/features/google_connections_controller.hpp>
+#include <mokaid/features/mail_center_controller.hpp>
 #include <mokaid/storage/cache_store.hpp>
 #include <QHash>
 #include <QTimer>
@@ -48,7 +50,9 @@ class FeatureController final : public QObject {
     Q_PROPERTY(bool driveCanDownload READ driveCanDownload NOTIFY changed)
     Q_PROPERTY(QObject* driveDownload READ driveDownload CONSTANT)
     Q_PROPERTY(QObject* avatarCreator READ avatarCreator CONSTANT)
+    Q_PROPERTY(QObject* mailCenter READ mailCenter CONSTANT)
     Q_PROPERTY(QObject* mailAccounts READ mailAccounts CONSTANT)
+    Q_PROPERTY(QObject* googleConnections READ googleConnections CONSTANT)
 public:
     FeatureController(ApiClient& api, SessionController& session, CacheStore& cache, QObject* parent = nullptr);
     QVariantList pages() const;
@@ -86,12 +90,15 @@ public:
     bool driveCanDownload() const;
     QObject* driveDownload() { return &driveDownload_; }
     QObject* avatarCreator() { return &avatarCreator_; }
+    QObject* mailCenter() { return &mailCenter_; }
     QObject* mailAccounts() { return &mailAccounts_; }
+    QObject* googleConnections() { return &googleConnections_; }
     Q_INVOKABLE void openDriveFolder(const QString& id);
     Q_INVOKABLE void navigateDriveBreadcrumb(int index);
     Q_INVOKABLE void driveBack();
     Q_INVOKABLE void setDriveTrash(bool trash);
     Q_INVOKABLE void requestDriveDownload();
+    Q_INVOKABLE QVariantList deliverablesForTask(const QVariantMap& task) const;
     Q_INVOKABLE void navigate(const QString& page);
     Q_INVOKABLE void openMarketplaceOffer(const QString& agentId, const QString& mode);
     Q_INVOKABLE void consumeMarketplaceOffer();
@@ -111,6 +118,7 @@ signals:
     void changed();
     void openDelivery(QVariantMap delivery);
     void requestExternal(QUrl url);
+    void requestMailLink(QUrl url);
     void actionSucceeded(QString context);
     void actionResult(QString actionId, QVariantMap result);
 private:
@@ -141,6 +149,8 @@ private:
     DriveDownload driveDownload_;
     AvatarGenerationController avatarCreator_;
     MailAccountsController mailAccounts_;
+    GoogleConnectionsController googleConnections_;
+    MailCenterController mailCenter_;
     QTimer searchTimer_;
     QString currentPage_{"office"}, selectedId_, error_, search_, contextTag_;
     QString pendingOfferAgentId_, pendingOfferMode_;

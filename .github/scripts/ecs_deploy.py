@@ -280,13 +280,17 @@ def prepare(env: Mapping[str, str], aws: AwsClient) -> None:
         raise Failure("An exact container name and immutable repository@sha256 image digest are required")
     secret_overrides = meshy_secret_overrides(env, container)
     overrides = {}
-    for key in ("MOKAID_DESKTOP_ONLY_BUSINESS", "DESKTOP_AUTH_WEB_BASE_URL", "MOKAID_TRUSTED_ALB_CIDRS", "AI_WORKER_URL", "S3_BUCKET_ASSETS_3D"):
+    for key in ("MOKAID_DESKTOP_ONLY_BUSINESS", "DESKTOP_AUTH_WEB_BASE_URL", "MOKAID_TRUSTED_ALB_CIDRS", "AI_WORKER_URL", "S3_BUCKET_ASSETS_3D", "MOKAID_AVATAR_WORKER_MODE", "MOKAID_AVATAR_PIPELINE_ENABLED"):
         if key in env:
             if container != "mokaid-prod-api":
                 raise Failure("API environment overrides are restricted to mokaid-prod-api")
             value = env[key]
             if key == "MOKAID_TRUSTED_ALB_CIDRS":
                 value = trusted_alb_cidrs(value)
+            if key == "MOKAID_AVATAR_WORKER_MODE" and value != "api":
+                raise Failure("The API service must not consume avatar jobs")
+            if key == "MOKAID_AVATAR_PIPELINE_ENABLED" and value not in ("true", "false"):
+                raise Failure("Avatar pipeline flag must be true or false")
             if key == "AI_WORKER_URL" and value != "http://ai-worker.mokaid-prod.internal:8100":
                 raise Failure("Worker HTTP override must use the private production discovery endpoint")
             if key == "S3_BUCKET_ASSETS_3D" and value != PRODUCTION_ASSETS_BUCKET:

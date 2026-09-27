@@ -12,7 +12,7 @@ defmodule Mokaid.Billing.CreditTransaction do
     belongs_to :agent, Mokaid.Agents.Agent
     belongs_to :operator, Mokaid.Accounts.User
 
-    # spend | plan_grant | purchase | auto_recharge | adjustment | agent_boost
+    # spend | plan_grant | purchase | auto_recharge | adjustment | agent_boost | agent_transfer
     field :kind, :string
     field :amount, :integer
     field :cost_cents, :integer, default: 0
@@ -44,7 +44,7 @@ defmodule Mokaid.Billing.CreditTransaction do
     |> validate_required([:workspace_id, :kind, :amount])
     |> validate_inclusion(
       :kind,
-      ~w(spend plan_grant purchase auto_recharge adjustment agent_boost runtime_reserve runtime_settle)
+      ~w(spend plan_grant purchase auto_recharge adjustment agent_boost agent_transfer runtime_reserve runtime_settle)
     )
     |> unique_constraint(:idempotency_key)
   end

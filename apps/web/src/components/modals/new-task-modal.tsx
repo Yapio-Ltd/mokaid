@@ -130,13 +130,18 @@ export function NewTaskModal({ open, onOpenChange, defaultProjectId }: NewTaskMo
           finalPriority = finalPriority ?? data.task.priority;
           const rec = data.recommendation;
 
-          // user_choice = partial fit: assign anyway (never block), but tell
-          // the user the agent is out of their specialty.
-          if (rec.agent_id && (rec.mode === "existing_agent" || rec.mode === "user_choice")) {
-            finalAgentId = rec.agent_id;
-          }
+          // A partial match needs an explicit choice before an agent starts.
+          const recommended = agents.find((agent) => agent.id === rec.agent_id);
+          const canAutoAssign =
+            rec.mode === "existing_agent" &&
+            Number.isFinite(rec.confidence) &&
+            rec.confidence >= 45 &&
+            recommended &&
+            recommended.status !== "training" &&
+            (recommended.kind === "human_linked" || recommended.ai_enabled);
+          if (canAutoAssign) finalAgentId = recommended.id;
 
-          const outOfScope = rec.mode !== "existing_agent";
+          const outOfScope = !canAutoAssign;
           metadata = {
             domain_requested: data.domain_categories ?? [],
             capability_match: {
@@ -147,18 +152,23 @@ export function NewTaskModal({ open, onOpenChange, defaultProjectId }: NewTaskMo
             },
           };
 
-          if (rec.mode === "user_choice" && rec.agent_id) {
-            const agent = agents.find((a) => a.id === rec.agent_id);
+          if (rec.mode === "user_choice") {
             capabilityToast = {
-              title: `${agent?.display_name ?? "The assigned agent"} isn't specialized in this`,
+              title: "Choose an agent before starting",
               description:
-                "They'll do their best, but the result may be limited. For the best outcome, hire a dedicated specialist from the agent catalog.",
+                "The task was created unassigned because the suggested agent is only a partial fit. Assign an agent explicitly or use smart dispatch to create a specialist.",
             };
           } else if (rec.mode === "custom_agent") {
             capabilityToast = {
               title: "No agent covers this well",
               description:
                 "The task was created unassigned. Use smart dispatch (drop the task on the office) to create a purpose-built specialist.",
+            };
+          } else if (!canAutoAssign) {
+            capabilityToast = {
+              title: "Choose an agent before starting",
+              description:
+                "The task was created unassigned because no reliable, available match was found. Select an agent before starting it.",
             };
           }
         } catch {

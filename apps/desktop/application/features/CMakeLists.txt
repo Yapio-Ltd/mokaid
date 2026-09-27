@@ -2,17 +2,22 @@ add_library(mokaid_features STATIC
   feature_catalog.cpp feature_controller.cpp record_list_model.cpp detail_browser.cpp drive_download.cpp
   avatar_generation_controller.cpp include/mokaid/features/avatar_generation_controller.hpp
   mail_accounts_controller.cpp include/mokaid/features/mail_accounts_controller.hpp
+  mail_center_controller.cpp include/mokaid/features/mail_center_controller.hpp
+  google_connections_controller.cpp include/mokaid/features/google_connections_controller.hpp
   prepared_download.cpp prepared_download.hpp
   include/mokaid/features/feature_catalog.hpp
   include/mokaid/features/feature_controller.hpp
   include/mokaid/features/drive_download.hpp
   include/mokaid/features/record_list_model.hpp include/mokaid/features/detail_browser.hpp)
 target_include_directories(mokaid_features PUBLIC include)
-target_link_libraries(mokaid_features PUBLIC Qt6::Core mokaid_application mokaid_network mokaid_storage PRIVATE mokaid_options)
+target_link_libraries(mokaid_features PUBLIC Qt6::Core mokaid_application mokaid_network mokaid_storage PRIVATE Qt6::Gui mokaid_options)
 if(BUILD_TESTING)
   qt_add_executable(mokaid_feature_tests tests/feature_tests.cpp)
   target_link_libraries(mokaid_feature_tests PRIVATE mokaid_features Qt6::Test Qt6::Sql mokaid_options)
   add_test(NAME desktop-feature-contracts COMMAND mokaid_feature_tests)
+  qt_add_executable(mokaid_mail_center_tests tests/mail_center_tests.cpp)
+  target_link_libraries(mokaid_mail_center_tests PRIVATE mokaid_features Qt6::Gui Qt6::Test mokaid_options)
+  add_test(NAME desktop-mail-center COMMAND mokaid_mail_center_tests)
   qt_add_executable(mokaid_drive_file_tests tests/prepared_download_tests.cpp)
   target_link_libraries(mokaid_drive_file_tests PRIVATE mokaid_features Qt6::Test mokaid_options)
   add_test(NAME desktop-drive-files COMMAND mokaid_drive_file_tests)

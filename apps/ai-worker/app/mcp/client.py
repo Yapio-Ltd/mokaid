@@ -12,6 +12,7 @@ from typing import Any
 
 import structlog
 
+from app.mcp import google
 from app.schemas import McpServerGrant
 
 log = structlog.get_logger()
@@ -115,6 +116,9 @@ class McpToolbox:
         )
 
     async def _list_tools(self, grant: McpServerGrant) -> list[dict[str, Any]]:
+        if grant.transport == "google":
+            return google.list_tools(grant.key)
+
         from mcp import ClientSession
         from mcp.client.streamable_http import streamablehttp_client
 
@@ -138,6 +142,9 @@ class McpToolbox:
     async def _call_tool(
         self, grant: McpServerGrant, tool_name: str, arguments: dict[str, Any]
     ) -> Any:
+        if grant.transport == "google":
+            return await google.call_tool(grant, tool_name, arguments)
+
         from mcp import ClientSession
         from mcp.client.streamable_http import streamablehttp_client
 

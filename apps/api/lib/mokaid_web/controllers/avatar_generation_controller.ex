@@ -4,7 +4,10 @@ defmodule MokaidWeb.AvatarGenerationController do
 
   def index(conn, _params) do
     with :ok <- Permissions.authorize(current_member(conn), "agents.view") do
-      json(conn, %{data: Enum.map(Avatars.list(workspace_id(conn)), &Avatars.serialize/1)})
+      json(conn, %{
+        data: Enum.map(Avatars.list(workspace_id(conn)), &Avatars.serialize/1),
+        meta: Avatars.credit_metadata(workspace_id(conn))
+      })
     end
   end
 
@@ -18,7 +21,12 @@ defmodule MokaidWeb.AvatarGenerationController do
   def create(conn, params) do
     with :ok <- Permissions.authorize(current_member(conn), "agents.create"),
          {:ok, generation} <- Avatars.create(workspace_id(conn), current_member(conn), params) do
-      conn |> put_status(:accepted) |> json(%{data: Avatars.serialize(generation)})
+      conn
+      |> put_status(:accepted)
+      |> json(%{
+        data: Avatars.serialize(generation),
+        meta: Avatars.credit_metadata(workspace_id(conn))
+      })
     end
   end
 end

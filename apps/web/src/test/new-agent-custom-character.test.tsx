@@ -49,7 +49,13 @@ vi.mock("@/api/hooks", () => ({
 }));
 vi.mock("@/api/avatar-generations", async (original) => ({
   ...(await original<typeof import("@/api/avatar-generations")>()),
-  useAvatarGenerations: () => ({ data: mocks.history, refetch: vi.fn(), isError: false }),
+  useAvatarGenerations: () => ({
+    data: mocks.history,
+    pricing: { credits: 1000 },
+    credits: { spendable: 1500, unlimited: false },
+    refetch: vi.fn(),
+    isError: false,
+  }),
   useAvatarGeneration: () => ({ data: undefined, isError: false }),
   useCreateAvatarGeneration: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));

@@ -56,6 +56,7 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
           end
 
         agent = run.agent_id && Agents.get_agent(run.workspace_id, run.agent_id)
+        team = colleagues(run.workspace_id, run.agent_id)
 
         payload = %{
           run_id: run.id,
@@ -71,9 +72,10 @@ defmodule Mokaid.AI.Workers.DispatchWorker do
           input: run.input,
           attached_files: attached_files,
           mcp_servers: mcp_servers,
+          workspace_mail: Mokaid.Mail.AgentAccess.for_run(run, task, team),
           # Persona for the deep agent + colleagues it may consult.
           agent: agent_persona(agent),
-          colleagues: colleagues(run.workspace_id, run.agent_id),
+          colleagues: team,
           # Supervision mode + persisted allow/deny tool rules — the worker's
           # approval policy uses these to decide what pauses for a human.
           autonomy: Agents.autonomy_payload(agent)

@@ -18,6 +18,7 @@ Item {
             && root.secondaryPages.indexOf(page.id) < 0
     })
     signal actionRequested(var action)
+    function focusMailSearch() { mailSearch.forceActiveFocus(); }
     signal searchRequested()
     signal notificationsRequested()
     signal preferencesRequested()
@@ -165,47 +166,13 @@ Item {
                     font.pixelSize: 12
                     onClicked: features.navigate(root.adminMode ? "office" : "admin-overview")
                 }
-                AbstractButton {
-                    id: teamPromo
-                    visible: root.height >= 780 && !root.adminMode
-                    Layout.fillWidth: true; Layout.preferredHeight: root.height >= 900 ? 136 : 112
-                    Layout.topMargin: 6; Layout.bottomMargin: 6
-                    hoverEnabled: true
-                    Accessible.name: "Multiply your impact with AI agents. Open agents."
-                    onClicked: features.navigate("agents")
-                    background: Rectangle {
-                        radius: 13; clip: true
-                        color: "#0d0e1b"
-                        border.color: teamPromo.visualFocus ? Theme.focusBorder : teamPromo.hovered ? "#8660c9" : "#443461"
-                        Image {
-                            anchors.right: parent.right; anchors.rightMargin: -60
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 220; height: 220
-                            source: "qrc:/ui/workforce-energy-orb.png"
-                            fillMode: Image.PreserveAspectFit; opacity: .88
-                        }
-                    }
-                    contentItem: Item {
-                        MokaidLabel {
-                            anchors.left: parent.left; anchors.leftMargin: 20
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "Multiply\nyour impact\nwith AI agents."
-                            font.pixelSize: 15; font.weight: Font.Medium; lineHeight: 1.25
-                        }
-                        Rectangle {
-                            anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 12
-                            width: 33; height: 33; radius: 17
-                            color: "#d20c0d19"; border.color: "#8460ce"
-                            MokaidIcon { anchors.centerIn: parent; name: "arrow-right"; size: 16; color: Theme.text }
-                        }
-                    }
-                }
                 Item {
                     id: mokedSidebarSlot
                     objectName: "mokedSidebarSlot"
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 132
-                    Layout.maximumHeight: 132
+                    // The assistant is a destination in its own right, not a promotion.
+                    Layout.preferredHeight: 156
+                    Layout.maximumHeight: 156
                 }
                 Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.divider }
                 RowLayout {
@@ -243,8 +210,19 @@ Item {
             RowLayout {
                 Layout.fillWidth: true; Layout.preferredHeight: 54; Layout.bottomMargin: 12
                 spacing: 12
+                MokaidTextField {
+                    id:mailSearch; objectName:"mailSearch"; visible:features.currentPage==="mail"
+                    Layout.preferredWidth:Math.max(210,Math.min(510,root.width*.315)); Layout.preferredHeight:44
+                    placeholderText:"Search in mails…"; text:features.mailCenter.query
+                    leftPadding:46; rightPadding:68; font.pixelSize:12
+                    background:Rectangle { radius:22; color:"#111321"; border.color:mailSearch.activeFocus ? Theme.focusBorder : "#343047" }
+                    MokaidIcon { anchors.left:parent.left; anchors.leftMargin:16; anchors.verticalCenter:parent.verticalCenter; name:"search"; size:19 }
+                    Rectangle { anchors.right:parent.right; anchors.rightMargin:15; anchors.verticalCenter:parent.verticalCenter; width:44; height:25; radius:7; color:"#222139"; border.color:"#37324d"; MokaidLabel { anchors.centerIn:parent; text:Qt.platform.os==="osx" ? "⌘ K" : "Ctrl K"; font.pixelSize:10; color:Theme.secondary } }
+                    onTextEdited:features.mailCenter.search(text); Accessible.name:"Search in mails"
+                }
                 AbstractButton {
                     id: searchButton
+                    visible:features.currentPage!=="mail"
                     Layout.preferredWidth: Math.max(210, Math.min(510, root.width * .315))
                     Layout.preferredHeight: 44
                     enabled: !!session.workspaceId; hoverEnabled: true

@@ -30,6 +30,7 @@ class RunContext:
     phoenix: Any = None  # PhoenixClient (Any to allow fakes in tests)
     usage: llm.UsageTracker = field(default_factory=llm.UsageTracker)
     attached_files: list = field(default_factory=list)
+    workspace_mail: dict[str, Any] = field(default_factory=dict, repr=False)
 
 
 ToolFn = Callable[[dict[str, Any], RunContext], Awaitable[Any]]
@@ -287,25 +288,10 @@ async def create_subtasks(params: dict[str, Any], ctx: RunContext) -> Any:
 
 @tool("send_email")
 async def send_email(params: dict[str, Any], ctx: RunContext) -> Any:
-    # Only reached after human approval (HIGH risk). No email provider is
-    # connected yet: the send is simulated but the body is really generated.
-    to = params.get("to", "")
-    subject = params.get("subject") or ctx.task_title or ""
-    body = params.get("body", "")
-
-    if not body and llm.is_configured():
-        body = await llm.chat(
-            system=(
-                "You write concise, professional emails. Return only the email body, "
-                "no subject line."
-            ),
-            user=f"{_task_context_block(ctx)}\n\nRecipient: {to}\nSubject: {subject}",
-            usage=ctx.usage,
-            max_tokens=500,
-        )
-
-    log.info("email_simulated", to=to, subject=subject)
-    return {"sent": True, "simulated": True, "to": to, "subject": subject, "body": body}
+    # Interactive desktop sending is real, but agent delegation does not yet
+    # carry a member-bound send grant. Never turn an unwired action into success.
+    return {"sent": False, "error": "agent_mail_sending_unavailable",
+            "message": "No email was sent. Agent mail access currently supports reading and saving attachments only."}
 
 
 @tool("post_social")

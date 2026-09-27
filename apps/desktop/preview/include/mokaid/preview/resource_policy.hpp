@@ -7,6 +7,7 @@ namespace mokaid::desktop {
 struct PreviewResourcePolicy {
     QString host;
     bool pdfDocument{};
+    bool untrustedMail{};
     QStringList scriptHosts{"cdn.jsdelivr.net", "cdnjs.cloudflare.com", "unpkg.com"};
     QStringList styleHosts{"fonts.googleapis.com", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"};
     QStringList imageHosts{"images.unsplash.com", "images.pexels.com"};
@@ -36,6 +37,9 @@ struct PreviewResourcePolicy {
         if (pdfDocument) return "default-src 'none'; object-src 'self' blob: chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai;"
             " frame-src chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai; base-uri 'none'; form-action 'none';"
             " frame-ancestors 'self' chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai;";
+        if (untrustedMail) return "default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src 'none';"
+            " font-src 'none'; media-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none';"
+            " base-uri 'none'; form-action 'none'; worker-src 'none'; frame-ancestors 'none';";
         const auto origins = [](const QStringList& hosts) {
             QByteArray result;
             for (const auto& domain : hosts) result += " https://" + domain.toUtf8();

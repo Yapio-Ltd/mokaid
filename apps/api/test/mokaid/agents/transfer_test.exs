@@ -132,6 +132,11 @@ defmodule Mokaid.Agents.TransferTest do
       assert Credits.summary(ws_b.id).spendable ==
                spendable_before - Transfer.transfer_credits()
 
+      [debit | _] = Credits.recent_transactions(ws_b.id)
+      assert debit.kind == "agent_transfer"
+      assert debit.amount == -Transfer.transfer_credits()
+      assert debit.agent_id == clone.id
+
       # Knowledge copied (Oban runs inline in tests).
       [copied] = Knowledge.list_items(ws_b.id, %{"agent_id" => clone.id})
       assert copied.body == "Always ship on Friday."

@@ -56,7 +56,7 @@ def test_exact_scanned_images_pass_staging_before_production_mutations():
     stage = command_step(steps, "staging_smoke.py")
     prepare = next(step for step in steps if step.get("id") == "api_task")
     scans = [step for step in steps if "trivy-action@" in step.get("uses", "")]
-    assert len(scans) == 4
+    assert len(scans) == 5
     for scan in scans:
         assert steps.index(scan) < steps.index(stage)
         assert scan["with"]["exit-code"] == "1"
@@ -111,12 +111,13 @@ def test_each_scan_explicitly_targets_its_built_arm64_image_without_weakening_ga
         if "trivy-action@" in step.get("uses", "")
         and step.get("with", {}).get("image-ref") == image
     ]
-    assert len(scans) == 1
-    scan = scans[0]
-    assert build["with"]["platforms"] == "linux/arm64"
+    expected_platforms = {"linux/arm64", "linux/amd64"} if service == "api" else {"linux/arm64"}
+    assert set(build["with"]["platforms"].split(",")) == expected_platforms
+    assert {scan.get("env", {}).get("TRIVY_PLATFORM") for scan in scans} == expected_platforms
+    scan = next(scan for scan in scans if scan["env"]["TRIVY_PLATFORM"] == "linux/arm64")
     # Step-local literal prevents omission, runner-default amd64 selection, or
     # an accidentally overridden job/workflow environment expression.
-    assert scan.get("env") == {"TRIVY_PLATFORM": build["with"]["platforms"]}
+    assert scan.get("env") == {"TRIVY_PLATFORM": "linux/arm64"}
     assert scan["uses"] == (
         "aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1"
     )
@@ -142,8 +143,8 @@ def test_migration_precedes_every_rollout_and_uses_prepared_exact_revision():
     rollouts = [
         step for step in steps if "deploy-ecs-service.sh" in step.get("run", "")
     ]
-    assert len(rollouts) == 4
-    for step, service in zip(rollouts, ("api", "worker", "web", "crm"), strict=True):
+    assert len(rollouts) == 5
+    for step, service in zip(rollouts, ("avatar", "api", "worker", "web", "crm"), strict=True):
         assert steps.index(migration) < steps.index(step)
         for key, output in (
             ("TASK_DEFINITION", "task_definition"),
@@ -153,6 +154,27 @@ def test_migration_precedes_every_rollout_and_uses_prepared_exact_revision():
                 "${{ steps." + service + "_task.outputs." + output + " }}"
             )
         assert "continue-on-error" not in step
+
+
+def test_avatar_worker_is_opt_in_and_ready_before_api_enables_paid_creation():
+    job = deployment()
+    assert job["env"]["AVATAR_PIPELINE"] == "${{ vars.MOKAID_AVATAR_PIPELINE_ENABLED || 'false' }}"
+    steps = job["steps"]
+    prepare = next(step for step in steps if step.get("id") == "avatar_task")
+    rollout = next(step for step in steps if step.get("name") == "Deploy avatar worker before enabling generation on API")
+    api = next(step for step in steps if step.get("id") == "api_task")
+    api_rollout = next(step for step in steps if step.get("name") == "Deploy API after successful migration")
+    assert prepare["if"] == rollout["if"] == "env.AVATAR_PIPELINE == 'true'"
+    assert prepare["env"]["IMAGE"] == api["env"]["IMAGE"]
+    assert steps.index(rollout) < steps.index(api_rollout)
+    assert api["env"]["MOKAID_AVATAR_WORKER_MODE"] == "api"
+    assert api["env"]["MOKAID_AVATAR_PIPELINE_ENABLED"] == "${{ env.AVATAR_PIPELINE }}"
+    smoke = next(step for step in steps if step.get("name") == "Verify exact avatar worker renderer image without credentials")
+    assert steps.index(smoke) < steps.index(api)
+    assert "--network none" in smoke["run"]
+    assert "--platform linux/amd64" in smoke["run"]
+    for filename in ("prepare-custom-avatar.py", "blender-avatar-life.py", "blender-avatar-quality.py", "validate-avatar-life.py"):
+        assert filename in smoke["run"]
 
 
 def test_cloud_session_is_renewed_after_builds_and_before_recovery():
@@ -191,7 +213,7 @@ def test_recovery_includes_cancellation_and_all_recorded_previous_revisions():
     assert steps.index(command_step(steps, "verify-production.mjs")) < steps.index(
         recovery
     )
-    for service in ("api", "worker", "web", "crm"):
+    for service in ("avatar", "api", "worker", "web", "crm"):
         assert recovery["env"][service.upper() + "_PREVIOUS"] == (
             "${{ steps." + service + "_task.outputs.previous_task_definition }}"
         )

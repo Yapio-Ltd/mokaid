@@ -7,6 +7,20 @@ using namespace mokaid::desktop;
 class DocumentFormatTests final : public QObject {
     Q_OBJECT
 private slots:
+    void mailAttachmentsNeverPromoteActiveMarkupFromMimeOrFilename() {
+        const QByteArray hostile("<html><script>alert(1)</script><img src='file:///etc/passwd'><img src='https://tracker.test/pixel'></html>");
+        for (const auto& name:QStringList{"message.html","invoice.pdf","picture.png","image.svg"}) {
+            const auto format=describeMailAttachment({{"name",name},{"mime_type","application/pdf"}},hostile);
+            QCOMPARE(format.value("kind").toString(),"text");
+            QCOMPARE(format.value("mimeType").toString(),"text/plain");
+            const auto rendered=readableDocument(format,hostile);
+            QVERIFY(rendered.contains("&lt;script&gt;")); QVERIFY(!rendered.contains("<script>")); QVERIFY(!rendered.contains("<img src="));
+        }
+        const auto svg=describeMailAttachment({{"name","safe.png"},{"mime_type","image/png"}},"<svg><image href='https://tracker.test/pixel'/></svg>");
+        QCOMPARE(svg.value("kind").toString(),"text");
+        QCOMPARE(describeMailAttachment({{"name","document.txt"}},QByteArray("MZ\0binary",9)).value("kind").toString(),"unsupported");
+        QCOMPARE(describeMailAttachment({{"name","document.html"}},"%PDF-1.7\n").value("kind").toString(),"pdf");
+    }
     void usesFilenameWhenUploaderProvidesGenericMime() {
         for (const auto& row : QList<QPair<QString, QString>>{{"photo.jpeg", "image"}, {"report.PDF", "pdf"}, {"site.html", "html"}, {"data.json", "text"}, {"report.md", "text"}, {"clip.mp4", "video"}, {"voice.mp3", "audio"}, {"budget.xlsx", "unsupported"}, {"deck.pptx", "unsupported"}, {"archive.zip", "unsupported"}}) {
             const auto result = describeDeliverable({{"name", row.first}, {"mime_type", "application/octet-stream"}});

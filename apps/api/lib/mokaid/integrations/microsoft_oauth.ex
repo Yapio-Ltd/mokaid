@@ -19,7 +19,7 @@ defmodule Mokaid.Integrations.MicrosoftOAuth do
     "profile",
     "offline_access",
     "User.Read",
-    "Mail.Read",
+    "Mail.ReadWrite",
     "Mail.Send"
   ]
 
@@ -90,13 +90,15 @@ defmodule Mokaid.Integrations.MicrosoftOAuth do
   def refresh_tokens(refresh_token) do
     with :ok <- ensure_configured() do
       response =
-        Req.post(token_endpoint(),
+        Req.post(Req.new(config()[:http_options] || []),
+          url: token_endpoint(),
           form: [
             client_id: config()[:client_id],
             client_secret: config()[:client_secret],
             refresh_token: refresh_token,
-            grant_type: "refresh_token",
-            scope: Enum.join(@scopes, " ")
+            # Omit scope: retain the original grant. Newly added permissions
+            # require another interactive authorization, not a background refresh.
+            grant_type: "refresh_token"
           ]
         )
 
@@ -104,11 +106,11 @@ defmodule Mokaid.Integrations.MicrosoftOAuth do
         {:ok, %Req.Response{status: 200, body: %{"access_token" => _} = body}} ->
           {:ok, credentials_from_tokens(body, refresh_token)}
 
-        {:ok, %Req.Response{status: status, body: body}} ->
-          {:error, {:token_refresh_failed, status, inspect(body)}}
+        {:ok, %Req.Response{status: status}} ->
+          {:error, {:token_refresh_failed, status, :provider_error}}
 
-        {:error, exception} ->
-          {:error, {:token_refresh_failed, :network, Exception.message(exception)}}
+        {:error, _} ->
+          {:error, {:token_refresh_failed, :network, :unavailable}}
       end
     end
   end
@@ -124,6 +126,7 @@ defmodule Mokaid.Integrations.MicrosoftOAuth do
         |> DateTime.add(tokens["expires_in"] || 3600, :second)
         |> DateTime.to_iso8601()
     }
+    |> Map.reject(fn {_key, value} -> is_nil(value) end)
   end
 
   defp request_tokens(code, redirect_uri) do
@@ -145,11 +148,11 @@ defmodule Mokaid.Integrations.MicrosoftOAuth do
       {:ok, %Req.Response{status: 200, body: %{"access_token" => _} = body}} ->
         {:ok, body}
 
-      {:ok, %Req.Response{status: status, body: body}} ->
-        {:error, {:token_exchange_failed, status, inspect(body)}}
+      {:ok, %Req.Response{status: status}} ->
+        {:error, {:token_exchange_failed, status, :provider_error}}
 
-      {:error, exception} ->
-        {:error, {:token_exchange_failed, :network, Exception.message(exception)}}
+      {:error, _} ->
+        {:error, {:token_exchange_failed, :network, :unavailable}}
     end
   end
 

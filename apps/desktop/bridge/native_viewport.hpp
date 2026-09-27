@@ -1,6 +1,7 @@
 #pragma once
 #include <QPointF>
 #include <QQuickItem>
+#include <QSet>
 #include <QTimer>
 #include <QVariantList>
 #include <QtQml/qqmlregistration.h>
@@ -116,7 +117,8 @@ private:
   OfficeScreenContent screens_;
   QString conversationAgentId_;
   CustomAvatarLoader customAvatars_{this};
-  QSet<QString> loadedCustomAvatars_;
+  QHash<QString, QUrl> loadedCustomAvatars_;
+  QHash<QString, QUrl> activeCustomAvatarUrls_;
   QSet<QString> activeCustomAvatars_;
   QString avatarError_;
   void updateIndicators();

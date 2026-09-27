@@ -65,10 +65,19 @@ defmodule MokaidWeb.FallbackController do
   defp humanize(:meshy_unavailable),
     do: "Character generation is temporarily unavailable. Please try again later."
 
+  defp humanize(:avatar_generation_unavailable),
+    do: "Character generation is temporarily unavailable. Please try again later."
+
   defp humanize(:invalid_avatar_input), do: "Choose a photo or enter a character description."
   defp humanize(:invalid_avatar_prompt), do: "Describe your character in 3 to 600 characters."
   defp humanize(:invalid_avatar_image), do: "Upload a JPEG, PNG or WebP image under 10 MB."
   defp humanize(:invalid_avatar_name), do: "Use a character name between 1 and 80 characters."
+
+  defp humanize(:avatar_price_confirmation_required),
+    do: "Refresh character creation to review the Mokaid credit price before generating."
+
+  defp humanize(:avatar_price_changed),
+    do: "The character price changed. Refresh to review the current Mokaid credit price."
 
   defp humanize(:avatar_generation_in_progress),
     do: "Two characters are already being created. Wait for one to finish."
@@ -124,6 +133,11 @@ defmodule MokaidWeb.FallbackController do
     do: "You are not a member of the destination workspace"
 
   defp humanize(:invalid_archetype), do: "Unknown agent archetype"
+
+  defp humanize(:invalid_dispatch_analysis),
+    do:
+      "The agent recommendation is incomplete or inconsistent. Please retry before assigning this mission."
+
   defp humanize(:invalid_boost), do: "Unknown agent boost"
   defp humanize(:empty_request), do: "Add an instruction or at least one file to this mission"
 

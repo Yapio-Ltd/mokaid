@@ -12,7 +12,7 @@ import structlog
 
 from app.clients.phoenix import PhoenixClient
 from app.llm import UsageTracker
-from app.mail import analyze, fetchers
+from app.mail import analyze, fetchers, operations, reader_sync
 
 log = structlog.get_logger()
 
@@ -36,6 +36,18 @@ async def sync_account(payload: dict[str, Any]) -> dict[str, Any]:
 
     try:
         messages, new_state = await _fetch(account)
+    except operations.OperationError as exc:
+        is_auth = exc.code == "auth_failed"
+        await phoenix.update_mail_sync_state(
+            account_id,
+            {
+                "status": "error",
+                "error_message": "authentication failed: Reconnect this mailbox."
+                if is_auth
+                else "Mailbox synchronization could not be completed. Try again.",
+            },
+        )
+        return {"error": "auth_failed" if is_auth else "fetch_failed"}
     except fetchers.AuthError as exc:
         log.warning("mail_sync_auth_failed", account_id=account_id, error=str(exc))
         await phoenix.update_mail_sync_state(
@@ -51,7 +63,15 @@ async def sync_account(payload: dict[str, Any]) -> dict[str, Any]:
 
     usage = UsageTracker()
     if messages:
-        await analyze.analyze_messages(messages, rules, usage)
+        await analyze.analyze_messages(
+            [
+                message
+                for message in messages
+                if not message.get("_removed") and not message.get("_skip_analysis")
+            ],
+            rules,
+            usage,
+        )
         if not await phoenix.ingest_mail_messages(account_id, messages):
             log.warning("mail_ingestion_failed", account_id=account_id)
             return {"error": "ingestion_failed"}
@@ -82,17 +102,7 @@ async def sync_account(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 async def _fetch(account: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    provider = account.get("provider")
-    credentials = account.get("credentials") or {}
-    sync_state = account.get("sync_state") or {}
-
-    if provider == "gmail":
-        return await fetchers.fetch_gmail(credentials, sync_state)
-    if provider == "microsoft":
-        return await fetchers.fetch_graph(credentials, sync_state)
-    if provider == "imap":
-        return await fetchers.fetch_imap(credentials, account.get("settings") or {}, sync_state)
-    raise ValueError(f"unknown provider {provider}")
+    return await reader_sync.fetch(account)
 
 
 # ---------- Push channel management ----------
@@ -135,7 +145,7 @@ async def _renew_gmail_watch(
         response = await client.post(
             f"{GMAIL_BASE}/watch",
             headers=headers,
-            json={"topicName": topic, "labelIds": ["INBOX"]},
+            json={"topicName": topic},
         )
         response.raise_for_status()
         body = response.json()

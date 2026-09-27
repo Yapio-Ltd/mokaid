@@ -287,6 +287,13 @@ defmodule Mokaid.AI.Orchestrator do
   end
 
   defp create_child(workspace_id, parent, instruction, deliverable, french?, member) do
+    # Preserve the authenticated origin through nested missions. Background
+    # launches do not receive a member argument; their persisted parent does.
+    member =
+      member ||
+        (parent.created_by_member_id &&
+           Mokaid.Members.get_member(workspace_id, parent.created_by_member_id))
+
     title = pick_lang(deliverable.title, french?)
     brief = child_brief(instruction, deliverable, french?)
     agent = Dispatcher.best_agent(workspace_id, "#{title}. #{brief}")

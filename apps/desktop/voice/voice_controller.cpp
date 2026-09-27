@@ -91,7 +91,7 @@ void VoiceController::startListening() {
     const QMicrophonePermission permission;
     const auto status = qApp->checkPermission(permission);
     if (status == Qt::PermissionStatus::Denied) {
-        fail(QStringLiteral("Autorisez le microphone pour Moked dans les réglages de confidentialité du système.")); return;
+        fail(QStringLiteral("Autorisez le microphone pour Liven dans les réglages de confidentialité du système.")); return;
     }
     if (status == Qt::PermissionStatus::Undetermined) {
         permissionPending_ = true;

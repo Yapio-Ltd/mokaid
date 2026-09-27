@@ -25,7 +25,7 @@ async def test_low_risk_run_completes_without_approval(phoenix):
     assert phoenix.calls[-1][0] == "complete"
 
 
-async def test_high_risk_tool_waits_for_approval_then_runs(phoenix):
+async def test_high_risk_tool_waits_for_approval_but_unwired_email_cannot_claim_sent(phoenix):
     task = asyncio.create_task(
         runner.execute_run(make_request("run-hi", "send_campaign"), phoenix=phoenix)
     )
@@ -45,10 +45,11 @@ async def test_high_risk_tool_waits_for_approval_then_runs(phoenix):
     assert await runner.resume_run(ResumeRequest(run_id="run-hi", decision="approved"))
     state = await task
 
-    assert state.status == RunStatus.COMPLETED
+    assert state.status == RunStatus.FAILED
     email_call = next(c for c in state.tool_calls if c.tool == "send_email")
     assert email_call.approved is True
-    assert email_call.output["sent"] is True
+    assert email_call.output["sent"] is False
+    assert email_call.output["error"] == "agent_mail_sending_unavailable"
 
 
 async def test_rejected_tool_is_skipped(phoenix):

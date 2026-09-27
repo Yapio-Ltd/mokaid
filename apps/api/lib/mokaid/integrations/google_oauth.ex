@@ -8,11 +8,31 @@ defmodule Mokaid.Integrations.GoogleOAuth do
   @state_max_age 600
   @provider_scopes %{
     "gmail" => ["https://www.googleapis.com/auth/gmail.modify"],
-    "google_drive" => ["https://www.googleapis.com/auth/drive"],
-    "google_calendar" => ["https://www.googleapis.com/auth/calendar"],
-    "google_docs" => ["https://www.googleapis.com/auth/documents"],
-    "google_sheets" => ["https://www.googleapis.com/auth/spreadsheets"],
-    "google_meet" => ["https://www.googleapis.com/auth/meetings.space.created"]
+    "google_drive" => ["https://www.googleapis.com/auth/drive.readonly"],
+    "google_calendar" => ["https://www.googleapis.com/auth/calendar.readonly"],
+    "google_docs" => ["https://www.googleapis.com/auth/documents.readonly"],
+    "google_sheets" => ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+    "google_meet" => ["https://www.googleapis.com/auth/meetings.space.readonly"]
+  }
+
+  # Google may return a previously granted broader scope for a service. Accept
+  # those documented supersets while requesting only the read access we use.
+  @scope_supersets %{
+    "https://www.googleapis.com/auth/gmail.modify" => ["https://mail.google.com/"],
+    "https://www.googleapis.com/auth/drive.readonly" => ["https://www.googleapis.com/auth/drive"],
+    "https://www.googleapis.com/auth/calendar.readonly" => [
+      "https://www.googleapis.com/auth/calendar"
+    ],
+    "https://www.googleapis.com/auth/documents.readonly" => [
+      "https://www.googleapis.com/auth/documents",
+      "https://www.googleapis.com/auth/drive",
+      "https://www.googleapis.com/auth/drive.readonly"
+    ],
+    "https://www.googleapis.com/auth/spreadsheets.readonly" => [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/drive",
+      "https://www.googleapis.com/auth/drive.readonly"
+    ]
   }
 
   def google_provider_keys, do: Map.keys(@provider_scopes)
@@ -187,9 +207,11 @@ defmodule Mokaid.Integrations.GoogleOAuth do
   defp validate_granted_scopes(%{"scope" => granted}, key) when is_binary(granted) do
     granted = String.split(granted)
 
-    if Enum.all?(Map.fetch!(@provider_scopes, key), &(&1 in granted)),
-      do: :ok,
-      else: {:error, :missing_required_scopes}
+    if Enum.all?(Map.fetch!(@provider_scopes, key), fn required ->
+         Enum.any?([required | Map.get(@scope_supersets, required, [])], &(&1 in granted))
+       end),
+       do: :ok,
+       else: {:error, :missing_required_scopes}
   end
 
   # Google may omit scope when it matches the requested scope (RFC 6749 §5.1).

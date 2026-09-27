@@ -2,12 +2,10 @@ add_library(mokaid_presentation STATIC system_controller.cpp frame_profiler.cpp 
     include/mokaid/presentation/project_runtime.hpp
     include/mokaid/presentation/system_controller.hpp include/mokaid/presentation/frame_profiler.hpp)
 target_include_directories(mokaid_presentation PUBLIC include)
-target_link_libraries(mokaid_presentation PUBLIC Qt6::Core Qt6::Gui Qt6::Quick Qt6::Network mokaid_options)
-if(APPLE)
-  target_link_libraries(mokaid_presentation PRIVATE "-framework AudioToolbox")
-elseif(WIN32)
-  target_link_libraries(mokaid_presentation PRIVATE user32)
-endif()
+target_link_libraries(mokaid_presentation PUBLIC Qt6::Core Qt6::Gui Qt6::Quick Qt6::Network mokaid_options PRIVATE Qt6::Multimedia)
+qt_add_resources(mokaid_presentation mokaid_completion_sounds PREFIX "/sounds"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/assets/sounds"
+    FILES "${CMAKE_CURRENT_SOURCE_DIR}/assets/sounds/mission-complete.wav")
 if(BUILD_TESTING)
   qt_add_executable(mokaid_orchestrator_qml_tests ../tests/orchestrator_qml_tests.cpp)
   set_target_properties(mokaid_orchestrator_qml_tests PROPERTIES WIN32_EXECUTABLE FALSE)
@@ -23,6 +21,16 @@ if(BUILD_TESTING)
   target_link_libraries(mokaid_mission_qml_tests PRIVATE mokaid_application mokaid_presentation Qt6::Quick Qt6::QuickControls2 Qt6::Test mokaid_options)
   target_compile_definitions(mokaid_mission_qml_tests PRIVATE MOKAID_MISSION_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/qml")
   add_test(NAME desktop-mission-qml COMMAND mokaid_mission_qml_tests)
+  qt_add_executable(mokaid_completion_qml_tests ../tests/completion_qml_tests.cpp)
+  set_target_properties(mokaid_completion_qml_tests PROPERTIES WIN32_EXECUTABLE FALSE)
+  target_link_libraries(mokaid_completion_qml_tests PRIVATE Qt6::Quick Qt6::QuickControls2 Qt6::Test mokaid_options)
+  target_compile_definitions(mokaid_completion_qml_tests PRIVATE MOKAID_COMPLETION_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/qml")
+  qt_add_resources(mokaid_completion_qml_tests completion_portraits PREFIX "/ui"
+      BASE "${CMAKE_CURRENT_SOURCE_DIR}/assets" FILES
+      "${CMAKE_CURRENT_SOURCE_DIR}/assets/portrait-male.png"
+      "${CMAKE_CURRENT_SOURCE_DIR}/assets/portrait-design.png")
+  add_test(NAME desktop-completion-qml COMMAND mokaid_completion_qml_tests)
+  set_tests_properties(desktop-completion-qml PROPERTIES TIMEOUT 60)
   qt_add_executable(mokaid_profiler_tests ../tests/frame_profiler_tests.cpp)
   target_link_libraries(mokaid_profiler_tests PRIVATE mokaid_presentation Qt6::Test mokaid_options)
   add_test(NAME desktop-frame-profiler COMMAND mokaid_profiler_tests)
@@ -74,6 +82,7 @@ set(MOKAID_QML_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/TasksBoard.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/TaskBoardCard.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/TasksInspector.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/TaskCompletionDialog.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/TaskRuntimePanel.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/MarketplacePage.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/MarketplaceDiscover.qml"
@@ -109,7 +118,16 @@ set(MOKAID_QML_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/Theme.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/FeaturePage.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/MailAccountsBar.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/MailLogic.js"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/MailFolders.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/MailMessageList.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/MailReader.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/MailComposer.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/MailPage.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/MailConnectDialog.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/GoogleConnectionsBar.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/GoogleConnectionsDialog.qml"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/GoogleSignInHelp.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/MailAccountsDialog.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/DriveNavigation.qml"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/ActionDialog.qml"

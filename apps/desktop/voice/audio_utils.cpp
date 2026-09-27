@@ -91,7 +91,7 @@ KokoroVoice kokoroVoice(const QString& language) {
 }
 QString validateRuntime(const QString& directory) {
     QFile manifest(QDir(directory).filePath(QStringLiteral("manifest.json")));
-    if (!manifest.open(QIODevice::ReadOnly) || manifest.size() > 2 * 1024 * 1024) return QStringLiteral("Le module vocal local n’est pas installé dans cette version de Moked.");
+    if (!manifest.open(QIODevice::ReadOnly) || manifest.size() > 2 * 1024 * 1024) return QStringLiteral("Le module vocal local n’est pas installé dans cette version de Liven.");
     const auto root = QJsonDocument::fromJson(manifest.readAll()).object();
     const auto entries = root.value(QStringLiteral("files")).toObject();
     if (root.value(QStringLiteral("schema")).toInt() != 1 || entries.isEmpty()) return QStringLiteral("Le manifeste vocal est invalide.");
@@ -104,9 +104,9 @@ QString validateRuntime(const QString& directory) {
         const auto canonical = QFileInfo(filename).canonicalFilePath();
         if (!canonical.startsWith(base) || it.value().toString().size() != 64) return QStringLiteral("Le manifeste vocal contient un chemin invalide.");
         QFile file(filename);
-        if (!file.open(QIODevice::ReadOnly)) return QStringLiteral("Un fichier vocal est manquant. Réinstallez Moked.");
+        if (!file.open(QIODevice::ReadOnly)) return QStringLiteral("Un fichier vocal est manquant. Réinstallez Liven.");
         QCryptographicHash hash(QCryptographicHash::Sha256);
-        if (!hash.addData(&file) || hash.result().toHex() != it.value().toString().toLatin1()) return QStringLiteral("Un modèle vocal est endommagé. Réinstallez Moked.");
+        if (!hash.addData(&file) || hash.result().toHex() != it.value().toString().toLatin1()) return QStringLiteral("Un modèle vocal est endommagé. Réinstallez Liven.");
     }
 #ifdef Q_OS_WIN
     const QString suffix = QStringLiteral(".exe");
