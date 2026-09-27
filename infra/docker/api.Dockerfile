@@ -22,7 +22,16 @@ RUN mkdir -p /opt/blender \
            --output /tmp/blender.tar.xz \
          && echo '96f6c181a30f4950607839dc84d42a354b250d8a0231b098b59b7bc69c351c48  /tmp/blender.tar.xz' | sha256sum --check --strict \
          && tar -xJf /tmp/blender.tar.xz --strip-components=1 -C /opt/blender \
-         && rm /tmp/blender.tar.xz ;; \
+         && rm /tmp/blender.tar.xz \
+         && if ! /opt/blender/5.2/python/bin/python3.13 -m ensurepip --upgrade; then \
+              curl --fail --show-error --location --retry 3 \
+                https://bootstrap.pypa.io/get-pip.py --output /tmp/get-pip.py \
+              && /opt/blender/5.2/python/bin/python3.13 /tmp/get-pip.py \
+              && rm /tmp/get-pip.py; \
+            fi \
+         && /opt/blender/5.2/python/bin/python3.13 -m pip install --no-cache-dir --upgrade \
+              'urllib3==2.8.0' 'setuptools==84.0.0' \
+         && /opt/blender/5.2/python/bin/python3.13 -c 'import importlib.metadata as m; from pathlib import Path; assert tuple(int(p) for p in m.version("urllib3").split(".")[:3]) >= (2, 8, 0); vendor = Path("/opt/blender/5.2/python/lib/python3.13/site-packages/setuptools/_vendor"); wheel = next(vendor.glob("wheel-*.dist-info")).name.removeprefix("wheel-").removesuffix(".dist-info"); jaraco = next(vendor.glob("jaraco_context-*.dist-info")).name.removeprefix("jaraco_context-").removesuffix(".dist-info"); assert tuple(int(p) for p in wheel.split(".")[:3]) >= (0, 46, 2); assert tuple(int(p) for p in jaraco.split(".")[:3]) >= (6, 1, 0)' ;; \
        arm64) touch /opt/blender/API_ONLY_NO_BLENDER ;; \
        *) echo "Unsupported runtime architecture: $TARGETARCH" >&2; exit 1 ;; \
        esac
