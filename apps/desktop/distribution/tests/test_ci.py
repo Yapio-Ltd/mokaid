@@ -75,12 +75,12 @@ class CiTests(unittest.TestCase):
             if not line.strip() or line.lstrip().startswith("#"):
                 continue
             match = re.fullmatch(
-                r"(desktop_downloads_enabled|desktop_downloads_external_dns_ready|desktop_stable_signing_enabled)\s*=\s*(true|false)",
+                r"(desktop_downloads_enabled|desktop_downloads_external_dns_ready|desktop_stable_signing_enabled|desktop_windows_signing_enabled)\s*=\s*(true|false)",
                 line.strip(),
             )
             self.assertIsNotNone(
                 match,
-                "The tracked rollout file must contain only the three reviewed non-secret boolean switches",
+                "The tracked rollout file must contain only the four reviewed non-secret boolean switches",
             )
             assert match is not None
             self.assertNotIn(match[1], entries)
@@ -95,6 +95,11 @@ class CiTests(unittest.TestCase):
             entries.get("desktop_stable_signing_enabled"),
             "true",
             "The approved independent stable signing role must remain enabled",
+        )
+        self.assertEqual(
+            entries.get("desktop_windows_signing_enabled"),
+            "true",
+            "The provisioned Windows secret and signing role must remain enabled",
         )
 
     def test_existing_metal_compiler_does_not_download_a_component(self) -> None:

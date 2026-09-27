@@ -27,6 +27,8 @@ if(BUILD_TESTING)
     target_compile_definitions(mokaid_feature_qml_tests PRIVATE MOKAID_FEATURE_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../../presentation/qml")
     add_test(NAME desktop-feature-qml COMMAND mokaid_feature_qml_tests)
     qt_add_executable(mokaid_native_pages_qml_tests tests/native_pages_qml_tests.cpp)
+    # Keep QtTest diagnostics attached to CTest pipes on Windows.
+    set_target_properties(mokaid_native_pages_qml_tests PROPERTIES WIN32_EXECUTABLE FALSE)
     target_link_libraries(mokaid_native_pages_qml_tests PRIVATE mokaid_features Qt6::Quick Qt6::QuickControls2 Qt6::Test mokaid_options)
     target_compile_definitions(mokaid_native_pages_qml_tests PRIVATE MOKAID_NATIVE_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../../presentation/qml")
     set(native_page_portraits "${CMAKE_CURRENT_SOURCE_DIR}/../../presentation/assets")
@@ -38,7 +40,8 @@ if(BUILD_TESTING)
         "${native_page_portraits}/portrait-legal.png" "${native_page_portraits}/portrait-byte.png"
         "${native_page_portraits}/portrait-nyx.png" "${native_page_portraits}/portrait-moss.png"
         "${native_page_portraits}/marketplace-hero.png")
-    add_test(NAME desktop-native-pages-qml COMMAND mokaid_native_pages_qml_tests)
+    add_test(NAME desktop-native-pages-qml COMMAND mokaid_native_pages_qml_tests
+      -o native-pages-qt.txt,txt -o -,txt)
     qt_add_executable(mokaid_tasks_qml_tests ../../tests/tasks_qml_tests.cpp)
     target_link_libraries(mokaid_tasks_qml_tests PRIVATE mokaid_features Qt6::Quick Qt6::QuickControls2 Qt6::Test mokaid_options)
     target_compile_definitions(mokaid_tasks_qml_tests PRIVATE MOKAID_TASKS_QML_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/../../presentation/qml")

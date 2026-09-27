@@ -192,11 +192,13 @@ jobs:
         include:
           - runner: macos-15
             platform: macos-arm64
+            roleVar: MOKAID_SIGNING_AWS_ROLE_ARN
             secretVar: MOKAID_MACOS_SIGNING_SECRET_ARN
             artifact_id: ${{ needs.build_macos.outputs.artifact_id }}
             manifest_sha256: ${{ needs.build_macos.outputs.manifest_sha256 }}
           - runner: windows-2022
             platform: windows-x64
+            roleVar: MOKAID_WINDOWS_SIGNING_AWS_ROLE_ARN
             secretVar: MOKAID_WINDOWS_SIGNING_SECRET_ARN
             artifact_id: ${{ needs.build_windows.outputs.artifact_id }}
             manifest_sha256: ${{ needs.build_windows.outputs.manifest_sha256 }}
@@ -240,7 +242,7 @@ jobs:
       - name: Authenticate to the signing secret manager using OIDC
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
         with:
-          role-to-assume: ${{ vars.MOKAID_SIGNING_AWS_ROLE_ARN }}
+          role-to-assume: ${{ vars[matrix.roleVar] }}
           aws-region: ${{ vars.MOKAID_AWS_REGION }}
           role-session-name: desktop-signing-${{ github.run_id }}
       - name: Authenticate to Azure Artifact Signing using OIDC

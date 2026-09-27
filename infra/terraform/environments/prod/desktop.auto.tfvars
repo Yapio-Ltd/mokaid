@@ -6,3 +6,7 @@ desktop_downloads_external_dns_ready = true
 # Explicitly approved stable macOS role only; independent of CloudFront readiness.
 # A reviewed targeted plan must be applied separately. No release is activated.
 desktop_stable_signing_enabled = true
+
+# Separate Windows update-seed metadata and role; values are populated outside
+# Terraform after a reviewed targeted apply. Apple signing remains unchanged.
+desktop_windows_signing_enabled = true

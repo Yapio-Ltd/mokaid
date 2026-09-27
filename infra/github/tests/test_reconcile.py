@@ -1252,3 +1252,55 @@ def test_main_expected_errors(
     monkeypatch.setattr("sys.argv", ["reconcile.py"])
     assert policy.main() == code
     assert capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("MOKAID_WINDOWS_SIGNING_AWS_ROLE_ARN",
+         "arn:aws:iam::660601648321:role/mokaid-desktop-signing-windows-stable"),
+        ("MOKAID_WINDOWS_SIGNING_SECRET_ARN",
+         "arn:aws:secretsmanager:il-central-1:660601648321:secret:"
+         "mokaid/desktop/stable/windows-updates-a1B2c3"),
+        ("MOKAID_AZURE_CLIENT_ID", "12345678-abcd-abcd-abcd-1234567890ab"),
+        ("MOKAID_AZURE_TENANT_ID", "11111111-2222-3333-4444-555555555555"),
+        ("MOKAID_AZURE_SUBSCRIPTION_ID", "66666666-7777-8888-9999-aaaaaaaaaaaa"),
+        ("MOKAID_AZURE_SIGNING_ENDPOINT", "https://neu.codesigning.azure.net"),
+        ("MOKAID_AZURE_SIGNING_ACCOUNT", "mokaid-signing-prod"),
+        ("MOKAID_AZURE_CERTIFICATE_PROFILE", "mokaid-stable"),
+    ],
+)
+def test_windows_oidc_public_identifiers_are_accepted(name: str, value: str):
+    assert policy.validate_variable(name, value) == value
+    assert policy.validate_variable(name, None) is None
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("MOKAID_WINDOWS_SIGNING_AWS_ROLE_ARN",
+         "arn:aws:iam::660601648321:role/mokaid-desktop-signing-stable"),
+        ("MOKAID_WINDOWS_SIGNING_AWS_ROLE_ARN",
+         "arn:aws:iam::123456789012:role/mokaid-desktop-signing-windows-stable"),
+        ("MOKAID_WINDOWS_SIGNING_SECRET_ARN",
+         "arn:aws:secretsmanager:il-central-1:660601648321:secret:"
+         "mokaid/desktop/stable/macos-signing-a1B2c3"),
+        ("MOKAID_WINDOWS_SIGNING_SECRET_ARN",
+         "arn:aws:secretsmanager:il-central-1:660601648321:secret:"
+         "mokaid/desktop/stable/windows-updates-*"),
+        ("MOKAID_WINDOWS_SIGNING_SECRET_ARN",
+         "arn:aws:secretsmanager:il-central-1:660601648321:secret:"
+         "mokaid/desktop/beta/windows-updates-a1B2c3"),
+        ("MOKAID_AZURE_CLIENT_ID", "client-password-or-secret"),
+        ("MOKAID_AZURE_CLIENT_SECRET", "fixture"),
+        ("MOKAID_AZURE_SIGNING_ENDPOINT", "https://neu.codesigning.azure.net.evil.test"),
+        ("MOKAID_AZURE_SIGNING_ENDPOINT", "http://neu.codesigning.azure.net"),
+        ("MOKAID_AZURE_SIGNING_ENDPOINT", "https://weu.codesigning.azure.net"),
+        ("MOKAID_AZURE_SIGNING_ENDPOINT", "https://neu.codesigning.azure.net/path"),
+        ("MOKAID_AZURE_SIGNING_ACCOUNT", "account/path"),
+        ("MOKAID_AZURE_CERTIFICATE_PROFILE", "../profile"),
+    ],
+)
+def test_windows_config_rejects_apple_access_or_non_public_values(name: str, value: str):
+    with pytest.raises(policy.PolicyError):
+        policy.validate_variable(name, value)

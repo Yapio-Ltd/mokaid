@@ -96,6 +96,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: desktop-test-${{ runner.os }}
-          path: apps/desktop/build/*/Testing/Temporary/LastTest.log
+          path: |
+            apps/desktop/build/*/Testing/Temporary/LastTest.log
+            apps/desktop/build/*/application/features/native-pages-qt.txt
           if-no-files-found: ignore
           retention-days: 7

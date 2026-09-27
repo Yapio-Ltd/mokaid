@@ -27,6 +27,20 @@ RUN mkdir -p /opt/blender \
        *) echo "Unsupported runtime architecture: $TARGETARCH" >&2; exit 1 ;; \
        esac
 
+# Patch Blender's embedded Python, including setuptools' private dependencies.
+# Updating Debian Python or installing jaraco/wheel alongside their old vendored
+# copies would leave the vulnerable code in the renderer. Preserve full metadata
+# so the final image scan can audit both the direct and vendored distributions.
+COPY infra/docker/blender-python-requirements.txt infra/docker/verify_blender_python.py /tmp/
+RUN if [ -x /opt/blender/5.2/python/bin/python3.13 ]; then \
+      /opt/blender/5.2/python/bin/python3.13 -m pip --isolated install \
+        --index-url https://pypi.org/simple --only-binary=:all: --no-deps \
+        --require-hashes --no-cache-dir --upgrade -r /tmp/blender-python-requirements.txt \
+      && /opt/blender/5.2/python/bin/python3.13 -m pip check \
+      && /opt/blender/5.2/python/bin/python3.13 /tmp/verify_blender_python.py; \
+    fi \
+    && rm /tmp/blender-python-requirements.txt /tmp/verify_blender_python.py
+
 # This independently buildable stage verifies every runpy dependency inside the
 # exact Linux renderer, without needing database credentials or paid API calls.
 FROM debian:bookworm-slim AS avatar-preparer
