@@ -25,6 +25,23 @@ Blender. These are repository settings, not a verification of the live service.
 `PHX_SERVER=false` is parsed as false. Worker mode disables the listener even if
 an inherited image environment contains `PHX_SERVER=true`.
 
+## Interrupted jobs
+
+The API runs `Mokaid.Avatars.RecoveryWorker` on its `default` queue every five
+minutes. It uses Oban's rescue operation only for avatar generation and repair
+jobs on the `avatars` queue that have been executing for more than 30 minutes.
+This exceeds the 600-second Blender and 120-second native conversion limits,
+with time for downloads and storage. Other workers and queues are untouched.
+
+Jobs with attempts remaining become available again; the avatar worker then
+applies the existing generation claim checks. An unresolved paid submission is
+never resubmitted. Local preparation can resume from its saved upstream task.
+Exhausted jobs are discarded by Oban. If a generation is still active, has a
+terminal generation job, and has no incomplete avatar job, recovery locks its
+row, marks it failed, and issues the existing idempotent credit refund. Ready
+characters and repair-only jobs never trigger a credit refund or asset changes.
+No global Lifeline plugin is enabled.
+
 ## Image and executable contract
 
 The API remains Linux ARM64. The avatar worker uses Linux AMD64 because the

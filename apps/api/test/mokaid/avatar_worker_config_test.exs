@@ -48,6 +48,9 @@ defmodule Mokaid.AvatarWorkerConfigTest do
 
     assert settings[MokaidWeb.Endpoint][:server] == false
     assert Enum.any?(settings[Oban][:plugins], fn {plugin, _} -> plugin == Oban.Plugins.Cron end)
+    cron = Keyword.fetch!(settings[Oban][:plugins], Oban.Plugins.Cron)
+    assert {"*/5 * * * *", Mokaid.Avatars.RecoveryWorker} in cron[:crontab]
+    refute Keyword.has_key?(settings[Oban][:plugins], Oban.Plugins.Lifeline)
   end
 
   test "dedicated worker has only one avatar slot, no cron and no HTTP listener" do
