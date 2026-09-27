@@ -125,7 +125,8 @@ describe("paused cinematic media controller", () => {
     });
     const { controller, onPresented, onReady } = setup(media);
     media.loadFrame();
-    expect(onReady).not.toHaveBeenCalled();
+    expect(onReady).toHaveBeenCalledOnce();
+    expect(onPresented).not.toHaveBeenCalled();
     present?.(0, { mediaTime: 0 });
     expect(onReady).toHaveBeenCalledOnce();
     onPresented.mockClear();
@@ -163,15 +164,70 @@ describe("paused cinematic media controller", () => {
     controller.dispose();
   });
 
-  it("requires the full timeline to be seekable before enabling scroll playback", () => {
+  it("starts from decoded data while the rest of the timeline is still loading", () => {
     const media = new FakeMedia() as FakeMedia & { seekable: TimeRanges };
     media.seekable = { length: 1, start: () => 0, end: () => 2 };
     const { controller, onReady } = setup(media);
     media.loadFrame();
-    expect(onReady).not.toHaveBeenCalled();
+    expect(onReady).toHaveBeenCalledOnce();
+    controller.request(55);
+    controller.tick(1);
+    expect(media.seeks).toEqual([55]);
     media.seekable = { length: 1, start: () => 0, end: () => 74 };
     media.dispatchEvent(new Event("progress"));
     expect(onReady).toHaveBeenCalledOnce();
+    controller.dispose();
+  });
+
+  it("requests a first frame when a mobile browser preloads metadata only", () => {
+    const media = new FakeMedia() as FakeMedia & { seekable: TimeRanges };
+    media.seekable = { length: 0, start: () => 0, end: () => 0 };
+    const { controller, onReady, onPresented } = setup(media);
+    media.readyState = 1;
+    media.dispatchEvent(new Event("loadedmetadata"));
+    controller.tick(1);
+    expect(media.seeks).toEqual([]);
+    expect(onReady).not.toHaveBeenCalled();
+    media.seekable = { length: 1, start: () => 0, end: () => 74 };
+    controller.tick(2);
+    expect(media.seeks).toEqual([1 / 24]);
+    expect(onPresented).not.toHaveBeenCalled();
+    media.loadFrame();
+    media.finishSeek();
+    expect(onReady).toHaveBeenCalledOnce();
+    controller.tick(3);
+    expect(media.seeks).toEqual([1 / 24, 0]);
+    controller.dispose();
+  });
+
+  it("uses a restored scroll position for the first metadata-only seek", () => {
+    const { media, controller, onReady, onPresented } = setup();
+    media.readyState = 1;
+    media.dispatchEvent(new Event("loadedmetadata"));
+    controller.request(40);
+    controller.tick(1);
+    expect(media.seeks).toEqual([40]);
+    expect(onReady).not.toHaveBeenCalled();
+    expect(onPresented).not.toHaveBeenCalled();
+    media.loadFrame();
+    media.finishSeek();
+    expect(onReady).toHaveBeenCalledOnce();
+    expect(onPresented).toHaveBeenLastCalledWith(40);
+    controller.dispose();
+  });
+
+  it("retries a synchronously aborted seek without reporting a decoder timeout", () => {
+    const { media, controller, onError } = setup();
+    media.loadFrame();
+    vi.spyOn(media, "currentTime", "set").mockImplementationOnce((time) => {
+      media.seeks.push(time);
+    });
+    controller.request(36);
+    controller.tick(1);
+    controller.tick(10);
+    expect(media.seeks).toEqual([36, 36]);
+    expect(onError).not.toHaveBeenCalled();
+    media.finishSeek();
     controller.dispose();
   });
 
