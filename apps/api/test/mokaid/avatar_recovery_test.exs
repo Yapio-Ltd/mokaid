@@ -4,7 +4,7 @@ defmodule Mokaid.AvatarRecoveryTest do
   import Ecto.Query
   alias Mokaid.Avatars
   alias Mokaid.Assets3d.Asset
-  alias Mokaid.Avatars.{Generation, RecoveryWorker}
+  alias Mokaid.Avatars.{Generation, RecoveryWorker, RepairWorker, Worker}
   alias Mokaid.Billing.{Credits, CreditTransaction, Subscription}
 
   defmodule Storage do
@@ -76,6 +76,14 @@ defmodule Mokaid.AvatarRecoveryTest do
   end
 
   defp balance(ctx), do: Credits.summary(ctx.workspace.id).spendable
+
+  test "job deadlines leave room for the longest subprocess before orphan rescue" do
+    for worker <- [Worker, RepairWorker] do
+      timeout = worker.timeout(%Oban.Job{})
+      assert timeout == :timer.minutes(18)
+      assert timeout + :timer.seconds(600 + 5) < :timer.minutes(30)
+    end
+  end
 
   test "old interrupted jobs are made available without changing their generation or charge",
        ctx do

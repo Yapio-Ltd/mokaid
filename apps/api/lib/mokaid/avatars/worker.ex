@@ -15,6 +15,9 @@ defmodule Mokaid.Avatars.Worker do
   alias Mokaid.Billing.Credits
   alias Mokaid.{Avatars, Repo}
 
+  @impl Oban.Worker
+  def timeout(_job), do: :timer.minutes(18)
+
   @doc false
   def reconcile_terminal(id) do
     result =
