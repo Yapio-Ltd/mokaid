@@ -25,7 +25,42 @@ Blender. These are repository settings, not a verification of the live service.
 `PHX_SERVER=false` is parsed as false. Worker mode disables the listener even if
 an inherited image environment contains `PHX_SERVER=true`.
 
+## Interrupted jobs
+
+The API runs `Mokaid.Avatars.RecoveryWorker` on its `default` queue every five
+minutes. It uses Oban's rescue operation only for avatar generation and repair
+jobs on the `avatars` queue that have been executing for more than 30 minutes.
+This exceeds the 600-second Blender and 120-second native conversion limits,
+with time for downloads and storage. Other workers and queues are untouched.
+
+Both avatar workers enforce an 18-minute Oban timeout for the whole job,
+including network and storage waits. A live BEAM terminates an overlong job and
+Oban retries it, or discards it when attempts are exhausted. The timeout does
+not guarantee immediate cleanup of a subprocess already launched by
+`System.cmd`: its Python runner still enforces its own deadline and terminates
+the process group, with up to five seconds of shutdown grace. Even a Blender
+process started immediately before the job timeout reaches that deadline by
+28 minutes 5 seconds, before the 30-minute orphan-job rescue threshold. This
+assumes the OS can schedule and terminate the process normally; the renderer
+does not have an unlimited runtime. A normal Oban retry can occur sooner, so
+temporary local preparation may overlap; generation claims and conditional
+asset updates prevent a stale result from replacing the current revision.
+
+Jobs with attempts remaining become available again; the avatar worker then
+applies the existing generation claim checks. An unresolved paid submission is
+never resubmitted. Local preparation can resume from its saved upstream task.
+Exhausted jobs are discarded by Oban. If a generation is still active, has a
+terminal generation job, and has no incomplete avatar job, recovery locks its
+row, marks it failed, and issues the existing idempotent credit refund. Ready
+characters and repair-only jobs never trigger a credit refund or asset changes.
+No global Lifeline plugin is enabled.
+
 ## Image and executable contract
+
+Deployment uses a native x64 runner, matching the CI architecture for the
+Blender worker image and renderer verification. The ARM64 API variant uses
+QEMU during the multi-architecture build. This avoids running the x64 BEAM
+compiler and Blender checks through x64 emulation on an ARM64 runner.
 
 The API remains Linux ARM64. The avatar worker uses Linux AMD64 because the
 [official Blender 5.2.0 manifest](https://download.blender.org/release/Blender5.2/blender-5.2.0.sha256)

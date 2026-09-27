@@ -140,12 +140,15 @@ def worker_fixture_environment() -> dict[str, str]:
 
 
 class Smoke:
-    def __init__(self, images: dict[str, str], timeout: int = 420) -> None:
+    def __init__(self, images: dict[str, str], timeout: int = 420, platform: str | None = None) -> None:
         self.images = {key: image_ref(value, key) for key, value in images.items()}
         if not {"api", "web"} <= set(self.images) <= {"api", "web", "crm", "worker"}:
             raise SmokeError("API_IMAGE and WEB_IMAGE are required; only CRM_IMAGE and WORKER_IMAGE are optional")
         if not 60 <= timeout <= 900:
             raise SmokeError("STAGING_TIMEOUT_SECONDS must be between 60 and 900")
+        if platform not in (None, "linux/arm64", "linux/amd64"):
+            raise SmokeError("STAGING_PLATFORM must be linux/arm64 or linux/amd64")
+        self.platform = platform
         self.timeout = timeout
         self.run_id = uuid.uuid4().hex
         self.prefix = "mokaid-staging-" + self.run_id
@@ -188,11 +191,20 @@ class Smoke:
 
     def resolve_images(self) -> None:
         for key, ref in {**self.images, "postgres": PG_IMAGE, "probe": PROBE_IMAGE}.items():
-            if self.docker("image", "inspect", ref, check=False).returncode:
+            platform = self.platform if key in self.images else None
+            if platform and not ref.startswith("sha256:"):
+                # A scan may have cached another architecture of this index.
+                # Always select the release platform before resolving its ID.
+                # Docker API 1.48 cannot inspect --platform; verify the selected
+                # image metadata instead, failing closed on ambiguous stores.
+                self.docker("pull", "--platform", platform, ref, timeout=240)
+            elif self.docker("image", "inspect", ref, check=False).returncode:
                 if ref.startswith("sha256:"):
                     raise SmokeError(f"Local immutable {key} image is missing")
                 self.docker("pull", ref, timeout=240)
             image = self.inspect("image", ref)
+            if platform and (image.get("Os"), image.get("Architecture")) != tuple(platform.split("/")):
+                raise SmokeError("Resolved application image does not match STAGING_PLATFORM")
             image_id = image.get("Id", "")
             if not re.fullmatch(r"sha256:[0-9a-f]{64}", image_id):
                 raise SmokeError("Docker returned an invalid image ID")
@@ -233,6 +245,8 @@ class Smoke:
                 "--memory", "1536m" if key == "api" else "512m", "--cpus", "2",
                 "--security-opt", "no-new-privileges:true", "--log-opt", "max-size=4m",
                 "--log-opt", "max-file=1"]
+        if self.platform and key in self.images:
+            args.extend(["--platform", self.platform])
         if key == "postgres":
             args.extend(["--network-alias", "postgres", "--entrypoint", "/bin/sh"])
             names = ("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB")
@@ -421,7 +435,8 @@ if (!/<html/i.test(html)) throw new Error("Missing CRM login HTML");
 
     def diagnostics(self, error: str) -> str:
         report = {"run": self.run_id, "error": error, "images": self.images,
-                  "resolved_images": self.resolved, "checks": self.checks, "containers": []}
+                  "platform": self.platform, "resolved_images": self.resolved,
+                  "checks": self.checks, "containers": []}
         for name in self.containers:
             try:
                 data = self.inspect("container", name)
@@ -482,7 +497,8 @@ def main() -> int:
             images["crm"] = os.environ["CRM_IMAGE"]
         if os.environ.get("WORKER_IMAGE"):
             images["worker"] = os.environ["WORKER_IMAGE"]
-        smoke = Smoke(images, int(os.environ.get("STAGING_TIMEOUT_SECONDS", "420")))
+        smoke = Smoke(images, int(os.environ.get("STAGING_TIMEOUT_SECONDS", "420")),
+                      platform=os.environ.get("STAGING_PLATFORM"))
         def interrupted(_signum, _frame):
             raise SmokeError("Staging interrupted")
         signal.signal(signal.SIGTERM, interrupted)
