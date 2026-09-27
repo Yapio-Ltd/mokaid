@@ -197,6 +197,10 @@ class Smoke:
                 # Always select the release platform before resolving its ID.
                 # Docker API 1.48 cannot inspect --platform; verify the selected
                 # image metadata instead, failing closed on ambiguous stores.
+                # Docker 28 also refuses to replace an index digest already stored
+                # as another architecture ("cannot overwrite digest"). The amd64
+                # renderer check leaves that digest in place before this arm64 pull.
+                self.docker("image", "rm", "--force", ref, check=False)
                 self.docker("pull", "--platform", platform, ref, timeout=240)
             elif self.docker("image", "inspect", ref, check=False).returncode:
                 if ref.startswith("sha256:"):

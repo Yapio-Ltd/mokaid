@@ -56,6 +56,10 @@ class StagingTests(unittest.TestCase):
 
         def docker(*args, **kwargs):
             calls.append(args)
+            if args[:3] == ("image", "rm", "--force"):
+                self.assertIn(args[3], images.values())
+                cached.pop(args[3], None)
+                return result()
             if args[0] == "pull":
                 self.assertEqual(args[1:3], ("--platform", "linux/arm64"))
                 self.assertIn(args[3], images.values())
@@ -72,6 +76,8 @@ class StagingTests(unittest.TestCase):
         self.assertEqual([call for call in calls if call[0] == "pull"],
                          [("pull", "--platform", "linux/arm64", ref) for ref in images.values()])
         for key, ref in images.items():
+            self.assertLess(calls.index(("image", "rm", "--force", ref)),
+                            calls.index(("pull", "--platform", "linux/arm64", ref)))
             self.assertLess(calls.index(("pull", "--platform", "linux/arm64", ref)),
                             calls.index(("image", "inspect", ref)))
             self.assertEqual(smoke.resolved[key], selected_id)
