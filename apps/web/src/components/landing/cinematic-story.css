@@ -107,7 +107,7 @@
   background: #fff;
 }
 
-/* Loading is intentionally layout-neutral. No animated CSS is needed in the HTML snapshot. */
+/* Static markup remains the no-JavaScript and reduced-motion fallback. */
 .mk-cinema-stage {
   position: absolute;
   width: 1px;
@@ -126,6 +126,10 @@
 }
 .mk-cinema-video {
   z-index: 1;
+  opacity: 0;
+}
+.mk-cinematic-story[data-video-ready="true"] .mk-cinema-video {
+  opacity: 1;
 }
 .mk-cinema-shade {
   position: absolute;
@@ -157,6 +161,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
   padding: 8px 0;
   color: rgb(255 255 255 / 70%);
   font-size: 11px;
@@ -281,6 +286,23 @@
   transform: translate(-50%, -50%);
   filter: drop-shadow(0 0 15px rgb(183 154 255 / 30%));
 }
+.mk-cinema-loading {
+  position: absolute;
+  z-index: 3;
+  left: max(5vw, env(safe-area-inset-left));
+  right: max(5vw, env(safe-area-inset-right));
+  bottom: max(76px, calc(env(safe-area-inset-bottom) + 62px));
+  margin: 0;
+  color: rgb(255 255 255 / 78%);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.mk-cinema-loading p {
+  margin: 0;
+}
+.mk-cinema-loading .mk-cinema-cta {
+  margin-top: 12px;
+}
 .mk-cinema-recovery-link {
   display: flex;
   align-items: center;
@@ -298,24 +320,217 @@
   scroll-margin-top: 72px;
 }
 
-@media (min-width: 1024px) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .mk-cinematic-story[data-mode="cinematic"] {
-    min-height: 1300svh;
+/* Reserve the complete scroll track before media is ready, on every input type.
+   Keeping loading and playback the same height also preserves restored scroll. */
+.mk-cinematic-story:is([data-mode="loading"], [data-mode="cinematic"]) {
+  min-height: 1300vh;
+  min-height: 1300svh;
+}
+.mk-cinematic-story:is([data-mode="loading"], [data-mode="cinematic"]) > .mk-cinema-static {
+  display: none;
+}
+.mk-cinematic-story:is([data-mode="loading"], [data-mode="cinematic"]) > .mk-cinema-stage {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 1023px) {
+  .mk-cinema-topline,
+  .mk-cinema-bottomline {
+    right: max(6vw, env(safe-area-inset-right));
+    left: max(6vw, env(safe-area-inset-left));
+    gap: 14px;
   }
-  .mk-cinematic-story[data-mode="cinematic"] > .mk-cinema-static {
-    display: none;
+  .mk-cinema-topline {
+    top: max(84px, calc(env(safe-area-inset-top) + 72px));
   }
-  .mk-cinematic-story[data-mode="cinematic"] > .mk-cinema-stage {
-    position: sticky;
-    top: 0;
-    width: 100%;
-    height: 100svh;
-    opacity: 1;
-    pointer-events: auto;
+  .mk-cinema-bottomline {
+    bottom: max(24px, calc(env(safe-area-inset-bottom) + 12px));
+  }
+  .mk-cinema-bottomline > span:first-child {
+    width: auto;
+  }
+  .mk-cinema-cue h2 {
+    font-size: clamp(28px, 4.6vw, 46px);
+  }
+  .mk-cinema-cue p {
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .mk-cinema-cue .mk-cinema-cta {
+    margin-top: 20px;
+  }
+  .mk-cinema-notifications {
+    right: 6vw;
+    width: min(34vw, 238px);
+  }
+}
+
+/* Portrait screens keep the whole landscape film in view. The copy and the
+   completion receipts use the surrounding space instead of cropping the film. */
+@media (orientation: portrait) and (max-width: 1200px) {
+  .mk-cinema-video,
+  .mk-cinema-poster {
+    object-fit: contain;
+    object-position: center 48%;
+  }
+  .mk-cinema-shade {
+    background: linear-gradient(
+      180deg,
+      rgb(8 8 13 / 48%),
+      transparent 40%,
+      transparent 60%,
+      rgb(8 8 13 / 48%)
+    );
+  }
+  .mk-cinema-cue,
+  .mk-cinema-cue--center {
+    top: max(132px, 13svh);
+    left: max(6vw, env(safe-area-inset-left));
+    width: 88vw;
+    max-width: 660px;
+    transform: none;
+    text-align: left;
+  }
+  .mk-cinema-cue h2 {
+    max-width: 560px;
+    font-size: clamp(28px, 5vw, 42px);
+    line-height: 1.08;
+  }
+  .mk-cinema-cue p {
+    max-width: 400px;
+    margin: 14px 0 0;
+  }
+  .mk-cinema-cue .mk-cinema-cta {
+    margin-top: 18px;
+  }
+  .mk-cinema-notifications {
+    top: auto;
+    right: max(6vw, env(safe-area-inset-right));
+    bottom: max(70px, calc(env(safe-area-inset-bottom) + 56px));
+    left: max(6vw, env(safe-area-inset-left));
+    width: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .mk-cinema-notification {
+    min-height: 42px;
+    padding: 8px 10px;
+    gap: 7px;
+    font-size: 11px;
+    line-height: 1.3;
+  }
+  .mk-cinema-check {
+    width: 18px;
+    height: 18px;
+  }
+  .mk-cinema-final-logo {
+    top: 48%;
+  }
+}
+
+/* Fit the full film between the copy and receipts on shorter portrait screens. */
+@media (orientation: portrait) and (max-height: 650px) {
+  .mk-cinema-video,
+  .mk-cinema-poster {
+    top: 290px;
+    bottom: auto;
+    height: calc(100% - 356px);
+    object-position: center;
+  }
+  .mk-cinema-cue h2 {
+    font-size: 26px;
+  }
+  .mk-cinema-stage:has(.mk-cinema-notifications) .mk-cinema-video,
+  .mk-cinema-stage:has(.mk-cinema-notifications) .mk-cinema-poster {
+    top: 260px;
+    height: calc(100% - 450px);
+  }
+  .mk-cinema-notifications {
+    bottom: max(56px, calc(env(safe-area-inset-bottom) + 44px));
+  }
+  .mk-cinema-notification {
+    min-height: 34px;
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+  .mk-cinema-final-logo {
+    top: calc(260px + (100% - 450px) / 2);
+    width: 30px;
+  }
+}
+
+/* A phone turned sideways needs vertical room for the five final receipts. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .mk-cinema-topline {
+    top: max(72px, calc(env(safe-area-inset-top) + 60px));
+  }
+  .mk-cinema-topline,
+  .mk-cinema-bottomline {
+    right: max(5vw, calc(env(safe-area-inset-right) + 12px));
+    left: max(5vw, calc(env(safe-area-inset-left) + 12px));
+  }
+  .mk-cinema-bottomline {
+    bottom: max(14px, calc(env(safe-area-inset-bottom) + 8px));
+  }
+  .mk-cinema-cue {
+    top: 52%;
+    left: max(6vw, calc(env(safe-area-inset-left) + 12px));
+    width: 42vw;
+    transform: translateY(-35%);
+  }
+  .mk-cinema-cue--center {
+    left: 50%;
+    width: 68vw;
+    transform: translate(-50%, -35%);
+  }
+  .mk-cinema-cue h2 {
+    font-size: clamp(24px, 3.9vw, 36px);
+  }
+  .mk-cinema-cue p {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .mk-cinema-cue .mk-cinema-cta {
+    min-height: 44px;
+    margin-top: 14px;
+  }
+  .mk-cinema-notifications {
+    top: 118px;
+    right: max(5vw, calc(env(safe-area-inset-right) + 12px));
+    width: min(36vw, 270px);
+    gap: 4px;
+  }
+  .mk-cinema-notification {
+    min-height: 27px;
+    padding: 4px 9px;
+    font-size: 10px;
+    gap: 7px;
+  }
+  .mk-cinema-check {
+    width: 17px;
+    height: 17px;
   }
 }
 
 @media (max-width: 767px) {
+  .mk-cinema-bottomline {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px 16px;
+  }
+  .mk-cinema-progress {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+  }
   .mk-cinema-static {
     padding: 76px 24px 64px;
   }

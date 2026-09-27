@@ -2,12 +2,13 @@
  * node scripts/cinematic-story-visibility.mjs [origin] [--no-trace]
  */
 import assert from "node:assert/strict";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { webkit } from "playwright";
 
 const origin = process.argv[2] || "http://127.0.0.1:4173";
 const story = JSON.parse(await readFile(new URL("../src/data/cinematic-story.json", import.meta.url), "utf8"));
-const output = new URL("../../../artifacts/mokaid-cinema-2026-09-25/verification/", import.meta.url);
+const output = new URL("../../../artifacts/mokaid-cinema-2026-09-27/verification/", import.meta.url);
+await mkdir(output, { recursive: true });
 const traceCompositor = !process.argv.includes("--no-trace");
 const reportName = traceCompositor ? "visibility-webkit" : "visibility-webkit-uncomposited";
 const report = {

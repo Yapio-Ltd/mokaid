@@ -18,9 +18,11 @@ assert.match(
   /[.-][a-f0-9]{8,64}\.mp4$/i,
   "Wait for the final fingerprinted film; this test does not use a fixture",
 );
-const output = fileURLToPath(
-  new URL("../../../artifacts/mokaid-cinema-2026-09-25/verification/", import.meta.url),
-);
+const output =
+  process.env.CINEMATIC_STORY_REPORT_DIR ||
+  fileURLToPath(
+    new URL("../../../artifacts/mokaid-cinema-2026-09-27/verification/", import.meta.url),
+  );
 await mkdir(output, { recursive: true });
 const report = {
   status: "pending",
@@ -30,12 +32,12 @@ const report = {
   source: story.video,
   upstreamOrigin,
   scenario:
-    "Actual HTTP byte-range stream at an aggregate low bandwidth; enter before readiness and retain the illustrated experience.",
+    "Actual HTTP byte-range stream at an aggregate low bandwidth; entering before readiness retains the video and stable scroll track.",
   configuredKiBPerSecond: kibPerSecond,
   maximumTestMs: 9000,
   chunksBytes: 1024,
   limitations:
-    "Validates low-bandwidth fallback, not seek catch-up or fluent 1080p playback over this connection.",
+    "Validates loading continuity over a bounded slow connection, not full media readiness or fluent 1080p decoding at this rate.",
 };
 let proxy;
 let browser;
@@ -49,7 +51,11 @@ try {
     mediaFile: fileURLToPath(new URL(`../public${story.video}`, import.meta.url)),
     bytesPerSecond: kibPerSecond * 1024,
   });
-  browser = await chromium.launch();
+  browser = await chromium.launch(
+    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+      : {},
+  );
   report.version = browser.version();
   context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await context.tracing.start({ screenshots: true, snapshots: true });
@@ -75,6 +81,7 @@ try {
     const video = root.querySelector("video");
     return {
       mode: root.dataset.mode,
+      height: root.clientHeight,
       readyState: video.readyState,
       presentedTime: Number(root.querySelector("[data-presented-time]")?.dataset.presentedTime),
     };
@@ -87,21 +94,14 @@ try {
   await storyRegion.evaluate((root) =>
     window.scrollTo(0, scrollY + root.getBoundingClientRect().top),
   );
-  await page.waitForFunction(() => document.getElementById("product")?.dataset.mode === "static");
-  assert.equal(await storyRegion.locator("video").count(), 0);
-  assert.equal(await storyRegion.getByRole("article").count(), 3);
-  const entryImage = storyRegion.getByRole("img", {
-    name: "The Mokaid AI office, illuminated by violet pathways and warm desk lights.",
-  });
-  await entryImage.scrollIntoViewIfNeeded();
   await page.waitForFunction(() => {
-    const image = document.querySelector("#product article img");
-    return image && image.complete && image.naturalWidth > 0;
+    const root = document.getElementById("product");
+    return root.getBoundingClientRect().top <= 1;
   });
-  assert.equal(
-    await storyRegion.getByRole("link", { name: "Build your team" }).getAttribute("href"),
-    "/download",
-  );
+  assert.equal(await storyRegion.getAttribute("data-mode"), "loading");
+  assert.equal(await storyRegion.locator("video").count(), 1);
+  assert.equal(await storyRegion.evaluate((root) => root.clientHeight), report.beforeEntry.height);
+  assert.equal(await storyRegion.getByRole("link", { name: "Skip the tour" }).isVisible(), true);
   report.transport = proxy.snapshot();
   assert.ok(
     report.transport.requests.some((request) => request.status === 206),
@@ -112,11 +112,10 @@ try {
     "Transfer stays inside the strict rate/time budget",
   );
   report.afterEntry = {
-    mode: "static",
-    illustratedMoments: 3,
-    videoElements: 0,
-    entryIllustrationDecoded: true,
-    downloadCTA: true,
+    mode: "loading",
+    videoElements: 1,
+    scrollTrackPreserved: true,
+    skipAvailable: true,
   };
   await page.screenshot({ path: `${output}/final-media-bandwidth-chromium.png` });
   report.status = "passed";

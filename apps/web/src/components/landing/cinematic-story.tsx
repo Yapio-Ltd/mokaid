@@ -8,8 +8,7 @@ import "./cinematic-story.css";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const desktopQuery =
-  "(min-width: 1024px) and (pointer: fine) and (prefers-reduced-motion: no-preference)";
+const motionQuery = "(prefers-reduced-motion: no-preference)";
 type StoryMode = "static" | "loading" | "cinematic";
 
 function fallbackIllustration(event: SyntheticEvent<HTMLImageElement>) {
@@ -27,7 +26,7 @@ function TeamLink({ className = "" }: { className?: string }) {
   );
 }
 
-/** Readable in the initial HTML, on mobile, with reduced motion, and without JS. */
+/** Readable in the initial HTML, with reduced motion, and without JavaScript. */
 function StaticStory() {
   return (
     <div className="mk-cinema-static">
@@ -109,135 +108,76 @@ export function CinematicStory() {
   const stageRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const controllerRef = useRef<ReturnType<typeof createCinematicVideoController>>();
-  const lockedStatic = useRef(false);
+  const requestedTimeRef = useRef(0);
   const [loadVideo, setLoadVideo] = useState(false);
   const [mode, setMode] = useState<StoryMode>("static");
   const [presentedTime, setPresentedTime] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [slowLoading, setSlowLoading] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
-  useEffect(() => {
-    const section = sectionRef.current;
+  useLayoutEffect(() => {
     const prerender = (window as Window & { __MOKAID_PRERENDER__?: boolean }).__MOKAID_PRERENDER__;
-    if (!section || prerender || typeof window.matchMedia !== "function") return;
-    const query = window.matchMedia(desktopQuery);
-    // Never insert a source (or issue a video request) in the static modes.
-    if (!query.matches) {
-      lockedStatic.current = true;
-      return;
-    }
-    let initialized = false;
-    // WebKit can execute this module before the document's CSS has loaded.
-    // Measuring then sees an unstyled, short hero and would lock a fresh visit
-    // into the static layout. Wait for applicable styles, then measure once.
-    const pendingStyles = new Set(
-      Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel~="stylesheet"]')).filter(
-        (link) => !link.sheet && !link.disabled && window.matchMedia(link.media || "all").matches,
-      ),
-    );
-    const initialize = () => {
-      if (initialized) return;
-      initialized = true;
-      if (
-        lockedStatic.current ||
-        !query.matches ||
-        section.getBoundingClientRect().top <= window.innerHeight
-      ) {
-        lockedStatic.current = true;
-        return;
-      }
-      setLoadVideo(true);
-      setMode("loading");
+    if (prerender || typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia(motionQuery);
+    const configure = () => {
+      // Reserve the complete scroll track before paint, including restored visits.
+      // Device size, pointer type and loading speed never disable the experience.
+      setLoadVideo(query.matches);
+      setMode(query.matches ? "loading" : "static");
+      setFailed(false);
+      setPresentedTime(0);
     };
-    const onStyleSettled = (event: Event) => {
-      pendingStyles.delete(event.currentTarget as HTMLLinkElement);
-      if (pendingStyles.size === 0) initialize();
-    };
-    const styleLinks = Array.from(pendingStyles);
-    for (const link of styleLinks) {
-      link.addEventListener("load", onStyleSettled);
-      link.addEventListener("error", onStyleSettled);
-    }
-    // Also handles a stylesheet that was replaced while the page was loading.
-    window.addEventListener("load", initialize, { once: true });
-    if (pendingStyles.size === 0 || document.readyState === "complete") initialize();
-    const onChange = () => {
-      if (query.matches) return;
-      lockedStatic.current = true;
-      setMode("static");
-      setLoadVideo(false);
-    };
-    query.addEventListener("change", onChange);
-    return () => {
-      initialized = true;
-      window.removeEventListener("load", initialize);
-      query.removeEventListener("change", onChange);
-      for (const link of styleLinks) {
-        link.removeEventListener("load", onStyleSettled);
-        link.removeEventListener("error", onStyleSettled);
-      }
-    };
+    configure();
+    query.addEventListener("change", configure);
+    return () => query.removeEventListener("change", configure);
   }, []);
 
   useEffect(() => {
     const video = videoRef.current;
-    const section = sectionRef.current;
-    if (!loadVideo || !video || !section || lockedStatic.current) return;
-    let enhanced = false;
+    if (!loadVideo || !video) return;
     let disposed = false;
-    let timeout = 0;
-    const retainStatic = () => {
-      if (disposed) return;
-      lockedStatic.current = true;
-      setMode("static");
-      setLoadVideo(false);
-    };
-    const beforeEntry = () => section.getBoundingClientRect().top > window.innerHeight;
-    const onScroll = () => {
-      if (!enhanced && !beforeEntry()) retainStatic();
-    };
+    setSlowLoading(false);
+    // Offer recovery for a stalled request without cancelling a slow download.
+    const loadingTimer = window.setTimeout(() => setSlowLoading(true), 12_000);
     const controller = createCinematicVideoController(video, {
       duration: cinematicStory.duration,
       fps: cinematicStory.fps,
       onReady() {
-        window.clearTimeout(timeout);
-        if (disposed || lockedStatic.current) return;
-        if (!beforeEntry()) {
-          retainStatic();
-          return;
-        }
-        // Change the section's height only while it is still below the viewport.
-        enhanced = true;
-        setMode("cinematic");
+        window.clearTimeout(loadingTimer);
+        if (!disposed) setMode("cinematic");
       },
       onPresented(time) {
         if (!disposed) setPresentedTime(time);
       },
       onError() {
-        window.clearTimeout(timeout);
-        if (enhanced) setFailed(true);
-        else retainStatic();
+        window.clearTimeout(loadingTimer);
+        // Keep the track stable and allow retrying at the current scroll position.
+        if (!disposed) setFailed(true);
       },
     });
     controllerRef.current = controller;
-    window.addEventListener("scroll", onScroll, { passive: true });
-    timeout = window.setTimeout(retainStatic, 12_000);
+    controller.request(requestedTimeRef.current);
     video.src = cinematicStory.video;
     video.load();
     return () => {
       disposed = true;
-      window.clearTimeout(timeout);
-      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(loadingTimer);
       controller.dispose();
       controllerRef.current = undefined;
       video.removeAttribute("src");
       video.load();
     };
-  }, [loadVideo]);
+  }, [loadVideo, attempt]);
 
   useLayoutEffect(() => {
     const section = sectionRef.current;
     const stage = stageRef.current;
-    if (mode !== "cinematic" || !section || !stage) return;
+    if (!loadVideo || !section || !stage) return;
+    const syncProgress = (progress: number) => {
+      requestedTimeRef.current = storyTimeAtProgress(progress);
+      controllerRef.current?.request(requestedTimeRef.current);
+    };
     const trigger = ScrollTrigger.create({
       trigger: section,
       start: "top top",
@@ -245,29 +185,47 @@ export function CinematicStory() {
       scrub: true,
       invalidateOnRefresh: true,
       onUpdate(self) {
-        controllerRef.current?.request(storyTimeAtProgress(self.progress));
+        syncProgress(self.progress);
       },
       onRefresh(self) {
-        controllerRef.current?.request(storyTimeAtProgress(self.progress));
+        syncProgress(self.progress);
       },
     });
     const tick = (now: number) => {
       if (!document.hidden) controllerRef.current?.tick(now);
     };
+    const refresh = () => {
+      ScrollTrigger.refresh();
+      syncProgress(trigger.progress);
+    };
     const onVisibilityChange = () => {
       if (document.hidden) controllerRef.current?.suspend();
+      else refresh();
     };
-    // Subscribe to the same ticker as useSmoothScroll; there is no local RAF.
+    // Native touch scrolling and Lenis use the same ScrollTrigger/ticker lifecycle.
+    // Start while loading so delayed media can catch up to any restored position.
     gsap.ticker.add(tick);
     document.addEventListener("visibilitychange", onVisibilityChange);
-    ScrollTrigger.refresh();
+    window.addEventListener("pageshow", refresh);
+    window.addEventListener("load", refresh);
+    refresh();
     return () => {
       gsap.ticker.remove(tick);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pageshow", refresh);
+      window.removeEventListener("load", refresh);
       trigger.kill();
       ScrollTrigger.refresh();
     };
-  }, [mode]);
+  }, [loadVideo]);
+
+  const retry = () => {
+    setFailed(false);
+    setSlowLoading(false);
+    setMode("loading");
+    setPresentedTime(0);
+    setAttempt((previous) => previous + 1);
+  };
 
   const cue = cueAtTime(presentedTime);
   const scene = cinematicStory.scenes.find(
@@ -284,6 +242,7 @@ export function CinematicStory() {
       ref={sectionRef}
       className="mk-cinematic-story"
       data-mode={mode}
+      data-video-ready={enhanced && !failed}
       aria-label="Discover the Mokaid AI office"
     >
       <StaticStory />
@@ -292,7 +251,7 @@ export function CinematicStory() {
           ref={stageRef}
           className="mk-cinema-stage"
           data-presented-time={presentedTime.toFixed(3)}
-          aria-hidden={!enhanced}
+          aria-hidden={!loadVideo}
         >
           <img
             className="mk-cinema-poster"
@@ -317,12 +276,24 @@ export function CinematicStory() {
             <a
               href="#cinematic-story-end"
               className="mk-cinema-skip mk-focus-ring"
-              tabIndex={enhanced ? 0 : -1}
+              tabIndex={loadVideo ? 0 : -1}
             >
               Skip the tour <ArrowDown size={12} aria-hidden="true" />
             </a>
           </div>
-          {!failed && cue && (
+          {!failed && !enhanced && (
+            <div className="mk-cinema-loading">
+              <p role="status">
+                {slowLoading ? "The tour is taking longer to load." : "Loading the tour…"}
+              </p>
+              {slowLoading && (
+                <button type="button" className="mk-cinema-cta mk-focus-ring" onClick={retry}>
+                  Retry the tour
+                </button>
+              )}
+            </div>
+          )}
+          {!failed && enhanced && cue && (
             <div
               className={`mk-cinema-cue mk-cinema-cue--${cue.position}${cue.cta ? " mk-final-cta" : ""}`}
               key={cue.id}
@@ -367,9 +338,11 @@ export function CinematicStory() {
           )}
           {failed && (
             <div className="mk-cinema-cue mk-cinema-cue--left mk-cinema-recovery mk-final-cta">
-              <h2>Your AI employees are already at work.</h2>
-              <p>Meet your team in Mokaid Desktop.</p>
-              <TeamLink />
+              <h2>The tour couldn’t load.</h2>
+              <p>Try again to resume from your scroll position.</p>
+              <button type="button" className="mk-cinema-cta mk-focus-ring" onClick={retry}>
+                Retry the tour
+              </button>
               <a href="#cinematic-story-end" className="mk-cinema-recovery-link mk-focus-ring">
                 Continue exploring <ArrowDown size={14} aria-hidden="true" />
               </a>

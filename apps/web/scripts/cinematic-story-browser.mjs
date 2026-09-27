@@ -21,9 +21,11 @@ selected.forEach((name) => assert.ok(engines[name], `Unknown browser: ${name}`))
 const story = JSON.parse(
   await readFile(new URL("../src/data/cinematic-story.json", import.meta.url), "utf8"),
 );
-const output = fileURLToPath(
-  new URL("../../../artifacts/mokaid-cinema-2026-09-25/verification/", import.meta.url),
-);
+const output =
+  process.env.CINEMATIC_STORY_REPORT_DIR ||
+  fileURLToPath(
+    new URL("../../../artifacts/mokaid-cinema-2026-09-27/verification/", import.meta.url),
+  );
 await mkdir(output, { recursive: true });
 const dist = fileURLToPath(new URL("../dist/", import.meta.url));
 const temp = await mkdtemp(join(tmpdir(), "mokaid-cinema-test-"));
@@ -192,6 +194,15 @@ class StoryPage {
     );
     const state = await this.snapshot();
     assert.equal(state.paused && state.muted && state.playsInline, true);
+    assert.ok(Math.abs(state.currentTime - expected) < 0.1, "The actual video must follow scroll");
+    const cue = story.cues.find(
+      (item) => state.presentedTime >= item.start && state.presentedTime < item.end,
+    );
+    assert.deepEqual(
+      await this.stage.getByRole("heading").allTextContents(),
+      cue ? [cue.text] : [],
+      "Captions must match the presented frame, including reverse scrolling",
+    );
     return {
       requestedTime: time,
       targetTime: expected,
@@ -200,6 +211,30 @@ class StoryPage {
       errorFrames: Math.abs(state.presentedTime - expected) * story.fps,
       settledMs: Date.now() - started,
     };
+  }
+  async navigateAwayAndReturn(returnWith) {
+    await this.frameAt(55);
+    const marker = `${returnWith}-${Date.now()}`;
+    await this.page.evaluate((value) => {
+      window.__cinematicNavigationProbe = value;
+    }, marker);
+    await this.page
+      .locator("[data-site-header]")
+      .getByRole("link", { name: "Download", exact: true })
+      .click();
+    await this.page.waitForURL((url) => url.pathname === "/download");
+    await this.root.waitFor({ state: "detached" });
+    if (returnWith === "history") await this.page.goBack();
+    else await this.page.getByRole("link", { name: "mokaid home", exact: true }).click();
+    await this.page.waitForURL((url) => url.pathname === "/");
+    await this.waitReady();
+    assert.equal(
+      await this.page.evaluate(() => window.__cinematicNavigationProbe),
+      marker,
+      "Navigation must exercise an SPA remount rather than a fresh document",
+    );
+    assert.equal(await this.video.count(), 1, "Return must mount exactly one active video");
+    for (const time of [55, 7, 74, 0]) await this.frameAt(time);
   }
 }
 
@@ -222,7 +257,12 @@ async function runBrowser(name) {
   let browser;
   let current;
   const contexts = new Set();
-  const prepare = async (options = {}, routeMode = "film", disableFrameCallback = false) => {
+  const prepare = async (
+    options = {},
+    routeMode = "film",
+    disableFrameCallback = false,
+    path = "/",
+  ) => {
     const context = await browser.newContext({
       viewport: { width: 1440, height: 900 },
       ...options,
@@ -235,6 +275,7 @@ async function runBrowser(name) {
       });
     const page = await context.newPage();
     page.setDefaultTimeout(10_000);
+    if (routeMode === "pending") await page.clock.install();
     const requests = [];
     const mediaResponses = [];
     page.on("response", (response) => {
@@ -247,16 +288,18 @@ async function runBrowser(name) {
       });
     });
     let releasePending;
+    let failMedia = routeMode === "fail";
+    const pendingResponse =
+      routeMode === "pending"
+        ? new Promise((resolve) => {
+            releasePending = resolve;
+          })
+        : undefined;
     await page.route(`**${story.video}`, async (route) => {
       const header = route.request().headers().range;
       requests.push(header || "full");
-      if (routeMode === "fail") return route.abort();
-      if (routeMode === "pending") {
-        await new Promise((resolve) => {
-          releasePending = resolve;
-        });
-        return route.abort();
-      }
+      if (failMedia) return route.abort();
+      if (pendingResponse) await pendingResponse;
       // An explicit response-latency simulation, not an arbitrary assertion wait.
       if (routeMode === "slow" && requests.length === 1)
         await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -299,13 +342,24 @@ async function runBrowser(name) {
     // Remote font downloads are unrelated to decoder/fallback assertions and
     // can outlast the test's page timeout. Wait for layout CSS and each tested
     // state explicitly instead of the global load event.
-    await page.goto(origin, { waitUntil: "domcontentloaded" });
+    await page.goto(new URL(path, origin).href, { waitUntil: "domcontentloaded" });
     await page.waitForFunction(() =>
       Array.from(document.querySelectorAll('link[rel~="stylesheet"]'))
         .filter((link) => new URL(link.href).origin === location.origin)
         .every((link) => link.sheet),
     );
-    return { page, context, model, requests, mediaResponses, failedRequest, release: () => releasePending?.() };
+    return {
+      page,
+      context,
+      model,
+      requests,
+      mediaResponses,
+      failedRequest,
+      release: () => releasePending?.(),
+      allowMedia: () => {
+        failMedia = false;
+      },
+    };
   };
   const close = async (item) => {
     await item.context.tracing.stop();
@@ -383,7 +437,11 @@ async function runBrowser(name) {
     await close({ context });
   };
   try {
-    browser = await engines[name].launch();
+    browser = await engines[name].launch(
+      name === "chromium" && process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+        ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+        : {},
+    );
     report.version = browser.version();
     await verifyPrerender();
     if (!prerenderOnly) {
@@ -448,12 +506,17 @@ async function runBrowser(name) {
       report.rangeRequests = desktop.requests;
       report.mediaResponses = desktop.mediaResponses;
       report.passed.push(
-        "first presented frame + full seekable range before promotion",
+        "first presented frame before promotion, with a usable seekable range",
         "all scroll milestones, reversal to zero, large jumps",
         "latest target coalescing",
         "paused/muted/inline throughout",
         "five notifications + fully visible final CTA",
         "exit has no captions",
+      );
+      await desktop.model.navigateAwayAndReturn("history");
+      await desktop.model.navigateAwayAndReturn("home link");
+      report.passed.push(
+        "desktop: SPA navigation away and back/home restores video scrubbing and captions",
       );
       await close(desktop);
 
@@ -466,13 +529,20 @@ async function runBrowser(name) {
             hasTouch: true,
           },
         ],
-        ["reduced motion", { reducedMotion: "reduce" }],
+        [
+          "tablet viewport",
+          {
+            viewport: { width: 820, height: 1180 },
+            ...(name === "firefox" ? {} : { isMobile: true }),
+            hasTouch: true,
+          },
+        ],
       ]) {
         const item = await prepare(options);
-        await item.model.root.scrollIntoViewIfNeeded();
-        assert.equal(item.requests.length, 0);
-        assert.equal(await item.model.video.count(), 0);
-        assert.equal(await item.model.root.getByRole("article").count(), 3);
+        await item.model.waitReady();
+        assert.ok(item.requests.length > 0, `${label}: touch/narrow viewports must load the film`);
+        for (const time of [7, 18, 24, 29, 35, 39, 46, 55, 65, 74]) await item.model.frameAt(time);
+        assert.equal(await item.model.video.isVisible(), true);
         assert.equal(
           await item.page.getByRole("link", { name: "Build your team" }).getAttribute("href"),
           "/download",
@@ -481,32 +551,111 @@ async function runBrowser(name) {
           await item.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
           true,
         );
+        await item.model.navigateAwayAndReturn("history");
+        await item.model.navigateAwayAndReturn("home link");
+        const rotated = { width: options.viewport.height, height: options.viewport.width };
+        await item.page.setViewportSize(rotated);
+        await item.model.waitReady();
+        for (const time of [55, 7, 74]) await item.model.frameAt(time);
+        assert.equal(
+          await item.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          true,
+          "Rotation must not introduce horizontal overflow",
+        );
         report.passed.push(
-          `${label}: no video request, three readable moments, CTA, no horizontal overflow`,
+          `${label}: full inline film, every caption, SPA back/home, rotation, reverse seeks, CTA, no horizontal overflow`,
         );
         await close(item);
       }
 
+      const reducedMotion = await prepare({ reducedMotion: "reduce" });
+      await reducedMotion.model.root.scrollIntoViewIfNeeded();
+      assert.equal(reducedMotion.requests.length, 0);
+      assert.equal(await reducedMotion.model.video.count(), 0);
+      assert.equal(await reducedMotion.model.root.getByRole("article").count(), 3);
+      await reducedMotion.page.emulateMedia({ reducedMotion: "no-preference" });
+      await reducedMotion.model.waitReady();
+      await reducedMotion.model.frameAt(55);
+      await reducedMotion.page.emulateMedia({ reducedMotion: "reduce" });
+      await reducedMotion.model.video.waitFor({ state: "detached" });
+      await reducedMotion.page.emulateMedia({ reducedMotion: "no-preference" });
+      await reducedMotion.model.waitReady();
+      await reducedMotion.model.frameAt(7);
+      report.passed.push(
+        "reduced motion: static access without video requests, reversible preference changes restore scrubbing",
+      );
+      await close(reducedMotion);
+
+      const deepLink = await prepare({}, "film", false, "/#product");
+      await deepLink.model.waitReady();
+      for (const time of [18, 55, 7]) await deepLink.model.frameAt(time);
+      report.passed.push(
+        "direct story hash entry promotes the film and supports forward/reverse seeks",
+      );
+      await close(deepLink);
+
       const failed = await prepare({}, "fail");
       await failed.failedRequest;
       assert.ok(failed.requests.length > 0, "The missing-media scenario must attempt its source");
-      await failed.page.waitForFunction(
-        () => document.getElementById("product")?.dataset.mode === "static",
+      const retry = failed.model.root.getByRole("button", { name: "Retry the tour" });
+      await retry.waitFor({ state: "visible" });
+      assert.equal(await failed.model.video.count(), 1);
+      const failedHeight = (await failed.model.snapshot()).height;
+      await failed.model.root.evaluate((el) => {
+        window.scrollTo(
+          0,
+          scrollY + el.getBoundingClientRect().top + (el.clientHeight - innerHeight) * 0.69,
+        );
+      });
+      failed.allowMedia();
+      await retry.click();
+      await failed.model.waitReady();
+      assert.equal((await failed.model.snapshot()).height, failedHeight);
+      for (const time of [51, 7, 74]) await failed.model.frameAt(time);
+      report.passed.push(
+        "failed media keeps the scroll track and can retry into forward/reverse video scrubbing",
       );
-      assert.equal(await failed.model.video.count(), 0);
-      report.passed.push("failed video request retains static fallback");
       await close(failed);
 
       const slow = await prepare({}, "pending");
       await slow.model.video.waitFor({ state: "attached" });
-      await slow.model.root.scrollIntoViewIfNeeded();
-      await slow.page.waitForFunction(
-        () => document.getElementById("product")?.dataset.mode === "static",
+      await slow.model.root.evaluate((el) => {
+        window.scrollTo(
+          0,
+          scrollY + el.getBoundingClientRect().top + (el.clientHeight - innerHeight) * 0.69,
+        );
+      });
+      await slow.page.waitForFunction(() => scrollY > 0);
+      assert.equal(await slow.model.root.getAttribute("data-mode"), "loading");
+      const loadingHeight = (await slow.model.snapshot()).height;
+      await slow.page.clock.fastForward(13_000);
+      await slow.model.root
+        .getByRole("button", { name: "Retry the tour" })
+        .waitFor({ state: "visible" });
+      assert.equal(
+        await slow.model.video.count(),
+        1,
+        "Slow-loading retry must not discard the media source",
       );
+      assert.equal((await slow.model.snapshot()).height, loadingHeight);
       slow.release();
-      assert.equal(await slow.model.video.count(), 0);
+      await slow.model.waitReady();
+      assert.equal(
+        (await slow.model.snapshot()).height,
+        loadingHeight,
+        "Media readiness must preserve scroll geometry",
+      );
+      await slow.page.waitForFunction(
+        () =>
+          Math.abs(
+            Number(
+              document.querySelector("#product [data-presented-time]")?.dataset.presentedTime,
+            ) - 51,
+          ) < 0.1,
+      );
+      for (const time of [7, 55, 74]) await slow.model.frameAt(time);
       report.passed.push(
-        "visitor enters before readiness: static layout locked, no late promotion",
+        "visitor enters before readiness: slow-load retry retains film/geometry and late media catches up without another scroll",
       );
       await close(slow);
 

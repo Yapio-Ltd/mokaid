@@ -34,7 +34,6 @@ export function createCinematicVideoController(
   let disposed = false;
   let ready = false;
   let failed = false;
-  let firstFramePresented = false;
   let inFlight = false;
   let target = 0;
   let frameId: number | undefined;
@@ -61,22 +60,9 @@ export function createCinematicVideoController(
       fail();
       return;
     }
-    if (media.readyState < 2 || (media.requestVideoFrameCallback && !firstFramePresented)) return;
-    // A range-capable MP4 can expose its whole timeline without downloading it all.
-    // A displayed first frame alone does not guarantee that scrubbing will work.
-    if (media.seekable) {
-      let completeRange = false;
-      for (let index = 0; index < media.seekable.length; index += 1) {
-        if (
-          media.seekable.start(index) <= frameDuration &&
-          media.seekable.end(index) >= options.duration - frameDuration
-        ) {
-          completeRange = true;
-          break;
-        }
-      }
-      if (!completeRange) return;
-    }
+    // A paused/offscreen video may defer its frame callback. Decoded current
+    // data is enough to start; seeking can fetch the rest of the film on demand.
+    if (media.readyState < 2) return;
     ready = true;
     media.pause();
     if (!media.requestVideoFrameCallback) present(media.currentTime);
@@ -86,7 +72,6 @@ export function createCinematicVideoController(
   const watchPresentedFrames = () => {
     if (disposed || failed || !media.requestVideoFrameCallback) return;
     frameId = media.requestVideoFrameCallback((_now, metadata) => {
-      firstFramePresented = true;
       present(metadata.mediaTime);
       inspectReadiness();
       watchPresentedFrames();
@@ -96,7 +81,7 @@ export function createCinematicVideoController(
   const onSeeked = () => {
     inFlight = false;
     // currentTime is the completed seek only on engines without frame callbacks.
-    if (!media.requestVideoFrameCallback) present(media.currentTime);
+    if (!media.requestVideoFrameCallback && media.readyState >= 2) present(media.currentTime);
     inspectReadiness();
   };
 
@@ -121,7 +106,9 @@ export function createCinematicVideoController(
       target = Math.max(0, Math.min(options.duration - frameDuration, time));
     },
     tick(nowSeconds: number) {
-      if (disposed || failed || !ready) return;
+      if (disposed || failed) return;
+      inspectReadiness();
+      if (failed || media.readyState < 1) return;
       if (!media.paused) media.pause();
       // A failed decoder should expose the escape/CTA instead of waiting forever.
       if (inFlight && seekStartedAt === 0) seekStartedAt = nowSeconds;
@@ -130,11 +117,18 @@ export function createCinematicVideoController(
         return;
       }
       if (inFlight || media.seeking) return;
-      if (Math.abs(media.currentTime - target) < frameDuration / 2) return;
+      // Mobile browsers may preload metadata only. Once a range exists, a
+      // paused seek requests an actual frame without requiring autoplay.
+      if (!ready && media.seekable?.length === 0) return;
+      const seekTarget = !ready ? Math.max(frameDuration, target) : target;
+      if (Math.abs(media.currentTime - seekTarget) < frameDuration / 2) return;
       inFlight = true;
       seekStartedAt = nowSeconds;
       try {
-        media.currentTime = target;
+        media.currentTime = seekTarget;
+        // An unavailable range can make the browser abort synchronously.
+        // Keep the requested target pending instead of timing out a non-seek.
+        if (!media.seeking) inFlight = false;
       } catch {
         fail();
       }
