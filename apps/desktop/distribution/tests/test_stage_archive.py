@@ -100,6 +100,40 @@ class StageArchiveTests(unittest.TestCase):
         self.assertEqual(os.readlink(restored / "QtCore"), "Versions/Current/QtCore")
         self.assertEqual((restored / "QtCore").stat().st_mode & 0o777, 0o755)
 
+    @unittest.skipIf(os.name == "nt", "POSIX symlink permissions")
+    def test_restore_preserves_symlink_modes_under_private_signing_umask(self) -> None:
+        previous_umask = os.umask(0o022)
+        try:
+            (self.stage / "resources/data.bin").chmod(0o644)
+            (self.stage / "data-link").symlink_to("resources/data.bin")
+            self.args.platform = "macos-arm64"
+            args = self.packed()
+            expected = archive.inventory(self.stage)
+            os.umask(0o077)
+            archive.restore(args)
+            self.assertEqual(archive.inventory(args.stage), expected)
+            self.assertEqual(
+                (args.stage / "resources/data.bin").stat().st_mode & 0o777, 0o644
+            )
+            self.assertEqual(os.umask(0o077), 0o077)
+        finally:
+            os.umask(previous_umask)
+
+    @unittest.skipUnless(sys.platform == "darwin", "macOS mutable symlink modes")
+    def test_restore_refuses_symlink_mode_change_without_nofollow_support(self) -> None:
+        previous_umask = os.umask(0o022)
+        try:
+            (self.stage / "data-link").symlink_to("resources/data.bin")
+            self.args.platform = "macos-arm64"
+            args = self.packed()
+            os.umask(0o077)
+            with patch.object(os, "supports_follow_symlinks", set()):
+                with self.assertRaisesRegex(archive.ArchiveError, "symlink permissions"):
+                    archive.restore(args)
+            self.assertFalse(args.stage.exists())
+        finally:
+            os.umask(previous_umask)
+
     @unittest.skipUnless(
         os.environ.get("MOKAID_STAGE_ROUNDTRIP_FIXTURE"),
         "Optional local real-bundle transfer check",
