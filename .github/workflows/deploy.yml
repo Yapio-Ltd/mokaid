@@ -123,6 +123,9 @@ jobs:
           file: infra/docker/api.Dockerfile
           push: true
           platforms: linux/arm64,linux/amd64
+          # Attestation manifests make `docker pull --platform` fail on the
+          # staging runner when both arm64 and amd64 are in the same index.
+          provenance: false
           tags: ${{ steps.registry.outputs.registry }}/mokaid-api:${{ env.IMAGE_TAG }}
           cache-from: type=gha,scope=api-deploy
           cache-to: type=gha,scope=api-deploy,mode=max
