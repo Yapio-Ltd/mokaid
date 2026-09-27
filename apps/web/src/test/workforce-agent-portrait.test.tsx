@@ -85,6 +85,46 @@ describe("Workforce agent portraits", () => {
     );
   });
 
+  it("uses a dedicated custom head portrait instead of a full-body thumbnail", () => {
+    const custom = {
+      ...agent,
+      avatar_asset_id: "custom-goku",
+      avatar_cdn_path: "https://assets.example.test/goku.glb",
+      avatar_portrait_url: "https://assets.example.test/goku/portrait.png",
+      avatar_thumbnail_url: "https://assets.example.test/goku/body.png",
+    };
+    expect(resolveWorkforceAgentPortrait(custom)).toBe(custom.avatar_portrait_url);
+    render(<WorkforceAgentPortrait agent={custom} />);
+    expect(screen.getByRole("img")).toHaveAttribute("src", custom.avatar_portrait_url);
+  });
+
+  it("never assumes a provider thumbnail is a head portrait", () => {
+    const custom = { ...agent, avatar_thumbnail_url: "https://assets.example.test/body.png" };
+    expect(resolveWorkforceAgentPortrait(custom)).toBeNull();
+    render(<WorkforceAgentPortrait agent={custom} />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByTestId("existing-avatar")).toBeInTheDocument();
+  });
+
+  it.each([
+    "http://assets.example.test/head.png",
+    "file:///private/head.png",
+    "javascript:alert(1)",
+    "https://name:secret@assets.example.test/head.png",
+  ])("rejects unsafe custom portrait source %s", (avatar_portrait_url) => {
+    expect(resolveWorkforceAgentPortrait({ ...agent, avatar_portrait_url })).toBeNull();
+  });
+
+  it("does not use AI portrait metadata for a human account", () => {
+    expect(
+      resolveWorkforceAgentPortrait({
+        ...agent,
+        kind: "human_linked",
+        avatar_portrait_url: "https://assets.example.test/head.png",
+      }),
+    ).toBeNull();
+  });
+
   it("preserves a custom avatar even when an agent name or role resembles a stock model", () => {
     const customAgent = {
       ...agent,

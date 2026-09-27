@@ -63,9 +63,10 @@ defmodule Mokaid.AI.OrchestratorTest do
       )
 
     assert {:ok, %{children: children, waves: waves}} =
-             Orchestrator.launch(workspace.id, parent, instruction, member)
+             Orchestrator.launch(workspace.id, parent, instruction, nil)
 
     assert length(children) >= 3
+    assert Enum.all?(children, &(&1.created_by_member_id == member.id))
     assert waves >= 2
 
     parent = Tasks.get_task(workspace.id, parent.id)

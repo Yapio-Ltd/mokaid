@@ -29,6 +29,7 @@ Dialog {
     readonly property bool agentCreation: action.id === "create" && fields.some(function(field) { return field.key === "archetype_key" })
     readonly property bool hasAvatar: fields.some(function(field) { return field.key === "avatar_asset_id" })
     readonly property bool creationReady: (!hasAvatar || (avatarLoader.item && avatarLoader.item.readyForSubmit)) && (!agentCreation || (String(values.display_name || "").trim().length > 0 && String(values.archetype_key || "").trim().length > 0))
+    readonly property string submissionHint: hasAvatar && avatarLoader.item ? avatarLoader.item.submissionHint : ""
     function advancedField(field) {
         if (agentCreation) return ["display_name", "instructions", "autonomy_mode", "model_quality"].indexOf(field.key) < 0 && !(field.required && (values[field.key] === undefined || values[field.key] === null || values[field.key] === ""))
         const keys = ["avatar_asset_id", "archetype_key", "boost_key", "linked_user_id", "linked_member_id", "assigned_agent_id", "agent_id", "project_id", "parent_id", "role_id", "team_id", "settings", "feature_toggles", "usage_limits", "tool_preferences"]
@@ -233,22 +234,34 @@ Dialog {
         }
     }
     footer: Item {
-        implicitHeight: 80
-        RowLayout {
+        implicitHeight: footerContent.implicitHeight + 36
+        ColumnLayout {
+            id: footerContent
             anchors.fill: parent; anchors.leftMargin: 24; anchors.rightMargin: 24; anchors.topMargin: 12; anchors.bottomMargin: 24; spacing: 10
-            Item { Layout.fillWidth: true }
-            MokaidButton { objectName: "actionCancel"; text: dialog.contextExpired ? "Close" : "Cancel"; enabled: dialog.contextExpired || !features.busy; onClicked: dialog.close() }
-            MokaidButton {
-                objectName: dialog.agentCreation ? "creationSubmit" : "actionSubmit"
-                text: features.busy ? "Working…" : dialog.agentCreation ? "Add to my team" : dialog.action.title || "Save"; highlighted: true
-                enabled: !dialog.contextExpired && !features.busy && dialog.creationReady && (!dialog.action.destructive || confirmation.checked)
-                onClicked: {
-                    if (!dialog.validateContext()) return
-                    const payload = Object.assign({}, dialog.values)
-                    payload._confirmed = confirmation.checked
-                    payload._context = dialog.contextToken
-                    dialog.pending = true; features.submit(dialog.action.id, payload)
-                    if (!features.busy) dialog.pending = false
+            MokaidLabel {
+                objectName: "creationSubmitHint"
+                Layout.fillWidth: true
+                visible: text.length > 0
+                text: dialog.submissionHint
+                color: Theme.secondary; font.pixelSize: 12; wrapMode: Text.Wrap
+            }
+            RowLayout {
+                Layout.fillWidth: true; spacing: 10
+                Item { Layout.fillWidth: true }
+                MokaidButton { objectName: "actionCancel"; text: dialog.contextExpired ? "Close" : "Cancel"; enabled: dialog.contextExpired || !features.busy; onClicked: dialog.close() }
+                MokaidButton {
+                    objectName: dialog.agentCreation ? "creationSubmit" : "actionSubmit"
+                    text: features.busy ? "Working…" : dialog.agentCreation ? "Add to my team" : dialog.action.title || "Save"; highlighted: true
+                    Accessible.description: dialog.submissionHint
+                    enabled: !dialog.contextExpired && !features.busy && dialog.creationReady && (!dialog.action.destructive || confirmation.checked)
+                    onClicked: {
+                        if (!dialog.validateContext()) return
+                        const payload = Object.assign({}, dialog.values)
+                        payload._confirmed = confirmation.checked
+                        payload._context = dialog.contextToken
+                        dialog.pending = true; features.submit(dialog.action.id, payload)
+                        if (!features.busy) dialog.pending = false
+                    }
                 }
             }
         }

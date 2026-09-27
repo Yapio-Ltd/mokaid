@@ -170,6 +170,7 @@ defmodule MokaidWeb.MarketplaceController do
             level: agent.level,
             avatar_asset_id: agent.avatar_asset_id,
             avatar_cdn_path: avatar_cdn_path(agent.avatar_asset_id),
+            avatar_portrait_url: avatar_portrait_url(agent.avatar_asset_id),
             avatar_config: agent.avatar_config,
             skills: agent.skills
           }
@@ -216,6 +217,13 @@ defmodule MokaidWeb.MarketplaceController do
   defp avatar_cdn_path(asset_id) when is_binary(asset_id) do
     case Assets3d.get_asset(asset_id) do
       %{cdn_path: path} when is_binary(path) and path != "" -> path
+      _ -> nil
+    end
+  end
+
+  defp avatar_portrait_url(asset_id) do
+    case Assets3d.get_asset(asset_id) do
+      %{metadata: %{"portrait_url" => url}} when is_binary(url) -> url
       _ -> nil
     end
   end

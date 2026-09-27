@@ -3,6 +3,13 @@
 class ResourcePolicyTest : public QObject {
     Q_OBJECT
 private slots:
+    void mailContentHasNoScriptOrResourcePrivileges() {
+        mokaid::desktop::PreviewResourcePolicy policy; policy.untrustedMail=true;
+        QVERIFY(policy.csp().contains("script-src 'none'"));
+        QVERIFY(policy.csp().contains("img-src 'none'"));
+        QVERIFY(policy.csp().contains("connect-src 'none'"));
+        QVERIFY(!policy.csp().contains("https://"));
+    }
     void origins() {
         mokaid::desktop::PreviewResourcePolicy policy; policy.host = "isolated-document";
         QVERIFY(policy.internal(QUrl("mokaid-preview://isolated-document/index.html#section")));

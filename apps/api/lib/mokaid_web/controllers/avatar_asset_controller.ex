@@ -25,6 +25,10 @@ defmodule MokaidWeb.AvatarAssetController do
 
   defp format("model.glb", _), do: {:ok, ".glb", "model/gltf-binary"}
 
+  defp format("portrait.png", %{metadata: %{"portrait_url" => path}})
+       when is_binary(path),
+       do: {:ok, ".portrait.png", "image/png"}
+
   defp format("model.mokaidasset", %{metadata: %{"native_cdn_path" => path}})
        when is_binary(path),
        do: {:ok, ".mokaidasset", "application/octet-stream"}

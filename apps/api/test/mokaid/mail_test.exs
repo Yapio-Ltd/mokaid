@@ -150,11 +150,12 @@ defmodule Mokaid.MailTest do
       {workspace, member} = workspace_with_member()
 
       provider =
-        Repo.insert!(%Mokaid.Integrations.IntegrationProvider{
-          key: "gmail",
-          name: "Gmail",
-          category: "email"
-        })
+        Repo.get_by(Mokaid.Integrations.IntegrationProvider, key: "gmail") ||
+          Repo.insert!(%Mokaid.Integrations.IntegrationProvider{
+            key: "gmail",
+            name: "Gmail",
+            category: "email"
+          })
 
       connection =
         Repo.insert!(%Mokaid.Integrations.IntegrationConnection{

@@ -170,4 +170,43 @@ defmodule Mokaid.BillingTest do
     # From included min(500, 1500)=500, from balance 1000 → included 0, balance 500, spendable 500
     assert Credits.summary(workspace.id).spendable == 500
   end
+
+  test "strict debit rolls back if its ledger entry cannot be written" do
+    {workspace, _} = workspace_fixture()
+    assert {:ok, _} = Billing.change_plan(workspace.id, "starter")
+    before = Credits.summary(workspace.id)
+
+    assert {:error, %Ecto.Changeset{}} =
+             Repo.transaction(fn ->
+               Credits.charge_strict(workspace.id, 1_000, kind: "invalid_ledger_kind")
+             end)
+
+    assert Credits.summary(workspace.id) == before
+    refute Enum.any?(Credits.recent_transactions(workspace.id), &(&1.amount < 0))
+  end
+
+  test "strict refunds retain the charge link and cannot credit twice" do
+    {workspace, _} = workspace_fixture()
+    assert {:ok, _} = Billing.change_plan(workspace.id, "starter")
+    charge_key = "test-refund:" <> Ecto.UUID.generate()
+
+    assert {:ok, {:ok, _, 1_000}} =
+             Repo.transaction(fn ->
+               Credits.charge_strict(workspace.id, 1_000,
+                 idempotency_key: charge_key,
+                 metadata: %{"avatar_generation_id" => "fixture-generation"}
+               )
+             end)
+
+    for _ <- 1..2 do
+      assert {:ok, :ok} =
+               Repo.transaction(fn -> Credits.refund_strict(workspace.id, charge_key) end)
+    end
+
+    assert Credits.summary(workspace.id).spendable == 5_000
+    transactions = Credits.recent_transactions(workspace.id)
+    assert [refund] = Enum.filter(transactions, &(&1.idempotency_key == charge_key <> ":refund"))
+    assert refund.amount == 1_000
+    assert refund.metadata["avatar_generation_id"] == "fixture-generation"
+  end
 end

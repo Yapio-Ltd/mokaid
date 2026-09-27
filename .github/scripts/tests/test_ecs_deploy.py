@@ -263,13 +263,15 @@ class EcsTests(unittest.TestCase):
 
     def test_only_exact_api_environment_overrides_are_accepted(self):
         aws = MockAws()
-        env = dict(self.env, MOKAID_DESKTOP_ONLY_BUSINESS="false", DESKTOP_AUTH_WEB_BASE_URL="https://mokaid.com", ARBITRARY_ENV="ignored")
+        env = dict(self.env, MOKAID_DESKTOP_ONLY_BUSINESS="false", DESKTOP_AUTH_WEB_BASE_URL="https://mokaid.com", MOKAID_AVATAR_WORKER_MODE="api", MOKAID_AVATAR_PIPELINE_ENABLED="true", ARBITRARY_ENV="ignored")
         ecs.prepare(env, aws)
         settings = {item["name"]: item["value"] for item in aws.registered["containerDefinitions"][1]["environment"]}
         self.assertEqual(settings["MOKAID_DESKTOP_ONLY_BUSINESS"], "false")
         self.assertEqual(settings["DESKTOP_AUTH_WEB_BASE_URL"], "https://mokaid.com")
         self.assertNotIn("ARBITRARY_ENV", settings)
-        for invalid in ({"MOKAID_DESKTOP_ONLY_BUSINESS": "1"}, {"DESKTOP_AUTH_WEB_BASE_URL": "https://evil.invalid"},
+        self.assertEqual(settings["MOKAID_AVATAR_WORKER_MODE"], "api")
+        self.assertEqual(settings["MOKAID_AVATAR_PIPELINE_ENABLED"], "true")
+        for invalid in ({"MOKAID_AVATAR_WORKER_MODE": "worker"}, {"MOKAID_AVATAR_PIPELINE_ENABLED": "1"}, {"CONTAINER": "mokaid-prod-avatar-worker", "MOKAID_AVATAR_PIPELINE_ENABLED": "true"}, {"MOKAID_DESKTOP_ONLY_BUSINESS": "1"}, {"DESKTOP_AUTH_WEB_BASE_URL": "https://evil.invalid"},
                         {"CONTAINER": "mokaid-prod-web", "MOKAID_DESKTOP_ONLY_BUSINESS": "true"}):
             with self.assertRaises(ecs.Failure):
                 ecs.prepare(dict(self.env, **invalid), MockAws())

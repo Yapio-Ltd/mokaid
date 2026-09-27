@@ -48,6 +48,7 @@ jobs:
       DEPLOY_ENV: ${{ inputs.environment || 'prod' }}
       IMAGE_TAG: ${{ github.event.workflow_run.head_sha || github.sha }}
       DESKTOP_ONLY: ${{ vars.MOKAID_DESKTOP_ONLY || 'false' }}
+      AVATAR_PIPELINE: ${{ vars.MOKAID_AVATAR_PIPELINE_ENABLED || 'false' }}
       AWS_PAGER: ''
       DEPLOY_TIMEOUT_SECONDS: '600'
       MIGRATION_TIMEOUT_SECONDS: '600'
@@ -63,6 +64,7 @@ jobs:
           fi
           [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]] || exit 1
           [[ "$DESKTOP_ONLY" == true || "$DESKTOP_ONLY" == false ]] || exit 1
+          [[ "$AVATAR_PIPELINE" == true || "$AVATAR_PIPELINE" == false ]] || exit 1
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -105,6 +107,10 @@ jobs:
           echo "account_id=${ACCOUNT_ID}" >> "$GITHUB_OUTPUT"
           echo "registry=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com" >> "$GITHUB_OUTPUT"
 
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+        with:
+          platforms: amd64
+
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
 
       - name: Build and push API image
@@ -114,7 +120,7 @@ jobs:
           context: .
           file: infra/docker/api.Dockerfile
           push: true
-          platforms: linux/arm64
+          platforms: linux/arm64,linux/amd64
           tags: ${{ steps.registry.outputs.registry }}/mokaid-api:${{ env.IMAGE_TAG }}
           cache-from: type=gha,scope=api-deploy
           cache-to: type=gha,scope=api-deploy,mode=max
@@ -172,6 +178,24 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
+      - name: Scan avatar worker image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        env:
+          TRIVY_PLATFORM: linux/amd64
+        with:
+          image-ref: ${{ steps.registry.outputs.registry }}/mokaid-api@${{ steps.api_image.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Verify exact avatar worker renderer image without credentials
+        timeout-minutes: 5
+        env:
+          IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-api@${{ steps.api_image.outputs.digest }}
+        run: >-
+          docker run --rm --platform linux/amd64 --network none
+          --entrypoint /opt/blender/blender "$IMAGE"
+          --background --factory-startup --python-exit-code 1
+          --python-expr 'import bpy, runpy; assert bpy.app.version == (5, 2, 0); [runpy.run_path("/opt/avatar-preparer/" + name, run_name="image_smoke") for name in ("blender-avatar-quality.py", "blender-avatar-life.py", "validate-avatar-life.py", "prepare-custom-avatar.py")]'
       - name: Scan worker image
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
         env:
@@ -232,6 +256,8 @@ jobs:
           MESHY_API_KEY_SECRET_ARN: ${{ vars.MESHY_API_KEY_SECRET_ARN }}
           MESHY_WEBHOOK_SECRET_ARN: ${{ vars.MESHY_WEBHOOK_SECRET_ARN }}
           S3_BUCKET_ASSETS_3D: mokaid-assets-3d-prod-660601648321
+          MOKAID_AVATAR_WORKER_MODE: api
+          MOKAID_AVATAR_PIPELINE_ENABLED: ${{ env.AVATAR_PIPELINE }}
         run: bash .github/scripts/prepare-ecs-task.sh
 
       - name: Run database migrations
@@ -242,6 +268,25 @@ jobs:
           TASK_DEFINITION: ${{ steps.api_task.outputs.task_definition }}
           PREVIOUS_TASK_DEFINITION: ${{ steps.api_task.outputs.previous_task_definition }}
         run: bash .github/scripts/run-ecs-migration.sh
+
+      - name: Prepare immutable avatar worker revision
+        id: avatar_task
+        if: env.AVATAR_PIPELINE == 'true'
+        env:
+          CLUSTER: mokaid-${{ env.DEPLOY_ENV }}
+          SERVICE: mokaid-${{ env.DEPLOY_ENV }}-avatar-worker
+          CONTAINER: mokaid-${{ env.DEPLOY_ENV }}-avatar-worker
+          IMAGE: ${{ steps.registry.outputs.registry }}/mokaid-api@${{ steps.api_image.outputs.digest }}
+        run: bash .github/scripts/prepare-ecs-task.sh
+
+      - name: Deploy avatar worker before enabling generation on API
+        if: env.AVATAR_PIPELINE == 'true'
+        env:
+          CLUSTER: mokaid-${{ env.DEPLOY_ENV }}
+          SERVICE: mokaid-${{ env.DEPLOY_ENV }}-avatar-worker
+          TASK_DEFINITION: ${{ steps.avatar_task.outputs.task_definition }}
+          PREVIOUS_TASK_DEFINITION: ${{ steps.avatar_task.outputs.previous_task_definition }}
+        run: bash .github/scripts/deploy-ecs-service.sh
 
       - name: Deploy API after successful migration
         env:
@@ -317,6 +362,8 @@ jobs:
         if: ${{ always() && (failure() || cancelled()) && steps.api_task.outputs.task_definition != '' }}
         env:
           CLUSTER: mokaid-${{ env.DEPLOY_ENV }}
+          AVATAR_TASK: ${{ steps.avatar_task.outputs.task_definition }}
+          AVATAR_PREVIOUS: ${{ steps.avatar_task.outputs.previous_task_definition }}
           API_TASK: ${{ steps.api_task.outputs.task_definition }}
           API_PREVIOUS: ${{ steps.api_task.outputs.previous_task_definition }}
           WORKER_TASK: ${{ steps.worker_task.outputs.task_definition }}
@@ -328,7 +375,8 @@ jobs:
           ROLLBACK_TIMEOUT_SECONDS: '600'
         run: |
           export ROLLBACK_BATCH_JSON="$(jq --null-input --compact-output '
-            [ {cluster:env.CLUSTER,service:(env.CLUSTER+"-api"),task_definition:env.API_TASK,previous_task_definition:env.API_PREVIOUS},
+            [ {cluster:env.CLUSTER,service:(env.CLUSTER+"-avatar-worker"),task_definition:env.AVATAR_TASK,previous_task_definition:env.AVATAR_PREVIOUS},
+              {cluster:env.CLUSTER,service:(env.CLUSTER+"-api"),task_definition:env.API_TASK,previous_task_definition:env.API_PREVIOUS},
               {cluster:env.CLUSTER,service:(env.CLUSTER+"-ai-worker"),task_definition:env.WORKER_TASK,previous_task_definition:env.WORKER_PREVIOUS},
               {cluster:env.CLUSTER,service:(env.CLUSTER+"-web"),task_definition:env.WEB_TASK,previous_task_definition:env.WEB_PREVIOUS},
               {cluster:env.CLUSTER,service:(env.CLUSTER+"-crm"),task_definition:env.CRM_TASK,previous_task_definition:env.CRM_PREVIOUS} ]

@@ -23,6 +23,7 @@ defmodule MokaidWeb.IntegrationOAuthController do
     provider_key = params["provider_key"] || "google_drive"
 
     with :ok <- Permissions.authorize(current_member(conn), "integrations.connect"),
+         :ok <- Integrations.ensure_google_provider(provider_key),
          {:ok, url} <-
            GoogleOAuth.authorize_url(
              workspace_id(conn),
@@ -51,14 +52,6 @@ defmodule MokaidWeb.IntegrationOAuthController do
          {:ok, result} <-
            GoogleOAuth.exchange_code(code, state, redirect_uri, {workspace_id(conn), member.id}),
          {:ok, completed} <- Integrations.complete_google_connection(result, member) do
-      Integrations.sync_google_mcp_installations(
-        result.workspace_id,
-        member,
-        result.credentials,
-        result.account,
-        result.provider_key
-      )
-
       json(conn, %{
         data: %{
           connections: Enum.map(completed.connections, &Serializer.integration_connection/1),
@@ -87,7 +80,7 @@ defmodule MokaidWeb.IntegrationOAuthController do
           error: %{
             code: Mokaid.Integrations.MailOAuthFlow.public_error(reason),
             message:
-              "Google mailbox authorization is incomplete. Connect again and allow mail access."
+              "Google authorization is incomplete. Connect again and allow the requested service permissions."
           }
         })
 

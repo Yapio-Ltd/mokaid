@@ -11,7 +11,8 @@ defmodule Mokaid.Avatars.Worker do
     ]
 
   import Ecto.Query
-  alias Mokaid.Avatars.{Generation, Glb, Meshy}
+  alias Mokaid.Avatars.{Generation, Meshy, PreparedAsset}
+  alias Mokaid.Billing.Credits
   alias Mokaid.{Avatars, Repo}
 
   @impl Oban.Worker
@@ -38,10 +39,21 @@ defmodule Mokaid.Avatars.Worker do
            end,
            timeout: 240_000
          ) do
-      {:ok, {:submit, id, claim, fun}} -> finish_submission(id, claim, fun.())
-      {:ok, :waiting} -> {:snooze, 15}
-      {:ok, result} -> result
-      {:error, _} -> {:error, :avatar_processing_failed}
+      {:ok, {:submit, id, claim, fun}} ->
+        finish_submission(id, claim, fun.())
+
+      {:ok, {:prepare, row, claim, url}} ->
+        finish_preparation(row.id, claim, prepare_asset(row, url))
+
+      {:ok, :waiting} ->
+        {:snooze, 15}
+
+      {:ok, result} ->
+        broadcast_balance(id)
+        result
+
+      {:error, _} ->
+        {:error, :avatar_processing_failed}
     end
   end
 
@@ -52,6 +64,19 @@ defmodule Mokaid.Avatars.Worker do
     if DateTime.diff(DateTime.utc_now(), row.updated_at) > 120,
       do: fail(row, error_message(:connection_failed)),
       else: :waiting
+  end
+
+  defp step(%Generation{task_id: "preparing:" <> pending} = row) do
+    # Baking is local and safe to repeat; paid upstream submissions are not.
+    # Keep the original rig task ID so an interrupted preparation can resume.
+    if DateTime.diff(DateTime.utc_now(), row.updated_at) > 900 do
+      case String.split(pending, ":", parts: 2) do
+        [_claim, rig_id] when rig_id != "" -> step(update!(row, %{task_id: rig_id}))
+        _ -> fail(row, error_message(:avatar_preparation_failed))
+      end
+    else
+      :waiting
+    end
   end
 
   defp step(%Generation{status: "queued", mode: "text"} = row),
@@ -75,8 +100,7 @@ defmodule Mokaid.Avatars.Worker do
           if row.status == "rigging",
             do:
               "We could not animate this character. Try a full-body humanoid with arms and legs clearly visible.",
-            else:
-              "Meshy could not create this character. Please try another photo or description."
+            else: "We could not create this character. Please try another photo or description."
 
         fail(row, message)
 
@@ -108,76 +132,61 @@ defmodule Mokaid.Avatars.Worker do
   end
 
   defp advance(row, task) do
-    row = update!(row, %{status: "saving", progress: 95})
+    claim = "preparing:" <> Ecto.UUID.generate() <> ":" <> row.task_id
+    row = update!(row, %{status: "saving", progress: 95, task_id: claim})
     url = get_in(task, ["result", "basic_animations", "walking_glb_url"])
-    key = "assets3d/generated-characters/#{row.workspace_id}/#{row.id}"
-    token = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
-    media = MokaidWeb.Endpoint.url() <> "/api/avatar-assets/#{row.id}/#{token}"
+    # No database connection or row lock is held while Blender runs.
+    {:prepare, row, claim, url}
+  end
 
+  defp prepare_asset(row, url) do
     with {:ok, source} <- Meshy.download(url),
-         {:ok, glb} <- Glb.prepare(source),
-         {:ok, native} <- native_cooker().cook(glb),
-         :ok <- Avatars.storage().put_asset(key <> ".glb", glb, "model/gltf-binary"),
-         {:ok, native_path} <- save_native(key, native, media),
-         {:ok, thumbnail} <- save_thumbnail(row, key, media) do
-      attrs = %{
-        workspace_id: row.workspace_id,
-        slug: "custom_#{row.id}",
-        kind: "character",
-        storage_key: key <> ".glb",
-        cdn_path: media <> "/model.glb",
-        sha256: :crypto.hash(:sha256, glb) |> Base.encode16(case: :lower),
-        byte_size: byte_size(glb),
-        animation_clips: ["walking"],
-        metadata: %{
-          "display_name" => row.name,
-          "target_height_m" => 1.75,
-          "source" => "meshy",
-          "custom" => true,
-          "generation_id" => row.id,
-          "media_token" => token,
-          "native_cdn_path" => native_path,
-          "thumbnail_url" => thumbnail && thumbnail.url,
-          "thumbnail_content_type" => thumbnail && thumbnail.type,
-          "skeleton" => "meshy_biped"
-        }
-      }
-
-      asset = %Mokaid.Assets3d.Asset{} |> Mokaid.Assets3d.Asset.changeset(attrs) |> Repo.insert!()
-
-      update!(row, %{
-        status: "ready",
-        progress: 100,
-        asset_id: asset.id,
-        thumbnail_url: thumbnail && thumbnail.url,
-        thumbnail_source_url: nil,
-        source_storage_key: nil
-      })
-
-      Avatars.storage().delete_source(row.source_storage_key)
-      :ok
-    end
+         {:ok, attrs} <- PreparedAsset.prepare(row, source),
+         do: {:ok, attrs}
+  rescue
+    _ -> {:error, :avatar_preparation_failed}
   end
 
-  defp save_native(_key, nil, _media), do: {:ok, nil}
+  defp finish_preparation(id, claim, result) do
+    case Repo.transaction(fn ->
+           row = Repo.one(from g in Generation, where: g.id == ^id, lock: "FOR UPDATE")
 
-  defp save_native(key, native, media) do
-    with :ok <-
-           Avatars.storage().put_asset(key <> ".mokaidasset", native, "application/octet-stream") do
-      {:ok, media <> "/model.mokaidasset"}
-    end
-  end
+           if row && row.task_id == claim && row.status == "saving" do
+             case result do
+               {:ok, attrs} ->
+                 asset =
+                   %Mokaid.Assets3d.Asset{}
+                   |> Mokaid.Assets3d.Asset.changeset(attrs)
+                   |> Repo.insert!()
 
-  defp save_thumbnail(%{thumbnail_source_url: nil}, _, _), do: {:ok, nil}
+                 update!(row, %{
+                   status: "ready",
+                   progress: 100,
+                   asset_id: asset.id,
+                   thumbnail_url: attrs.metadata["thumbnail_url"],
+                   thumbnail_source_url: nil,
+                   source_storage_key: nil
+                 })
 
-  defp save_thumbnail(row, key, media) do
-    with {:ok, bytes} <- Meshy.download(row.thumbnail_source_url),
-         {:ok, type} <- Avatars.image_type(bytes),
-         :ok <- Avatars.storage().put_asset(key <> ".png", bytes, type) do
-      {:ok, %{url: media <> "/thumbnail.png", type: type}}
-    else
-      # A missing preview must not discard a successfully generated character.
-      _ -> {:ok, nil}
+                 {:cleanup, row.source_storage_key}
+
+               {:error, _} ->
+                 fail(row, error_message(:avatar_preparation_failed))
+             end
+           else
+             :ok
+           end
+         end) do
+      {:ok, {:cleanup, source_key}} ->
+        Avatars.storage().delete_source(source_key)
+        :ok
+
+      {:ok, result} ->
+        broadcast_balance(id)
+        result
+
+      {:error, _} ->
+        {:error, :avatar_processing_failed}
     end
   end
 
@@ -207,9 +216,15 @@ defmodule Mokaid.Avatars.Worker do
              :ok
            end
          end) do
-      {:ok, :waiting} -> {:snooze, 15}
-      {:ok, result} -> result
-      {:error, _} -> {:error, :avatar_processing_failed}
+      {:ok, :waiting} ->
+        {:snooze, 15}
+
+      {:ok, result} ->
+        broadcast_balance(id)
+        result
+
+      {:error, _} ->
+        {:error, :avatar_processing_failed}
     end
   end
 
@@ -220,13 +235,27 @@ defmodule Mokaid.Avatars.Worker do
   defp update!(row, attrs), do: row |> Generation.changeset(attrs) |> Repo.update!()
 
   defp fail(row, message) do
+    case Credits.refund_strict(row.workspace_id, Avatars.charge_key(row.id),
+           description: "Refund for failed 3D character"
+         ) do
+      :ok -> :ok
+      {:error, reason} -> Repo.rollback(reason)
+    end
+
     update!(row, %{status: "failed", error: message, source_storage_key: nil})
     Avatars.storage().delete_source(row.source_storage_key)
     :ok
   end
 
-  defp native_cooker,
-    do: Application.get_env(:mokaid, :avatar_native_cooker, Mokaid.Avatars.NativeCooker)
+  defp broadcast_balance(id) do
+    case Repo.get(Generation, id) do
+      %Generation{status: "failed", workspace_id: workspace_id} ->
+        Credits.broadcast_balance(workspace_id)
+
+      _ ->
+        :ok
+    end
+  end
 
   defp error_message({:upstream, 402}),
     do: "Character generation is temporarily out of credits. Please contact support."
@@ -237,8 +266,12 @@ defmodule Mokaid.Avatars.Worker do
   defp error_message({:upstream, code}) when code in [401, 403],
     do: "Character generation is temporarily unavailable. Please contact support."
 
+  defp error_message(:avatar_preparation_failed),
+    do:
+      "We could not prepare all office animations for this character. Any charged credits have been returned. Try a full-body humanoid with clearly separated arms and legs."
+
   defp error_message(:connection_failed),
-    do: "Meshy could not confirm the generation request. Please try again later."
+    do: "We could not confirm the generation request. Please try again later."
 
   defp error_message(_), do: "We could not finish saving this character. Please try again."
 end

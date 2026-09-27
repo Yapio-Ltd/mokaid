@@ -41,6 +41,8 @@ defmodule Mokaid.AI.Workers.AgentChatWorker do
         member_id: args["member_id"],
         message_id: args["message_id"],
         conversation_id: trigger.conversation_id,
+        workspace_mail: Mokaid.Mail.AgentAccess.for_chat(workspace_id, trigger),
+        server_time_utc: DateTime.to_iso8601(DateTime.utc_now()),
         attachments: attachments,
         agent: %{
           display_name: agent.display_name,

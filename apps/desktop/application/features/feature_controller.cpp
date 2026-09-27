@@ -70,10 +70,24 @@ bool externalUrlAllowed(const QUrl& url) {
 }
 }
 
+QVariantList FeatureController::deliverablesForTask(const QVariantMap& task) const {
+    // Reuse the inspector's curated delivery branches without changing its selection.
+    DetailBrowser browser;
+    browser.setDocument(task, {}, {}, "tasks");
+    return browser.deliverables();
+}
+
 FeatureController::FeatureController(ApiClient& api, SessionController& session, CacheStore& cache, QObject* parent)
-    : QObject(parent),api_(api),session_(session),cache_(cache),records_(this),detailView_(this),driveDownload_(api,this),avatarCreator_(api,session,this),mailAccounts_(api,session,this),searchTimer_(this) {
+    : QObject(parent),api_(api),session_(session),cache_(cache),records_(this),detailView_(this),driveDownload_(api,this),avatarCreator_(api,session,this),mailAccounts_(api,session,this),googleConnections_(api,session,this),mailCenter_(api,session,mailAccounts_,driveDownload_,this),searchTimer_(this) {
     connect(this,&FeatureController::changed,this,[this] {
         detailView_.setDocument(details_,currentPage_+":"+selectedId_,detailHeading_.isEmpty()?QString("Overview"):detailHeading_,currentPage_,detailCollection_);
+    });
+    connect(&mailCenter_, &MailCenterController::requestExternal, this, &FeatureController::requestMailLink);
+    connect(&mailCenter_, &MailCenterController::openAttachment, this, &FeatureController::openDelivery);
+    connect(&googleConnections_, &GoogleConnectionsController::requestExternal, this, &FeatureController::requestExternal);
+    connect(&googleConnections_, &GoogleConnectionsController::connected, this, [this](const QString& provider) {
+        if (provider == "gmail") mailAccounts_.refresh();
+        if (currentPage_ == "integrations" || (provider == "gmail" && currentPage_ == "mail")) refresh();
     });
     connect(&mailAccounts_, &MailAccountsController::requestExternal, this, &FeatureController::requestExternal);
     connect(&mailAccounts_, &MailAccountsController::messagesChanged, this, [this] { if (currentPage_ == "mail") refresh(); });
@@ -332,7 +346,10 @@ void FeatureController::navigate(const QString& page) {
     if (!feature) { fail("This page is not available."); return; }
     if (feature->scope==core::Scope::administration && !session_.administrator()) { fail("Administrator access requires an online, authorized session."); return; }
     clear(); currentPage_=page; search_.clear(); records_.setQuery({});
-    mailAccounts_.setActive(page == "mail"); emit changed(); refresh();
+    mailAccounts_.setActive(page == "mail");
+    mailCenter_.setActive(page == "mail");
+    googleConnections_.setActive(page == "integrations" || page == "calendar" || page == "drive");
+    emit changed(); refresh();
 }
 void FeatureController::openMarketplaceOffer(const QString& agentId, const QString& mode) {
     static const QRegularExpression safeId(QStringLiteral("^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"));
@@ -414,6 +431,7 @@ void FeatureController::acceptList(const QJsonObject& response,bool append) {
     else select(selectedId_);
 }
 void FeatureController::select(const QString& id) {
+    if(currentPage_=="mail") mailCenter_.select(id);
     auto record=records_.record(id);
     const auto* target = findFeature(currentPage_);
     if (record.isEmpty() && target && !target->detailPath.isEmpty() && permitted(*target, false)

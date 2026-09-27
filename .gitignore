@@ -36,6 +36,7 @@ build/
 *.tfstate.*
 *.tfvars
 !*.auto.tfvars.example
+!infra/terraform/environments/prod/avatars.auto.tfvars
 .terraform.lock.hcl
 # Reviewed provider versions/checksums, never state or credentials.
 !infra/terraform/bootstrap/.terraform.lock.hcl

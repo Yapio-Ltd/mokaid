@@ -9,7 +9,7 @@ defmodule Mokaid.Mail.Message do
   @timestamps_opts [type: :utc_datetime_usec]
 
   # Keep bodies bounded so a huge newsletter can't bloat the table.
-  @max_body_length 20_000
+  @max_body_length 200_000
 
   schema "mail_messages" do
     belongs_to :mail_account, Mokaid.Mail.Account
@@ -24,6 +24,13 @@ defmodule Mokaid.Mail.Message do
     field :subject, :string
     field :snippet, :string
     field :body_text, :string
+    field :body_html, :string
+    field :rfc_message_id, :string
+    field :references, {:array, :string}, default: []
+    field :attachments, {:array, :map}, default: []
+    field :provider_metadata, :map, default: %{}
+    field :is_read, :boolean, default: false
+    field :is_starred, :boolean, default: false
     field :folder, :string
     field :labels, {:array, :string}, default: []
     field :has_attachments, :boolean, default: false
@@ -52,6 +59,13 @@ defmodule Mokaid.Mail.Message do
       :subject,
       :snippet,
       :body_text,
+      :body_html,
+      :rfc_message_id,
+      :references,
+      :attachments,
+      :provider_metadata,
+      :is_read,
+      :is_starred,
       :folder,
       :labels,
       :has_attachments,
@@ -72,12 +86,14 @@ defmodule Mokaid.Mail.Message do
   end
 
   defp truncate_body(changeset) do
-    case get_change(changeset, :body_text) do
-      body when is_binary(body) and byte_size(body) > @max_body_length ->
-        put_change(changeset, :body_text, binary_part(body, 0, @max_body_length))
+    Enum.reduce([:body_text, :body_html], changeset, fn field, acc ->
+      case get_change(acc, field) do
+        body when is_binary(body) ->
+          put_change(acc, field, String.slice(body, 0, @max_body_length))
 
-      _ ->
-        changeset
-    end
+        _ ->
+          acc
+      end
+    end)
   end
 end

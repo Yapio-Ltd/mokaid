@@ -6,6 +6,7 @@ import QtQuick.Dialogs
 
 ColumnLayout {
     id: root
+    objectName: "avatarCreator"
     required property var controller
     property string selectedAssetId: ""
     property string agentName: ""
@@ -20,6 +21,23 @@ ColumnLayout {
     readonly property bool hasJob: !!job.id
     readonly property bool selectedReady: status === "ready" && acceptedGenerationId === job.id && selectedAssetId === job.asset_id
     readonly property bool readyForSubmit: sourceMode === "catalog" || (!!selectedAssetId && acceptedGenerationId === job.id && status === "ready")
+    readonly property string submissionHint: {
+        if (readyForSubmit) return ""
+        if (controller.submitting) return "Starting your 3D character…"
+        if (controller.error.length > 0) return "Character creation needs attention: " + controller.error
+        if (generating) return "Your 3D character is still being created. When it is ready, choose “Use this character”."
+        if (status === "ready") return "Your 3D character is ready. Click “Use this character” to continue."
+        if (!controller.online) return "Connect to your workspace to create your character."
+        if (!controller.pricingReady) return controller.refreshing ? "Loading the character price…" : "Refresh your creations to load the character price before starting."
+        if (!controller.canAffordGeneration) return "Not enough Mokaid credits. Add credits in Billing, then refresh your creations."
+        if (status === "failed") return "Your character could not be created. Try again above, or choose a ready-made character in “Characters”."
+        if (status === "cancelled") return "Character creation was cancelled. Click “Create 3D character” to start again, or choose a ready-made character."
+        if (sourceMode === "image") return photo.toString().length > 0
+            ? "Photo selected. Click “Create 3D character”, then choose “Use this character” when it is ready."
+            : "Choose a photo, then click “Create 3D character” to continue."
+        if (prompt.trim().length < 3 || prompt.length > 600) return "Describe your character in 3–600 characters, then click “Create 3D character”."
+        return "Click “Create 3D character”, then choose “Use this character” when it is ready."
+    }
     signal assetSelected(string assetId)
     spacing: 12
     function reset() {
@@ -27,7 +45,7 @@ ColumnLayout {
         controller.refresh()
     }
     function stageLabel(stage) {
-        const names = { queued: "Waiting to start", generating: "Shaping your character", texturing: "Adding colors and textures", rigging: "Preparing it to move", saving: "Saving your character", ready: "Your character is ready", failed: "This character could not be created", cancelled: "Generation cancelled" }
+        const names = { queued: "Waiting to start", generating: "Shaping your character", texturing: "Adding colors and textures", rigging: "Preparing it to move", saving: "Preparing office animations and portrait", ready: "Your character is ready", failed: "This character could not be created", cancelled: "Generation cancelled" }
         return names[stage] || "Preparing your character"
     }
     function selectJob(id) {
@@ -97,7 +115,7 @@ ColumnLayout {
                         background: Rectangle { radius: 10; color: root.selectedAssetId === String(catalogCharacter.modelData.id) ? Theme.selected : Theme.surface; border.color: catalogCharacter.visualFocus ? Theme.focusBorder : root.selectedAssetId === String(catalogCharacter.modelData.id) ? Theme.primary : Theme.border }
                         contentItem: ColumnLayout {
                             spacing: 4
-                            WorkforcePortrait { Layout.alignment: Qt.AlignHCenter; size: 50; agent: ({kind: "ai", display_name: catalogCharacter.characterName, avatar_asset_id: catalogCharacter.modelData.id, avatar_cdn_path: catalogCharacter.modelData.cdn_path, avatar_thumbnail_url: (catalogCharacter.modelData.metadata || {}).thumbnail_url || ""}) }
+                            WorkforcePortrait { Layout.alignment: Qt.AlignHCenter; size: 50; agent: ({kind: "ai", display_name: catalogCharacter.characterName, avatar_asset_id: catalogCharacter.modelData.id, avatar_cdn_path: catalogCharacter.modelData.cdn_path, avatar_portrait_url: (catalogCharacter.modelData.metadata || {}).portrait_url || "", avatar_thumbnail_url: (catalogCharacter.modelData.metadata || {}).thumbnail_url || ""}) }
                             MokaidLabel { Layout.fillWidth: true; text: catalogCharacter.characterName; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight }
                         }
                     }
@@ -146,10 +164,19 @@ ColumnLayout {
             MokaidButton {
                 objectName: "avatarGenerate"
                 text: root.controller.submitting ? "Starting…" : "Create 3D character"; iconName: "agents"; highlighted: true
-                enabled: root.controller.online && !root.controller.submitting && !root.generating && (root.sourceMode === "image" ? root.photo.toString().length > 0 : root.prompt.trim().length >= 3 && root.prompt.length <= 600)
+                enabled: root.controller.online && root.controller.canAffordGeneration && !root.controller.submitting && !root.generating && (root.sourceMode === "image" ? root.photo.toString().length > 0 : root.prompt.trim().length >= 3 && root.prompt.length <= 600)
                 onClicked: root.generate()
             }
-            MokaidLabel { Layout.fillWidth: true; text: "Takes a few minutes. Uses Meshy generation credits."; color: Theme.muted; font.pixelSize: 11; wrapMode: Text.Wrap }
+            MokaidLabel {
+                objectName: "avatarGenerationCost"
+                Layout.fillWidth: true
+                text: !root.controller.pricingReady ? "Refresh to load the price in Mokaid credits."
+                    : Number(root.controller.generationCredits).toLocaleString(Qt.locale("en_US"), "f", 0) + " Mokaid credits per character. "
+                        + (root.controller.unlimitedCredits ? "Included in your unlimited plan. " : "Charged when you start; refunded if generation fails. Available: " + Number(root.controller.creditsAvailable).toLocaleString(Qt.locale("en_US"), "f", 0) + ". ")
+                        + "Takes a few minutes."
+                color: root.controller.pricingReady && !root.controller.canAffordGeneration ? Theme.warning : Theme.muted
+                font.pixelSize: 11; wrapMode: Text.Wrap
+            }
         }
     }
     Rectangle {
@@ -180,7 +207,7 @@ ColumnLayout {
                         onClicked: { root.acceptedGenerationId = root.job.id; root.assetSelected(root.job.asset_id) }
                     }
                     MokaidButton { visible: root.selectedReady; text: "Create another"; quiet: true; implicitHeight: 30; onClicked: { root.acceptedGenerationId = ""; root.controller.clearCurrent() } }
-                    MokaidButton { visible: root.status === "failed"; objectName: "avatarRetry"; text: "Try again"; enabled: root.controller.online && !root.controller.submitting && (root.sourceMode === "image" ? root.photo.toString().length > 0 : root.prompt.trim().length >= 3 && root.prompt.length <= 600); onClicked: root.generate() }
+                    MokaidButton { visible: root.status === "failed"; objectName: "avatarRetry"; text: "Try again"; enabled: root.controller.online && root.controller.canAffordGeneration && !root.controller.submitting && (root.sourceMode === "image" ? root.photo.toString().length > 0 : root.prompt.trim().length >= 3 && root.prompt.length <= 600); onClicked: root.generate() }
                 }
             }
             RowLayout {
@@ -215,7 +242,7 @@ ColumnLayout {
         }
     }
     MokaidLabel { visible: root.controller.error.length > 0; Layout.fillWidth: true; text: root.controller.error; color: Theme.warning; font.pixelSize: 12; wrapMode: Text.Wrap }
-    MokaidLabel { visible: !root.readyForSubmit && root.sourceMode !== "catalog"; Layout.fillWidth: true; text: "Select your finished character to add the agent, or choose a ready-made character."; color: Theme.secondary; font.pixelSize: 11; wrapMode: Text.Wrap }
+    MokaidLabel { visible: text.length > 0; Layout.fillWidth: true; text: root.submissionHint; color: Theme.secondary; font.pixelSize: 11; wrapMode: Text.Wrap }
     Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.divider }
     FileDialog {
         id: photoPicker

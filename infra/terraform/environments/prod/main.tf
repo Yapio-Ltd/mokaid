@@ -74,6 +74,12 @@ variable "api_image_tag" {
   default = "v2"
 }
 
+variable "enable_avatar_worker" {
+  description = "Enable custom avatars only after the dedicated worker passes acceptance checks."
+  type        = bool
+  default     = false
+}
+
 variable "worker_image_tag" {
   type    = string
   default = "latest"
@@ -131,6 +137,7 @@ module "stack" {
   gmail_pubsub_topic = "projects/mokaid/topics/gmail-push"
 
   api_image_tag                   = var.api_image_tag
+  enable_avatar_worker            = var.enable_avatar_worker
   web_image_tag                   = var.web_image_tag
   crm_image_tag                   = var.crm_image_tag
   worker_image_tag                = var.worker_image_tag
@@ -177,4 +184,8 @@ output "db_endpoint" {
 output "ai_worker_url" {
   description = "Private API-to-worker HTTP endpoint."
   value       = module.stack.ai_worker_url
+}
+
+output "avatar_worker_service_name" {
+  value = module.stack.avatar_worker_service_name
 }

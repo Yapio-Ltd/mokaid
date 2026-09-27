@@ -1,7 +1,8 @@
 #pragma once
 #include <QObject>
+#include <QHash>
 #include <QNetworkAccessManager>
-#include <QSet>
+#include <QPointer>
 #include <QUrl>
 #include <mokaid/engine/scene.hpp>
 
@@ -11,17 +12,24 @@ namespace mokaid {
 class CustomAvatarLoader final : public QObject {
   Q_OBJECT
 public:
-  explicit CustomAvatarLoader(QObject *parent = nullptr);
+  explicit CustomAvatarLoader(QObject *parent = nullptr, const QString &cacheDirectory = {});
   void load(const QString &key, const QUrl &url);
   static bool allowedUrl(const QUrl &url);
   void reset();
 signals:
-  void ready(QString key, std::shared_ptr<const engine::Scene> scene);
-  void failed(QString message);
+  void ready(QString key, QUrl url, std::shared_ptr<const engine::Scene> scene);
+  void failed(QString key, QUrl url, QString message);
 private:
-  void decode(const QString &key, const QString &path, quint64 generation);
+  struct Request {
+    QUrl url;
+    quint64 id{};
+    QPointer<QNetworkReply> reply;
+  };
+  bool current(const QString &key, quint64 requestId) const;
+  void decode(const QString &key, const QUrl &url, const QString &path, quint64 requestId);
   QNetworkAccessManager network_;
-  QSet<QString> pending_;
-  quint64 generation_{};
+  QHash<QString, Request> pending_;
+  QString cacheDirectory_;
+  quint64 nextRequestId_{};
 };
 }

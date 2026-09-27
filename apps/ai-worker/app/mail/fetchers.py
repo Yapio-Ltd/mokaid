@@ -132,7 +132,10 @@ async def _gmail_fetch_message(
         return None  # Deleted between listing and fetch.
     response.raise_for_status()  # Never advance the cursor past a transient failure.
 
-    body = response.json()
+    return gmail_to_normalized(response.json())
+
+
+def gmail_to_normalized(body: dict[str, Any]) -> dict[str, Any]:
     payload = body.get("payload", {})
     header_map = {h.get("name", "").lower(): h.get("value", "") for h in payload.get("headers", [])}
 
@@ -155,11 +158,61 @@ async def _gmail_fetch_message(
         "subject": header_map.get("subject", ""),
         "snippet": normalize.snippet_of(body.get("snippet") or body_text),
         "body_text": normalize.clip(body_text),
-        "folder": "inbox",
+        "folder": gmail_folder(body.get("labelIds", [])),
         "labels": body.get("labelIds", []),
+        "is_read": "UNREAD" not in body.get("labelIds", []),
+        "is_starred": "STARRED" in body.get("labelIds", []),
+        "rfc_message_id": header_map.get("message-id"),
+        "references": re.findall(r"<[^<>\r\n]+>", header_map.get("references", ""))[:50],
+        **gmail_details(payload),
+        "provider_metadata": {"reader_version": 1},
         "has_attachments": has_attachments,
         "received_at": received_at,
     }
+
+
+def gmail_folder(labels: list[str]) -> str:
+    for label, folder in [
+        ("TRASH", "trash"),
+        ("SPAM", "spam"),
+        ("DRAFT", "drafts"),
+        ("INBOX", "inbox"),
+        ("SENT", "sent"),
+    ]:
+        if label in labels:
+            return folder
+    return "archive"
+
+
+def gmail_details(payload: dict[str, Any]) -> dict[str, Any]:
+    attachments = []
+    html_parts = []
+    pending = [payload]
+    while pending:
+        part = pending.pop()
+        pending.extend(reversed(part.get("parts", [])))
+        body = part.get("body", {})
+        filename = part.get("filename")
+        if filename:
+            key = part.get("partId") or body.get("attachmentId") or str(len(attachments))
+            attachments.append(
+                {
+                    "id": normalize.attachment_id(key + ":" + filename),
+                    "provider_id": body.get("attachmentId"),
+                    "part_id": part.get("partId"),
+                    "filename": filename,
+                    "mime_type": part.get("mimeType", "application/octet-stream"),
+                    "size": int(body.get("size") or 0),
+                }
+            )
+        elif part.get("mimeType") == "text/html" and body.get("data"):
+            try:
+                html_parts.append(
+                    base64.urlsafe_b64decode(body["data"] + "==").decode("utf-8", errors="replace")
+                )
+            except (ValueError, TypeError):
+                pass
+    return {"body_html": normalize.safe_html("\n".join(html_parts)), "attachments": attachments}
 
 
 def _gmail_body(payload: dict[str, Any]) -> tuple[str, bool]:
@@ -171,6 +224,7 @@ def _gmail_body(payload: dict[str, Any]) -> tuple[str, bool]:
         nonlocal has_attachments
         if part.get("filename"):
             has_attachments = True
+            return
         data = part.get("body", {}).get("data")
         mime = part.get("mimeType", "")
         if data:
@@ -202,8 +256,10 @@ async def fetch_graph(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     headers = {**_bearer(credentials), "Prefer": 'IdType="ImmutableId"'}
     new_state = dict(sync_state)
-    url = sync_state.get("next_link") or sync_state.get("delta_link") or (
-        f"{GRAPH_BASE}/me/mailFolders/inbox/messages/delta?$top={INITIAL_LIMIT}"
+    url = (
+        sync_state.get("next_link")
+        or sync_state.get("delta_link")
+        or (f"{GRAPH_BASE}/me/mailFolders/inbox/messages/delta?$top={INITIAL_LIMIT}")
     )
     messages: list[dict[str, Any]] = []
 
@@ -264,11 +320,47 @@ def _graph_to_normalized(item: dict[str, Any]) -> dict[str, Any]:
         "subject": item.get("subject", ""),
         "snippet": normalize.snippet_of(item.get("bodyPreview") or body_text),
         "body_text": normalize.clip(body_text),
-        "folder": "inbox",
+        "folder": item.get("_folder", "inbox"),
         "labels": item.get("categories", []),
+        "is_read": bool(item.get("isRead")),
+        "is_starred": item.get("flag", {}).get("flagStatus") == "flagged",
+        "body_html": normalize.safe_html(content) if body.get("contentType") == "html" else "",
+        "rfc_message_id": item.get("internetMessageId"),
+        "references": re.findall(
+            r"<[^<>\r\n]+>",
+            next(
+                (
+                    h.get("value", "")
+                    for h in item.get("internetMessageHeaders", [])
+                    if h.get("name", "").lower() == "references"
+                ),
+                "",
+            ),
+        )[:50],
+        "attachments": graph_attachments(item.get("attachments", [])),
+        "provider_metadata": {
+            "reader_version": 1 if "attachments" in item else 0,
+            "graph_folder_id": item.get("parentFolderId"),
+        },
         "has_attachments": bool(item.get("hasAttachments")),
         "received_at": item.get("receivedDateTime"),
     }
+
+
+def graph_attachments(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": normalize.attachment_id(str(item.get("id", ""))),
+            "provider_id": item["id"],
+            "filename": item.get("name") or "attachment",
+            "mime_type": item.get("contentType") or "application/octet-stream",
+            "size": int(item.get("size") or 0),
+        }
+        for item in entries
+        if item.get("id")
+        and item.get("@odata.type", "#microsoft.graph.fileAttachment")
+        == "#microsoft.graph.fileAttachment"
+    ]
 
 
 # ---------- IMAP ----------
@@ -346,14 +438,18 @@ def _fetch_imap_blocking(
     except ssl.SSLCertVerificationError as exc:
         raise ConnectionError("The IMAP server certificate could not be verified") from exc
     except Exception as exc:
-        raise ConnectionError("Could not establish a secure IMAP connection. Check host, port and TLS settings.") from exc
+        raise ConnectionError(
+            "Could not establish a secure IMAP connection. Check host, port and TLS settings."
+        ) from exc
 
     try:
         try:
             connection.login(credentials.get("username", ""), credentials.get("password", ""))
         except imaplib.IMAP4.error as exc:
             # Server responses can echo login input: never persist them in UI/logs.
-            raise AuthError("IMAP login rejected. Reconnect using the correct username and app password.") from exc
+            raise AuthError(
+                "IMAP login rejected. Reconnect using the correct username and app password."
+            ) from exc
 
         status, _ = connection.select("INBOX", readonly=True)
         if status != "OK":
@@ -399,10 +495,9 @@ def _fetch_imap_blocking(
         # when a bounded batch has left newer messages waiting.
         new_state["uid_next"] = next_cursor if uids else (uid_next or last_uid)
         new_state["uid_validity"] = uid_validity
-        new_state["uid_epoch_ids"] = (
-            sync_state.get("uid_epoch_ids", not bool(sync_state.get("uid_next")))
-            or bool(previous_validity and str(previous_validity) != str(uid_validity))
-        )
+        new_state["uid_epoch_ids"] = sync_state.get(
+            "uid_epoch_ids", not bool(sync_state.get("uid_next"))
+        ) or bool(previous_validity and str(previous_validity) != str(uid_validity))
         return messages, new_state
     except imaplib.IMAP4.error as exc:
         # Any server response may echo submitted credentials, even after login.

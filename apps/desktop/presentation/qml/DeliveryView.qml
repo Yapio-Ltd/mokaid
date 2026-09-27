@@ -11,6 +11,7 @@ Item {
     property bool probing: false
     property string failure: ""
     readonly property string kind: document ? document.kind : "unsupported"
+    readonly property bool mailPdf: !!document && !!document.file.mail_attachment_id && kind === "pdf"
     readonly property bool canGoBack: !!webLoader.item && webLoader.item.canGoBack
     function goBack() { if (webLoader.item) webLoader.item.goBack() }
     function reload() {
@@ -82,7 +83,7 @@ Item {
     Loader {
         id: webLoader
         anchors.fill: parent
-        active: root.kind !== "image" && root.kind !== "unsupported"
+        active: root.kind !== "image" && root.kind !== "unsupported" && !root.mailPdf
         sourceComponent: WebEngineView {
             id: web
             objectName: "deliverableWeb"
@@ -93,6 +94,7 @@ Item {
             lifecycleState: root.active || root.dirty || root.probing || recentlyAudible ? WebEngineView.LifecycleState.Active : recommendedState === WebEngineView.LifecycleState.Discarded ? WebEngineView.LifecycleState.Frozen : recommendedState
             settings.localContentCanAccessFileUrls: false
             settings.localContentCanAccessRemoteUrls: false
+            settings.javascriptEnabled: !root.document.file.mail_attachment_id
             settings.allowRunningInsecureContent: false
             settings.javascriptCanAccessClipboard: false
             settings.javascriptCanPaste: false
@@ -128,13 +130,13 @@ Item {
     BusyIndicator { anchors.centerIn: parent; running: !!webLoader.item && webLoader.item.loading && root.active; visible: running }
     ColumnLayout {
         anchors.centerIn: parent; width: Math.min(parent.width - 64, 420); spacing: 18
-        visible: root.kind === "unsupported"
+        visible: root.kind === "unsupported" || root.mailPdf
         MokaidIcon { name: "file"; size: 42; color: Theme.secondary; Layout.alignment: Qt.AlignHCenter; Layout.bottomMargin: 6 }
         MokaidLabel { Layout.fillWidth: true; text: root.document ? root.document.title : "Deliverable"; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 21; font.weight: Font.DemiBold; wrapMode: Text.Wrap }
         MokaidLabel { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: preview.nativePreviewAvailable ? "Open a native preview to explore this file, or save the original." : "Save this file to open it with an app that supports its format."; color: Theme.secondary; wrapMode: Text.Wrap }
         RowLayout {
             Layout.alignment: Qt.AlignHCenter; spacing: 10
-            MokaidButton { text: "Quick Look"; iconName: "external-link"; highlighted: true; visible: preview.nativePreviewAvailable; onClicked: preview.openNativePreview() }
+            MokaidButton { objectName:"nativeAttachmentPreview"; text: "Quick Look"; iconName: "external-link"; highlighted: true; visible: preview.nativePreviewAvailable; onClicked: preview.openNativePreview() }
             MokaidButton { text: "Download"; iconName: "download"; onClicked: preview.downloadCurrent() }
         }
     }

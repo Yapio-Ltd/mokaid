@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, ImagePlus, Loader2, RefreshCw, Upload, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import {
   AVATAR_PROMPT_MAX_LENGTH,
   avatarGenerationIsActive,
@@ -11,6 +12,7 @@ import {
   type AvatarGenerationStatus,
 } from "@/api/avatar-generations";
 import type { Asset3d } from "@/api/hooks";
+import { ApiError } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
@@ -19,7 +21,7 @@ const STATUS_LABEL: Record<AvatarGenerationStatus, string> = {
   generating: "Shaping your character",
   texturing: "Adding colors and details",
   rigging: "Preparing your character to move",
-  saving: "Getting your character ready",
+  saving: "Preparing office animations and portrait",
   ready: "Your character is ready",
   failed: "Character generation failed",
 };
@@ -55,6 +57,9 @@ export function CustomCharacterCreator({
   const fileInput = useRef<HTMLInputElement>(null);
   const {
     data: history = [],
+    pricing,
+    credits,
+    isPending: loadingQuote,
     isError: historyFailed,
     refetch: reloadHistory,
   } = useAvatarGenerations();
@@ -71,6 +76,17 @@ export function CustomCharacterCreator({
   const current = useAvatarGeneration(jobId);
   const job = current.data ?? requested ?? ongoing;
   const busy = generate.isPending || Boolean(job && avatarGenerationIsActive(job));
+  const quote =
+    !historyFailed &&
+    pricing &&
+    Number.isSafeInteger(pricing.credits) &&
+    pricing.credits > 0 &&
+    credits &&
+    Number.isSafeInteger(credits.spendable) &&
+    typeof credits.unlimited === "boolean"
+      ? { price: pricing.credits, ...credits }
+      : null;
+  const enoughCredits = quote !== null && (quote.unlimited || quote.spendable >= quote.price);
   const selectedReady =
     history.some((item) => item.status === "ready" && item.asset_id === selectedAssetId) ||
     (job?.status === "ready" && job.asset_id === selectedAssetId);
@@ -106,6 +122,7 @@ export function CustomCharacterCreator({
 
   const start = async () => {
     if (busy) return;
+    if (!quote || !enoughCredits) return;
     if (mode === "image" && !file) {
       setError("Choose a photo to create your character.");
       return;
@@ -119,12 +136,39 @@ export function CustomCharacterCreator({
     try {
       const result = await generate.mutateAsync(
         mode === "image"
-          ? { mode, file: file!, name: Array.from(name.trim()).slice(0, 80).join("") || undefined }
-          : { mode, prompt: prompt.trim(), name: Array.from(name.trim()).slice(0, 80).join("") || undefined },
+          ? {
+              mode,
+              file: file!,
+              name: Array.from(name.trim()).slice(0, 80).join("") || undefined,
+              expected_credits: quote.price,
+            }
+          : {
+              mode,
+              prompt: prompt.trim(),
+              name: Array.from(name.trim()).slice(0, 80).join("") || undefined,
+              expected_credits: quote.price,
+            },
       );
       setRequested(result);
       setAutoSelect(true);
     } catch (cause) {
+      if (
+        cause instanceof ApiError &&
+        ["avatar_price_changed", "avatar_price_confirmation_required"].includes(cause.code)
+      ) {
+        setError(
+          "The generation price has changed. Review the updated cost before generating again.",
+        );
+        void reloadHistory();
+        return;
+      }
+      if (cause instanceof ApiError && cause.code === "insufficient_credits") {
+        setError(
+          "You don't have enough credits for this character. Add credits in Billing, then try again.",
+        );
+        void reloadHistory();
+        return;
+      }
       setError(
         cause instanceof Error
           ? cause.message
@@ -228,7 +272,7 @@ export function CustomCharacterCreator({
             )}
           </div>
           <p className="mt-2 text-xs leading-relaxed text-text-muted">
-            Your photo is sent to Meshy AI to generate the 3D character.
+            Your photo is used to generate your custom 3D character.
           </p>
         </div>
       ) : (
@@ -286,7 +330,8 @@ export function CustomCharacterCreator({
           </p>
           {job?.status === "failed" && (
             <p className="mt-1">
-              Adjust your {mode === "image" ? "photo" : "description"}, then generate again.
+              Credits charged for this generation are refunded automatically. Adjust your{" "}
+              {mode === "image" ? "photo" : "description"}, then generate again.
             </p>
           )}
         </div>
@@ -332,13 +377,52 @@ export function CustomCharacterCreator({
           <Button
             type="button"
             loading={generate.isPending}
-            disabled={mode === "image" ? !file : prompt.trim().length < 3}
+            disabled={!enoughCredits || (mode === "image" ? !file : prompt.trim().length < 3)}
             onClick={() => void start()}
             className="w-full sm:w-auto"
           >
             <Upload size={15} aria-hidden="true" />
             {job?.status === "failed" ? "Generate again" : "Generate 3D character"}
+            {quote && ` · ${quote.price.toLocaleString("en-US")} credits`}
           </Button>
+          {quote ? (
+            <div className="space-y-1 text-xs leading-relaxed text-text-secondary">
+              <p>
+                {quote.price.toLocaleString("en-US")} Mokaid credits per character.{" "}
+                {quote.unlimited
+                  ? "Included in your unlimited plan."
+                  : "Charged when generation starts. Automatically refunded if generation fails."}{" "}
+                Reusing a saved character is free.
+              </p>
+              {!quote.unlimited && (
+                <p>Available: {quote.spendable.toLocaleString("en-US")} credits.</p>
+              )}
+              {!enoughCredits && (
+                <p role="alert" className="text-warning">
+                  You need {(quote.price - quote.spendable).toLocaleString("en-US")} more credits.{" "}
+                  <Link to="/billing" className="underline">
+                    Add credits in Billing
+                  </Link>
+                  .
+                </p>
+              )}
+            </div>
+          ) : loadingQuote ? (
+            <p role="status" className="text-xs text-text-secondary">
+              Checking the generation cost…
+            </p>
+          ) : (
+            <div
+              className="flex flex-wrap items-center gap-2 text-xs text-text-secondary"
+              role="alert"
+            >
+              Generation pricing could not be loaded.
+              <Button type="button" size="sm" variant="ghost" onClick={() => void reloadHistory()}>
+                <RefreshCw size={12} />
+                Retry pricing
+              </Button>
+            </div>
+          )}
           <p className="text-xs leading-relaxed text-text-muted">
             Sized to match your team. Preview the result before creating your agent.
           </p>

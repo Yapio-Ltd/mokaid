@@ -88,6 +88,7 @@ defmodule MokaidWeb.JSON do
       avatar_cdn_path: avatar_cdn_path,
       avatar_native_cdn_path: resolve_avatar_metadata(agent.avatar_asset_id, "native_cdn_path"),
       avatar_thumbnail_url: resolve_avatar_metadata(agent.avatar_asset_id, "thumbnail_url"),
+      avatar_portrait_url: resolve_avatar_metadata(agent.avatar_asset_id, "portrait_url"),
       role_title: agent.role_title,
       department: agent.department,
       status: agent.status,
@@ -183,6 +184,8 @@ defmodule MokaidWeb.JSON do
       assigned_agent_avatar_cdn_path: agent && resolve_avatar_cdn_path(agent.avatar_asset_id),
       assigned_agent_avatar_thumbnail_url:
         agent && resolve_avatar_metadata(agent.avatar_asset_id, "thumbnail_url"),
+      assigned_agent_avatar_portrait_url:
+        agent && resolve_avatar_metadata(agent.avatar_asset_id, "portrait_url"),
       assigned_member_id: task.assigned_member_id,
       created_by_member_id: task.created_by_member_id,
       due_at: task.due_at,
@@ -602,6 +605,11 @@ defmodule MokaidWeb.JSON do
       folder: message.folder,
       labels: message.labels,
       has_attachments: message.has_attachments,
+      is_read: message.is_read,
+      is_starred: message.is_starred,
+      cc_emails: message.cc_emails,
+      attachments:
+        Enum.map(message.attachments || [], &Map.take(&1, ~w(id filename mime_type size))),
       received_at: message.received_at,
       ai_importance: message.ai_importance,
       ai_category: message.ai_category,

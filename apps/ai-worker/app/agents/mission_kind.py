@@ -24,12 +24,43 @@ PRODUCER_TOOLS = frozenset(
         "analyze_file",
         "extract_document_text",
         "export_pdf",
+        "save_mail_attachment",
     }
 )
 
 # Mission kinds that must produce a file (or fail / wait).
 # research is intentionally excluded — chat answer + web_search is enough.
-PRODUCER_KINDS = frozenset({"website", "webapp", "document", "image", "analysis"})
+PRODUCER_KINDS = frozenset({"website", "webapp", "document", "image", "analysis", "mail_export"})
+
+_MAIL_SOURCE_RE = re.compile(
+    r"\b(?:inbox|mailboxes?|bo[iî]tes?\s+(?:(?:e-?)?mail|courriel)|messagerie|courriels|"
+    r"(?:my|our|your|connected|workspace|mes|tes|ses|nos|vos|leurs)\s+(?:(?:e-?)?mails?|factures?|invoices?)|"
+    r"(?:dans|depuis|from|in|among)\s+(?:(?:les|des|the|my|our|mes|nos)\s+)?(?:(?:e-?)?mails?|courriels)|"
+    r"(?:dans|depuis|from|in)\s+(?:gmail|outlook)|"
+    r"(?:les|des|the)\s+(?:(?:e-?)?mails|courriels)\s+(?:re[çc]us|received|envoy[ée]s|sent|de|from)|"
+    r"(?:gmail|outlook)\s+(?:inbox|mailbox|messages?|(?:e-?)?mails?)|"
+    r"(?:mails?|messages?)\s+(?:gmail|outlook))\b|תיבת\s+הדואר|האימיילים\s+שלי",
+    re.IGNORECASE,
+)
+_EXPLICIT_WEB_RE = re.compile(
+    r"\b(?:public[- ]web|sur\s+(?:internet|le\s+web|le\s+net)|"
+    r"(?:search|check|look\s*up|research)\s+(?:online|the\s+web|the\s+internet)|"
+    r"(?:recherche|cherche|v[ée]rifie)\s+en\s+ligne|"
+    r"public\s+(?:website|sources?|records?|information)|"
+    r"(?:sources?|site)\s+publi(?:c|que)s?)\b", re.IGNORECASE,
+)
+_MAIL_EXPORT_RE = re.compile(
+    r"\b(?:export\w*|sauvegard\w*|t[ée]l[ée]charg\w*|download\w*|save|saving|"
+    r"r[ée]cup[èe]r\w*|retrieve\w*|collect\w*|extract\w*|class\w*|rang\w*|"
+    r"organis\w*|organiz\w*|archiv\w*)\b|"
+    r"\b(?:dans|vers|into|to)\s+(?:(?:un|le|mon|a|the|my)\s+)?(?:dossier|folder|drive)\b",
+    re.IGNORECASE,
+)
+
+
+def looks_like_mail_request(text: str) -> bool:
+    """Identify a private mailbox source, not a public email-address lookup."""
+    return bool(text and _MAIL_SOURCE_RE.search(text))
 
 _RESEARCH_RE = re.compile(
     r"\b("
@@ -103,6 +134,8 @@ def looks_like_research(text: str) -> bool:
     """True when the ask is primarily an info lookup on the public web."""
     if not text or not _RESEARCH_RE.search(text):
         return False
+    if looks_like_mail_request(text) and not _EXPLICIT_WEB_RE.search(text):
+        return False
     # Explicit written report / deck still counts as research intent for kind,
     # but callers may still route to task+document.
     return True
@@ -150,6 +183,8 @@ def prior_research_query(conversation: list[dict[str, Any]] | None) -> str:
         return ""
     # Skip the latest teammate message; scan older ones newest-first.
     for body in reversed(bodies[:-1]):
+        if looks_like_mail_request(body) and not _EXPLICIT_WEB_RE.search(body):
+            return ""
         if looks_like_research(body):
             return body
     return ""
@@ -178,6 +213,16 @@ def resolve_web_research(
     latest = (latest or "").strip()
     query = (decision_query or "").strip()
 
+    # A classifier error must never send mailbox contents or account searches
+    # to the public web. An explicit public lookup remains independently valid.
+    if looks_like_mail_request(latest) and not _EXPLICIT_WEB_RE.search(latest):
+        return False, ""
+    if looks_like_research_followup(latest):
+        bodies = _teammate_bodies(conversation)
+        prior = bodies[-2] if len(bodies) >= 2 else ""
+        if looks_like_mail_request(prior) and not _EXPLICIT_WEB_RE.search(prior):
+            return False, ""
+
     if decision_needs_web:
         return True, query or latest or prior_research_query(conversation)
 
@@ -204,6 +249,10 @@ def _public_site_review(text: str) -> bool:
     """A generic audit (for example source-code security) is not web research."""
     from app.tools.site_delivery import is_existing_site_review
 
+    if looks_like_mail_request(text) and not _EXPLICIT_WEB_RE.search(text):
+        return False
+    # A mailbox address is not a request to audit its domain as a website.
+    text = re.sub(r"[\w.!#$%&'*+/=?^`{|}~-]+@[\w.-]+", "", text)
     return bool(is_existing_site_review(text) and re.search(
         r"\b(?:seo|référencement|referencement|site|website|web|google|backlinks?|"
         r"keywords?|mots?[- ]cl[ée]s?|crawl|indexation)\b|https?://|\b[\w-]+\.(?:com|org|net|fr|io)\b",
@@ -223,6 +272,16 @@ def detect_mission_kind(request: RunRequest) -> str:
             ],
         )
     ).lower()
+
+    # Mail source takes precedence over stale inferred metadata such as
+    # research/analysis/website. Written reports still require a document.
+    if looks_like_mail_request(text) and not _EXPLICIT_WEB_RE.search(text):
+        if _EXPLICIT_REPORT_RE.search(text) or re.search(
+            r"\b(?:cr[ée]e\w*|create\w*|g[ée]n[èe]r\w*|generate\w*|export\w*)\b.{0,60}"
+            r"\b(?:csv|xlsx|spreadsheet|tableur|rapport|report|r[ée]sum[ée]|summary)\b", text,
+        ):
+            return "document"
+        return "mail_export" if _MAIL_EXPORT_RE.search(text) else "mail"
 
     if _public_site_review(text):
         return "research"
@@ -286,6 +345,8 @@ def requires_web_research(request: RunRequest) -> bool:
     text = " ".join(str(value or "") for value in (
         request.task_title, request.task_description, request.input.get("instruction"),
     ))
+    if looks_like_mail_request(text) and not _EXPLICIT_WEB_RE.search(text):
+        return False
     return (
         detect_mission_kind(request) == "research"
         or looks_like_research(text)
@@ -322,7 +383,16 @@ def producer_tool_succeeded(tool_calls: list[Any]) -> bool:
     for call in tool_calls:
         tool = getattr(call, "tool", None) or (call.get("tool") if isinstance(call, dict) else None)
         output = getattr(call, "output", None) or (call.get("output") if isinstance(call, dict) else None)
+        approved = call.get("approved") if isinstance(call, dict) else getattr(call, "approved", None)
+        if approved is False:
+            continue
         if tool not in PRODUCER_TOOLS:
+            continue
+        if tool == "save_mail_attachment":
+            # Only a persisted Drive record counts; an email body, attachment
+            # name or promise to save is not an exported file.
+            if isinstance(output, dict) and not output.get("error") and output.get("file_id"):
+                return True
             continue
         if isinstance(output, dict) and not output.get("error") and (
             output.get("filename")

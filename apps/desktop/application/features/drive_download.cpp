@@ -69,6 +69,12 @@ void DriveDownload::request(const QVariantMap& record) {
     transaction_ = QUuid::createUuid().toString(QUuid::WithoutBraces);
     cancelled_ = std::make_shared<std::atomic_bool>(false);
     path_ = "/api/drive/" + id + "/raw";
+    if (record.contains("mail_attachment_id")) {
+        const auto message=record.value("mail_message_id").toString(), attachment=record.value("mail_attachment_id").toString();
+        const QRegularExpression safeId("^[A-Za-z0-9][A-Za-z0-9_-]{0,511}$");
+        if(!safeId.match(message).hasMatch() || !safeId.match(attachment).hasMatch()) {fail("Select a valid mailbox attachment.");return;}
+        path_="/api/mail/messages/"+message+"/attachments/"+attachment;
+    }
     auto directory = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
     if (directory.isEmpty()) directory = QDir::homePath();
     emit changed();

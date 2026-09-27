@@ -8,12 +8,13 @@
  * would exhaust the browser WebGL context budget). sm+ keep live Babylon heads.
  */
 
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import type { Agent } from "@/api/types";
 import { Avatar } from "@/components/ui/avatar";
 import { AgentLevelRing } from "@/components/agents/agent-level-ring";
 import { cn } from "@/lib/cn";
 import { DEFAULT_AVATAR_CDN_PATH } from "@/three/agent-cdn";
+import { resolveAgentPortraitUrl } from "@/lib/agent-portrait";
 
 const AgentHeadPreview3D = lazy(() =>
   import("@/three/agent-preview").then((m) => ({ default: m.AgentHeadPreview3D })),
@@ -29,6 +30,8 @@ type AgentAvatarSource = Pick<
 > & {
   avatar_cdn_path?: string | null;
   avatar_asset_id?: string | null;
+  avatar_portrait_url?: string | null;
+  avatar_thumbnail_url?: string | null;
 };
 
 export function AgentAvatar({
@@ -49,27 +52,40 @@ export function AgentAvatar({
   const cdnPath = agent.avatar_cdn_path || DEFAULT_AVATAR_CDN_PATH;
   const px = SIZE_PX[size];
   const isAiLike = agent.kind === "ai" || agent.kind === "hybrid";
+  const portrait = isAiLike ? resolveAgentPortraitUrl(agent.avatar_portrait_url) : null;
+  const [failedPortrait, setFailedPortrait] = useState<string | null>(null);
   const ring = showRing ?? isAiLike;
   // Only message-sized avatars skip WebGL; lists/dock/profile keep 3D.
-  const useLive3d = isAiLike && size !== "xs";
+  const unresolvedCustom =
+    !agent.avatar_cdn_path?.trim() &&
+    Boolean(agent.avatar_asset_id || agent.avatar_thumbnail_url || agent.avatar_portrait_url);
+  const useLive3d = isAiLike && size !== "xs" && !unresolvedCustom;
 
-  const head = useLive3d ? (
-    <Suspense
-      fallback={
-        <Avatar name={agent.display_name} size={size} isAi color={color} />
-      }
-    >
-      <AgentHeadPreview3D
-        name={agent.display_name}
-        color={color}
-        size={px}
-        cdnPath={cdnPath}
-        fallbackSize={size}
+  const head =
+    portrait && portrait !== failedPortrait ? (
+      <img
+        src={portrait}
+        alt={`${agent.display_name} avatar`}
+        width={px}
+        height={px}
+        className="h-full w-full object-cover"
+        decoding="async"
+        draggable={false}
+        onError={() => setFailedPortrait(portrait)}
       />
-    </Suspense>
-  ) : (
-    <Avatar name={agent.display_name} size={size} isAi={isAiLike} color={color} />
-  );
+    ) : useLive3d ? (
+      <Suspense fallback={<Avatar name={agent.display_name} size={size} isAi color={color} />}>
+        <AgentHeadPreview3D
+          name={agent.display_name}
+          color={color}
+          size={px}
+          cdnPath={cdnPath}
+          fallbackSize={size}
+        />
+      </Suspense>
+    ) : (
+      <Avatar name={agent.display_name} size={size} isAi={isAiLike} color={color} />
+    );
 
   if (!ring) {
     return (

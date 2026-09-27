@@ -20,6 +20,7 @@ defmodule MokaidWeb.OrchestratorControllerTest do
           Jason.encode!(%{
             reply: "Bonjour, préparons votre mission.",
             language: "fr",
+            response_kind: "answer",
             mission_instruction: "",
             task_id: "",
             cost_cents: 0
@@ -60,9 +61,17 @@ defmodule MokaidWeb.OrchestratorControllerTest do
 
     response = post(conn, "/api/orchestrator/chat", %{message: "Bonjour", language: "fr"})
     assert json_response(response, 200)["data"]["reply"] == "Bonjour, préparons votre mission."
+    assert json_response(response, 200)["data"]["response_kind"] == "answer"
     assert_receive {:worker_request, "POST", "/orchestrator/chat", headers, body}
     assert {"authorization", "Bearer coordinator-fixture-token"} in headers
     assert Jason.decode!(body)["language"] == "fr"
+    payload = Jason.decode!(body)
+    assert {:ok, _, _} = DateTime.from_iso8601(payload["server_time_utc"])
+
+    assert {:ok, %{workspace_id: scoped_workspace}} =
+             Mokaid.Mail.AgentAccess.authorize(payload["workspace_mail"]["token"], "list")
+
+    assert scoped_workspace == workspace.id
     assert Application.fetch_env!(:mokaid, :ai_worker)[:dispatch] == :sqs
     assert Tasks.list_tasks(workspace.id) == []
   end

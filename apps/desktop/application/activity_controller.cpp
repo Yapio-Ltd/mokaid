@@ -83,6 +83,7 @@ void ActivityController::clear() {
     searchTimer_.stop(); notificationTimer_.stop(); searchResults_.clear(); notifications_.clear();
     marking_.clear(); readAt_.clear(); query_.clear(); error_.clear(); pendingWorkspace_.clear(); pendingUser_.clear();
     searchBusy_=false; notificationsBusy_=false; creating_=false; refreshPending_=false;
+    clearCompletions();
 }
 void ActivityController::contextChanged() {
     const auto key=contextKey(); const auto generation=api_.context().generation;
@@ -248,6 +249,79 @@ void ActivityController::openNotification(const QString& id) {
         if (api_.context().online) markRead(id);
         return;
     }
+}
+void ActivityController::enqueueCompletion(const QVariantMap& notification) {
+    if (context_!=contextKey() || generation_!=api_.context().generation) contextChanged();
+    if (!api_.context().authenticated || !canReadCache()) return;
+    const auto id=notification.value("id").toString();
+    if (!identifier(id) || seenCompletions_.contains(id)) return;
+    // Only canonical, workspace-scoped notifications may open a result. Realtime
+    // broadcasts and QML arguments cannot supply task data or change its scope.
+    QVariantMap canonical;
+    for (const auto& value : notifications_) {
+        if (value.toMap().value("id").toString()==id) { canonical=value.toMap(); break; }
+    }
+    const auto taskId=canonical.value("resource_id").toString();
+    const auto workspace=canonical.value("workspace_id").toString();
+    if (canonical.value("kind").toString()!="ai_run_completed" ||
+        canonical.value("resource_type").toString()!="task" || !identifier(taskId) ||
+        (!workspace.isEmpty() && workspace!=workspaceId())) return;
+    seenCompletions_.insert(id); completionOrder_.append(id);
+    while (completionOrder_.size()>512) seenCompletions_.remove(completionOrder_.takeFirst());
+    if (completionNotification_.isEmpty()) {
+        completionNotification_=canonical; loadCompletion(); return;
+    }
+    // A task may finish another run while its previous result is still open.
+    // Refresh that result in place instead of opening duplicate queue entries.
+    if (completionNotification_.value("resource_id").toString()==taskId) {
+        completionNotification_=canonical; loadCompletion(); return;
+    }
+    for (auto& queued : completionQueue_) {
+        if (queued.value("resource_id").toString()==taskId) { queued=canonical; emit completionChanged(); return; }
+    }
+    completionQueue_.append(canonical); emit completionChanged();
+}
+void ActivityController::loadCompletion() {
+    const auto taskId=completionNotification_.value("resource_id").toString();
+    if (!identifier(taskId)) return;
+    const auto epoch=++completionEpoch_, generation=api_.context().generation;
+    const auto context=contextKey();
+    api_.cancelRequests(&completionOwner_); completionTask_.clear(); completionError_.clear(); completionLoading_=false;
+    if (!api_.context().online || !core::mayRequest(api_.context(),core::Scope::workspace,false)) {
+        completionError_="Reconnect to load this task's result and deliverables."; emit completionChanged(); return;
+    }
+    completionLoading_=true; emit completionChanged();
+    api_.request("GET","/api/tasks/"+taskId,{},core::Scope::workspace,&completionOwner_,
+        [this,taskId,epoch,generation,context](ApiResponse response) {
+            if (epoch!=completionEpoch_ || !current(generation,context)) return;
+            completionLoading_=false;
+            if (!response.ok()) {
+                completionError_=response.error.isEmpty() ? "The task result could not be loaded. Try again." : response.error;
+                emit completionChanged(); return;
+            }
+            const auto task=response.json.value("data").toObject();
+            const auto workspace=task.value("workspace_id").toString();
+            if (task.value("id").toString()!=taskId || (!workspace.isEmpty() && workspace!=workspaceId())) {
+                completionError_="The task result is unavailable in this workspace."; emit completionChanged(); return;
+            }
+            completionTask_=task.toVariantMap(); emit completionChanged();
+        });
+}
+void ActivityController::retryCompletion() {
+    if (context_!=contextKey() || generation_!=api_.context().generation) contextChanged();
+    if (!completionNotification_.isEmpty() && !completionLoading_) loadCompletion();
+}
+void ActivityController::dismissCompletion() {
+    ++completionEpoch_; api_.cancelRequests(&completionOwner_);
+    completionNotification_.clear(); completionTask_.clear(); completionError_.clear(); completionLoading_=false;
+    if (!completionQueue_.isEmpty()) { completionNotification_=completionQueue_.takeFirst(); loadCompletion(); }
+    else emit completionChanged();
+}
+void ActivityController::dismissAllCompletions() {
+    completionQueue_.clear(); dismissCompletion();
+}
+void ActivityController::clearCompletions() {
+    dismissAllCompletions(); seenCompletions_.clear(); completionOrder_.clear();
 }
 void ActivityController::fail(QString error) { error_=std::move(error); emit changed(); }
 }

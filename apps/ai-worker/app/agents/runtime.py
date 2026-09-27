@@ -141,7 +141,7 @@ def requirements_for(request: RunRequest) -> Requirements:
     artifact = (
         code
         or research_report_requested(intent)
-        or kind in {"website", "webapp", "document", "analysis", "image"}
+        or kind in {"website", "webapp", "document", "analysis", "image", "mail_export"}
         or "artifact" in hints
     )
     complex_work = (

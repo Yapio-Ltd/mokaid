@@ -84,6 +84,8 @@ class RunRequest(BaseModel):
     autonomy: dict[str, Any] = Field(default_factory=dict)
     # Server-issued policy. Never forward this or MCP credentials to a model.
     runtime_policy: dict[str, Any] = Field(default_factory=dict)
+    # Opaque server capability; transport only, never include in model context.
+    workspace_mail: dict[str, Any] = Field(default_factory=dict, repr=False)
 
 
 class ResumeRequest(BaseModel):

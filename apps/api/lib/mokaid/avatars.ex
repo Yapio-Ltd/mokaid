@@ -2,10 +2,23 @@ defmodule Mokaid.Avatars do
   @moduledoc "Workspace-owned, durable Meshy character generation."
   import Ecto.Query
   alias Mokaid.Avatars.{Generation, Meshy, Worker}
+  alias Mokaid.Billing.Credits
   alias Mokaid.Repo
 
   @active ~w(queued generating texturing rigging saving)
+  @generation_credits 1_000
   def active_statuses, do: @active
+
+  def pricing, do: %{credits: @generation_credits}
+
+  def credit_metadata(workspace_id) do
+    %{
+      pricing: pricing(),
+      credits: Map.take(Credits.summary(workspace_id), [:spendable, :unlimited])
+    }
+  end
+
+  def charge_key(generation_id), do: "avatar-generation:" <> generation_id
 
   def list(workspace_id) do
     from(g in Generation,
@@ -30,7 +43,11 @@ defmodule Mokaid.Avatars do
   end
 
   def create(workspace_id, member, params) do
-    with true <- Meshy.configured?() || {:error, :meshy_unavailable},
+    with :ok <- confirm_price(params),
+         true <-
+           Application.get_env(:mokaid, :avatar_pipeline_enabled, true) ||
+             {:error, :avatar_generation_unavailable},
+         true <- Meshy.configured?() || {:error, :avatar_generation_unavailable},
          {:ok, input} <- validate_input(params),
          :ok <- check_limits(workspace_id),
          {:ok, source} <- store_source(workspace_id, input) do
@@ -55,14 +72,46 @@ defmodule Mokaid.Avatars do
           }
 
           generation = %Generation{} |> Generation.changeset(attrs) |> Repo.insert!()
+
+          case Credits.charge_strict(workspace_id, @generation_credits,
+                 description: "Custom 3D character",
+                 idempotency_key: charge_key(generation.id),
+                 metadata: %{"avatar_generation_id" => generation.id}
+               ) do
+            {:ok, _, _} -> :ok
+            {:error, reason} -> Repo.rollback(reason)
+          end
+
           %{generation_id: generation.id} |> Worker.new() |> Oban.insert!()
           Repo.preload(generation, :asset)
         end)
 
-      if match?({:error, _}, result), do: storage().delete_source(source)
+      case result do
+        {:ok, _} -> Credits.broadcast_balance(workspace_id)
+        {:error, _} -> storage().delete_source(source)
+      end
+
       result
     end
   end
+
+  defp confirm_price(%{"expected_credits" => expected}) do
+    expected =
+      if is_binary(expected) do
+        case Integer.parse(expected) do
+          {credits, ""} -> credits
+          _ -> nil
+        end
+      else
+        expected
+      end
+
+    if is_integer(expected) and expected == @generation_credits,
+      do: :ok,
+      else: {:error, :avatar_price_changed}
+  end
+
+  defp confirm_price(_), do: {:error, :avatar_price_confirmation_required}
 
   def validate_input(%{"mode" => "text", "prompt" => prompt} = params) when is_binary(prompt) do
     prompt = String.trim(prompt)
@@ -152,11 +201,17 @@ defmodule Mokaid.Avatars do
       asset_id: generation.asset_id,
       asset: asset,
       thumbnail_url: generation.thumbnail_url,
-      error: generation.error,
+      error: public_error(generation.error),
       inserted_at: generation.inserted_at,
       updated_at: generation.updated_at
     }
   end
+
+  # Older records can contain upstream branding from before credit billing.
+  defp public_error(error) when is_binary(error),
+    do: String.replace(error, ~r/meshy/i, "The character service")
+
+  defp public_error(error), do: error
 
   @doc "Webhooks only wake known tasks. Never accept status or asset URLs from their bodies."
   def webhook_hint(%{"id" => task_id}, raw_body)

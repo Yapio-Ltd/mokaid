@@ -63,7 +63,7 @@ class PreviewController final : public QObject {
     Q_PROPERTY(int collectionIndex READ collectionIndex NOTIFY changed)
     Q_PROPERTY(int collectionCount READ collectionCount NOTIFY changed)
     Q_PROPERTY(int thumbnailRevision READ thumbnailRevision NOTIFY thumbnailsChanged)
-    Q_PROPERTY(bool nativePreviewAvailable READ nativePreviewAvailable CONSTANT)
+    Q_PROPERTY(bool nativePreviewAvailable READ nativePreviewAvailable NOTIFY changed)
 public:
     explicit PreviewController(ArtifactService& artifacts, QObject* parent = nullptr);
     ~PreviewController() override;
@@ -79,7 +79,7 @@ public:
     int collectionIndex() const { return collectionIndex_; }
     int collectionCount() const { return static_cast<int>(collection_.size()); }
     int thumbnailRevision() const { return thumbnailRevision_; }
-    bool nativePreviewAvailable() const { return NativeFilePreview::available(); }
+    bool nativePreviewAvailable() const;
     Q_INVOKABLE QVariantMap describe(const QVariantMap& file) const;
     Q_INVOKABLE QString thumbnailUrl(const QVariantMap& file);
     Q_INVOKABLE QString thumbnailState(const QVariantMap& file) const;
@@ -88,6 +88,7 @@ public:
     Q_INVOKABLE void previous();
     Q_INVOKABLE void next();
     Q_INVOKABLE void downloadCurrent();
+    Q_INVOKABLE void downloadFile(const QVariantMap& file);
     Q_INVOKABLE void downloadFailed();
     Q_INVOKABLE void retryFailed();
     Q_INVOKABLE void openNativePreview();

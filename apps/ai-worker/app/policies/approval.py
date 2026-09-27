@@ -34,6 +34,10 @@ TOOL_RISK: dict[str, RiskLevel] = {
     "read_team_artifact": RiskLevel.LOW,
     "save_deliverable": RiskLevel.MEDIUM,
     "list_tasks": RiskLevel.LOW,
+    "list_mail_accounts": RiskLevel.LOW,
+    "search_mail": RiskLevel.LOW,
+    "read_mail_message": RiskLevel.LOW,
+    "save_mail_attachment": RiskLevel.MEDIUM,
     # Content generation (internal artifacts)
     "draft_document": RiskLevel.MEDIUM,
     "generate_report": RiskLevel.MEDIUM,

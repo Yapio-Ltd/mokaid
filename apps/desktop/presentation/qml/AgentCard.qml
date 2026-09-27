@@ -7,7 +7,7 @@ AbstractButton {
     property var agent: ({})
     property bool selected: false
     property bool online: true
-    readonly property bool usesCustomPortrait: String(agent.asset_type || "").indexOf("custom:") === 0 || !!agent.avatar_thumbnail_url
+    readonly property bool usesCustomPortrait: String(agent.asset_type || "").indexOf("custom:") === 0 || !!agent.avatar_portrait_url || !!agent.avatar_thumbnail_url
     readonly property string agentName: agent.display_name || agent.name || "Agent"
     readonly property string missionStatus: agent.status === "busy" || agent.status === "working" ? "Working" : agent.status === "waiting" ? "Needs you" : agent.status === "blocked" ? "Blocked" : agent.status === "active" ? "Active" : agent.status === "idle" ? "Idle" : agent.status === "training" ? "Training" : agent.status || "Status unavailable"
     readonly property color statusColor: ["busy", "working", "active"].indexOf(agent.status) >= 0 ? Theme.success : ["waiting", "training"].indexOf(agent.status) >= 0 ? Theme.warning : agent.status === "blocked" ? Theme.danger : Theme.accentBlue

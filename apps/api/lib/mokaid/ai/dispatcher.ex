@@ -49,21 +49,25 @@ defmodule Mokaid.AI.Dispatcher do
       installations = connected_installations(workspace_id)
       servers = MCP.list_servers()
 
-      base =
+      analysis =
         case worker_analyze(instruction, files, roster, installations, servers) do
           {:ok, result} ->
-            normalize_worker_result(result, roster, servers) ||
-              heuristic_analysis(workspace_id, instruction, files, roster, servers)
+            normalize_worker_result(result, roster, servers)
+
+          {:error, :invalid_dispatch_analysis} = error ->
+            error
 
           :error ->
-            heuristic_analysis(workspace_id, instruction, files, roster, servers)
+            {:ok, heuristic_analysis(workspace_id, instruction, files, roster, servers)}
         end
 
-      # Requested domains let every UI (New Task, detail panel reassignment)
-      # warn about out-of-specialty assignments consistently.
-      base = Map.put(base, :domain_categories, detect_categories(instruction, files))
+      with {:ok, base} <- analysis do
+        # Requested domains let every UI (New Task, detail panel reassignment)
+        # warn about out-of-specialty assignments consistently.
+        base = Map.put(base, :domain_categories, detect_categories(instruction, files))
 
-      {:ok, decorate_mcp_suggestions(base, workspace_id, installations, servers)}
+        {:ok, decorate_mcp_suggestions(base, workspace_id, installations, servers)}
+      end
     end
   end
 
@@ -72,13 +76,17 @@ defmodule Mokaid.AI.Dispatcher do
   round-trip) — used by the composite orchestrator to staff each wave.
   """
   def best_agent(workspace_id, instruction) do
-    categories = detect_categories(instruction, [])
+    categories = routing_categories(instruction, [])
     signals = signal_tokens(instruction, categories)
 
     workspace_id
     |> dispatchable_agents()
-    |> Enum.map(fn entry ->
-      {entry.agent, agent_score(entry.agent, signals, categories) * 10 - entry.open_tasks}
+    |> Enum.flat_map(fn entry ->
+      score = agent_score(entry.agent, signals, categories)
+
+      # Availability only ranks capable employees. With no skill/domain match,
+      # leave the sub-mission unassigned instead of starting an unrelated agent.
+      if score > 0, do: [{entry.agent, score * 10 - entry.open_tasks}], else: []
     end)
     |> Enum.sort_by(fn {_agent, score} -> -score end)
     |> case do
@@ -347,12 +355,28 @@ defmodule Mokaid.AI.Dispatcher do
 
   defp worker_analyze(instruction, files, roster, installations, servers) do
     config = Application.fetch_env!(:mokaid, :ai_worker)
+    token = presence(config[:token])
 
-    if config[:dispatch] == :http and Mokaid.AI.WorkerClient.absolute_url?(config[:url]) do
+    # Analysis is synchronous even when execution jobs use SQS. Dispatch mode
+    # controls queued work, not whether the reachable worker can select agents.
+    if config[:dispatch] in [:http, :sqs] and
+         Mokaid.AI.WorkerClient.absolute_url?(config[:url]) and token != nil do
       payload = %{
         instruction: instruction,
         files: files,
         agents: Enum.map(roster, &roster_entry/1),
+        agent_archetypes:
+          Enum.map(Mokaid.Agents.Archetypes.list_archetypes(), fn archetype ->
+            Map.take(archetype, [
+              :key,
+              :name,
+              :role_title,
+              :department,
+              :domain,
+              :skills,
+              :description
+            ])
+          end),
         mcp_connected:
           Enum.map(installations, fn i ->
             %{
@@ -370,14 +394,18 @@ defmodule Mokaid.AI.Dispatcher do
           end)
       }
 
-      case Req.post(
-             url: "#{String.trim_trailing(config[:url], "/")}/dispatch/analyze",
-             json: payload,
-             headers: [{"authorization", "Bearer #{config[:token]}"}],
-             receive_timeout: 30_000,
-             retry: false
-           ) do
-        {:ok, %{status: 200, body: body}} when is_map(body) -> {:ok, body}
+      options =
+        Keyword.merge(Application.get_env(:mokaid, :dispatch_analysis_http_options, []),
+          url: "#{String.trim_trailing(config[:url], "/")}/dispatch/analyze",
+          json: payload,
+          headers: [{"authorization", "Bearer #{token}"}],
+          receive_timeout: 30_000,
+          retry: false
+        )
+
+      case Req.post(options) do
+        {:ok, %{status: 200, body: body}} -> {:ok, body}
+        {:ok, %{status: 422}} -> {:error, :invalid_dispatch_analysis}
         _ -> :error
       end
     else
@@ -401,134 +429,130 @@ defmodule Mokaid.AI.Dispatcher do
     }
   end
 
-  # Validates and reshapes the worker's JSON. Returns nil when the payload
-  # is unusable so the caller falls back to the heuristic.
+  # An invalid model decision is different from an unavailable worker. Never
+  # conceal an incomplete specialist or contradictory route with a new guess.
   defp normalize_worker_result(result, roster, servers) do
-    rec = result["recommendation"] || %{}
     agent_ids = MapSet.new(roster, & &1.agent.id)
     server_keys = MapSet.new(servers, & &1.key)
 
-    mode =
-      case rec["mode"] do
-        m when m in ~w(existing_agent custom_agent user_choice) -> m
-        _ -> nil
-      end
-
-    agent_id =
-      case rec["agent_id"] do
-        id when is_binary(id) -> if MapSet.member?(agent_ids, id), do: id
-        _ -> nil
-      end
-
-    confidence = clamp_confidence(rec["confidence"])
-
-    # Low-confidence "matches" are not real fits — force create-agent flow.
-    {mode, agent_id} =
-      cond do
-        mode == "custom_agent" ->
-          {"custom_agent", nil}
-
-        mode == "existing_agent" and confidence < 45 ->
-          {"custom_agent", nil}
-
-        true ->
-          {mode, agent_id}
-      end
-
-    cond do
-      mode == nil -> nil
-      mode in ~w(existing_agent user_choice) and agent_id == nil -> nil
-      true -> build_normalized(result, rec, mode, agent_id, agent_ids, server_keys, confidence)
+    with %{"recommendation" => rec, "task" => task} when is_map(rec) and is_map(task) <- result,
+         true <- presence(task["title"]) != nil and presence(task["description"]) != nil,
+         true <- task["priority"] in @priorities,
+         true <- valid_worker_recommendation?(rec, agent_ids),
+         true <- valid_mcp_suggestions?(result["mcp_suggestions"], server_keys) do
+      {:ok, build_normalized(result, rec)}
+    else
+      _ -> {:error, :invalid_dispatch_analysis}
     end
   end
 
-  defp build_normalized(result, rec, mode, agent_id, agent_ids, server_keys, confidence) do
-    task = result["task"] || %{}
+  defp valid_worker_recommendation?(rec, agent_ids) do
+    mode = rec["mode"]
+    agent_id = rec["agent_id"]
+    alternatives = rec["alternatives"]
+    custom = rec["custom_agent"]
 
-    alternatives =
-      if mode == "custom_agent" do
-        []
-      else
-        (rec["alternatives"] || [])
-        |> Enum.filter(fn alt ->
-          is_map(alt) and is_binary(alt["agent_id"]) and
-            MapSet.member?(agent_ids, alt["agent_id"])
-        end)
-        |> Enum.take(2)
-        |> Enum.map(fn alt ->
-          %{
-            agent_id: alt["agent_id"],
-            confidence: clamp_confidence(alt["confidence"]),
-            reason: to_string(alt["reason"] || "")
-          }
-        end)
-      end
+    valid_confidence?(rec["confidence"]) and presence(rec["reason"]) != nil and
+      valid_alternatives?(alternatives, agent_id, agent_ids) and
+      case mode do
+        "existing_agent" ->
+          MapSet.member?(agent_ids, agent_id) and is_nil(custom) and rec["confidence"] >= 45
 
-    custom_agent =
-      case rec["custom_agent"] do
-        %{"display_name" => name} = custom when is_binary(name) ->
-          domain_hint =
-            custom["archetype_key"] ||
-              Mokaid.Agents.Archetypes.archetype_key_for_domain(custom["domain"])
+        "custom_agent" ->
+          is_nil(agent_id) and alternatives == [] and valid_worker_custom_agent?(custom)
 
-          %{
-            display_name: name,
-            role_title: custom["role_title"],
-            department: custom["department"],
-            archetype_key: domain_hint,
-            skills: normalize_skills(custom["skills"])
-          }
-
-        _ when mode in ~w(custom_agent user_choice) ->
-          # LLM omitted the specialist profile — still need a sensible proposal.
-          custom_proposal([])
+        "user_choice" ->
+          MapSet.member?(agent_ids, agent_id) and valid_worker_custom_agent?(custom)
 
         _ ->
-          nil
+          false
       end
+  end
 
-    # custom_agent mode must always present a creation option, never an agent id.
-    {mode, agent_id, custom_agent, alternatives} =
-      if mode == "custom_agent" do
-        {"custom_agent", nil, custom_agent || custom_proposal([]), []}
-      else
-        {mode, agent_id, custom_agent, alternatives}
-      end
+  defp valid_alternatives?(alternatives, agent_id, agent_ids) when is_list(alternatives) do
+    ids = Enum.map(alternatives, fn alt -> if is_map(alt), do: alt["agent_id"] end)
 
-    mcp_suggestions =
-      (result["mcp_suggestions"] || [])
-      |> Enum.filter(fn s ->
-        is_map(s) and is_binary(s["server_key"]) and MapSet.member?(server_keys, s["server_key"])
+    length(alternatives) <= 2 and length(Enum.uniq(ids)) == length(ids) and
+      Enum.all?(alternatives, fn alt ->
+        is_map(alt) and MapSet.member?(agent_ids, alt["agent_id"]) and
+          alt["agent_id"] != agent_id and valid_confidence?(alt["confidence"]) and
+          is_binary(alt["reason"])
       end)
-      |> Enum.take(3)
-      |> Enum.map(fn s ->
-        %{server_key: s["server_key"], reason: to_string(s["reason"] || "")}
+  end
+
+  defp valid_alternatives?(_, _, _), do: false
+
+  defp valid_mcp_suggestions?(suggestions, server_keys) when is_list(suggestions) do
+    length(suggestions) <= 3 and
+      Enum.all?(suggestions, fn suggestion ->
+        is_map(suggestion) and MapSet.member?(server_keys, suggestion["server_key"]) and
+          is_binary(suggestion["reason"])
       end)
+  end
 
-    raw_reason = to_string(rec["reason"] || "")
+  defp valid_mcp_suggestions?(_, _), do: false
 
-    reason =
-      if mode == "custom_agent" and raw_reason == "" do
-        heuristic_reason("custom_agent", nil, [])
-      else
-        raw_reason
+  defp valid_worker_custom_agent?(custom) when is_map(custom) do
+    presence(custom["display_name"]) != nil and presence(custom["role_title"]) != nil and
+      valid_archetype_key?(custom["archetype_key"]) and
+      (is_nil(custom["department"]) or is_binary(custom["department"])) and
+      valid_custom_skills?(custom["skills"])
+  end
+
+  defp valid_worker_custom_agent?(_), do: false
+
+  defp valid_archetype_key?(key) do
+    is_binary(key) and key != "" and Mokaid.Agents.Archetypes.get_archetype(key) != nil
+  end
+
+  defp valid_custom_skills?(skills) when is_list(skills) and skills != [] do
+    length(skills) <= 8 and
+      Enum.all?(skills, fn skill ->
+        is_map(skill) and presence(skill["name"]) != nil and
+          valid_confidence?(skill["level"])
+      end)
+  end
+
+  defp valid_custom_skills?(_), do: false
+
+  defp valid_confidence?(confidence), do: is_integer(confidence) and confidence in 0..100
+
+  defp build_normalized(result, rec) do
+    task = result["task"]
+    custom = rec["custom_agent"]
+
+    custom_agent =
+      if custom do
+        %{
+          display_name: presence(custom["display_name"]),
+          role_title: presence(custom["role_title"]),
+          department: custom["department"],
+          archetype_key: custom["archetype_key"],
+          skills: normalize_skills(custom["skills"])
+        }
       end
 
     %{
       task: %{
-        title: presence(task["title"]) || "New task",
-        description: to_string(task["description"] || ""),
-        priority: normalize_priority(task["priority"])
+        title: presence(task["title"]),
+        description: presence(task["description"]),
+        priority: task["priority"]
       },
       recommendation: %{
-        mode: mode,
-        agent_id: agent_id,
-        confidence: confidence,
-        reason: reason,
-        alternatives: alternatives,
+        mode: rec["mode"],
+        agent_id: rec["agent_id"],
+        confidence: rec["confidence"],
+        reason: presence(rec["reason"]),
+        alternatives:
+          Enum.map(rec["alternatives"], fn alt ->
+            %{agent_id: alt["agent_id"], confidence: alt["confidence"], reason: alt["reason"]}
+          end),
         custom_agent: custom_agent
       },
-      mcp_suggestions: mcp_suggestions
+      mcp_suggestions:
+        Enum.map(result["mcp_suggestions"], fn suggestion ->
+          %{server_key: suggestion["server_key"], reason: suggestion["reason"]}
+        end)
     }
   end
 
@@ -558,7 +582,7 @@ defmodule Mokaid.AI.Dispatcher do
       ~w(code coding development developpement developpeur développeur programmer programmation software logiciel bug feature api script deploy site website webapp web ecommerce e-commerce boutique frontend backend fullstack application appli saas shopify wordpress cms plateforme),
     "slides" => ~w(presentation slides deck pitch),
     "legal" =>
-      ~w(legal juridique contract rgpd gdpr compliance conformite clause nda avocat lawyer),
+      ~w(legal legale legales legaux légal légale légales légaux juridique juridiques loi lois droit droits législation legislation law laws contract rgpd gdpr compliance conformite clause nda avocat lawyer),
     "finance" =>
       ~w(finance budget comptable comptabilite invoice facture forecast tresorerie cashflow fiscal tax),
     "marketing" => ~w(marketing seo campagne campaign newsletter social ads audience growth),
@@ -592,7 +616,7 @@ defmodule Mokaid.AI.Dispatcher do
   ]
 
   defp heuristic_analysis(workspace_id, instruction, files, roster, servers) do
-    categories = detect_categories(instruction, files)
+    categories = routing_categories(instruction, files)
     signals = signal_tokens(instruction, categories)
 
     scored =
@@ -727,6 +751,46 @@ defmodule Mokaid.AI.Dispatcher do
     # The requested work determines the specialist; a PDF can be legal work,
     # and a spreadsheet can be input to a software project.
     Enum.uniq(keyword_categories ++ extension_categories)
+  end
+
+  # Research and a written report are often the requested form of legal work,
+  # not evidence that a general writer is a better fit than a legal specialist.
+  # Keep concrete data/code work in contention (e.g. a legal dataset or a law
+  # firm's website); only ambiguous report/analysis words are treated as format.
+  defp routing_categories(instruction, files) do
+    categories = detect_categories(instruction, files)
+
+    if "legal" in categories do
+      text = String.downcase(instruction)
+
+      # Privacy law mentions data as its subject. It does not, by itself,
+      # turn a legal summary into statistical or spreadsheet analysis.
+      data_evidence =
+        Regex.replace(
+          ~r/(?:protection|confidentialit[eé])\s+(?:(?:des|de)\s+)?donn[eé]es|data\s+(?:protection|privacy)|protection\s+of\s+(?:personal\s+)?data/u,
+          text,
+          ""
+        )
+
+      data_work? =
+        Enum.any?(
+          ~w(data dataset datasets données donnees spreadsheet spreadsheets tableur metrics kpi excel statistiques statistics sql parquet),
+          &keyword_in_text?(data_evidence, &1)
+        ) or
+          Enum.any?(files, fn file ->
+            file["name"]
+            |> to_string()
+            |> Path.extname()
+            |> String.trim_leading(".")
+            |> String.downcase()
+            |> then(&(&1 in @file_categories["data"]))
+          end)
+
+      generic = if data_work?, do: ~w(document research), else: ~w(document research data)
+      categories -- generic
+    else
+      categories
+    end
   end
 
   # Word-boundary match so short tokens like "ads"/"tax"/"api" don't fire inside
@@ -1013,21 +1077,18 @@ defmodule Mokaid.AI.Dispatcher do
   end
 
   defp resolve_agent(workspace_id, member, %{"custom_agent" => %{} = attrs}) do
-    archetype_key =
-      attrs["archetype_key"] ||
-        infer_archetype_from_custom(attrs)
-
-    with {:ok, agent} <-
+    with :ok <- validate_custom_creation(attrs),
+         {:ok, agent} <-
            Agents.create_agent(
              workspace_id,
              %{
                "kind" => "ai",
-               "display_name" => presence(attrs["display_name"]) || "Custom Agent",
+               "display_name" => presence(attrs["display_name"]),
                "role_title" => attrs["role_title"],
                "department" => attrs["department"],
-               "archetype_key" => archetype_key,
+               "archetype_key" => attrs["archetype_key"],
                "boost_key" => attrs["boost_key"],
-               "instructions" => presence(attrs["instructions"]),
+               "instructions" => custom_instructions(attrs),
                "avatar_config" => %{"primary_color" => random_agent_color()}
              },
              member
@@ -1036,29 +1097,39 @@ defmodule Mokaid.AI.Dispatcher do
     end
   end
 
+  defp resolve_agent(_workspace_id, _member, %{"custom_agent" => _}),
+    do: {:error, :invalid_custom_agent}
+
   defp resolve_agent(_workspace_id, _member, _params), do: {:ok, nil}
 
-  defp infer_archetype_from_custom(attrs) do
-    skill_names =
-      (attrs["skills"] || [])
-      |> Enum.map(fn
-        %{"name" => name} -> name
-        %{name: name} -> name
-        name when is_binary(name) -> name
-        _ -> nil
-      end)
-      |> Enum.reject(&is_nil/1)
-      |> Enum.map(&String.downcase/1)
+  defp validate_custom_creation(attrs) do
+    # Explicit catalog selections can omit role and skills: the trusted catalog
+    # supplies them. When present, profile fields must still be meaningful.
+    valid? =
+      presence(attrs["display_name"]) != nil and valid_archetype_key?(attrs["archetype_key"]) and
+        (not Map.has_key?(attrs, "role_title") or presence(attrs["role_title"]) != nil) and
+        (not Map.has_key?(attrs, "skills") or valid_custom_skills?(attrs["skills"])) and
+        (is_nil(attrs["department"]) or is_binary(attrs["department"])) and
+        (is_nil(attrs["instructions"]) or is_binary(attrs["instructions"]))
 
-    cond do
-      Enum.any?(skill_names, &(&1 in ~w(coding debugging code-review))) -> "developer"
-      Enum.any?(skill_names, &(&1 in ~w(ui-design figma branding))) -> "designer"
-      Enum.any?(skill_names, &(&1 in ~w(data-analysis spreadsheets reporting))) -> "data_analyst"
-      Enum.any?(skill_names, &(&1 in ~w(writing editing research))) -> "writer"
-      Enum.any?(skill_names, &(&1 in ~w(image-editing video content))) -> "media"
-      Enum.any?(skill_names, &(&1 in ~w(presentations storytelling design))) -> "presenter"
-      true -> "generalist"
-    end
+    if valid?, do: :ok, else: {:error, :invalid_custom_agent}
+  end
+
+  defp custom_instructions(attrs) do
+    specialization =
+      case attrs["skills"] do
+        skills when is_list(skills) and skills != [] ->
+          "Specialization requested for this agent: " <>
+            Enum.map_join(skills, ", ", &presence(&1["name"])) <> "."
+
+        _ ->
+          nil
+      end
+
+    [presence(attrs["instructions"]), specialization]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join("\n\n")
+    |> presence()
   end
 
   defp link_drive_items(_workspace_id, _task_id, []), do: :ok
@@ -1149,13 +1220,13 @@ defmodule Mokaid.AI.Dispatcher do
     skills
     |> Enum.flat_map(fn
       %{"name" => name} = skill when is_binary(name) ->
-        [%{"name" => name, "level" => clamp_confidence(skill["level"] || 70)}]
+        [%{"name" => String.trim(name), "level" => clamp_confidence(skill["level"] || 70)}]
 
       %{name: name} = skill when is_binary(name) ->
-        [%{"name" => name, "level" => clamp_confidence(skill[:level] || 70)}]
+        [%{"name" => String.trim(name), "level" => clamp_confidence(skill[:level] || 70)}]
 
       name when is_binary(name) ->
-        [%{"name" => name, "level" => 70}]
+        [%{"name" => String.trim(name), "level" => 70}]
 
       _ ->
         []

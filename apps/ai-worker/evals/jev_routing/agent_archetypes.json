@@ -1,0 +1,238 @@
+[
+  {
+    "key": "blank",
+    "name": "New agent",
+    "role_title": "Trainee",
+    "department": "Operations",
+    "domain": null,
+    "skills": [
+      "research",
+      "planning"
+    ],
+    "description": "Starts at level 1 with basic skills. Chooses a role and trains through missions."
+  },
+  {
+    "key": "developer",
+    "name": "Developer",
+    "role_title": "Software Engineer",
+    "department": "Engineering",
+    "domain": "code",
+    "skills": [
+      "coding",
+      "debugging",
+      "code-review",
+      "architecture"
+    ],
+    "description": "Level-ready software engineer: coding, debugging, reviews, GitHub workflows."
+  },
+  {
+    "key": "data_scientist",
+    "name": "Data Scientist",
+    "role_title": "Data Scientist",
+    "department": "Data",
+    "domain": "data",
+    "skills": [
+      "data-analysis",
+      "statistics",
+      "modeling",
+      "reporting"
+    ],
+    "description": "Analysis, modeling, spreadsheets and decision-ready reporting."
+  },
+  {
+    "key": "research",
+    "name": "Researcher",
+    "role_title": "Research Analyst",
+    "department": "Research",
+    "domain": "research",
+    "skills": [
+      "research",
+      "synthesis",
+      "source-critique",
+      "briefing"
+    ],
+    "description": "Deep research, synthesis, source evaluation and brief writing."
+  },
+  {
+    "key": "finance",
+    "name": "Finance",
+    "role_title": "Finance Analyst",
+    "department": "Finance",
+    "domain": "finance",
+    "skills": [
+      "financial-analysis",
+      "budgeting",
+      "forecasting",
+      "modeling"
+    ],
+    "description": "Financial analysis, budgeting, forecasting and investment literacy."
+  },
+  {
+    "key": "marketing",
+    "name": "Marketing",
+    "role_title": "Marketing Specialist",
+    "department": "Marketing",
+    "domain": "marketing",
+    "skills": [
+      "seo",
+      "content-marketing",
+      "campaigns",
+      "branding"
+    ],
+    "description": "Growth, SEO, campaigns, brand messaging and content marketing."
+  },
+  {
+    "key": "sales",
+    "name": "Sales",
+    "role_title": "Sales Specialist",
+    "department": "Sales",
+    "domain": "sales",
+    "skills": [
+      "outbound",
+      "discovery",
+      "negotiation",
+      "crm"
+    ],
+    "description": "Pipeline, outreach, discovery calls and closing playbooks."
+  },
+  {
+    "key": "sciences",
+    "name": "Sciences",
+    "role_title": "Science Specialist",
+    "department": "Science",
+    "domain": "sciences",
+    "skills": [
+      "scientific-method",
+      "experiment-design",
+      "literature",
+      "analysis"
+    ],
+    "description": "Scientific method, experimental design and technical communication."
+  },
+  {
+    "key": "legal",
+    "name": "Legal",
+    "role_title": "Legal Specialist",
+    "department": "Legal",
+    "domain": "legal",
+    "skills": [
+      "contracts",
+      "compliance",
+      "legal-research",
+      "risk"
+    ],
+    "description": "Contracts, compliance checklists and legal research support (not legal advice)."
+  },
+  {
+    "key": "ops_hr",
+    "name": "Ops & HR",
+    "role_title": "Ops Specialist",
+    "department": "Operations",
+    "domain": "ops",
+    "skills": [
+      "operations",
+      "people-ops",
+      "sop",
+      "process-design"
+    ],
+    "description": "Operations, people processes, SOPs and internal communications."
+  },
+  {
+    "key": "product",
+    "name": "Product",
+    "role_title": "Product Specialist",
+    "department": "Product",
+    "domain": "product",
+    "skills": [
+      "roadmapping",
+      "specs",
+      "prioritization",
+      "discovery"
+    ],
+    "description": "Roadmaps, specs, prioritization and cross-functional delivery."
+  },
+  {
+    "key": "design",
+    "name": "Design",
+    "role_title": "Designer",
+    "department": "Design",
+    "domain": "design",
+    "skills": [
+      "ui-design",
+      "ux",
+      "figma",
+      "design-systems"
+    ],
+    "description": "UI/UX, Figma workflows, design systems and brand craft."
+  },
+  {
+    "key": "writer_content",
+    "name": "Writer",
+    "role_title": "Content Specialist",
+    "department": "Content",
+    "domain": "document",
+    "skills": [
+      "writing",
+      "editing",
+      "storytelling",
+      "presentations"
+    ],
+    "description": "Long-form writing, editing, storytelling and presentations."
+  },
+  {
+    "key": "security",
+    "name": "Security",
+    "role_title": "Security Specialist",
+    "department": "Security",
+    "domain": "security",
+    "skills": [
+      "threat-modeling",
+      "code-review",
+      "compliance",
+      "incident-response"
+    ],
+    "description": "AppSec, threat modeling, secure reviews and vulnerability triage."
+  },
+  {
+    "key": "devops",
+    "name": "DevOps",
+    "role_title": "DevOps Engineer",
+    "department": "Engineering",
+    "domain": "devops",
+    "skills": [
+      "ci-cd",
+      "infrastructure",
+      "observability",
+      "runbooks"
+    ],
+    "description": "CI/CD, infrastructure, observability and reliable releases."
+  },
+  {
+    "key": "support_cs",
+    "name": "Support & CS",
+    "role_title": "Support Specialist",
+    "department": "Support",
+    "domain": "support",
+    "skills": [
+      "support",
+      "troubleshooting",
+      "customer-success",
+      "documentation"
+    ],
+    "description": "Customer support, success playbooks and ticket resolution."
+  },
+  {
+    "key": "media_video",
+    "name": "Media & Video",
+    "role_title": "Media Specialist",
+    "department": "Marketing",
+    "domain": "media",
+    "skills": [
+      "video",
+      "scripting",
+      "editing",
+      "transcription"
+    ],
+    "description": "Video, audio, scripting and media production workflows."
+  }
+]

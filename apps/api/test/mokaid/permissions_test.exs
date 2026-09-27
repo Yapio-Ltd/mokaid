@@ -32,6 +32,22 @@ defmodule Mokaid.PermissionsTest do
     refute Permissions.can?(%Member{role: nil}, "tasks.view")
   end
 
+  test "mail mutations require an owner or administrator" do
+    for permission <- ~w(mail.send mail.manage) do
+      assert permission in Mokaid.Members.permission_keys()
+
+      for role <- ~w(Owner Admin) do
+        assert Permissions.can?(member_with_role(role), permission)
+      end
+
+      for role <- ["Manager", "Member", "Viewer", "Agent User", "Billing Admin", "Unknown"] do
+        refute Permissions.can?(member_with_role(role), permission)
+      end
+
+      refute Permissions.can?(%Member{role: nil}, permission)
+    end
+  end
+
   test "authorize returns forbidden error tuple" do
     assert {:error, :forbidden} =
              Permissions.authorize(member_with_role("Viewer"), "workspace.delete")

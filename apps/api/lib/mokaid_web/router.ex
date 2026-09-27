@@ -185,6 +185,9 @@ defmodule MokaidWeb.Router do
     get "/integrations", IntegrationController, :index
     post "/integrations/:provider/connect", IntegrationController, :connect
     post "/integrations/:id/disconnect", IntegrationController, :disconnect
+    post "/integrations/google/desktop/start", NativeGoogleOAuthController, :start
+    get "/integrations/google/desktop/:id", NativeGoogleOAuthController, :show
+    delete "/integrations/google/desktop/:id", NativeGoogleOAuthController, :cancel
     post "/integrations/google/oauth/start", IntegrationOAuthController, :google_start
     post "/integrations/google/oauth/callback", IntegrationOAuthController, :google_callback
     post "/integrations/github/oauth/start", IntegrationOAuthController, :github_start
@@ -240,7 +243,12 @@ defmodule MokaidWeb.Router do
     delete "/mail/accounts/:id", MailController, :delete_account
     post "/mail/accounts/:id/sync", MailController, :sync_account
     get "/mail/messages", MailController, :list_messages
+    get "/mail/folders", MailController, :list_folders
     get "/mail/messages/:id", MailController, :show_message
+    patch "/mail/messages/:id", MailController, :update_message
+    get "/mail/messages/:id/attachments/:attachment_id", MailController, :download_attachment
+    post "/mail/send", MailSendController, :send
+    get "/mail/outbox/:id", MailSendController, :status
     get "/mail/rules", MailController, :list_rules
     post "/mail/rules", MailController, :create_rule
     patch "/mail/rules/:id", MailController, :update_rule
@@ -348,5 +356,7 @@ defmodule MokaidWeb.Router do
     post "/mail/accounts/:id/sync-state", MailWorkerController, :update_sync_state
     post "/mail/accounts/:id/credentials", MailWorkerController, :credentials
     post "/mail/accounts/:id/rules", MailWorkerController, :rules
+    post "/mail/tools", WorkerMailToolsController, :call_tool
+    post "/mail/refresh", WorkerMailToolsController, :refresh_access
   end
 end

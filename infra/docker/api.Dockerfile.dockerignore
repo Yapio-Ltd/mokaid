@@ -35,3 +35,5 @@ apps/web/tmp-office-camera
 !apps/desktop/tools/asset-cooker/package-lock.json
 !apps/desktop/tools/asset-cooker/cook-custom.mjs
 !apps/desktop/tools/asset-cooker/source-policy.mjs
+!apps/desktop/tools/asset-cooker/surface-kinds.mjs
+!apps/desktop/tools/asset-cooker/character-normals.mjs

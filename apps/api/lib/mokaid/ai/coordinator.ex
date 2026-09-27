@@ -153,7 +153,11 @@ defmodule Mokaid.AI.Coordinator do
   def reply(workspace_id, member, params) do
     with {:ok, request} <- normalize_request(params),
          :ok <- authorize_credits(workspace_id),
-         {:ok, result} <- ask_worker(context(workspace_id, request)) do
+         payload <-
+           context(workspace_id, request)
+           |> Map.put(:workspace_mail, Mokaid.Mail.AgentAccess.for_member(workspace_id, member))
+           |> Map.put(:server_time_utc, DateTime.to_iso8601(DateTime.utc_now())),
+         {:ok, result} <- ask_worker(payload) do
       cost = if is_integer(result["cost_cents"]), do: max(result["cost_cents"], 0), else: 0
 
       Mokaid.Billing.record_usage(
@@ -173,7 +177,8 @@ defmodule Mokaid.AI.Coordinator do
             description: "Moked orchestrator conversation"
           )
 
-      {:ok, Map.take(result, ["reply", "language", "mission_instruction", "task_id"])}
+      {:ok,
+       Map.take(result, ["reply", "language", "mission_instruction", "task_id", "response_kind"])}
     end
   end
 
@@ -195,7 +200,7 @@ defmodule Mokaid.AI.Coordinator do
              url: String.trim_trailing(config[:url], "/") <> "/orchestrator/chat",
              json: payload,
              headers: [{"authorization", "Bearer #{config[:token]}"}],
-             receive_timeout: 25_000,
+             receive_timeout: 60_000,
              retry: false
            ) do
         {:ok, %{status: 200, body: %{"reply" => text} = result}}

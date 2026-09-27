@@ -78,7 +78,7 @@ defmodule Mokaid.Billing.Credits do
   end
 
   @doc """
-  Strict debit for prepaid actions (agent creation boosts). Unlike `charge_run`,
+  Strict debit for prepaid actions. Unlike `charge_run`,
   this never goes negative — insufficient balance returns `{:error, :insufficient_credits}`.
 
   Must be called inside an open `Repo.transaction/1` so it can share the caller's
@@ -120,15 +120,81 @@ defmodule Mokaid.Billing.Credits do
               ]
             )
 
-          record(workspace_id, kind, -credits, updated,
-            agent_id: agent_id,
-            description: description
-          )
+          metadata =
+            Keyword.get(opts, :metadata, %{})
+            |> Map.put("from_included", from_included)
+            |> Map.put("from_balance", from_balance)
+            |> Map.put("credits_period_start", period_key(sub))
+
+          case record(workspace_id, kind, -credits, updated,
+                 agent_id: agent_id,
+                 description: description,
+                 metadata: metadata,
+                 idempotency_key: Keyword.get(opts, :idempotency_key)
+               ) do
+            {:ok, _} -> :ok
+            {:error, changeset} -> Repo.rollback(changeset)
+          end
 
           {:ok, updated, credits}
         end
     end
   end
+
+  @doc """
+  Refunds a strict debit exactly once, inside the caller's transaction. Restores
+  the original monthly/purchased split while the grant period is unchanged;
+  otherwise credits the refund to the purchased balance so it is not lost at reset.
+  Unlimited plans have no debit to refund. The caller broadcasts after commit.
+  """
+  def refund_strict(workspace_id, charge_key, opts \\ []) when is_binary(charge_key) do
+    sub = lock_subscription(workspace_id)
+
+    charge =
+      Repo.get_by(CreditTransaction, workspace_id: workspace_id, idempotency_key: charge_key)
+
+    refund_key = charge_key <> ":refund"
+
+    cond do
+      is_nil(charge) ->
+        :ok
+
+      Repo.exists?(from t in CreditTransaction, where: t.idempotency_key == ^refund_key) ->
+        :ok
+
+      is_nil(sub) ->
+        {:error, :no_subscription}
+
+      charge.amount >= 0 ->
+        {:error, :invalid_credit_refund}
+
+      true ->
+        credits = -charge.amount
+
+        included =
+          if charge.metadata["credits_period_start"] == period_key(sub),
+            do: min(credits, max(0, charge.metadata["from_included"] || 0)),
+            else: 0
+
+        {1, [updated]} =
+          Repo.update_all(
+            from(s in Subscription, where: s.id == ^sub.id, select: s),
+            inc: [included_credits_remaining: included, credits_balance: credits - included]
+          )
+
+        case record(workspace_id, "adjustment", credits, updated,
+               description: Keyword.get(opts, :description, "Refund for prepaid action"),
+               idempotency_key: refund_key,
+               metadata: Map.put(charge.metadata, "refund_of", charge.id)
+             ) do
+          {:ok, _} -> :ok
+          {:error, changeset} -> Repo.rollback(changeset)
+        end
+    end
+  end
+
+  defp period_key(%Subscription{credits_period_start: nil}), do: nil
+  defp period_key(%Subscription{credits_period_start: period}), do: DateTime.to_iso8601(period)
 
   @doc "Broadcast the current credit balances after a successful charge_strict."
   def broadcast_balance(workspace_id) do
@@ -407,7 +473,9 @@ defmodule Mokaid.Billing.Credits do
         "balance_after" => spendable(sub),
         "run_id" => Keyword.get(opts, :run_id),
         "agent_id" => Keyword.get(opts, :agent_id),
-        "description" => Keyword.get(opts, :description)
+        "description" => Keyword.get(opts, :description),
+        "metadata" => Keyword.get(opts, :metadata, %{}),
+        "idempotency_key" => Keyword.get(opts, :idempotency_key)
       })
       |> Repo.insert()
     end

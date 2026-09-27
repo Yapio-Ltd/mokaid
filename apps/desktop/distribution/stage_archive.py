@@ -484,7 +484,16 @@ def restore(args: argparse.Namespace) -> None:
         # Links are created last, so none can redirect a file write.
         for path, item in table.items():
             if item["type"] == "symlink":
-                (destination / path).symlink_to(item["target"])
+                output_path = destination / path
+                output_path.symlink_to(item["target"])
+                # macOS applies umask to symlinks, including the signing probe's
+                # private 077 mask. Restore the link itself, never its target.
+                if stat.S_IMODE(output_path.lstat().st_mode) != item["mode"]:
+                    require(
+                        os.chmod in os.supports_follow_symlinks,
+                        "Cannot safely restore symlink permissions on this platform",
+                    )
+                    os.chmod(output_path, item["mode"], follow_symlinks=False)
         for path, item in sorted(
             table.items(), key=lambda pair: -len(PurePosixPath(pair[0]).parts)
         ):

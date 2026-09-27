@@ -1,5 +1,9 @@
 # Desktop mailbox connections
 
+The native reader, attachments and outgoing mail contracts are documented in [Mail center](MAIL_CENTER.md).
+
+For the 27 September 2026 Google incident, catalog repair and extended desktop connections, see [Google connections](GOOGLE_CONNECTIONS.md). The verification and production delivery sections below preserve the 25 September history; they do not establish the status of the later release.
+
 The Mail screen exposes **Connect mailbox** directly, including when no mailbox is connected. Gmail opens the system browser and completes automatically in the desktop. IMAP/SMTP offers iCloud, Yahoo and Gmail app-password presets, manual server settings, TLS/STARTTLS and optional separate SMTP credentials. A mailbox can be reconnected without deleting its messages; a different email address must be added as a new mailbox.
 
 ## Authentication and storage

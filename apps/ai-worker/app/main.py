@@ -7,6 +7,7 @@ import structlog
 from fastapi import FastAPI, Header, HTTPException, Request
 
 import app.tools.files  # noqa: F401 — registers file-processing tools
+import app.tools.mail  # noqa: F401 — workspace-scoped mailbox tools
 import app.tools.site_delivery  # noqa: F401 — HTML vs codebase choice gate
 import app.tools.web  # noqa: F401 — registers web_search
 import app.tools.webapp  # noqa: F401 — registers Next/React webapp scaffold tool
@@ -149,7 +150,7 @@ async def orchestrator_chat_endpoint(
 ) -> dict:
     _check_auth(authorization)
     try:
-        return await asyncio.wait_for(orchestrator_chat.respond(payload), timeout=22)
+        return await asyncio.wait_for(orchestrator_chat.respond(payload), timeout=55)
     except Exception as exc:  # noqa: BLE001 — never pretend a model replied
         log.warning("orchestrator_chat_failed", error=type(exc).__name__)
         raise HTTPException(status_code=503, detail="orchestrator model unavailable") from exc
@@ -169,8 +170,11 @@ async def dispatch_analyze(
 
     try:
         return await dispatcher.analyze(payload)
-    except Exception as exc:  # noqa: BLE001 — Phoenix falls back on any error
-        log.warning("dispatch_analyze_failed", error=str(exc))
+    except dispatcher.InvalidDispatchAnalysis as exc:
+        log.warning("dispatch_analysis_invalid")
+        raise HTTPException(status_code=422, detail="invalid_dispatch_analysis") from exc
+    except Exception as exc:  # noqa: BLE001 — infrastructure errors remain distinct
+        log.warning("dispatch_analyze_failed", error=type(exc).__name__)
         raise HTTPException(status_code=502, detail="dispatch analysis failed") from exc
 
 
@@ -328,3 +332,48 @@ async def mail_watch_endpoint(
     _background_runs.add(task)
     task.add_done_callback(_background_runs.discard)
     return {"accepted": True}
+
+
+@app.post("/mail/send")
+async def mail_send_endpoint(
+    payload: dict,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    """Return the provider outcome to the API's durable, idempotent outbox."""
+    _check_auth(authorization)
+    from app.mail import outbound
+
+    return await outbound.send(payload.get("account", {}), payload.get("message", {}))
+
+
+@app.post("/mail/message/action")
+async def mail_message_action_endpoint(
+    payload: dict,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    _check_auth(authorization)
+    from app.mail import operations
+
+    return await operations.message_action(payload)
+
+
+@app.post("/mail/attachment")
+async def mail_attachment_endpoint(
+    payload: dict,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    _check_auth(authorization)
+    from app.mail import operations
+
+    return await operations.download_attachment(payload)
+
+
+@app.post("/mail/message/detail")
+async def mail_message_detail_endpoint(
+    payload: dict,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    _check_auth(authorization)
+    from app.mail import operations
+
+    return await operations.hydrate_message(payload)

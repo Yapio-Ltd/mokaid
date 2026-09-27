@@ -1,6 +1,7 @@
 import { useState, type ComponentProps } from "react";
 import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { cn } from "@/lib/cn";
+import { resolveAgentPortraitUrl } from "@/lib/agent-portrait";
 import { resolveAgentGlbUrl } from "@/three/agent-cdn";
 import "./workforce-agent-portrait.css";
 
@@ -24,11 +25,20 @@ const PORTRAITS = [
 ] as const;
 
 export function resolveWorkforceAgentPortrait(
-  agent: Pick<PortraitAgent, "kind" | "avatar_cdn_path" | "avatar_asset_id">,
+  agent: Pick<
+    PortraitAgent,
+    "kind" | "avatar_cdn_path" | "avatar_asset_id" | "avatar_portrait_url" | "avatar_thumbnail_url"
+  >,
 ): string | null {
   if (agent.kind !== "ai" && agent.kind !== "hybrid") return null;
+  const portrait = resolveAgentPortraitUrl(agent.avatar_portrait_url);
+  if (portrait) return portrait;
   // An assigned asset without its resolved path must keep the existing renderer.
-  if (agent.avatar_asset_id && !agent.avatar_cdn_path?.trim()) return null;
+  if (
+    (agent.avatar_asset_id || agent.avatar_thumbnail_url || agent.avatar_portrait_url) &&
+    !agent.avatar_cdn_path?.trim()
+  )
+    return null;
 
   const source = resolveAgentGlbUrl(agent.avatar_cdn_path);
   const match = PORTRAITS.find(

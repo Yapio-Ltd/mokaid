@@ -129,4 +129,50 @@ defmodule MokaidWeb.MailOAuthControllerTest do
     assert cancelled["data"]["status"] == "failed"
     assert cancelled["data"]["error"] == "authorization_cancelled"
   end
+
+  test "generic Google desktop routes keep provider details and support cancellation", %{
+    conn: conn,
+    workspace: workspace,
+    user: user
+  } do
+    token = native_token(user)
+
+    response =
+      conn
+      |> authenticate(token, workspace)
+      |> post("/api/integrations/google/desktop/start", %{provider_key: "google_calendar"})
+      |> json_response(200)
+
+    id = response["data"]["flow_id"]
+    query = URI.decode_query(URI.parse(response["data"]["authorize_url"]).query)
+    assert query["scope"] =~ "auth/calendar"
+    refute query["scope"] =~ "gmail"
+
+    status =
+      conn
+      |> authenticate(token, workspace)
+      |> get("/api/integrations/google/desktop/" <> id)
+      |> json_response(200)
+
+    assert status["data"]["provider_key"] == "google_calendar"
+    assert status["data"]["status"] == "pending"
+
+    cancelled =
+      conn
+      |> authenticate(token, workspace)
+      |> delete("/api/integrations/google/desktop/" <> id)
+      |> json_response(200)
+
+    assert cancelled["data"]["error"] == "authorization_cancelled"
+
+    assert conn
+           |> authenticate(token, workspace)
+           |> post("/api/integrations/google/desktop/start", %{provider_key: "unknown"})
+           |> json_response(422)
+
+    assert conn
+           |> authenticate(Token.sign(user.id), workspace)
+           |> post("/api/integrations/google/desktop/start", %{provider_key: "google_drive"})
+           |> json_response(403)
+  end
 end

@@ -1,5 +1,5 @@
 defmodule Mokaid.Integrations.MailOAuthFlow do
-  @moduledoc "Short-lived, member-bound completion state for native mailbox authorization."
+  @moduledoc "Short-lived, member-bound completion state shared by native Google integrations."
   use Ecto.Schema
   import Ecto.Query
 
@@ -15,21 +15,24 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
     field :member_id, :binary_id
     field :status, :string, default: "pending"
     field :account_id, :binary_id
+    field :provider_key, :string, default: "gmail"
+    field :connection_id, :binary_id
     field :error, :string
     field :expires_at, :utc_datetime_usec
     timestamps()
   end
 
-  def start(workspace_id, member) do
+  def start(workspace_id, member, provider_key \\ "gmail") do
     id = Ecto.UUID.generate()
 
     with :ok <- Permissions.authorize(member, "integrations.connect"),
+         :ok <- Integrations.ensure_google_provider(provider_key),
          {:ok, url} <-
            GoogleOAuth.authorize_url(
              workspace_id,
              member.id,
              GoogleOAuth.desktop_redirect_uri(),
-             "gmail",
+             provider_key,
              flow_id: id
            ),
          {:ok, _flow} <-
@@ -37,6 +40,7 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
              id: id,
              workspace_id: workspace_id,
              member_id: member.id,
+             provider_key: provider_key,
              expires_at: DateTime.add(DateTime.utc_now(), 600, :second)
            }) do
       # Retain completed flows long enough for clients to resume polling; old
@@ -47,23 +51,47 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
     end
   end
 
-  def get(workspace_id, member_id, id) do
+  def get(workspace_id, member_id, id, opts \\ []) do
     with {:ok, id} <- Ecto.UUID.cast(id),
          %__MODULE__{} = flow <-
            Repo.get_by(__MODULE__, id: id, workspace_id: workspace_id, member_id: member_id) do
       if flow.status in ["pending", "completing"] and
            DateTime.compare(flow.expires_at, DateTime.utc_now()) != :gt do
-        {:ok, %{status: "failed", error: "authorization_expired", account_id: nil}}
+        {:ok, response(flow, "failed", "authorization_expired", opts)}
       else
         status = if flow.status == "completing", do: "pending", else: flow.status
-        {:ok, %{status: status, error: flow.error, account_id: flow.account_id}}
+        {:ok, response(flow, status, flow.error, opts)}
       end
     else
       _ -> {:error, :not_found}
     end
   end
 
-  def cancel(workspace_id, member_id, id) do
+  defp response(flow, status, error, opts) do
+    result = %{status: status, error: error, account_id: flow.account_id}
+
+    if Keyword.get(opts, :details, false) do
+      connection =
+        flow.connection_id && Integrations.get_connection(flow.workspace_id, flow.connection_id)
+
+      Map.merge(result, %{
+        provider_key: flow.provider_key,
+        connection_id: flow.connection_id,
+        connected_account: connection && connection.connected_account
+      })
+      |> Map.merge(
+        Integrations.google_mcp_status(
+          flow.workspace_id,
+          flow.provider_key,
+          connection && connection.connected_account
+        )
+      )
+    else
+      result
+    end
+  end
+
+  def cancel(workspace_id, member_id, id, opts \\ []) do
     with {:ok, id} <- Ecto.UUID.cast(id),
          {:ok, _} <- get(workspace_id, member_id, id) do
       Repo.update_all(
@@ -75,13 +103,13 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
         set: [status: "failed", error: "authorization_cancelled", updated_at: DateTime.utc_now()]
       )
 
-      get(workspace_id, member_id, id)
+      get(workspace_id, member_id, id, opts)
     else
       _ -> {:error, :not_found}
     end
   end
 
-  def complete(params) do
+  def complete(params, opts \\ []) do
     redirect_uri = GoogleOAuth.desktop_redirect_uri()
 
     with {:ok, %{flow_id: id} = state} when is_binary(id) <-
@@ -90,18 +118,21 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
            Repo.get_by(__MODULE__,
              id: id,
              workspace_id: state.workspace_id,
-             member_id: state.member_id
+             member_id: state.member_id,
+             provider_key: state.provider_key
            ),
          true <- DateTime.compare(flow.expires_at, DateTime.utc_now()) == :gt,
          :ok <- claim(flow) do
       result = finish(flow, params, redirect_uri)
 
       case result do
-        {:ok, _completed} ->
-          {:ok, :connected}
+        {:ok, completed} ->
+          if Keyword.get(opts, :details, false),
+            do: {:ok, %{provider_key: completed.provider_key}},
+            else: {:ok, :connected}
 
         {:error, reason} ->
-          error = public_error(reason)
+          error = public_error(reason, flow.provider_key)
 
           Repo.update_all(
             from(f in __MODULE__, where: f.id == ^flow.id and f.status == "completing"),
@@ -176,8 +207,17 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
 
       case Integrations.complete_google_connection(result, member) do
         {:ok, %{mail_account: account} = completed} ->
-          Repo.update!(Ecto.Changeset.change(locked, status: "connected", account_id: account.id))
-          completed
+          [connection | _] = completed.connections
+
+          Repo.update!(
+            Ecto.Changeset.change(locked,
+              status: "connected",
+              account_id: account && account.id,
+              connection_id: connection.id
+            )
+          )
+
+          Map.put(completed, :provider_key, result.provider_key)
 
         {:error, reason} ->
           Repo.rollback(reason)
@@ -185,6 +225,14 @@ defmodule Mokaid.Integrations.MailOAuthFlow do
     end)
   end
 
+  def public_error(reason, provider_key) do
+    if reason == :missing_required_scopes and provider_key != "gmail",
+      do: "integration_permission_required",
+      else: public_error(reason)
+  end
+
+  def public_error(:provider_not_found), do: "provider_unavailable"
+  def public_error(:provider_disabled), do: "provider_disabled"
   def public_error(:authorization_expired), do: "authorization_expired"
   def public_error(:access_denied), do: "authorization_cancelled"
   def public_error(:missing_required_scopes), do: "mail_permission_required"

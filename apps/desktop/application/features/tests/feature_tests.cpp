@@ -156,6 +156,125 @@ struct TaskFixture {
 class FeatureTests final : public QObject {
     Q_OBJECT
 private slots:
+    void googleServicesUseScopedFlowsAndDisplayOnlySafeConnectionMetadata() {
+        LocalApi remote; QVERIFY(remote.server.isListening());
+        ApiClient api(remote.origin()); PhoenixClient realtime; SessionController session(api,realtime);
+        api.setSession("test-google-session","user-a",false); api.setWorkspace("workspace-a");
+        GoogleConnectionsController google(api,session);
+        QString key, status="pending", toolStatus="connected";
+        const QJsonArray connections{
+            QJsonObject{{"id","connection-a"},{"provider_key","google_calendar"},{"status","connected"},{"connected_account","alice@example.test"},{"access_token","never-display"}},
+            QJsonObject{{"id","connection-b"},{"provider_key","unsupported"},{"status","connected"}}};
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            QJsonObject data;
+            if (path.endsWith("/start")) { key=remote.bodies.last().value("provider_key").toString(); data={{"flow_id","google-flow"},{"authorize_url","https://accounts.google.com/o/oauth2/v2/auth?state=test-only"}}; }
+            else if (path=="/api/integrations") data={{"connections",connections}};
+            else data={{"status",status},{"provider_key",key},{"connection_id","saved-connection"},{"connected_account","alice@example.test"},{"mcp_status",toolStatus},{"mcp_connected_account","other@example.test"}};
+            LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",data}}).toJson());
+        };
+        QSignalSpy browser(&google,&GoogleConnectionsController::requestExternal), connected(&google,&GoogleConnectionsController::connected);
+        google.refresh(); QTRY_COMPARE(google.connections().size(),1);
+        QVERIFY(!google.connections().first().toMap().contains("access_token"));
+        QCOMPARE(google.services().size(),6);
+        for (const auto& service:google.services()) {
+            const auto provider=service.toMap().value("key").toString();
+            const auto before=connected.count(); status="pending";
+            google.start(provider); QTRY_VERIFY(google.pending()); QCOMPARE(key,provider); QCOMPARE(connected.count(),before);
+            const auto request=remote.paths.lastIndexOf("/api/integrations/google/desktop/start");
+            QCOMPARE(remote.bodies.at(request),QJsonObject({{"provider_key",provider}}));
+            google.check(); QTRY_VERIFY(remote.paths.contains("/api/integrations/google/desktop/google-flow")); QTest::qWait(20);
+            QCOMPARE(connected.count(),before); QVERIFY(google.pending());
+            status="connected"; google.check(); QTRY_COMPARE(connected.count(),before+1); QVERIFY(!google.pending());
+            QCOMPARE(connected.last().first().toString(),provider); QVERIFY(google.message().contains("alice@example.test"));
+        }
+        QCOMPARE(browser.count(),6);
+        for (const auto* outcome:{"different_account","unavailable"}) {
+            google.start("google_drive"); QTRY_VERIFY(google.pending()); toolStatus=outcome;
+            google.check(); QTRY_VERIFY(!google.pending()); QVERIFY(google.needsAttention());
+            QVERIFY(google.message().contains(toolStatus=="different_account" ? "other@example.test" : "Authorization is saved"));
+        }
+        google.clearFeedback(); QVERIFY(!google.needsAttention()); QVERIFY(google.message().isEmpty());
+    }
+    void googleServicesRejectInvalidLinksMismatchedCompletionAndResetContext() {
+        LocalApi remote; QVERIFY(remote.server.isListening());
+        ApiClient api(remote.origin()); PhoenixClient realtime; SessionController session(api,realtime);
+        api.setSession("test-google-session","user-a",false); api.setWorkspace("workspace-a");
+        GoogleConnectionsController google(api,session);
+        QString authorizeUrl; QJsonObject completion{{"status","connected"},{"provider_key","google_drive"},{"connection_id","saved"},{"connected_account","alice@example.test"}};
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            const auto data=path.endsWith("/start") ? QJsonObject{{"flow_id","google-flow"},{"authorize_url",authorizeUrl}} : completion;
+            LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",data}}).toJson());
+        };
+        QSignalSpy browser(&google,&GoogleConnectionsController::requestExternal), connected(&google,&GoogleConnectionsController::connected), reset(&google,&GoogleConnectionsController::contextReset);
+        google.start("google_ads"); QCOMPARE(remote.paths.size(),0); QVERIFY(!google.error().isEmpty());
+        for (const auto* url:{"https://accounts.google.com.evil.test/o/oauth2/v2/auth","http://accounts.google.com/o/oauth2/v2/auth","https://accounts.google.com:444/o/oauth2/v2/auth","https://accounts.google.com/other","https://accounts.google.com/o/oauth2/v2/auth#fragment","https://user@accounts.google.com/o/oauth2/v2/auth"}) {
+            authorizeUrl=url; google.start("google_calendar"); QTRY_VERIFY(!google.submitting()); QVERIFY(!google.pending()); QCOMPARE(browser.count(),0);
+        }
+        authorizeUrl="https://accounts.google.com/o/oauth2/v2/auth?state=test";
+        google.start("google_calendar"); QTRY_VERIFY(google.pending()); google.check(); QTRY_VERIFY(!google.pending());
+        QCOMPARE(connected.count(),0); QVERIFY(google.error().contains("did not confirm"));
+        completion.insert("provider_key","google_calendar"); completion.remove("connection_id");
+        google.start("google_calendar"); QTRY_VERIFY(google.pending()); google.check(); QTRY_VERIFY(!google.pending()); QCOMPARE(connected.count(),0);
+        google.start("google_calendar"); QTRY_VERIFY(google.pending());
+        api.setWorkspace("workspace-b"); google.setActive(true); QTRY_VERIFY(!google.pending());
+        QCOMPARE(reset.count(),1); QVERIFY(google.connections().isEmpty()); QVERIFY(google.message().isEmpty());
+        api.setOnline(false); const auto requests=remote.paths.size(); google.start("gmail"); QCOMPARE(remote.paths.size(),requests);
+    }
+    void googleServicesCancelOnTheServerAndHonorCommittedCompletion() {
+        LocalApi remote; QVERIFY(remote.server.isListening());
+        ApiClient api(remote.origin()); PhoenixClient realtime; SessionController session(api,realtime);
+        api.setSession("test-google-session","user-a",false); api.setWorkspace("workspace-a");
+        GoogleConnectionsController google(api,session);
+        int attempts=0; QString cancelStatus="failed";
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            QJsonObject data;
+            if (path.endsWith("/start")) data={{"flow_id","google-flow"},{"authorize_url","https://accounts.google.com/o/oauth2/v2/auth?state=test"}};
+            else if (remote.methods.last()=="DELETE") {
+                if (++attempts==1) { LocalApi::reply(socket,R"({"error":{"message":"Temporarily unavailable"}})",503); return; }
+                data={{"status",cancelStatus},{"provider_key","google_calendar"},{"connection_id","saved-connection"},{"connected_account","alice@example.test"},{"error","authorization_cancelled"}};
+            }
+            LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",data}}).toJson());
+        };
+        QSignalSpy connected(&google,&GoogleConnectionsController::connected), cancelled(&google,&GoogleConnectionsController::cancelled);
+        google.start("google_calendar"); QTRY_VERIFY(google.pending()); google.cancel(); QTRY_VERIFY(!google.submitting());
+        QVERIFY(google.pending()); QCOMPARE(cancelled.count(),0); QVERIFY(google.error().contains("could not be cancelled"));
+        google.cancel(); QTRY_COMPARE(cancelled.count(),1); QVERIFY(!google.pending()); QCOMPARE(connected.count(),0);
+        google.start("google_calendar"); QTRY_VERIFY(google.pending()); cancelStatus="connected"; google.cancel();
+        QTRY_COMPARE(connected.count(),1); QVERIFY(!google.pending()); QCOMPARE(cancelled.count(),1);
+    }
+    void googleConnectionSetupErrorsExplainTheRequiredAction() {
+        LocalApi remote; QVERIFY(remote.server.isListening());
+        ApiClient api(remote.origin()); PhoenixClient realtime; SessionController session(api,realtime);
+        api.setSession("test-google-session","user-a",false); api.setWorkspace("workspace-a");
+        GoogleConnectionsController google(api,session); MailAccountsController mail(api,session);
+        QString code="provider_disabled";
+        remote.handler=[&](QTcpSocket* socket,const QString&) { LocalApi::reply(socket,QJsonDocument(QJsonObject{{"error",code}}).toJson(),422); };
+        google.start("google_calendar"); QTRY_VERIFY(!google.submitting()); QVERIFY(google.error().contains("administrator")); QVERIFY(google.error().contains("disabled"));
+        mail.connectGoogle(); QTRY_VERIFY(!mail.submitting()); QVERIFY(mail.error().contains("administrator")); QVERIFY(mail.error().contains("disabled"));
+        code="provider_unavailable";
+        google.start("google_calendar"); QTRY_VERIFY(!google.submitting()); QVERIFY(google.error().contains("temporarily unavailable"));
+        mail.connectGoogle(); QTRY_VERIFY(!mail.submitting()); QVERIFY(mail.error().contains("temporarily unavailable"));
+        code="integration_permission_required";
+        google.start("google_calendar"); QTRY_VERIFY(!google.submitting()); QVERIFY(google.error().contains("Allow access"));
+    }
+    void mailDoesNotReportSuccessWhenNoMailboxWasSavedOrProviderFailed() {
+        LocalApi remote; QVERIFY(remote.server.isListening());
+        ApiClient api(remote.origin()); PhoenixClient realtime; SessionController session(api,realtime);
+        api.setSession("test-mail-session","user-a",false); api.setWorkspace("workspace-a");
+        MailAccountsController mail(api,session); QString status="connected";
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            QJsonObject data;
+            if (path.endsWith("/google/start")) data={{"flow_id","mail-flow"},{"authorize_url","https://accounts.google.com/o/oauth2/v2/auth?state=test"}};
+            else if (path.endsWith("/mail-flow")) data={{"status",status},{"error","connection_failed"}};
+            else { LocalApi::reply(socket,R"({"data":[]})"); return; }
+            LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",data}}).toJson());
+        };
+        QSignalSpy connected(&mail,&MailAccountsController::connected);
+        mail.connectGoogle(); QTRY_VERIFY(mail.oauthPending()); mail.checkOAuth(); QTRY_VERIFY(!mail.oauthPending());
+        QCOMPARE(connected.count(),0); QVERIFY(mail.error().contains("saved mailbox")); QVERIFY(mail.accounts().isEmpty());
+        status="failed"; mail.connectGoogle(); QTRY_VERIFY(mail.oauthPending()); mail.checkOAuth(); QTRY_VERIFY(!mail.oauthPending());
+        QCOMPARE(connected.count(),0); QVERIFY(!mail.error().isEmpty()); QVERIFY(mail.accounts().isEmpty());
+    }
     void mailOAuthCancellationWaitsForTheServerAndHonorsCompletionRace() {
         LocalApi remote; QVERIFY(remote.server.isListening());
         ApiClient api(remote.origin()); PhoenixClient realtime; SessionController session(api,realtime);
@@ -166,7 +285,7 @@ private slots:
             if (path.endsWith("/google/start")) LocalApi::reply(socket,"{\"data\":{\"flow_id\":\"fixture-flow\",\"authorize_url\":\"https://accounts.google.com/o/oauth2/v2/auth?state=test-only\"}}");
             else if (remote.methods.last()=="DELETE") {
                 if (++cancellationAttempts==1) LocalApi::reply(socket,"{\"error\":{\"message\":\"Temporary failure\"}}",503);
-                else LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",QJsonObject{{"status",cancelStatus},{"error","authorization_cancelled"}}}}).toJson());
+                else LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",QJsonObject{{"status",cancelStatus},{"error","authorization_cancelled"},{"account_id","fixture-mail"}}}}).toJson());
             } else LocalApi::reply(socket,"{\"data\":[]}");
         };
         QSignalSpy connected(&mail,&MailAccountsController::connected);
@@ -222,7 +341,7 @@ private slots:
         remote.handler=[&](QTcpSocket* socket,const QString& path) {
             QJsonObject data;
             if (path.endsWith("/google/start")) data={{"flow_id","fixture-flow"},{"authorize_url","https://accounts.google.com/o/oauth2/v2/auth?state=test-only"}};
-            else if (path.endsWith("/fixture-flow")) data={{"status",status}};
+            else if (path.endsWith("/fixture-flow")) data={{"status",status},{"account_id","fixture-mail"}};
             else { LocalApi::reply(socket,"{\"data\":[]}"); return; }
             LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",data}}).toJson());
         };
@@ -365,35 +484,55 @@ private slots:
         QCOMPARE(f.task("task-a"),original); QVERIFY(c.error().contains("did not confirm"));
     }
     void avatarGenerationTextPollsAndRetainsCompletedAsset() {
-        LocalApi remote;
+        LocalApi remote; QJsonObject generation;
         remote.handler=[&](QTcpSocket* socket,const QString& path) {
-            if (remote.methods.last()=="POST") LocalApi::reply(socket,R"({"data":{"id":"gen-one","mode":"text","status":"generating","progress":18}})",202);
-            else if (path=="/api/avatar-generations/gen-one") LocalApi::reply(socket,R"({"data":{"id":"gen-one","mode":"text","status":"ready","progress":100,"asset_id":"custom-asset"}})");
+            if (remote.methods.last()=="POST") {
+                generation={{"id","gen-one"},{"mode","text"},{"status","generating"},{"progress",18}};
+                LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",generation}}).toJson(),202);
+            } else if (path=="/api/avatar-generations/gen-one") {
+                generation={{"id","gen-one"},{"mode","text"},{"status","ready"},{"progress",100},{"asset_id","custom-asset"}};
+                LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",generation}}).toJson());
+            } else if (path=="/api/avatar-generations") {
+                const auto history=generation.isEmpty()?QJsonArray{}:QJsonArray{generation};
+                const QJsonObject meta{{"pricing",QJsonObject{{"credits",1000}}},{"credits",QJsonObject{{"spendable",3000},{"unlimited",false}}}};
+                LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",history},{"meta",meta}}).toJson());
+            }
             else LocalApi::reply(socket,R"({"data":[]})");
         };
         ApiClient api(remote.origin()); api.setSession("test-token","alice",false); api.setWorkspace("workspace-a");
         PhoenixClient realtime; SessionController session(api,realtime);
         AvatarGenerationController avatars(api,session);
+        avatars.refresh(); QTRY_VERIFY(!avatars.refreshing());
+        QVERIFY(avatars.pricingReady()); QCOMPARE(avatars.generationCredits(),1000);
+        QCOMPARE(avatars.creditsAvailable(),3000); QVERIFY(!avatars.unlimitedCredits()); QVERIFY(avatars.canAffordGeneration());
         avatars.generateText("  An architect wearing blue, full body.  ","Ada");
         QTRY_COMPARE(avatars.current().value("status").toString(),QString("generating"));
-        QCOMPARE(remote.paths.front(),QString("/api/avatar-generations"));
-        QCOMPARE(remote.bodies.front().value("mode").toString(),QString("text"));
-        QCOMPARE(remote.bodies.front().value("prompt").toString(),QString("An architect wearing blue, full body."));
-        QCOMPARE(remote.bodies.front().value("name").toString(),QString("Ada"));
+        const auto submitted=remote.methods.indexOf("POST"); QVERIFY(submitted>=0);
+        QCOMPARE(remote.paths.at(submitted),QString("/api/avatar-generations"));
+        QCOMPARE(remote.bodies.at(submitted).value("mode").toString(),QString("text"));
+        QCOMPARE(remote.bodies.at(submitted).value("prompt").toString(),QString("An architect wearing blue, full body."));
+        QCOMPARE(remote.bodies.at(submitted).value("name").toString(),QString("Ada"));
+        QCOMPARE(remote.bodies.at(submitted).value("expected_credits").toInt(),1000);
+        QTRY_VERIFY(!avatars.refreshing());
         avatars.refreshCurrent();
         QTRY_COMPARE(avatars.current().value("status").toString(),QString("ready"));
         QCOMPARE(avatars.current().value("asset_id").toString(),QString("custom-asset"));
         QCOMPARE(avatars.generations().size(),1);
         QCOMPARE(avatars.generations().front().toMap().value("asset_id").toString(),QString("custom-asset"));
-        api.setWorkspace("workspace-b"); avatars.refresh();
+        generation={}; api.setWorkspace("workspace-b"); avatars.refresh();
         QVERIFY(avatars.current().isEmpty()); QVERIFY(avatars.generations().isEmpty());
+        QVERIFY(!avatars.pricingReady()); QCOMPARE(avatars.generationCredits(),0); QCOMPARE(avatars.creditsAvailable(),0);
+        QVERIFY(!avatars.unlimitedCredits()); QVERIFY(!avatars.canAffordGeneration());
         QTRY_VERIFY(!avatars.refreshing());
     }
     void avatarGenerationValidatesImageAndUsesSingleFileMultipart() {
         LocalApi remote; QByteArray upload;
-        remote.handler=[&](QTcpSocket* socket,const QString&) {
-            upload=socket->property("request").toByteArray();
-            LocalApi::reply(socket,R"({"data":{"id":"image-gen","mode":"image","status":"queued","progress":0}})",202);
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            if (remote.methods.last()=="POST") {
+                upload=socket->property("request").toByteArray();
+                LocalApi::reply(socket,R"({"data":{"id":"image-gen","mode":"image","status":"queued","progress":0}})",202);
+            } else if (path=="/api/avatar-generations") LocalApi::reply(socket,R"({"data":[],"meta":{"pricing":{"credits":1000},"credits":{"spendable":3000,"unlimited":false}}})");
+            else LocalApi::reply(socket,R"({"data":[]})");
         };
         ApiClient api(remote.origin()); api.setSession("test-token","alice",false); api.setWorkspace("workspace-a");
         PhoenixClient realtime; SessionController session(api,realtime); AvatarGenerationController avatars(api,session);
@@ -410,19 +549,78 @@ private slots:
         avatars.generateImage(QUrl::fromLocalFile(file.fileName())); QVERIFY(!avatars.error().isEmpty()); QVERIFY(remote.paths.isEmpty());
         QVERIFY(file.open(QIODevice::WriteOnly|QIODevice::Truncate));
         file.write(QByteArray::fromHex("89504e470d0a1a0a00000000")); file.close();
+        avatars.refresh(); QTRY_VERIFY(!avatars.refreshing()); QVERIFY(avatars.canAffordGeneration());
         avatars.generateImage(QUrl::fromLocalFile(file.fileName()),"My teammate");
         QTRY_COMPARE(avatars.current().value("id").toString(),QString("image-gen"));
         QVERIFY(upload.contains("name=\"file\"; filename=\"portrait.png\""));
         QVERIFY(!upload.contains("name=\"files[]\""));
         QVERIFY(upload.contains("name=\"mode\"\r\n\r\nimage"));
+        QVERIFY(upload.contains("name=\"expected_credits\"\r\n\r\n1000"));
         QVERIFY(avatars.error().isEmpty());
     }
+    void avatarGenerationRequiresWorkspaceQuoteAndEnoughMokaidCredits() {
+        LocalApi remote; QJsonObject metadata;
+        remote.handler=[&](QTcpSocket* socket,const QString& path) {
+            if (remote.methods.last()=="POST") {
+                LocalApi::reply(socket,R"({"data":{"id":"unlimited-gen","mode":"text","status":"queued","progress":0}})",202);
+            } else if (path=="/api/avatar-generations") {
+                LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",QJsonArray{}},{"meta",metadata}}).toJson());
+            } else LocalApi::reply(socket,R"({"data":[]})");
+        };
+        ApiClient api(remote.origin()); api.setSession("test-token","alice",false); api.setWorkspace("workspace-a");
+        PhoenixClient realtime; SessionController session(api,realtime); AvatarGenerationController avatars(api,session);
+        QTemporaryDir directory; QFile photo(directory.filePath("portrait.png")); QVERIFY(photo.open(QIODevice::WriteOnly));
+        photo.write(QByteArray::fromHex("89504e470d0a1a0a00000000")); photo.close();
+        QVERIFY(!avatars.pricingReady()); QVERIFY(!avatars.canAffordGeneration());
+        avatars.generateText("A friendly architect");
+        QVERIFY(!avatars.submitting()); QVERIFY(!avatars.error().isEmpty()); QVERIFY(remote.paths.isEmpty());
+
+        // Loading older or incomplete API metadata must never authorize a
+        // charge using an assumed price, for either generation input.
+        avatars.refresh(); QTRY_VERIFY(!avatars.refreshing());
+        QVERIFY(!avatars.pricingReady()); QVERIFY(!avatars.canAffordGeneration());
+        avatars.generateText("A friendly architect"); QVERIFY(!avatars.submitting()); QVERIFY(!avatars.error().isEmpty());
+        avatars.generateImage(QUrl::fromLocalFile(photo.fileName())); QVERIFY(!avatars.submitting()); QVERIFY(!avatars.error().isEmpty());
+        QCOMPARE(remote.methods.count("POST"),0);
+
+        metadata={{"pricing",QJsonObject{{"credits",1000}}},{"credits",QJsonObject{{"spendable",999},{"unlimited",false}}}};
+        avatars.refresh(); QTRY_VERIFY(!avatars.refreshing());
+        QVERIFY(avatars.pricingReady()); QCOMPARE(avatars.generationCredits(),1000); QCOMPARE(avatars.creditsAvailable(),999);
+        QVERIFY(!avatars.canAffordGeneration());
+        avatars.generateText("A friendly architect"); QVERIFY(!avatars.submitting()); QVERIFY(!avatars.error().isEmpty());
+        avatars.generateImage(QUrl::fromLocalFile(photo.fileName())); QVERIFY(!avatars.submitting()); QVERIFY(!avatars.error().isEmpty());
+        QCOMPARE(remote.methods.count("POST"),0);
+
+        // A refresh with no quote also invalidates a previously known price.
+        metadata={}; avatars.refresh(); QTRY_VERIFY(!avatars.refreshing());
+        QVERIFY(!avatars.pricingReady()); QVERIFY(!avatars.canAffordGeneration());
+        avatars.generateText("A friendly architect"); QVERIFY(!avatars.submitting()); QCOMPARE(remote.methods.count("POST"),0);
+
+        metadata={{"pricing",QJsonObject{{"credits",1000}}},{"credits",QJsonObject{{"spendable",0},{"unlimited",true}}}};
+        avatars.refresh(); QTRY_VERIFY(!avatars.refreshing());
+        QVERIFY(avatars.pricingReady()); QVERIFY(avatars.unlimitedCredits()); QVERIFY(avatars.canAffordGeneration());
+        avatars.generateText("A friendly architect");
+        QTRY_COMPARE(avatars.current().value("id").toString(),QString("unlimited-gen"));
+        QCOMPARE(remote.methods.count("POST"),1);
+        QCOMPARE(remote.bodies.at(remote.methods.indexOf("POST")).value("expected_credits").toInt(),1000);
+        metadata={}; api.setWorkspace("workspace-b"); avatars.refresh();
+        QVERIFY(!avatars.pricingReady()); QCOMPARE(avatars.generationCredits(),0); QCOMPARE(avatars.creditsAvailable(),0);
+        QVERIFY(!avatars.unlimitedCredits()); QVERIFY(!avatars.canAffordGeneration()); QVERIFY(avatars.current().isEmpty());
+        QTRY_VERIFY(!avatars.refreshing());
+        avatars.generateText("A friendly architect"); QVERIFY(!avatars.submitting()); QCOMPARE(remote.methods.count("POST"),1);
+    }
     void avatarGenerationRestoresPendingJobsAndKeepsErrorsRecoverable() {
-        LocalApi remote;
+        LocalApi remote; bool finished=false;
         remote.handler=[&](QTcpSocket* socket,const QString& path) {
             if (path.startsWith("/api/assets-3d")) LocalApi::reply(socket,R"({"data":[{"id":"catalog-character","kind":"character"}]})");
-            else if (path=="/api/avatar-generations") LocalApi::reply(socket,R"({"data":[{"id":"existing-gen","status":"rigging","progress":72}]})");
-            else LocalApi::reply(socket,R"({"data":{"id":"existing-gen","status":"failed","progress":72,"error":"The image could not be rigged."}})");
+            else if (path=="/api/avatar-generations") {
+                const auto history=finished?QJsonArray{}:QJsonArray{QJsonObject{{"id","existing-gen"},{"status","rigging"},{"progress",72}}};
+                const QJsonObject meta{{"pricing",QJsonObject{{"credits",1000}}},{"credits",QJsonObject{{"spendable",3000},{"unlimited",false}}}};
+                LocalApi::reply(socket,QJsonDocument(QJsonObject{{"data",history},{"meta",meta}}).toJson());
+            } else {
+                finished=true;
+                LocalApi::reply(socket,R"({"data":{"id":"existing-gen","status":"failed","progress":72,"error":"The image could not be rigged."}})");
+            }
         };
         ApiClient api(remote.origin()); api.setSession("test-token","alice",false); api.setWorkspace("workspace-a");
         PhoenixClient realtime; SessionController session(api,realtime); AvatarGenerationController avatars(api,session);

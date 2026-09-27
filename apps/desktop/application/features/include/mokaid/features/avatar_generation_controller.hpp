@@ -15,6 +15,11 @@ class AvatarGenerationController final : public QObject {
     Q_PROPERTY(bool submitting READ submitting NOTIFY changed)
     Q_PROPERTY(bool refreshing READ refreshing NOTIFY changed)
     Q_PROPERTY(bool online READ online NOTIFY changed)
+    Q_PROPERTY(int generationCredits READ generationCredits NOTIFY changed)
+    Q_PROPERTY(int creditsAvailable READ creditsAvailable NOTIFY changed)
+    Q_PROPERTY(bool unlimitedCredits READ unlimitedCredits NOTIFY changed)
+    Q_PROPERTY(bool pricingReady READ pricingReady NOTIFY changed)
+    Q_PROPERTY(bool canAffordGeneration READ canAffordGeneration NOTIFY changed)
 public:
     AvatarGenerationController(ApiClient&, SessionController&, QObject* parent = nullptr);
     ~AvatarGenerationController() override;
@@ -25,6 +30,11 @@ public:
     bool submitting() const { return submitting_; }
     bool refreshing() const { return refreshing_; }
     bool online() const { return api_.context().online; }
+    int generationCredits() const { return generationCredits_; }
+    int creditsAvailable() const { return creditsAvailable_; }
+    bool unlimitedCredits() const { return unlimitedCredits_; }
+    bool pricingReady() const { return pricingReady_; }
+    bool canAffordGeneration() const { return pricingReady_ && (unlimitedCredits_ || creditsAvailable_ >= generationCredits_); }
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void generateText(const QString& prompt, const QString& name = {});
     Q_INVOKABLE void generateImage(const QUrl& file, const QString& name = {});
@@ -38,6 +48,8 @@ private:
     void accept(const QJsonObject&);
     void submit(const QJsonObject&, const QUrl& file = {});
     bool available();
+    bool billable();
+    void acceptPricing(const QJsonObject&);
     ApiClient& api_;
     QVariantList catalog_, generations_;
     QVariantMap current_;
@@ -46,5 +58,7 @@ private:
     QObject listOwner_, submitOwner_, pollOwner_;
     quint64 contextGeneration_{}, epoch_{};
     bool submitting_{}, refreshing_{}, polling_{};
+    int generationCredits_{}, creditsAvailable_{};
+    bool unlimitedCredits_{}, pricingReady_{};
 };
 }

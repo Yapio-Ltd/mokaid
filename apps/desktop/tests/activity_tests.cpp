@@ -46,6 +46,23 @@ public:
         socket->disconnectFromHost();
     }
 };
+QJsonObject completionNotice(const QString& id,const QString& task,const QString& workspace="workspace-a") {
+    return {{"id",id},{"kind","ai_run_completed"},{"resource_type","task"},{"resource_id",task},
+        {"workspace_id",workspace},{"title","Your result is ready"},{"read_at",QJsonValue::Null}};
+}
+QByteArray responseData(const QJsonValue& data) {
+    return QJsonDocument(QJsonObject{{"data",data}}).toJson(QJsonDocument::Compact);
+}
+struct CompletionFixture {
+    ActivityApi remote;
+    QTemporaryDir directory;
+    CacheStore cache{directory.path()};
+    ApiClient api{remote.origin()};
+    PhoenixClient realtime;
+    SessionController session{api,realtime};
+    ActivityController activity{api,session,realtime,cache};
+    CompletionFixture() { api.setSession("test-alice","alice",false); api.setWorkspace("workspace-a"); emit session.changed(); }
+};
 }
 
 class ActivityTests final : public QObject {
@@ -151,6 +168,84 @@ private slots:
         failIdentity=false; activity.createWorkspace("Studio","Design"); QTRY_COMPARE(created.size(),1);
         QCOMPARE(remote.count("/api/workspaces"),1); QCOMPARE(session.workspaceId(),QString("new-workspace"));
         QCOMPARE(created.first().first().toString(),QString("new-workspace")); realtime.stop();
+    }
+    void completionsLoadCanonicalTaskAndQueueWithoutReplacingTheOpenResult() {
+        CompletionFixture f;
+        QJsonArray notices{completionNotice("notice-a","task-a"),completionNotice("notice-b","task-b"),
+            completionNotice("foreign","foreign-task","workspace-b")};
+        f.remote.handler=[&](QTcpSocket* socket,const Request& request) {
+            if (request.path=="/api/notifications") { ActivityApi::reply(socket,responseData(notices)); return; }
+            const auto id=request.path.section('/',-1);
+            ActivityApi::reply(socket,responseData(QJsonObject{{"id",id},{"workspace_id","workspace-a"},{"title","Complete report"},
+                {"assigned_agent_id","agent-a"},{"assigned_agent_name","Alice"},
+                {"assigned_agent_avatar_thumbnail_url","https://assets.example.test/alice.webp"},
+                {"latest_run",QJsonObject{{"id","run-a"},{"output",QJsonObject{{"response","The entire checked response."}}}}},
+                {"attachments",QJsonArray{QJsonObject{{"id","file-a"},{"name","Report.pdf"},{"source","output"},{"mime_type","application/pdf"}}}}}));
+        };
+        f.activity.refreshNotifications(); QTRY_COMPARE(f.activity.notifications().size(),3);
+        f.activity.enqueueCompletion({{"id","unverified"},{"resource_id","task-a"}});
+        f.activity.enqueueCompletion(notices.at(2).toObject().toVariantMap());
+        QVERIFY(f.activity.completionNotification().isEmpty());
+        // The caller cannot replace the task identifier or notification text.
+        f.activity.enqueueCompletion({{"id","notice-a"},{"resource_id","foreign-task"},{"title","Untrusted title"}});
+        f.activity.enqueueCompletion(notices.at(1).toObject().toVariantMap());
+        f.activity.enqueueCompletion(notices.at(0).toObject().toVariantMap());
+        QCOMPARE(f.activity.pendingCompletionCount(),1);
+        QCOMPARE(f.activity.completionNotification().value("title").toString(),QString("Your result is ready"));
+        QTRY_COMPARE(f.activity.completionTask().value("id").toString(),QString("task-a"));
+        QCOMPARE(f.activity.completionTask().value("assigned_agent_name").toString(),QString("Alice"));
+        QCOMPARE(f.activity.completionTask().value("assigned_agent_avatar_thumbnail_url").toString(),QString("https://assets.example.test/alice.webp"));
+        QCOMPARE(f.activity.completionTask().value("latest_run").toMap().value("output").toMap().value("response").toString(),QString("The entire checked response."));
+        QCOMPARE(f.activity.completionTask().value("attachments").toList().first().toMap().value("id").toString(),QString("file-a"));
+        QCOMPARE(f.remote.count("/api/tasks/task-a"),1); QCOMPARE(f.remote.count("/api/tasks/task-b"),0);
+        QVERIFY(f.activity.completionError().isEmpty()); QVERIFY(!f.activity.completionLoading());
+        f.activity.nextCompletion(); QTRY_COMPARE(f.activity.completionTask().value("id").toString(),QString("task-b"));
+        QCOMPARE(f.activity.pendingCompletionCount(),0);
+        f.activity.dismissCompletion(); QVERIFY(f.activity.completionTask().isEmpty());
+        f.activity.enqueueCompletion(notices.at(0).toObject().toVariantMap());
+        QVERIFY(f.activity.completionNotification().isEmpty()); QCOMPARE(f.remote.count("/api/tasks/task-a"),1);
+        for (const auto& request : f.remote.requests) QVERIFY(request.headers.toLower().contains("x-workspace-id: workspace-a"));
+    }
+    void completionFailuresCanRetryAndNeverExposeMismatchedTaskData() {
+        CompletionFixture f; int attempt=0;
+        const auto notice=completionNotice("notice-a","task-a");
+        f.remote.handler=[&](QTcpSocket* socket,const Request& request) {
+            if (request.path=="/api/notifications") { ActivityApi::reply(socket,responseData(QJsonArray{notice})); return; }
+            ++attempt;
+            if (attempt==1) ActivityApi::reply(socket,R"({"error":{"message":"Temporary failure"}})",503);
+            else if (attempt==2) ActivityApi::reply(socket,responseData(QJsonObject{{"id","task-a"},{"workspace_id","workspace-b"},{"title","Foreign result"}}));
+            else ActivityApi::reply(socket,responseData(QJsonObject{{"id","task-a"},{"workspace_id","workspace-a"},{"title","Recovered result"}}));
+        };
+        f.activity.refreshNotifications(); QTRY_COMPARE(f.activity.notifications().size(),1);
+        f.activity.enqueueCompletion(notice.toVariantMap());
+        QTRY_VERIFY(!f.activity.completionLoading()); QVERIFY(!f.activity.completionError().isEmpty()); QVERIFY(f.activity.completionTask().isEmpty());
+        f.activity.retryCompletion(); QTRY_VERIFY(!f.activity.completionLoading());
+        QVERIFY(f.activity.completionError().contains("workspace")); QVERIFY(f.activity.completionTask().isEmpty());
+        f.api.setOnline(false); f.activity.retryCompletion();
+        QVERIFY(f.activity.completionError().contains("Reconnect")); QCOMPARE(attempt,2);
+        f.api.setOnline(true); f.activity.retryCompletion();
+        QTRY_COMPARE(f.activity.completionTask().value("title").toString(),QString("Recovered result"));
+        QVERIFY(f.activity.completionError().isEmpty()); QCOMPARE(attempt,3);
+    }
+    void completionRequestsAndQueueAreClearedOnWorkspaceChange() {
+        CompletionFixture f; QPointer<QTcpSocket> delayed;
+        const QJsonArray notices{completionNotice("notice-a","task-a"),completionNotice("notice-b","task-b")};
+        f.remote.handler=[&](QTcpSocket* socket,const Request& request) {
+            if (request.path=="/api/notifications") ActivityApi::reply(socket,responseData(notices));
+            else delayed=socket;
+        };
+        f.activity.refreshNotifications(); QTRY_COMPARE(f.activity.notifications().size(),2);
+        f.activity.enqueueCompletion(notices.at(0).toObject().toVariantMap());
+        f.activity.enqueueCompletion(notices.at(1).toObject().toVariantMap());
+        QTRY_VERIFY(delayed); QVERIFY(f.activity.completionLoading()); QCOMPARE(f.activity.pendingCompletionCount(),1);
+        f.api.setWorkspace("workspace-b"); emit f.session.workspaceChanged();
+        QVERIFY(f.activity.completionNotification().isEmpty()); QVERIFY(f.activity.completionTask().isEmpty());
+        QVERIFY(f.activity.completionError().isEmpty()); QVERIFY(!f.activity.completionLoading()); QCOMPARE(f.activity.pendingCompletionCount(),0);
+        QTRY_VERIFY(!delayed || delayed->state()==QAbstractSocket::UnconnectedState);
+        // A scoped endpoint in the new workspace must not revive old notices.
+        f.activity.refreshNotifications(); QTRY_COMPARE(f.activity.notifications().size(),2);
+        f.activity.enqueueCompletion(notices.at(0).toObject().toVariantMap());
+        QVERIFY(f.activity.completionNotification().isEmpty()); QCOMPARE(f.remote.count("/api/tasks/task-b"),0);
     }
 };
 QTEST_GUILESS_MAIN(ActivityTests)

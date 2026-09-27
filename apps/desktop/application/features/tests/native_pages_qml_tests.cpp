@@ -223,10 +223,101 @@ class NativePagesQmlTests final : public QObject {
         return value.metaType()==QMetaType::fromType<QJSValue>()?value.value<QJSValue>().toVariant():value;
     }
 private slots:
+    void googleCalendarConnectsFromItsPageAndServicesFitMinimumWindow() {
+        NativePageFixture fixture; QVERIFY(fixture.remote.server.isListening());
+        fixture.remote.responses.insert("POST /api/integrations/google/desktop/start",{{"data",QJsonObject{{"flow_id","google-flow"},{"authorize_url","https://accounts.google.com/o/oauth2/v2/auth?state=test-only"}}}});
+        fixture.remote.responses.insert("GET /api/integrations/google/desktop/google-flow",{{"data",QJsonObject{{"status","pending"}}}});
+        fixture.remote.responses.insert("DELETE /api/integrations/google/desktop/google-flow",{{"data",QJsonObject{{"status","failed"},{"error","authorization_cancelled"}}}});
+        fixture.remote.responses.insert("/api/integrations",{{"data",QJsonObject{{"connections",QJsonArray{}}}}});
+        fixture.features.navigate("calendar"); QTRY_VERIFY(!fixture.features.busy());
+        auto& google=*qobject_cast<GoogleConnectionsController*>(fixture.features.googleConnections()); QTRY_VERIFY(!google.refreshing());
+        NativePageView view(fixture,"FeaturePage.qml"); QVERIFY2(view.item,qPrintable(view.failure)); view.resize(760,620);
+        const auto find=[&view](const QString& name) -> QQuickItem* {
+            QList<QQuickItem*> children{view.window.contentItem()};
+            for(qsizetype i=0;i<children.size();++i) { if(children[i]->objectName()==name) return children[i]; children.append(children[i]->childItems()); }
+            return nullptr;
+        };
+        const auto click=[&view,&find](const QString& name) -> bool {
+            auto* item=find(name); if(!item || !item->isVisible() || item->width()<1 || item->height()<1) return false;
+            QTest::mouseClick(&view.window,Qt::LeftButton,Qt::NoModifier,item->mapToScene(QPointF(item->width()/2,item->height()/2)).toPoint()); return true;
+        };
+        QSignalSpy browser(&google,&GoogleConnectionsController::requestExternal), connected(&google,&GoogleConnectionsController::connected);
+        QTRY_VERIFY(view.inside("googleServiceConnectButton"));
+        QVERIFY(view.capture("google-calendar-page-760"));
+        QVERIFY(view.click("googleServiceConnectButton")); QTRY_COMPARE(browser.count(),1); QVERIFY(google.pending());
+        const auto request=fixture.remote.requests.indexOf("/api/integrations/google/desktop/start");
+        QCOMPARE(fixture.remote.bodies.at(request).value("provider_key").toString(),QString("google_calendar"));
+        QTRY_VERIFY(find("googleSignInHelp")); QVERIFY(find("googleSignInHelp")->isVisible());
+        QVERIFY(find("googleSignInHelp")->property("text").toString().contains("testing"));
+        QCOMPARE(connected.count(),0); QVERIFY(view.capture("google-calendar-waiting-760"));
+        QVERIFY(click("googleConnectionClose")); QTRY_VERIFY(!google.pending()); QCOMPARE(connected.count(),0);
+        QTRY_VERIFY(find("googleShowAllServices")->isVisible()); QVERIFY(click("googleShowAllServices"));
+        QTRY_VERIFY(find("googleConnect_google_meet"));
+        for(const auto* key:{"gmail","google_calendar","google_drive","google_docs","google_sheets","google_meet"}) {
+            auto* button=find("googleConnect_"+QString(key)); QVERIFY(button); QVERIFY(button->isEnabled());
+        }
+        const auto* close=find("googleConnectionClose"); QVERIFY(close); QVERIFY(close->mapToScene(QPointF()).y()+close->height()<=620);
+        QVERIFY(view.capture("google-services-760"));
+        auto* scroll=find("googleServicesScroll"); QVERIFY(scroll);
+        auto* flickable=scroll->property("contentItem").value<QObject*>(); QVERIFY(flickable);
+        flickable->setProperty("contentY",flickable->property("contentHeight").toDouble()-scroll->height());
+        QTRY_VERIFY(find("googleConnect_google_meet")->mapToScene(QPointF()).y()+find("googleConnect_google_meet")->height()<=close->mapToScene(QPointF()).y());
+        QVERIFY(view.capture("google-services-bottom-760"));
+        flickable->setProperty("contentY",0); QTest::qWait(20);
+        QVERIFY(click("googleConnect_google_drive")); QTRY_COMPARE(browser.count(),2); QCOMPARE(google.providerKey(),QString("google_drive"));
+        fixture.remote.responses.insert("GET /api/integrations/google/desktop/google-flow",{{"data",QJsonObject{{"status","connected"},{"provider_key","google_drive"},{"connection_id","saved-drive"},{"connected_account","alice@example.test"},{"mcp_status","different_account"},{"mcp_connected_account","other@example.test"}}}});
+        fixture.remote.responses.insert("/api/integrations",{{"data",QJsonObject{{"connections",QJsonArray{QJsonObject{{"id","saved-drive"},{"provider_key","google_drive"},{"provider_name","Google Drive"},{"status","connected"},{"connected_account","alice@example.test"}}}}}}});
+        QVERIFY(click("googleCheckConnection")); QTRY_COMPARE(connected.count(),1); QVERIFY(!google.pending());
+        QTRY_COMPARE(google.connections().size(),1); QVERIFY(google.needsAttention()); QVERIFY(google.message().contains("other@example.test"));
+        QVERIFY(view.capture("google-drive-account-warning-760"));
+        fixture.api.setOnline(false); QTRY_VERIFY(!find("googleConnect_google_drive")->isEnabled());
+        fixture.api.setWorkspace("other-workspace"); google.setActive(true); QTRY_VERIFY(!find("googleConnectionClose") || !find("googleConnectionClose")->isVisible());
+        QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
+    }
+    void mailCenterReaderComposerAndAttachmentsFitWideAndCompact() {
+        NativePageFixture fixture; QVERIFY(fixture.remote.server.isListening());
+        const QJsonArray attachments{QJsonObject{{"id","fixture-part"},{"filename","Campaign overview.pdf"},{"mime_type","application/pdf"},{"size",21800}}};
+        const QJsonObject first{{"id","fixture-message"},{"mail_account_id","fixture-account"},{"from_name","Olivia Martin"},{"from_email","olivia@example.test"},{"to_emails",QJsonArray{"alex@example.test"}},{"subject","A fresh start for the autumn campaign"},{"snippet","Hi Alex, here is the updated campaign overview for our next launch."},{"body_html","<h2>A little inspiration for the week ahead</h2><p>Hi Alex,</p><p>Here is the updated <b>campaign overview</b> for our next launch. We have brought the key ideas together so everyone can review them before Thursday.</p><ul><li>New product photography</li><li>A clearer story for our customers</li><li>Final review on Thursday</li></ul><p>Let me know what you think, and feel free to share any questions.</p><p>Thanks,<br>Olivia</p>"},{"body_text","Campaign overview"},{"received_at","2026-09-27T11:24:00Z"},{"is_read",false},{"is_starred",true},{"has_attachments",true},{"attachments",attachments},{"ai_category","marketing"}};
+        QJsonArray messages{first};
+        for(int i=0;i<8;++i) messages.append(QJsonObject{{"id","fixture-message-"+QString::number(i)},{"mail_account_id","fixture-account"},{"from_name",QStringList{"Morgan Lee","Accounts Team","Jamie Brooks","Product Weekly"}.at(i%4)},{"from_email","team@example.test"},{"subject",QStringList{"Your monthly statement is ready","Thursday project review","A few notes from our planning session","Your weekly product digest"}.at(i%4)},{"snippet","An update from your team. Open this message to read the full details."},{"received_at","2026-09-26T09:20:00Z"},{"is_read",i%2==0},{"is_starred",false},{"ai_category",QStringList{"finance","notification","work","marketing"}.at(i%4)}});
+        fixture.remote.collection("/api/mail/messages",messages);
+        fixture.remote.responses.insert("/api/mail/accounts",{{"data",QJsonArray{QJsonObject{{"id","fixture-account"},{"email_address","alex@example.test"},{"provider","gmail"},{"status","active"}}}},{"meta",QJsonObject{{"can_send",true},{"can_manage",true}}}});
+        fixture.remote.responses.insert("/api/mail/folders",{{"data",QJsonArray{QJsonObject{{"key","inbox"},{"count",9},{"unread_count",5}},QJsonObject{{"key","starred"},{"count",1}},QJsonObject{{"key","sent"},{"count",14}}}},{"meta",QJsonObject{{"labels",QJsonArray{QJsonObject{{"name","Projects"},{"count",12}},QJsonObject{{"name","Finance"},{"count",4}},QJsonObject{{"name","Marketing"},{"count",7}}}}}}});
+        fixture.features.navigate("mail");
+        auto& center=*qobject_cast<MailCenterController*>(fixture.features.mailCenter());
+        QTRY_COMPARE(center.messages().size(),9); QTRY_VERIFY(!center.detailLoading()); QTRY_VERIFY(center.canSend());
+        NativePageView view(fixture,"FeaturePage.qml"); QVERIFY2(view.item,qPrintable(view.failure));
+        QTRY_VERIFY(view.find("mailMessageBody")); QTest::qWait(80);
+        QCOMPARE(view.find("mailAccountSelector")->property("displayText").toString(),QString("All mailboxes"));
+        QVERIFY(view.inside("mailFolders")); QVERIFY(view.inside("mailMessagesPanel")); QVERIFY(view.inside("mailReaderPanel"));
+        QVERIFY(view.capture("mail-center-wide"));
+        QCOMPARE(fixture.remote.methods.count("PATCH"),0); // Opening or refreshing never marks real mail read.
+        QSignalSpy opened(&fixture.features,&FeatureController::openDelivery);
+        QVERIFY(view.click("mailViewAttachment_fixture-part")); QCOMPARE(opened.count(),1);
+        QCOMPARE(opened.first().first().toMap().value("mail_message_id").toString(),QString("fixture-message"));
+        QVERIFY(view.click("mailReplyButton")); QTRY_VERIFY(center.composing());
+        QCOMPARE(center.draft().value("to").toString(),QString("olivia@example.test"));
+        center.setDraft("body_text","Thank you, Olivia. I will review the campaign overview this afternoon.");
+        QVERIFY(center.hasDraft()); QVERIFY(view.inside("mailSendButton"));
+        QVERIFY(view.capture("mail-reply-wide"));
+        QVERIFY(view.click("mailCloseComposer")); QVERIFY(!center.composing()); QVERIFY(center.hasDraft());
+        view.resize(760,620); QTest::qWait(80);
+        QVERIFY(view.click("mailBackToMessages"));
+        QVERIFY(view.click("mailMessage_fixture-message")); QVERIFY(view.inside("mailReaderPanel"));
+        QTRY_VERIFY(!center.detailLoading()); QTest::qWait(30);
+        QVERIFY(view.capture("mail-reader-compact"));
+        QVERIFY(view.click("mailBackToMessages")); QVERIFY(view.inside("mailMessagesPanel"));
+        QVERIFY(view.click("mailCompactCompose")); QVERIFY(center.composing()); QVERIFY(view.inside("mailSendButton"));
+        QVERIFY(view.capture("mail-compose-compact"));
+        fixture.api.setOnline(false); QTRY_VERIFY(!view.find("mailSendButton")->isEnabled()); QVERIFY(center.hasDraft());
+        fixture.api.setOnline(true); QTRY_VERIFY(view.find("mailSendButton")->isEnabled());
+        center.closeComposer(); QVERIFY(view.click("mailBackToMessages")); QVERIFY(view.click("mailFilter_unread")); QCOMPARE(center.filter(),QString("unread"));
+        QVERIFY2(view.warnings.isEmpty(),qPrintable(view.warnings.join('\n')));
+    }
     void mailConnectFlowSupportsGoogleAndPresetImapAtMinimumSize() {
         NativePageFixture fixture; QVERIFY(fixture.remote.server.isListening());
         fixture.remote.responses.insert("POST /api/mail/oauth/google/start",{{"data",QJsonObject{{"flow_id","fixture-flow"},{"authorize_url","https://accounts.google.com/o/oauth2/v2/auth?state=test-only"}}}});
-        fixture.remote.responses.insert("GET /api/mail/oauth/fixture-flow",{{"data",QJsonObject{{"status","connected"}}}});
+        fixture.remote.responses.insert("GET /api/mail/oauth/fixture-flow",{{"data",QJsonObject{{"status","connected"},{"account_id","fixture-mail"}}}});
         fixture.remote.responses.insert("POST /api/mail/accounts/imap",{{"data",QJsonObject{{"id","fixture-mail"}}}});
         fixture.features.navigate("mail"); QTRY_VERIFY(!fixture.features.busy());
         auto& mail=*qobject_cast<MailAccountsController*>(fixture.features.mailAccounts()); QTRY_VERIFY(!mail.refreshing());
@@ -293,6 +384,8 @@ private slots:
         add("custom-location","/uploads/avatar_legal.859687268a64.glb","");
         add("unknown-character","/assets3d/avatar_custom.0123456789ab.glb","");
         QTest::newRow("unresolved-assignment")<<QVariantMap{{"kind","ai"},{"avatar_asset_id","custom-unresolved"}}<<QString();
+        QTest::newRow("body-thumbnail-is-not-a-portrait")<<QVariantMap{{"kind","ai"},{"avatar_thumbnail_url","https://assets.invalid/body.png"}}<<QString();
+        QTest::newRow("unsafe-portrait-url")<<QVariantMap{{"kind","ai"},{"avatar_portrait_url","file:///private/head.png"}}<<QString();
         QTest::newRow("human")<<QVariantMap{{"kind","human_linked"},{"avatar_cdn_path","/assets3d/avatar_male.342ae6ded162.glb"}}<<QString();
         QTest::newRow("hybrid")<<QVariantMap{{"kind","hybrid"},{"avatar_cdn_path","/assets3d/avatar_legal.12554af1b7e1.glb"}}<<QString("qrc:/ui/portrait-legal.png");
     }
@@ -326,7 +419,11 @@ private slots:
         QVERIFY(!view.find("officeCatalogPortrait"));
         auto withThumbnail=custom; withThumbnail.insert("avatar_thumbnail_url","https://mokaid.com/api/avatar-assets/fixture/token/thumbnail.png");
         QVERIFY(view.page->setProperty("agent",withThumbnail));
-        QCOMPARE(portrait->property("portraitSource").toString(),withThumbnail.value("avatar_thumbnail_url").toString());
+        QVERIFY(portrait->property("portraitSource").toString().isEmpty());
+        QCOMPARE(portrait->property("initials").toString(),QString("AL"));
+        auto withPortrait=withThumbnail; withPortrait.insert("avatar_portrait_url","https://assets.invalid/avatar-assets/fixture/token/portrait.png");
+        QVERIFY(view.page->setProperty("agent",withPortrait));
+        QCOMPARE(portrait->property("portraitSource").toString(),withPortrait.value("avatar_portrait_url").toString());
         QVERIFY(view.page->setProperty("agent",QVariantMap{{"kind","ai"},{"display_name","Catalog agent"},{"asset_type","legal"}}));
         QVERIFY(!view.page->property("usesCustomPortrait").toBool());
         auto* builtin=view.find("officeCatalogPortrait"); QVERIFY(builtin);

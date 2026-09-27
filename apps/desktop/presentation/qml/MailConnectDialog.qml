@@ -117,6 +117,7 @@ MokaidDialog {
                     MokaidButton { text:"Reopen browser"; enabled:!root.controller.submitting; onClicked: root.controller.reopenBrowser() }
                     MokaidButton { text:"Check connection"; quiet:true; enabled:!root.controller.submitting; onClicked: root.controller.checkOAuth() }
                 }
+                GoogleSignInHelp { Layout.fillWidth:true }
             }
             ColumnLayout {
                 visible: root.mode==="imap" && !root.controller.oauthPending

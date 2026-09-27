@@ -18,7 +18,15 @@ ApplicationWindow {
     property bool quitting: false
     property bool adminMode: features.currentPage.indexOf("admin-") === 0
     property bool previewsRetained: preview.documents[0] !== null || preview.documents[1] !== null
-    property bool workProtected: desktopShell.taskDrafts || desktopShell.agentDrafts || office.hasDrafts || office.sending || missions.hasDraft || missions.busy || actionDialog.opened || activityPanels.protectedWork || previewsRetained
+    property bool completionPreview: false
+    function syncCompletionDialog() {
+        if (session.authenticated && activity.completionNotification.id && !preview.visible
+                && !actionDialog.opened && !quitDialog.opened && !signOutDialog.opened
+                && !discardPreviews.opened && !preferences.opened)
+            completionDialog.open()
+        else completionDialog.close()
+    }
+    property bool workProtected: features.mailCenter.hasDraft || features.mailCenter.sending || desktopShell.taskDrafts || desktopShell.agentDrafts || office.hasDrafts || office.sending || missions.hasDraft || missions.busy || actionDialog.opened || activityPanels.protectedWork || previewsRetained
         || features.driveDownload.busy || features.driveDownload.pendingTransaction.length > 0 || projectRuntime.busy
         || orchestrator.busy || orchestrator.draft.length > 0 || moked.audioActive
     onWorkProtectedChanged: updates.setInstallationAllowed(!workProtected)
@@ -27,8 +35,8 @@ ApplicationWindow {
         if (!quitting && workProtected) { close.accepted = false; quitDialog.open() }
     }
     Shortcut { sequences: [StandardKey.Quit]; onActivated: window.close() }
-    Shortcut { sequence: "Ctrl+K"; onActivated: activityPanels.openSearch() }
-    Shortcut { sequence: "Meta+K"; onActivated: activityPanels.openSearch() }
+    Shortcut { sequence: "Ctrl+K"; onActivated: features.currentPage==="mail" ? desktopShell.focusMailSearch() : activityPanels.openSearch() }
+    Shortcut { sequence: "Meta+K"; onActivated: features.currentPage==="mail" ? desktopShell.focusMailSearch() : activityPanels.openSearch() }
     Shortcut { sequence: "Ctrl+,"; onActivated: preferences.open() }
     Shortcut { sequence: "Meta+,"; onActivated: preferences.open() }
     Shortcut { sequence: "Ctrl+N"; enabled: session.authenticated && !!session.workspaceId; onActivated: missions.begin() }
@@ -52,6 +60,11 @@ ApplicationWindow {
         target: missions
         function onOpenTask(taskId) { preview.visible = false; features.openRecord("tasks", taskId) }
         function onCompleted(notification) {
+            if (notification.kind === "ai_run_completed") {
+                activity.enqueueCompletion(notification)
+                system.notifyMission()
+                return
+            }
             completionToast.notification = notification
             completionToast.visible = true
             completionTimer.restart()
@@ -115,9 +128,44 @@ ApplicationWindow {
         MokaidMenu.Separator {}
         MokaidMenu.Entry { text: "Sign out"; onTriggered: signOutDialog.open() }
     }
-    ActionDialog { id: actionDialog }
+    ActionDialog { id: actionDialog; onClosed: window.syncCompletionDialog() }
     ActivityPanels { id: activityPanels; anchors.fill: parent }
     ProjectPanel { id: projects }
+    TaskCompletionDialog {
+        id: completionDialog
+        controller: activity
+        files: features.deliverablesForTask(activity.completionTask)
+        downloadManager: features.driveDownload
+        reducedMotion: system.reducedMotion
+        onResultAcknowledged: activity.markRead(activity.completionNotification.id)
+        onTaskRequested: function(taskId) {
+            activity.markRead(activity.completionNotification.id)
+            activity.dismissAllCompletions()
+            missions.close()
+            preview.visible = false
+            features.openRecord("tasks", taskId)
+        }
+        onPreviewRequested: function(index) {
+            window.completionPreview = true
+            missions.close()
+            preview.openCollection(files, index)
+        }
+        onDownloadRequested: function(file) { preview.downloadFile(file) }
+    }
+    Connections {
+        target: activity
+        function onCompletionChanged() { window.syncCompletionDialog() }
+    }
+    Connections {
+        target: preview
+        function onChanged() {
+            if (preview.visible) completionDialog.close()
+            else if (window.completionPreview || activity.completionNotification.id) {
+                window.completionPreview = false
+                window.syncCompletionDialog()
+            }
+        }
+    }
     MokedDock {
         id: moked; anchors.fill: parent; z: 20
         officeSlot: desktopShell.mokedOfficeSlot
@@ -146,18 +194,21 @@ ApplicationWindow {
     Timer { id: completionTimer; interval: 14000; onTriggered: completionToast.visible = false }
     MokaidDialog {
         id: signOutDialog; anchors.centerIn: parent; modal: true; title: "Sign out of Mokaid?"
+        onClosed: window.syncCompletionDialog()
         standardButtons: Dialog.Ok | Dialog.Cancel
         MokaidLabel { text: "Local drafts and open deliverables will be closed.\nYour desktop session will be revoked."; color: Theme.secondary }
         onAccepted: session.signOut()
     }
     MokaidDialog {
         id: quitDialog; anchors.centerIn: parent; modal: true; title: "Close Mokaid?"
+        onClosed: if (!window.quitting) window.syncCompletionDialog()
         standardButtons: Dialog.Discard | Dialog.Cancel
         MokaidLabel { text: "There are drafts, forms, downloads, or deliverables still open.\nDiscard this local work, cancel downloads, and quit?"; color: Theme.secondary }
         onDiscarded: { window.quitting = true; window.close() }
     }
     MokaidDialog {
         id: discardPreviews; anchors.centerIn: parent; modal: true; title: "Close all deliverables?"
+        onClosed: window.syncCompletionDialog()
         standardButtons: Dialog.Discard | Dialog.Cancel
         MokaidLabel { text: "Unsaved form entries inside deliverables will be lost."; color: Theme.secondary }
         onDiscarded: preview.clear()
@@ -169,6 +220,7 @@ ApplicationWindow {
     }
     MokaidDialog {
         id: preferences; anchors.centerIn: parent; modal: true; title: "Desktop preferences"; width: 500; standardButtons: Dialog.Close
+        onClosed: window.syncCompletionDialog()
         ColumnLayout {
             width: parent.width; spacing: 16
             MokaidLabel { text: "3D quality"; color: Theme.secondary }

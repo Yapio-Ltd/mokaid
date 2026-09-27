@@ -20,31 +20,23 @@ Billing.seed_plans()
 
 ## ---------- Integrations ----------
 
-provider_specs = [
-  {"slack", "Slack", "Communication", "Send messages, alerts and notifications.", "slack"},
-  {"google_drive", "Google Drive", "Storage", "Store, access and share files.", "googledrive"},
-  {"gmail", "Gmail", "Communication", "Send and receive email.", "gmail"},
-  {"outlook", "Outlook", "Communication", "Read, analyze and send email through Outlook.",
-   "outlook"},
-  {"notion", "Notion", "Productivity", "Sync pages and databases.", "notion"},
-  {"trello", "Trello", "Project Management", "Manage tasks and boards.", "trello"},
-  {"github", "GitHub", "Developer", "Sync repositories, issues and PRs.", "github"},
-  {"zapier", "Zapier", "Automation", "Automate workflows between apps.", "zapier"},
-  {"hubspot", "HubSpot", "CRM", "CRM, contacts and marketing.", "hubspot"},
-  {"microsoft_teams", "Microsoft Teams", "Communication", "Notifications and team collaboration.",
-   "microsoftteams"},
-  {"dropbox", "Dropbox", "Storage", "Cloud storage and file sharing.", "dropbox"},
-  {"stripe", "Stripe", "Finance", "Payments and billing.", "stripe"},
-  {"jira", "Jira", "Project Management", "Issue tracking and agile boards.", "jira"},
-  {"linear", "Linear", "Project Management", "Modern issue tracking.", "linear"},
-  {"google_calendar", "Google Calendar", "Productivity", "Sync events and schedules.",
-   "googlecalendar"},
-  {"google_docs", "Google Docs", "Productivity", "Create and edit documents.", "googledocs"},
-  {"google_sheets", "Google Sheets", "Productivity", "Read and write spreadsheets.",
-   "googlesheets"},
-  {"google_meet", "Google Meet", "Communication", "Schedule and manage video meetings.",
-   "googlemeet"}
-]
+provider_specs =
+  [
+    {"slack", "Slack", "Communication", "Send messages, alerts and notifications.", "slack"},
+    {"outlook", "Outlook", "Communication", "Read, analyze and send email through Outlook.",
+     "outlook"},
+    {"notion", "Notion", "Productivity", "Sync pages and databases.", "notion"},
+    {"trello", "Trello", "Project Management", "Manage tasks and boards.", "trello"},
+    {"github", "GitHub", "Developer", "Sync repositories, issues and PRs.", "github"},
+    {"zapier", "Zapier", "Automation", "Automate workflows between apps.", "zapier"},
+    {"hubspot", "HubSpot", "CRM", "CRM, contacts and marketing.", "hubspot"},
+    {"microsoft_teams", "Microsoft Teams", "Communication",
+     "Notifications and team collaboration.", "microsoftteams"},
+    {"dropbox", "Dropbox", "Storage", "Cloud storage and file sharing.", "dropbox"},
+    {"stripe", "Stripe", "Finance", "Payments and billing.", "stripe"},
+    {"jira", "Jira", "Project Management", "Issue tracking and agile boards.", "jira"},
+    {"linear", "Linear", "Project Management", "Modern issue tracking.", "linear"}
+  ] ++ Mokaid.Integrations.GoogleCatalog.specs()
 
 for {key, name, category, description, icon_slug} <- provider_specs do
   Repo.insert!(

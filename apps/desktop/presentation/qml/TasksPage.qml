@@ -88,7 +88,8 @@ Item {
         const nested = row.assigned_agent || ({})
         const path = row.assigned_agent_avatar_cdn_path || nested.avatar_cdn_path || ""
         const thumbnail = row.assigned_agent_avatar_thumbnail_url || nested.avatar_thumbnail_url || ""
-        return {display_name:row.assigned_agent_name || nested.display_name || "?", kind:path || thumbnail ? row.assigned_agent_kind || nested.kind || "ai" : "unknown", avatar_cdn_path:path, avatar_thumbnail_url:thumbnail, avatar_config:row.assigned_agent_avatar_config || nested.avatar_config || ({})}
+        const portrait = row.assigned_agent_avatar_portrait_url || nested.avatar_portrait_url || ""
+        return {display_name:row.assigned_agent_name || nested.display_name || "?", kind:path || portrait || thumbnail ? row.assigned_agent_kind || nested.kind || "ai" : "unknown", avatar_cdn_path:path, avatar_portrait_url:portrait, avatar_thumbnail_url:thumbnail, avatar_config:row.assigned_agent_avatar_config || nested.avatar_config || ({})}
     }
     function taskCategory(row) {
         const tags=row.tags && typeof row.tags.length === "number" ? row.tags : []
