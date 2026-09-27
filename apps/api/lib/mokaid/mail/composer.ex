@@ -341,7 +341,8 @@ defmodule Mokaid.Mail.Composer do
 
   defp attachments(values) when is_list(values) and length(values) <= 10 do
     Enum.reduce_while(values, {:ok, [], 0}, fn value, {:ok, acc, size} ->
-      with %{"filename" => filename, "content_type" => type, "content_base64" => encoded} <- value,
+      with %{"filename" => filename, "content_type" => type, "content_base64" => encoded} <-
+             value,
            true <-
              safe_header?(filename, 255) and filename != "" and
                not String.contains?(filename, ["/", "\\"]),

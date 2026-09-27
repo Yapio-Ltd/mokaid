@@ -174,7 +174,8 @@ defmodule Mokaid.Mail.AgentAccess do
              else: ~w(queued running)
            ),
          %{} = task <- Tasks.get_task(member.workspace_id, run.task_id),
-         true <- task.created_by_member_id == member.id and task.assigned_agent_id == run.agent_id,
+         true <-
+           task.created_by_member_id == member.id and task.assigned_agent_id == run.agent_id,
          true <- task.status not in ~w(completed canceled),
          {:ok, _lead} <- live_agent(member.workspace_id, run.agent_id, tool),
          {:ok, _agent} <- live_agent(member.workspace_id, actor, tool),
