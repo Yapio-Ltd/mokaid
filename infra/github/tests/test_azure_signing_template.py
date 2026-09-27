@@ -35,7 +35,7 @@ def test_phase_a_has_only_account_identity_federation_and_human_verifier():
     account = resource("Microsoft.CodeSigning/codeSigningAccounts")
     assert account["apiVersion"] == "2025-10-13"
     assert account["properties"] == {"sku": {"name": "Basic"}}
-    assert TEMPLATE["parameters"]["location"]["allowedValues"] == ["westeurope"]
+    assert TEMPLATE["parameters"]["location"]["allowedValues"] == ["northeurope"]
     assert not any(
         word in json.dumps(TEMPLATE).lower()
         for word in ("clientsecret", "password", "privatekey", "deploymentScripts".lower())
@@ -85,7 +85,7 @@ def test_outputs_match_existing_workflow_and_do_not_claim_a_certificate_profile(
         "MOKAID_AZURE_SUBSCRIPTION_ID", "MOKAID_AZURE_SIGNING_ENDPOINT",
         "MOKAID_AZURE_SIGNING_ACCOUNT",
     }
-    assert variables["MOKAID_AZURE_SIGNING_ENDPOINT"] == "https://weu.codesigning.azure.net"
+    assert variables["MOKAID_AZURE_SIGNING_ENDPOINT"] == "https://neu.codesigning.azure.net"
     workflow = yaml.load(
         (ROOT / ".github/workflows/desktop-release.yml").read_text(),
         Loader=yaml.BaseLoader,

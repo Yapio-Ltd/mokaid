@@ -1,7 +1,7 @@
 # Azure Artifact Signing: account and identity preparation
 
 `phase-a.json` is a subscription-scope ARM template for one Basic signing account
-in West Europe, a dedicated resource group, a user-assigned managed identity,
+in North Europe, a dedicated resource group, a user-assigned managed identity,
 its GitHub federated credential, and one human Identity Verifier assignment on
 the signing account. Including the nested deployment record, there are six
 resource IDs. The template is incremental and role names are deterministic.
@@ -50,8 +50,8 @@ Copy `parameters.example.json` outside the checkout into a private directory.
 Replace the three zero UUIDs and placeholder account name with verified values.
 Keep operator-specific parameters, full validation outputs and deployment plans
 out of the public repository. Account names are global: check availability before
-activation. The configured region is pinned to `westeurope` and its endpoint to
-`https://weu.codesigning.azure.net`.
+activation. The configured region is pinned to `northeurope` and its endpoint to
+`https://neu.codesigning.azure.net`.
 
 Use an existing authenticated Azure CLI; no password or token should appear in
 shell arguments. Set `AZURE_SIGNING_PARAMETERS` to the private absolute path.
@@ -68,7 +68,7 @@ test "$(az account show --subscription "$AZURE_SIGNING_SUBSCRIPTION" --query id 
   test "$(az account show --subscription "$AZURE_SIGNING_SUBSCRIPTION" --query state -o tsv)" = Enabled && \
   test "$(az ad signed-in-user show --query id -o tsv)" = "$AZURE_SIGNING_OPERATOR" && \
   az deployment sub validate --subscription "$AZURE_SIGNING_SUBSCRIPTION" \
-    --location westeurope --name mokaid-signing-phase-a-validation \
+    --location northeurope --name mokaid-signing-phase-a-validation \
     --template-file infra/azure/artifact-signing/phase-a.json \
     --parameters "@$AZURE_SIGNING_PARAMETERS" --validation-level Template --only-show-errors
 ```

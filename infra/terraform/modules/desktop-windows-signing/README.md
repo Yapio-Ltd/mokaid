@@ -70,11 +70,11 @@ client secret, password, or signing certificate belongs in the Windows AWS
 secret. After Azure identity validation and provisioning, configure:
 
 - `MOKAID_AZURE_CLIENT_ID`, `MOKAID_AZURE_TENANT_ID`, `MOKAID_AZURE_SUBSCRIPTION_ID`
-- `MOKAID_AZURE_SIGNING_ENDPOINT=https://weu.codesigning.azure.net`
+- `MOKAID_AZURE_SIGNING_ENDPOINT=https://neu.codesigning.azure.net`
 - `MOKAID_AZURE_SIGNING_ACCOUNT`, `MOKAID_AZURE_CERTIFICATE_PROFILE`
 
 The reconciler validates these public identifiers and pins the endpoint to the
-reviewed West Europe service. The Azure federation audience is
+reviewed North Europe service. The Azure federation audience is
 `api://AzureADTokenExchange`, issuer is
 `https://token.actions.githubusercontent.com`, and subject matches the stable
 environment above. Grant only Artifact Signing Certificate Profile Signer at

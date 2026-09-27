@@ -146,8 +146,8 @@ def validate_variable(name: str, value: Json) -> str | None:
             )
         )
     elif name == "MOKAID_AZURE_SIGNING_ENDPOINT":
-        # The account is provisioned in West Europe. No arbitrary credential sink.
-        valid = value == "https://weu.codesigning.azure.net"
+        # The reviewed account region is North Europe. No arbitrary credential sink.
+        valid = value == "https://neu.codesigning.azure.net"
     elif name == "MOKAID_AZURE_SIGNING_ACCOUNT":
         valid = bool(re.fullmatch(r"[a-z][a-z0-9-]{1,22}[a-z0-9]", value))
     elif name == "MOKAID_AZURE_CERTIFICATE_PROFILE":

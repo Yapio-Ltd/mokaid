@@ -29,9 +29,9 @@
     },
     "location": {
       "type": "string",
-      "defaultValue": "westeurope",
+      "defaultValue": "northeurope",
       "allowedValues": [
-        "westeurope"
+        "northeurope"
       ]
     },
     "signingAccountName": {
@@ -246,7 +246,7 @@
         "MOKAID_AZURE_CLIENT_ID": "[reference(format('{0}-phase-a', parameters('resourceGroupName'))).outputs.managedIdentityClientId.value]",
         "MOKAID_AZURE_TENANT_ID": "[tenant().tenantId]",
         "MOKAID_AZURE_SUBSCRIPTION_ID": "[subscription().subscriptionId]",
-        "MOKAID_AZURE_SIGNING_ENDPOINT": "https://weu.codesigning.azure.net",
+        "MOKAID_AZURE_SIGNING_ENDPOINT": "https://neu.codesigning.azure.net",
         "MOKAID_AZURE_SIGNING_ACCOUNT": "[parameters('signingAccountName')]"
       }
     }
