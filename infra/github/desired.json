@@ -50,11 +50,11 @@
         "MOKAID_MACOS_SIGNING_SECRET_ARN": "arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid/desktop/stable/macos-signing-8pPQkT",
         "MOKAID_WINDOWS_SIGNING_SECRET_ARN": "arn:aws:secretsmanager:il-central-1:660601648321:secret:mokaid/desktop/stable/windows-updates-zsjRci",
         "MOKAID_WINDOWS_SIGNING_AWS_ROLE_ARN": "arn:aws:iam::660601648321:role/mokaid-desktop-signing-windows-stable",
-        "MOKAID_AZURE_CLIENT_ID": null,
-        "MOKAID_AZURE_TENANT_ID": null,
-        "MOKAID_AZURE_SUBSCRIPTION_ID": null,
-        "MOKAID_AZURE_SIGNING_ENDPOINT": null,
-        "MOKAID_AZURE_SIGNING_ACCOUNT": null,
+        "MOKAID_AZURE_CLIENT_ID": "f9927c8e-596e-4530-bb88-9e3db07c4029",
+        "MOKAID_AZURE_TENANT_ID": "51cd8585-652e-49cd-98da-dc70f327172a",
+        "MOKAID_AZURE_SUBSCRIPTION_ID": "46a40a2f-0af1-4682-8d38-e553d108919d",
+        "MOKAID_AZURE_SIGNING_ENDPOINT": "https://neu.codesigning.azure.net",
+        "MOKAID_AZURE_SIGNING_ACCOUNT": "mokaidsigning46a40a2f",
         "MOKAID_AZURE_CERTIFICATE_PROFILE": null,
         "MOKAID_UPDATE_PUBLIC_KEY": "o2RXdU+YFRb6wU/r+UpVrAvlTiftNWHkaflRwfKKuJk="
       }
