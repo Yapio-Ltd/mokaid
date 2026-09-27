@@ -16,6 +16,45 @@ defmodule Mokaid.Avatars.Worker do
   alias Mokaid.{Avatars, Repo}
 
   @impl Oban.Worker
+  def timeout(_job), do: :timer.minutes(18)
+
+  @doc false
+  def reconcile_terminal(id) do
+    result =
+      Repo.transaction(fn ->
+        row = Repo.one(from g in Generation, where: g.id == ^id, lock: "FOR UPDATE")
+
+        jobs =
+          from j in Oban.Job,
+            where: j.queue == "avatars" and j.args["generation_id"] == ^id
+
+        terminal =
+          from j in jobs,
+            where:
+              j.worker == "Mokaid.Avatars.Worker" and
+                j.state in ~w(completed cancelled discarded)
+
+        incomplete =
+          from j in jobs,
+            where: j.state in ~w(suspended available scheduled executing retryable)
+
+        if row && row.status in Avatars.active_statuses() && Repo.exists?(terminal) &&
+             not Repo.exists?(incomplete) do
+          fail(row, "Character creation was interrupted. Your credits have been refunded.")
+        end
+      end)
+
+    case result do
+      {:ok, _} ->
+        broadcast_balance(id)
+        :ok
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @impl Oban.Worker
   def perform(%Oban.Job{args: %{"generation_id" => id}, attempt: attempt, max_attempts: max}) do
     case Repo.transaction(
            fn ->

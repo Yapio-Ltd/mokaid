@@ -36,6 +36,89 @@ class StagingTests(unittest.TestCase):
             with self.assertRaises(staging.SmokeError):
                 staging.Smoke({"api": IMAGE, "web": IMAGE}, timeout)
 
+    def test_platform_is_validated_without_inheriting_docker_default(self):
+        for platform in ("", "linux", "arm64", "linux/arm64/v8", "linux/arm64\n", "--help"):
+            with self.subTest(platform=platform), self.assertRaisesRegex(staging.SmokeError, "STAGING_PLATFORM"):
+                staging.Smoke({"api": IMAGE, "web": IMAGE}, platform=platform)
+        with patch.dict(os.environ, {"DOCKER_DEFAULT_PLATFORM": "linux/amd64", "STAGING_PLATFORM": "linux/arm64"}):
+            smoke = self.smoke()
+            env = staging.host_environment()
+        self.assertIsNone(smoke.platform)
+        self.assertNotIn("DOCKER_DEFAULT_PLATFORM", env)
+        self.assertNotIn("STAGING_PLATFORM", env)
+
+    def test_platform_pull_replaces_cached_host_variant_before_id_resolution(self):
+        images = {key: "registry.example/" + key + "@" + IMAGE for key in ("api", "web", "crm", "worker")}
+        smoke = staging.Smoke(images, platform="linux/arm64")
+        cached = {ref: "amd64" for ref in images.values()}
+        selected_id = "sha256:" + "c" * 64
+        calls = []
+
+        def docker(*args, **kwargs):
+            calls.append(args)
+            if args[0] == "pull":
+                self.assertEqual(args[1:3], ("--platform", "linux/arm64"))
+                self.assertIn(args[3], images.values())
+                cached[args[3]] = "arm64"
+                return result()
+            self.assertEqual(args[:2], ("image", "inspect"))
+            self.assertEqual(len(args), 3)  # Compatible with Docker API 1.48.
+            ref = args[2]
+            return result(json.dumps([{"Id": selected_id if ref in cached else IMAGE,
+                                       "Os": "linux", "Architecture": cached.get(ref, "amd64")}]))
+
+        with patch.object(smoke, "docker", side_effect=docker):
+            smoke.resolve_images()
+        self.assertEqual([call for call in calls if call[0] == "pull"],
+                         [("pull", "--platform", "linux/arm64", ref) for ref in images.values()])
+        for key, ref in images.items():
+            self.assertLess(calls.index(("pull", "--platform", "linux/arm64", ref)),
+                            calls.index(("image", "inspect", ref)))
+            self.assertEqual(smoke.resolved[key], selected_id)
+        self.assertEqual(smoke.resolved["postgres"], IMAGE)
+        self.assertEqual(smoke.resolved["probe"], IMAGE)
+
+    def test_wrong_or_missing_platform_metadata_fails_before_creating_resources(self):
+        for metadata in ({"Os": "linux", "Architecture": "amd64"},
+                         {"Os": "windows", "Architecture": "arm64"}, {}):
+            for ref in (IMAGE, "registry.example/api@" + IMAGE):
+                smoke = staging.Smoke({"api": ref, "web": IMAGE}, platform="linux/arm64")
+                with self.subTest(metadata=metadata, ref=ref), patch.object(smoke, "docker", return_value=result(
+                        json.dumps([{"Id": IMAGE, **metadata}]))) as docker:
+                    with self.assertRaisesRegex(staging.SmokeError, "does not match STAGING_PLATFORM"):
+                        smoke.resolve_images()
+                self.assertEqual(smoke.resolved, {})
+                self.assertEqual(smoke.containers, [])
+                self.assertIsNone(smoke.network)
+                self.assertFalse(any(call.args[0] == "create" for call in docker.call_args_list))
+                if ref == IMAGE:
+                    self.assertFalse(any(call.args[0] == "pull" for call in docker.call_args_list))
+
+    def test_platform_applies_to_all_application_containers_including_migrations(self):
+        smoke = staging.Smoke({key: IMAGE for key in ("api", "web", "crm", "worker")}, platform="linux/arm64")
+        smoke.network = smoke.prefix
+        smoke.resolved = {**smoke.images, "postgres": IMAGE}
+        inspected = {"Image": IMAGE, "Config": {"Labels": {staging.LABEL: smoke.run_id}},
+                     "NetworkSettings": {"Networks": {smoke.network: {}}}}
+        for role in ("api", "migration", "web", "crm", "worker", "postgres"):
+            with self.subTest(role=role), patch.object(smoke, "docker", return_value=result()) as docker, patch.object(smoke, "inspect", return_value=inspected):
+                smoke.create(role)
+            args = docker.call_args.args
+            self.assertEqual(args[-1], IMAGE)
+            if role == "postgres":
+                self.assertNotIn("--platform", args)
+            else:
+                self.assertEqual(args[args.index("--platform") + 1], "linux/arm64")
+
+    def test_native_default_resolves_existing_images_without_platform_or_pull(self):
+        smoke = self.smoke()
+        with patch.object(smoke, "docker", return_value=result(json.dumps([{"Id": IMAGE}]))) as docker:
+            smoke.resolve_images()
+        self.assertEqual(set(smoke.resolved), {"api", "web", "postgres", "probe"})
+        for call in docker.call_args_list:
+            self.assertEqual(call.args[:2], ("image", "inspect"))
+            self.assertNotIn("--platform", call.args)
+
     def test_worker_is_optional_and_uses_the_same_immutable_image_contract(self) -> None:
         for optional in ({}, {"crm": IMAGE}, {"worker": IMAGE}, {"crm": IMAGE, "worker": IMAGE}):
             with self.subTest(optional=tuple(optional)):
@@ -238,9 +321,16 @@ class StagingTests(unittest.TestCase):
             smoke.diagnostics.return_value = None
             smoke.cleanup.return_value = []
             self.assertEqual(staging.main(), 1)
-        factory.assert_called_once_with({"api": IMAGE, "web": IMAGE, "worker": IMAGE}, 420)
+        factory.assert_called_once_with({"api": IMAGE, "web": IMAGE, "worker": IMAGE}, 420, platform=None)
         smoke.execute.assert_called_once_with()
         smoke.cleanup.assert_called_once_with()
+
+    def test_entrypoint_forwards_validated_platform_input(self):
+        environment = {"API_IMAGE": IMAGE, "WEB_IMAGE": IMAGE, "STAGING_PLATFORM": "linux/arm64"}
+        with patch("builtins.print"), patch.dict(os.environ, environment, clear=True), patch.object(staging.sys, "argv", ["staging_smoke.py"]), patch.object(staging.signal, "signal"), patch.object(staging, "Smoke") as factory:
+            factory.return_value.cleanup.return_value = []
+            self.assertEqual(staging.main(), 0)
+        factory.assert_called_once_with({"api": IMAGE, "web": IMAGE}, 420, platform="linux/arm64")
 
     def test_migration_requires_exit_zero_and_completion_marker(self):
         smoke = self.smoke()

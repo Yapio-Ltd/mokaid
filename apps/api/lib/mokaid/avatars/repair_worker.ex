@@ -12,6 +12,9 @@ defmodule Mokaid.Avatars.RepairWorker do
   alias Mokaid.Avatars.{Generation, NativeCooker, PreparedAsset}
   alias Mokaid.{Realtime, Repo}
 
+  @impl Oban.Worker
+  def timeout(_job), do: :timer.minutes(18)
+
   @doc "Queue a repair from a trusted release operation; no provider request or debit is made."
   def enqueue(generation_id) do
     with {:ok, id} <- Ecto.UUID.cast(generation_id),
