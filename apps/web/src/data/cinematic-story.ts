@@ -28,7 +28,7 @@ export interface CinematicStoryManifest {
   cta: { text: string; href: string };
   frames: {
     digest: string;
-    quality: number;
+    quality: number | { desktop: number; mobile: number };
     desktop: StoryFramePack;
     mobile: StoryFramePack;
   };

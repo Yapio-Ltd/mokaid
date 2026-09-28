@@ -154,25 +154,22 @@ describe("cinematic story lifecycle", () => {
     expect(mocks.controllers.at(-1)!.dispose).toHaveBeenCalled();
   });
 
-  it("finishes loading after early entry and more than the old 12-second cutoff", () => {
-    vi.useFakeTimers();
+  it("enters cinematic mode as soon as the controller reports ready", () => {
     const { container } = render(<CinematicStory />);
-    top = 200;
-    fireEvent.scroll(window);
-    act(() => vi.advanceTimersByTime(20_000));
-    expect(container.querySelector("canvas")).toBeTruthy();
     expect(container.querySelector("#product")).toHaveAttribute("data-mode", "loading");
-    expect(screen.getByRole("button", { name: "Retry the tour" })).toBeVisible();
+    expect(container.querySelector(".mk-cinema-loading")).toBeTruthy();
     ready();
     expect(container.querySelector("#product")).toHaveAttribute("data-mode", "cinematic");
+    expect(container.querySelector(".mk-cinema-loading")).toBeNull();
   });
 
-  it("can retry a stalled request", () => {
-    vi.useFakeTimers();
+  it("can retry after a hard failure", () => {
     progress = 0.57;
     render(<CinematicStory />);
     const first = mocks.controllers.at(-1)!;
-    act(() => vi.advanceTimersByTime(12_000));
+    act(() => {
+      first.options.onError();
+    });
     fireEvent.click(screen.getByRole("button", { name: "Retry the tour" }));
     expect(mocks.controllers.length).toBeGreaterThan(1);
     expect(first.dispose).toHaveBeenCalled();
@@ -257,9 +254,13 @@ describe("cinematic story lifecycle", () => {
   });
 
   it("exposes fingerprinted frame packs in the story manifest", () => {
-    expect(cinematicStory.frames.desktop.count).toBe(1776);
-    expect(cinematicStory.frames.mobile.count).toBe(888);
+    expect(cinematicStory.frames.desktop.count).toBe(222);
+    expect(cinematicStory.frames.mobile.count).toBe(148);
+    expect(cinematicStory.frames.desktop.fps).toBe(3);
+    expect(cinematicStory.frames.mobile.fps).toBe(2);
     expect(cinematicStory.frames.desktop.pattern).toContain("cinematic-frames.");
     expect(cinematicStory.frames.desktop.firstIndex).toBe(1);
+    expect(cinematicStory.frames.desktop.bytes).toBeLessThanOrEqual(8 * 1024 * 1024);
+    expect(cinematicStory.frames.mobile.bytes).toBeLessThanOrEqual(Math.round(2.5 * 1024 * 1024));
   });
 });

@@ -1,57 +1,68 @@
 {
+  "sourceMp4": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/deliveries/mokaid-office-journey.adac1c365481.mp4",
   "frames": {
-    "digest": "10b39734a90b",
-    "quality": 84,
+    "digest": "3f9f6089cd65",
+    "sha256": "3f9f6089cd65cd6ff75ec8c669b6ac27096eef00c5a55d9cd42272f717710302",
+    "quality": {
+      "desktop": 55,
+      "mobile": 50
+    },
     "desktop": {
-      "pattern": "/assets/cinematic-frames.10b39734a90b/desktop/frame-%05d.webp",
+      "pattern": "/assets/cinematic-frames.3f9f6089cd65/desktop/frame-%05d.webp",
       "firstIndex": 1,
-      "count": 1776,
-      "fps": 24,
-      "width": 1280,
-      "height": 720,
-      "bytes": 139385278
+      "count": 222,
+      "fps": 3,
+      "width": 720,
+      "height": 405,
+      "bytes": 5181240
     },
     "mobile": {
-      "pattern": "/assets/cinematic-frames.10b39734a90b/mobile/frame-%05d.webp",
+      "pattern": "/assets/cinematic-frames.3f9f6089cd65/mobile/frame-%05d.webp",
       "firstIndex": 1,
-      "count": 888,
-      "fps": 12,
-      "width": 960,
-      "height": 540,
-      "bytes": 51200684
+      "count": 148,
+      "fps": 2,
+      "width": 480,
+      "height": 270,
+      "bytes": 1973430
     }
   },
   "qualityReport": [
     {
       "time": 0,
+      "frameTime": 0,
       "frame": "frame-00001.webp",
-      "psnrAverage": 38.030297
+      "psnrAverage": 33.616692
     },
     {
       "time": 7,
-      "frame": "frame-00169.webp",
-      "psnrAverage": 38.358784
+      "frameTime": 7,
+      "frame": "frame-00022.webp",
+      "psnrAverage": 33.782186
     },
     {
       "time": 13,
-      "frame": "frame-00313.webp",
-      "psnrAverage": 36.046558
+      "frameTime": 13,
+      "frame": "frame-00040.webp",
+      "psnrAverage": 31.863418
     },
     {
       "time": 20,
-      "frame": "frame-00481.webp",
-      "psnrAverage": 36.473555
+      "frameTime": 20,
+      "frame": "frame-00061.webp",
+      "psnrAverage": 32.172261
     },
     {
       "time": 32,
-      "frame": "frame-00769.webp",
-      "psnrAverage": 36.148898
+      "frameTime": 32,
+      "frame": "frame-00097.webp",
+      "psnrAverage": 32.209644
     },
     {
       "time": 42,
-      "frame": "frame-01009.webp",
-      "psnrAverage": 36.856295
+      "frameTime": 42,
+      "frame": "frame-00127.webp",
+      "psnrAverage": 33.012998
     }
   ],
-  "publicDir": "/Users/olimservice/mokaid/apps/web/public/assets/cinematic-frames.10b39734a90b"
+  "publicDir": "/Users/olimservice/mokaid/apps/web/public/assets/cinematic-frames.3f9f6089cd65"
 }

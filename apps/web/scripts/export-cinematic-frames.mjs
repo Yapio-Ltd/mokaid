@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Export dual WebP frame packs from the cinematic master for scroll scrubbing.
- * Desktop: 1280x720 @ 24fps. Mobile: 960x540 @ 12fps.
+ * Desktop: 720x405 @ 3fps. Mobile: 480x270 @ 2fps. Slim budgets for progressive TTI.
  */
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -12,7 +12,6 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
-  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -28,11 +27,27 @@ const storyPath = join(webRoot, "src/data/cinematic-story.json");
 const story = JSON.parse(readFileSync(storyPath, "utf8"));
 const sourceMp4 =
   process.env.MOKAID_CINEMA_SOURCE ||
-  join(webRoot, "public/assets/mokaid-office-journey.adac1c365481.mp4");
-const quality = Number(process.env.MOKAID_WEBP_QUALITY || 84);
+  join(
+    repoRoot,
+    "artifacts/mokaid-cinema-2026-09-25/deliveries/mokaid-office-journey.adac1c365481.mp4",
+  );
 const packs = {
-  desktop: { width: 1280, height: 720, fps: 24, count: 1776 },
-  mobile: { width: 960, height: 540, fps: 12, count: 888 },
+  desktop: {
+    width: 720,
+    height: 405,
+    fps: 3,
+    count: 222,
+    quality: 55,
+    maxBytes: 8 * 1024 * 1024,
+  },
+  mobile: {
+    width: 480,
+    height: 270,
+    fps: 2,
+    count: 148,
+    quality: 50,
+    maxBytes: Math.round(2.5 * 1024 * 1024),
+  },
 };
 const waypoints = (story.scrollMap || []).map((point) => point.time);
 
@@ -61,7 +76,9 @@ function exportPack(name, config, workRoot) {
   mkdirSync(outDir, { recursive: true });
   // image2 sequence numbering is 1-based (frame-00001 … frame-N).
   const pattern = join(outDir, "frame-%05d.webp");
-  console.log(`Exporting ${name}: ${config.width}x${config.height} @ ${config.fps}fps q=${quality}`);
+  console.log(
+    `Exporting ${name}: ${config.width}x${config.height} @ ${config.fps}fps q=${config.quality}`,
+  );
   run("ffmpeg", [
     "-hide_banner",
     "-loglevel",
@@ -75,9 +92,9 @@ function exportPack(name, config, workRoot) {
     "-c:v",
     "libwebp",
     "-quality",
-    String(quality),
+    String(config.quality),
     "-compression_level",
-    "4",
+    "6",
     "-t",
     String(story.duration),
     "-start_number",
@@ -85,7 +102,7 @@ function exportPack(name, config, workRoot) {
     pattern,
   ]);
   const files = readdirSync(outDir)
-    .filter((name) => /^frame-\d{5}\.webp$/.test(name))
+    .filter((fileName) => /^frame-\d{5}\.webp$/.test(fileName))
     .sort();
   assert.equal(
     files.length,
@@ -96,25 +113,32 @@ function exportPack(name, config, workRoot) {
   assert.equal(files[files.length - 1], `frame-${String(config.count).padStart(5, "0")}.webp`);
   let bytes = 0;
   for (const file of files) bytes += statSync(join(outDir, file)).size;
+  assert.ok(
+    bytes <= config.maxBytes,
+    `${name}: pack ${bytes} bytes exceeds budget ${config.maxBytes}`,
+  );
   return { files, bytes, outDir };
 }
 
-function compareWaypoint(sourcePath, framePath, time) {
-  const reference = join(tmpdir(), `mokaid-ref-${time}.png`);
-  const candidate = join(tmpdir(), `mokaid-cand-${time}.png`);
+function compareWaypoint(sourcePath, framePath, frameIndex, fps) {
+  const reference = join(tmpdir(), `mokaid-ref-${frameIndex}.png`);
+  const candidate = join(tmpdir(), `mokaid-cand-${frameIndex}.png`);
+  // Extract the exact same fps-subsampled frame the pack used (select by 0-based index).
+  const zeroBased = frameIndex - 1;
   run("ffmpeg", [
     "-hide_banner",
     "-loglevel",
     "error",
     "-y",
-    "-ss",
-    String(time),
     "-i",
     sourcePath,
+    "-an",
+    "-vf",
+    `fps=${fps},scale=640:360:flags=lanczos,select=eq(n\\,${zeroBased})`,
     "-frames:v",
     "1",
-    "-vf",
-    "scale=640:360:flags=lanczos",
+    "-vsync",
+    "vfr",
     reference,
   ]);
   run("ffmpeg", [
@@ -130,7 +154,6 @@ function compareWaypoint(sourcePath, framePath, time) {
     "scale=640:360:flags=lanczos",
     candidate,
   ]);
-  // stderr holds the psnr line; fail only on catastrophic mismatch.
   const result = spawnSync(
     "ffmpeg",
     [
@@ -170,7 +193,6 @@ for (const [name, config] of Object.entries(packs)) {
   packResults[name] = { ...exportPack(name, config, workRoot), ...config };
 }
 
-// Fingerprint over sorted relative paths + contents for stable digest.
 const hash = createHash("sha256");
 for (const name of Object.keys(packs)) {
   const { outDir, files } = packResults[name];
@@ -181,8 +203,15 @@ for (const name of Object.keys(packs)) {
 }
 const digest = hash.digest("hex");
 const short = digest.slice(0, 12);
+
+// Remove previous frame packs under public/assets.
+for (const entry of readdirSync(join(webRoot, "public/assets"))) {
+  if (entry.startsWith("cinematic-frames.")) {
+    rmSync(join(webRoot, "public/assets", entry), { recursive: true, force: true });
+  }
+}
+
 const publicDir = join(webRoot, "public/assets", `cinematic-frames.${short}`);
-rmSync(publicDir, { recursive: true, force: true });
 mkdirSync(publicDir, { recursive: true });
 
 for (const [name, result] of Object.entries(packResults)) {
@@ -193,10 +222,8 @@ for (const [name, result] of Object.entries(packResults)) {
   }
 }
 
-// Quality sample at scroll waypoints using desktop pack (map time → frame).
 const qualityReport = [];
 for (const time of waypoints.slice(0, 6)) {
-  // Map story seconds → 1-based frame number at the pack fps.
   const index = Math.min(
     packs.desktop.count,
     Math.max(1, Math.round(time * packs.desktop.fps) + 1),
@@ -204,16 +231,20 @@ for (const time of waypoints.slice(0, 6)) {
   const frameName = `frame-${String(index).padStart(5, "0")}.webp`;
   const framePath = join(publicDir, "desktop", frameName);
   assert.ok(existsSync(framePath), `Missing quality sample frame ${framePath}`);
-  const psnr = compareWaypoint(sourceMp4, framePath, Math.min(time, story.duration - 0.05));
-  qualityReport.push({ time, frame: frameName, psnrAverage: psnr });
-  // Below ~28 dB would be visibly broken at 640px; photographic WebP is typically 35+.
+  const frameTime = Math.min(story.duration - 0.05, (index - 1) / packs.desktop.fps);
+  const psnr = compareWaypoint(sourceMp4, framePath, index, packs.desktop.fps);
+  qualityReport.push({ time, frameTime, frame: frameName, psnrAverage: psnr });
+  // Round-trip vs same fps subsample: WebP q55 should stay comfortably above 28 dB.
   assert.ok(psnr === Infinity || psnr >= 28, `PSNR too low at t=${time}: ${psnr}`);
 }
 
 const frames = {
   digest: short,
   sha256: digest,
-  quality,
+  quality: {
+    desktop: packs.desktop.quality,
+    mobile: packs.mobile.quality,
+  },
   desktop: {
     pattern: `/assets/cinematic-frames.${short}/desktop/frame-%05d.webp`,
     firstIndex: 1,
@@ -244,16 +275,6 @@ writeFileSync(
   join(reportDir, "verification/frame-export.json"),
   `${JSON.stringify({ sourceMp4, frames, qualityReport, publicDir }, null, 2)}\n`,
 );
-
-// Remove the large runtime MP4 once packs exist (master retained under artifacts).
-const runtimeMp4 = join(webRoot, "public/assets/mokaid-office-journey.adac1c365481.mp4");
-if (existsSync(runtimeMp4)) {
-  const archive = join(repoRoot, "artifacts/mokaid-cinema-2026-09-25/deliveries");
-  mkdirSync(archive, { recursive: true });
-  const archived = join(archive, "mokaid-office-journey.adac1c365481.mp4");
-  if (!existsSync(archived)) copyFileSync(runtimeMp4, archived);
-  rmSync(runtimeMp4);
-}
 
 rmSync(workRoot, { recursive: true, force: true });
 console.log(

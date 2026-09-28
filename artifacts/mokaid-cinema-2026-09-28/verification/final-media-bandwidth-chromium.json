@@ -1,11 +1,11 @@
 {
   "status": "passed",
-  "timestamp": "2026-09-27T21:58:42.894Z",
+  "timestamp": "2026-09-28T07:21:58.731Z",
   "engine": "chromium",
-  "source": "10b39734a90b",
+  "source": "3f9f6089cd65",
   "configuredKiBPerSecond": 16,
   "afterEntry": {
-    "mode": "loading",
+    "mode": "cinematic",
     "illustratedMoments": 3,
     "canvasElements": 1,
     "downloadCTA": true

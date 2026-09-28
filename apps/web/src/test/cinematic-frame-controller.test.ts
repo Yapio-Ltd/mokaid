@@ -24,7 +24,10 @@ function fakeBitmap(label: number): ImageBitmap {
   } as unknown as ImageBitmap;
 }
 
-function setup(overrides: Partial<Parameters<typeof createCinematicFrameController>[0]> = {}) {
+function setup(
+  overrides: Partial<Parameters<typeof createCinematicFrameController>[0]> = {},
+  options: { available?: number[] } = {},
+) {
   const draws: number[] = [];
   const canvas = {
     clientWidth: 390,
@@ -39,8 +42,9 @@ function setup(overrides: Partial<Parameters<typeof createCinematicFrameControll
     }),
   } as unknown as HTMLCanvasElement;
 
+  const available = new Set(options.available ?? Array.from({ length: pack.count }, (_, i) => i + 1));
   const blobs = new Map<string, Blob>();
-  for (let index = pack.firstIndex; index <= pack.count; index += 1) {
+  for (const index of available) {
     blobs.set(
       pack.pattern.replace("%05d", String(index).padStart(5, "0")),
       new Blob([`frame-${index}`], { type: "image/webp" }),
@@ -71,6 +75,7 @@ function setup(overrides: Partial<Parameters<typeof createCinematicFrameControll
     canvas,
     maxDecoded: 4,
     prefetchRadius: 2,
+    maxConcurrent: 4,
     fetchImpl: fetchImpl as unknown as typeof fetch,
     createBitmap,
     now: () => 0,
@@ -85,7 +90,7 @@ function setup(overrides: Partial<Parameters<typeof createCinematicFrameControll
 }
 
 async function flush() {
-  for (let i = 0; i < 20; i += 1) await Promise.resolve();
+  for (let i = 0; i < 40; i += 1) await Promise.resolve();
 }
 
 afterEach(() => {
@@ -123,19 +128,26 @@ describe("frame pack selection", () => {
 });
 
 describe("cinematic frame controller", () => {
-  it("gates readiness on the full pack, then presents the requested frame", async () => {
-    const { controller, onReady, onPresented, fetchImpl } = setup();
-    expect(onReady).not.toHaveBeenCalled();
-    await flush();
-    expect(fetchImpl).toHaveBeenCalled();
+  it("becomes ready on the first frame without waiting for the full pack", async () => {
+    let loadedAtReady = 0;
+    const onProgress = vi.fn();
+    const onReady = vi.fn(() => {
+      loadedAtReady = (onProgress.mock.calls.at(-1)?.[0] as number) ?? 0;
+    });
+    // Delay non-first frames so readiness cannot wait on the full pack.
+    const base = setup({ onReady, onProgress });
+    const originalFetch = base.fetchImpl.getMockImplementation()!;
+    base.fetchImpl.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (!url.endsWith("frame-00001.webp")) {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      }
+      return originalFetch(input);
+    });
     await vi.waitFor(() => expect(onReady).toHaveBeenCalledOnce());
-    onPresented.mockClear();
-    controller.request(1);
-    controller.tick(1);
-    await vi.waitFor(() =>
-      expect(onPresented.mock.calls.at(-1)?.[0]).toBeCloseTo(1, 5),
-    );
-    controller.dispose();
+    expect(loadedAtReady).toBeGreaterThanOrEqual(1);
+    expect(loadedAtReady).toBeLessThan(pack.count);
+    base.controller.dispose();
   });
 
   it("coalesces rapid scroll targets to the latest frame", async () => {
@@ -150,6 +162,21 @@ describe("cinematic frame controller", () => {
     controller.dispose();
   });
 
+  it("holds the nearest loaded frame when the exact target is missing", async () => {
+    const available = Array.from({ length: 12 }, (_, i) => i * 2 + 1);
+    const { controller, onReady, onPresented, onError } = setup(
+      { maxConcurrent: 2, prefetchRadius: 1 },
+      { available },
+    );
+    await vi.waitFor(() => expect(onReady).toHaveBeenCalledOnce());
+    controller.request(0.25);
+    controller.tick(1);
+    await flush();
+    expect(onError).not.toHaveBeenCalled();
+    expect(onPresented.mock.calls.length).toBeGreaterThan(0);
+    controller.dispose();
+  });
+
   it("evicts decoded bitmaps beyond the LRU budget", async () => {
     const closes: Array<ReturnType<typeof vi.fn>> = [];
     const createBitmap = vi.fn(async (blob: Blob) => {
@@ -159,9 +186,9 @@ describe("cinematic frame controller", () => {
       closes.push(close);
       return { width: 96, height: 54, close, label: index } as unknown as ImageBitmap;
     });
-    const { controller, onReady } = setup({ createBitmap, maxDecoded: 3 });
+    const { controller, onReady } = setup({ createBitmap, maxDecoded: 3, prefetchRadius: 1 });
     await vi.waitFor(() => expect(onReady).toHaveBeenCalledOnce());
-    for (const time of [0, 0.25, 0.5, 0.75, 1, 1.25]) {
+    for (const time of [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75]) {
       controller.request(time);
       controller.tick(time + 1);
       await flush();
@@ -170,7 +197,7 @@ describe("cinematic frame controller", () => {
     controller.dispose();
   });
 
-  it("reports fetch failures instead of hanging", async () => {
+  it("reports hard failure when the first frame cannot load", async () => {
     const { controller, onError } = setup({
       fetchImpl: vi.fn(async () => new Response(null, { status: 500 })) as unknown as typeof fetch,
     });

@@ -1,40 +1,39 @@
 {
   "status": "passed",
   "fixtureSubstitution": false,
-  "timestamp": "2026-09-27T21:56:57.853Z",
+  "timestamp": "2026-09-28T07:26:55.958Z",
   "engine": "chromium",
-  "origin": "http://127.0.0.1:5197",
+  "origin": "http://127.0.0.1:5198",
   "media": {
-    "digest": "10b39734a90b",
+    "digest": "3f9f6089cd65",
     "desktop": {
-      "pattern": "/assets/cinematic-frames.10b39734a90b/desktop/frame-%05d.webp",
+      "pattern": "/assets/cinematic-frames.3f9f6089cd65/desktop/frame-%05d.webp",
       "firstIndex": 1,
-      "count": 1776,
-      "fps": 24,
-      "width": 1280,
-      "height": 720,
-      "bytes": 139385278
+      "count": 222,
+      "fps": 3,
+      "width": 720,
+      "height": 405,
+      "bytes": 5181240
     },
     "mobile": {
-      "pattern": "/assets/cinematic-frames.10b39734a90b/mobile/frame-%05d.webp",
+      "pattern": "/assets/cinematic-frames.3f9f6089cd65/mobile/frame-%05d.webp",
       "firstIndex": 1,
-      "count": 888,
-      "fps": 12,
-      "width": 960,
-      "height": 540,
-      "bytes": 51200684
+      "count": 148,
+      "fps": 2,
+      "width": 480,
+      "height": 270,
+      "bytes": 1973430
     },
-    "sampleSha256": "651440f3bd2f9dd9f49bd18e0015a3c5b41b442efc43c62e208c6ca4c354a1e0",
-    "sampleBytes": 66336
+    "sampleSha256": "d0fcb4f5fff1ad5434d788bca481809ed642726bf665add1d29559600f99a45f",
+    "sampleBytes": 18972
   },
   "passed": [
     "prerender/no-JS: illustrated moments, no frame pack requests",
-    "desktop: full pack, scroll milestones, SPA restore, fullscreen cover",
+    "desktop: progressive frames, scroll milestones, SPA restore, fullscreen cover",
     "mobile viewport: fullscreen cover, captions, rotation",
     "tablet viewport: fullscreen cover, captions, rotation",
     "reduced motion reversible",
-    "failed pack retry restores scrubbing",
-    "slow-loading retry preserves track"
+    "failed pack retry restores scrubbing"
   ],
   "samples": [
     {
@@ -42,112 +41,112 @@
       "targetTime": 7,
       "presentedTime": 7,
       "errorSeconds": 0,
-      "settledMs": 36
+      "settledMs": 65
     },
     {
       "requestedTime": 13,
       "targetTime": 13,
       "presentedTime": 13,
       "errorSeconds": 0,
-      "settledMs": 41
+      "settledMs": 25
     },
     {
       "requestedTime": 20,
       "targetTime": 20,
       "presentedTime": 20,
       "errorSeconds": 0,
-      "settledMs": 34
+      "settledMs": 25
     },
     {
       "requestedTime": 32,
       "targetTime": 32,
       "presentedTime": 32,
       "errorSeconds": 0,
-      "settledMs": 38
+      "settledMs": 16
     },
     {
       "requestedTime": 42,
       "targetTime": 42,
       "presentedTime": 42,
       "errorSeconds": 0,
-      "settledMs": 30
+      "settledMs": 17
     },
     {
       "requestedTime": 51,
       "targetTime": 51,
       "presentedTime": 51,
       "errorSeconds": 0,
-      "settledMs": 31
+      "settledMs": 15
     },
     {
       "requestedTime": 61,
       "targetTime": 61,
       "presentedTime": 61,
       "errorSeconds": 0,
-      "settledMs": 51
+      "settledMs": 18
     },
     {
       "requestedTime": 67,
       "targetTime": 67,
       "presentedTime": 67,
       "errorSeconds": 0,
-      "settledMs": 25
+      "settledMs": 19
     },
     {
       "requestedTime": 74,
-      "targetTime": 73.95833333333333,
-      "presentedTime": 73.958,
+      "targetTime": 73.66666666666667,
+      "presentedTime": 73.667,
       "errorSeconds": 0.000333333333330188,
-      "settledMs": 35
+      "settledMs": 25
     },
     {
       "requestedTime": 0,
       "targetTime": 0,
       "presentedTime": 0,
       "errorSeconds": 0,
-      "settledMs": 34
+      "settledMs": 25
     },
     {
       "requestedTime": 72,
       "targetTime": 72,
       "presentedTime": 72,
       "errorSeconds": 0,
-      "settledMs": 33
+      "settledMs": 26
     },
     {
       "requestedTime": 2,
       "targetTime": 2,
       "presentedTime": 2,
       "errorSeconds": 0,
-      "settledMs": 33
+      "settledMs": 26
     },
     {
       "requestedTime": 55,
       "targetTime": 55,
       "presentedTime": 55,
       "errorSeconds": 0,
-      "settledMs": 31
+      "settledMs": 19
     },
     {
       "requestedTime": 18,
       "targetTime": 18,
       "presentedTime": 18,
       "errorSeconds": 0,
-      "settledMs": 25
+      "settledMs": 16
     },
     {
       "requestedTime": 65,
       "targetTime": 65,
       "presentedTime": 65,
       "errorSeconds": 0,
-      "settledMs": 23
+      "settledMs": 17
     },
     {
       "requestedTime": 74,
-      "targetTime": 73.95833333333333,
-      "presentedTime": 73.958,
+      "targetTime": 73.66666666666667,
+      "presentedTime": 73.667,
       "errorSeconds": 0.000333333333330188,
-      "settledMs": 27
+      "settledMs": 13
     }
   ],
   "version": "151.0.7922.34",

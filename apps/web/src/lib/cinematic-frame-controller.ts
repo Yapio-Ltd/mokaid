@@ -1,4 +1,4 @@
-/** Scroll-linked frame pack: download gate, windowed decode, cover canvas draw. */
+/** Scroll-linked frame pack: progressive window load, nearest-frame draw, cover canvas. */
 
 export interface FramePack {
   pattern: string;
@@ -15,6 +15,7 @@ export interface FrameControllerOptions {
   canvas: HTMLCanvasElement;
   maxDecoded?: number;
   prefetchRadius?: number;
+  maxConcurrent?: number;
   fetchImpl?: typeof fetch;
   createBitmap?: (blob: Blob) => Promise<ImageBitmap>;
   now?: () => number;
@@ -25,7 +26,6 @@ export interface FrameControllerOptions {
 }
 
 function frameUrl(pack: FramePack, index: number): string {
-  // pattern uses printf-style %05d; frames are 1-based.
   return pack.pattern.replace("%05d", String(index).padStart(5, "0"));
 }
 
@@ -45,16 +45,17 @@ function coverDraw(
 }
 
 /**
- * One replaceable target time, LRU-decoded bitmaps, full-pack download before ready.
- * tick() belongs to the existing GSAP ticker — never a second RAF loop.
+ * Ready on first presented frame; priority window + background fill.
+ * Missing targets hold the nearest loaded frame. tick() uses the GSAP ticker.
  */
 export function createCinematicFrameController(options: FrameControllerOptions) {
   const pack = options.pack;
   const fetchImpl = options.fetchImpl ?? fetch.bind(globalThis);
   const createBitmap =
     options.createBitmap ?? ((blob: Blob) => createImageBitmap(blob));
-  const maxDecoded = options.maxDecoded ?? 64;
-  const prefetchRadius = options.prefetchRadius ?? 24;
+  const maxDecoded = options.maxDecoded ?? 48;
+  const prefetchRadius = options.prefetchRadius ?? 16;
+  const maxConcurrent = options.maxConcurrent ?? (pack.width <= 640 ? 6 : 10);
   const clock = options.now ?? (() => performance.now() / 1000);
 
   let disposed = false;
@@ -64,12 +65,13 @@ export function createCinematicFrameController(options: FrameControllerOptions) 
   let presentedIndex = -1;
   let decodeInFlight: Promise<void> | null = null;
   let loadStartedAt = 0;
-  let stallStartedAt = 0;
-
+  let inFlight = 0;
   const blobs = new Map<number, Blob>();
   const bitmaps = new Map<number, ImageBitmap>();
   const decodeOrder: number[] = [];
   const loading = new Set<number>();
+  const queue: number[] = [];
+  const queued = new Set<number>();
 
   const fail = () => {
     if (disposed || failed) return;
@@ -103,7 +105,7 @@ export function createCinematicFrameController(options: FrameControllerOptions) 
 
   const resizeCanvas = () => {
     const canvas = options.canvas;
-    const dprCap = pack.width <= 960 ? 1.5 : 2;
+    const dprCap = pack.width <= 640 ? 1.5 : 2;
     const dpr = Math.min(globalThis.devicePixelRatio || 1, dprCap);
     const cssWidth = Math.max(1, canvas.clientWidth || pack.width);
     const cssHeight = Math.max(1, canvas.clientHeight || pack.height);
@@ -114,6 +116,20 @@ export function createCinematicFrameController(options: FrameControllerOptions) 
       canvas.height = height;
     }
     return { width, height };
+  };
+
+  const nearestLoaded = (wanted: number) => {
+    if (blobs.has(wanted)) return wanted;
+    let best = -1;
+    let bestDist = Number.POSITIVE_INFINITY;
+    for (const index of blobs.keys()) {
+      const dist = Math.abs(index - wanted);
+      if (dist < bestDist || (dist === bestDist && index < best)) {
+        best = index;
+        bestDist = dist;
+      }
+    }
+    return best;
   };
 
   const present = async (index: number) => {
@@ -145,109 +161,131 @@ export function createCinematicFrameController(options: FrameControllerOptions) 
     const { width, height } = resizeCanvas();
     coverDraw(ctx, bitmap, width, height);
     presentedIndex = index;
+    if (!ready) {
+      ready = true;
+      options.onReady();
+    }
     options.onPresented(indexToTime(index));
   };
 
-  const fetchFrame = async (index: number) => {
-    if (disposed || failed || blobs.has(index) || loading.has(index)) return;
-    loading.add(index);
-    try {
-      const response = await fetchImpl(frameUrl(pack, index));
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const blob = await response.blob();
-      if (disposed || failed) return;
-      blobs.set(index, blob);
-      options.onProgress?.(blobs.size, pack.count);
-      if (blobs.size >= pack.count && !ready) {
-        ready = true;
-        options.onReady();
-        await present(timeToIndex(target));
-      }
-    } catch {
-      fail();
-    } finally {
-      loading.delete(index);
+  const pump = () => {
+    while (inFlight < maxConcurrent && queue.length > 0 && !disposed && !failed) {
+      const index = queue.shift();
+      if (index === undefined) break;
+      queued.delete(index);
+      if (blobs.has(index) || loading.has(index)) continue;
+      loading.add(index);
+      inFlight += 1;
+      void (async () => {
+        try {
+          const response = await fetchImpl(frameUrl(pack, index));
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const blob = await response.blob();
+          if (disposed || failed) return;
+          blobs.set(index, blob);
+          options.onProgress?.(blobs.size, pack.count);
+          const wanted = timeToIndex(target);
+          if (index === wanted || (!ready && index === pack.firstIndex)) {
+            await present(index);
+          } else if (ready && presentedIndex < 0) {
+            await present(index);
+          } else if (ready && !blobs.has(wanted)) {
+            const near = nearestLoaded(wanted);
+            if (near === index) await present(index);
+          }
+        } catch {
+          // Background gaps are expected; only the opening frame is fatal.
+          if (!ready && index === pack.firstIndex) fail();
+        } finally {
+          loading.delete(index);
+          inFlight -= 1;
+          if (!disposed && !failed) pump();
+        }
+      })();
     }
+  };
+
+  const enqueue = (index: number, priority: "front" | "back" = "back") => {
+    if (
+      disposed ||
+      failed ||
+      index < pack.firstIndex ||
+      index > pack.count ||
+      blobs.has(index) ||
+      loading.has(index) ||
+      queued.has(index)
+    ) {
+      return;
+    }
+    queued.add(index);
+    if (priority === "front") queue.unshift(index);
+    else queue.push(index);
+    pump();
   };
 
   const ensureWindow = (center: number) => {
     const start = Math.max(pack.firstIndex, center - prefetchRadius);
     const end = Math.min(pack.count, center + prefetchRadius);
-    const missing: number[] = [];
-    for (let index = start; index <= end; index += 1) {
-      if (!blobs.has(index) && !loading.has(index)) missing.push(index);
-      else if (blobs.has(index) && !bitmaps.has(index)) missing.push(index);
-    }
-    // Prefer decoding the center first, then neighbors.
-    missing.sort(
-      (a, b) => Math.abs(a - center) - Math.abs(b - center) || a - b,
-    );
-    return missing;
+    const neighbors: number[] = [];
+    for (let index = start; index <= end; index += 1) neighbors.push(index);
+    neighbors.sort((a, b) => Math.abs(a - center) - Math.abs(b - center) || a - b);
+    for (const index of neighbors) enqueue(index, "front");
   };
 
-  // Kick off full-pack download immediately (gate for onReady).
-  loadStartedAt = clock();
-  const boot = async () => {
-    const batch = 12;
-    for (let index = pack.firstIndex; index <= pack.count && !disposed && !failed; ) {
-      const slice: Promise<void>[] = [];
-      for (let n = 0; n < batch && index <= pack.count; n += 1, index += 1) {
-        slice.push(fetchFrame(index));
-      }
-      await Promise.all(slice);
+  const fillBackground = () => {
+    // Remaining frames, nearest to current target first so scrub stays warm.
+    const center = timeToIndex(target);
+    const rest: number[] = [];
+    for (let index = pack.firstIndex; index <= pack.count; index += 1) {
+      if (!blobs.has(index) && !loading.has(index) && !queued.has(index)) rest.push(index);
     }
+    rest.sort((a, b) => Math.abs(a - center) - Math.abs(b - center) || a - b);
+    for (const index of rest) enqueue(index, "back");
   };
-  void boot();
+
+  loadStartedAt = clock();
+  // Kick frame 0 (or first) immediately, then warm window + background fill.
+  enqueue(pack.firstIndex, "front");
+  ensureWindow(pack.firstIndex);
+  fillBackground();
 
   return {
     request(time: number) {
       if (!Number.isFinite(time) || disposed || failed) return;
       target = Math.max(0, Math.min(options.duration, time));
+      const index = timeToIndex(target);
+      enqueue(index, "front");
+      ensureWindow(index);
     },
     tick(nowSeconds: number) {
       if (disposed || failed) return;
       if (!ready) {
-        if (loadStartedAt && nowSeconds - loadStartedAt > 120) fail();
+        if (loadStartedAt && nowSeconds - loadStartedAt > 8) fail();
         return;
       }
-      const index = timeToIndex(target);
-      if (index === presentedIndex && bitmaps.has(index)) {
-        stallStartedAt = 0;
+      const wanted = timeToIndex(target);
+      if (wanted === presentedIndex && bitmaps.has(wanted)) return;
+
+      const presentable = blobs.has(wanted) ? wanted : nearestLoaded(wanted);
+      if (presentable < 0) {
+        enqueue(wanted, "front");
         return;
       }
-      if (!blobs.has(index)) {
-        if (!stallStartedAt) stallStartedAt = nowSeconds;
-        else if (nowSeconds - stallStartedAt > 8) fail();
-        void fetchFrame(index);
+      if (presentable === presentedIndex && bitmaps.has(presentable) && presentable !== wanted) {
+        enqueue(wanted, "front");
+        ensureWindow(wanted);
         return;
       }
-      stallStartedAt = 0;
       if (decodeInFlight) return;
-      decodeInFlight = present(index)
+      decodeInFlight = present(presentable)
         .then(() => {
-          const neighbors = ensureWindow(index);
-          for (const neighbor of neighbors.slice(0, 8)) {
-            if (!blobs.has(neighbor)) void fetchFrame(neighbor);
-            else if (!bitmaps.has(neighbor)) {
-              void createBitmap(blobs.get(neighbor)!)
-                .then((bitmap) => {
-                  if (disposed || failed) {
-                    bitmap.close();
-                    return;
-                  }
-                  bitmaps.set(neighbor, bitmap);
-                  touchDecoded(neighbor);
-                })
-                .catch(() => undefined);
-            }
-          }
+          ensureWindow(wanted);
         })
         .finally(() => {
           decodeInFlight = null;
         });
     },
     suspend() {
-      stallStartedAt = 0;
       loadStartedAt = clock();
     },
     redraw() {
@@ -259,6 +297,9 @@ export function createCinematicFrameController(options: FrameControllerOptions) 
       bitmaps.clear();
       blobs.clear();
       decodeOrder.length = 0;
+      queue.length = 0;
+      queued.clear();
+      loading.clear();
     },
   };
 }
@@ -268,7 +309,6 @@ export function selectFramePack(
   frames: { desktop: FramePack; mobile: FramePack },
   query: { matches: boolean } | null,
 ): FramePack {
-  // Portrait narrow phones use the lighter 12fps pack.
   if (query?.matches) return frames.mobile;
   return frames.desktop;
 }

@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-/** Finalize story JSON + quality report from an already-exported frame pack. */
+/** Finalize story JSON + quality report from an already-exported slim frame pack. */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
-  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -18,16 +17,20 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const webRoot = resolve(here, "..");
 const repoRoot = resolve(webRoot, "../..");
-const short = process.argv[2] || "10b39734a90b";
+const short = process.argv[2];
+assert.ok(short, "Usage: finalize-cinematic-frames.mjs <digest12>");
 const publicDir = join(webRoot, "public/assets", `cinematic-frames.${short}`);
 const storyPath = join(webRoot, "src/data/cinematic-story.json");
 const story = JSON.parse(readFileSync(storyPath, "utf8"));
 const sourceMp4 =
   process.env.MOKAID_CINEMA_SOURCE ||
-  join(webRoot, "public/assets/mokaid-office-journey.adac1c365481.mp4");
+  join(
+    repoRoot,
+    "artifacts/mokaid-cinema-2026-09-25/deliveries/mokaid-office-journey.adac1c365481.mp4",
+  );
 const packs = {
-  desktop: { width: 1280, height: 720, fps: 24, count: 1776 },
-  mobile: { width: 960, height: 540, fps: 12, count: 888 },
+  desktop: { width: 720, height: 405, fps: 3, count: 222, quality: 55 },
+  mobile: { width: 480, height: 270, fps: 2, count: 148, quality: 50 },
 };
 
 function bytesOf(dir) {
@@ -91,12 +94,17 @@ for (const time of story.scrollMap.slice(0, 6).map((point) => point.time)) {
   const match = /average:([0-9.]+|inf)/.exec(psnrRun.stderr || "");
   const psnr = match?.[1] === "inf" ? Infinity : Number(match?.[1] || 0);
   qualityReport.push({ time, frame: frameName, psnrAverage: psnr });
-  assert.ok(psnr === Infinity || psnr >= 28, `PSNR too low at t=${time}: ${psnr}`);
+  assert.ok(psnr === Infinity || psnr >= 24, `PSNR too low at t=${time}: ${psnr}`);
+  rmSync(reference, { force: true });
+  rmSync(candidate, { force: true });
 }
 
 const frames = {
   digest: short,
-  quality: 84,
+  quality: {
+    desktop: packs.desktop.quality,
+    mobile: packs.mobile.quality,
+  },
   desktop: {
     pattern: `/assets/cinematic-frames.${short}/desktop/frame-%05d.webp`,
     firstIndex: 1,
@@ -127,11 +135,5 @@ writeFileSync(
   join(reportDir, "frame-export.json"),
   `${JSON.stringify({ frames, qualityReport, publicDir }, null, 2)}\n`,
 );
-
-const archive = join(repoRoot, "artifacts/mokaid-cinema-2026-09-25/deliveries");
-mkdirSync(archive, { recursive: true });
-const archived = join(archive, "mokaid-office-journey.adac1c365481.mp4");
-if (!existsSync(archived)) copyFileSync(sourceMp4, archived);
-if (existsSync(sourceMp4) && sourceMp4.includes("/public/assets/")) rmSync(sourceMp4);
 
 console.log(JSON.stringify({ frames, qualityReport }, null, 2));

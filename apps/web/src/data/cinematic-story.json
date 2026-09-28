@@ -211,25 +211,29 @@
     }
   ],
   "frames": {
-    "digest": "10b39734a90b",
-    "quality": 84,
+    "digest": "3f9f6089cd65",
+    "sha256": "3f9f6089cd65cd6ff75ec8c669b6ac27096eef00c5a55d9cd42272f717710302",
+    "quality": {
+      "desktop": 55,
+      "mobile": 50
+    },
     "desktop": {
-      "pattern": "/assets/cinematic-frames.10b39734a90b/desktop/frame-%05d.webp",
+      "pattern": "/assets/cinematic-frames.3f9f6089cd65/desktop/frame-%05d.webp",
       "firstIndex": 1,
-      "count": 1776,
-      "fps": 24,
-      "width": 1280,
-      "height": 720,
-      "bytes": 139385278
+      "count": 222,
+      "fps": 3,
+      "width": 720,
+      "height": 405,
+      "bytes": 5181240
     },
     "mobile": {
-      "pattern": "/assets/cinematic-frames.10b39734a90b/mobile/frame-%05d.webp",
+      "pattern": "/assets/cinematic-frames.3f9f6089cd65/mobile/frame-%05d.webp",
       "firstIndex": 1,
-      "count": 888,
-      "fps": 12,
-      "width": 960,
-      "height": 540,
-      "bytes": 51200684
+      "count": 148,
+      "fps": 2,
+      "width": 480,
+      "height": 270,
+      "bytes": 1973430
     }
   }
 }

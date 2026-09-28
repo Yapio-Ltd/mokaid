@@ -117,7 +117,6 @@ export function CinematicStory() {
   const [mode, setMode] = useState<StoryMode>("static");
   const [presentedTime, setPresentedTime] = useState(0);
   const [failed, setFailed] = useState(false);
-  const [slowLoading, setSlowLoading] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [loadProgress, setLoadProgress] = useState(0);
 
@@ -141,8 +140,6 @@ export function CinematicStory() {
     const canvas = canvasRef.current;
     if (!loadFrames || !canvas) return;
     let disposed = false;
-    setSlowLoading(false);
-    const loadingTimer = window.setTimeout(() => setSlowLoading(true), 12_000);
     const mobileQuery = window.matchMedia(MOBILE_FRAME_QUERY);
     const pack = selectFramePack(cinematicStory.frames, mobileQuery);
     const controller = createCinematicFrameController({
@@ -150,14 +147,12 @@ export function CinematicStory() {
       duration: cinematicStory.duration,
       canvas,
       onReady() {
-        window.clearTimeout(loadingTimer);
         if (!disposed) setMode("cinematic");
       },
       onPresented(time) {
         if (!disposed) setPresentedTime(time);
       },
       onError() {
-        window.clearTimeout(loadingTimer);
         if (!disposed) setFailed(true);
       },
       onProgress(loaded, total) {
@@ -170,7 +165,6 @@ export function CinematicStory() {
     window.addEventListener("resize", onResize);
     return () => {
       disposed = true;
-      window.clearTimeout(loadingTimer);
       window.removeEventListener("resize", onResize);
       controller.dispose();
       controllerRef.current = undefined;
@@ -227,7 +221,6 @@ export function CinematicStory() {
 
   const retry = () => {
     setFailed(false);
-    setSlowLoading(false);
     setMode("loading");
     setPresentedTime(0);
     setLoadProgress(0);
@@ -283,15 +276,10 @@ export function CinematicStory() {
           {!failed && !enhanced && (
             <div className="mk-cinema-loading">
               <p role="status">
-                {slowLoading
-                  ? "The tour is taking longer to load."
-                  : `Loading the tour… ${Math.round(loadProgress * 100)}%`}
+                {loadProgress > 0
+                  ? `Loading the tour… ${Math.round(loadProgress * 100)}%`
+                  : "Loading the tour…"}
               </p>
-              {slowLoading && (
-                <button type="button" className="mk-cinema-cta mk-focus-ring" onClick={retry}>
-                  Retry the tour
-                </button>
-              )}
             </div>
           )}
           {!failed && enhanced && cue && (
