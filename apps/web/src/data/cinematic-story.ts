@@ -20,6 +20,11 @@ export interface StoryFramePack extends FramePack {
   bytes?: number;
 }
 
+export interface DesktopFrameTiers {
+  base: StoryFramePack;
+  high?: StoryFramePack;
+}
+
 export interface CinematicStoryManifest {
   version: number;
   duration: number;
@@ -28,8 +33,10 @@ export interface CinematicStoryManifest {
   cta: { text: string; href: string };
   frames: {
     digest: string;
-    quality: number | { desktop: number; mobile: number };
-    desktop: StoryFramePack;
+    quality:
+      | number
+      | { desktop: number | { base: number; high: number }; mobile: number };
+    desktop: StoryFramePack | DesktopFrameTiers;
     mobile: StoryFramePack;
   };
   poster: string;

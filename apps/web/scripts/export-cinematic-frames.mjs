@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 /**
- * Export dual WebP frame packs from the cinematic master for scroll scrubbing.
- * Desktop: 720x405 @ 3fps. Mobile: 480x270 @ 2fps. Slim budgets for progressive TTI.
+ * Export cinematic WebP packs:
+ * - desktop/base: 720x405 @ 3fps (TTI bootstrap)
+ * - desktop-high: 1280x720 @ 12fps (desktop densify)
+ * - mobile: 480x270 @ 2fps (unchanged; never densified)
  */
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
+  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -31,25 +34,41 @@ const sourceMp4 =
     repoRoot,
     "artifacts/mokaid-cinema-2026-09-25/deliveries/mokaid-office-journey.adac1c365481.mp4",
   );
+
+/** Frozen mobile + desktop-base specs (must not drift). */
+const MOBILE_LOCK = {
+  width: 480,
+  height: 270,
+  fps: 2,
+  count: 148,
+  quality: 50,
+  maxBytes: Math.round(2.5 * 1024 * 1024),
+  expectedBytes: 1973430,
+};
+const DESKTOP_BASE = {
+  width: 720,
+  height: 405,
+  fps: 3,
+  count: 222,
+  quality: 55,
+  maxBytes: 8 * 1024 * 1024,
+};
+const DESKTOP_HIGH = {
+  width: 1280,
+  height: 720,
+  fps: 12,
+  count: 888,
+  quality: 65,
+  maxBytes: 48 * 1024 * 1024,
+};
+
 const packs = {
-  desktop: {
-    width: 720,
-    height: 405,
-    fps: 3,
-    count: 222,
-    quality: 55,
-    maxBytes: 8 * 1024 * 1024,
-  },
-  mobile: {
-    width: 480,
-    height: 270,
-    fps: 2,
-    count: 148,
-    quality: 50,
-    maxBytes: Math.round(2.5 * 1024 * 1024),
-  },
+  desktop: DESKTOP_BASE,
+  "desktop-high": DESKTOP_HIGH,
+  mobile: MOBILE_LOCK,
 };
 const waypoints = (story.scrollMap || []).map((point) => point.time);
+const priorDigest = story.frames?.digest;
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -71,10 +90,21 @@ function probe(path) {
   );
 }
 
+function bytesOf(dir) {
+  return readdirSync(dir)
+    .filter((name) => name.endsWith(".webp"))
+    .reduce((sum, name) => sum + statSync(join(dir, name)).size, 0);
+}
+
+function listFrames(dir) {
+  return readdirSync(dir)
+    .filter((fileName) => /^frame-\d{5}\.webp$/.test(fileName))
+    .sort();
+}
+
 function exportPack(name, config, workRoot) {
   const outDir = join(workRoot, name);
   mkdirSync(outDir, { recursive: true });
-  // image2 sequence numbering is 1-based (frame-00001 … frame-N).
   const pattern = join(outDir, "frame-%05d.webp");
   console.log(
     `Exporting ${name}: ${config.width}x${config.height} @ ${config.fps}fps q=${config.quality}`,
@@ -101,29 +131,34 @@ function exportPack(name, config, workRoot) {
     "1",
     pattern,
   ]);
-  const files = readdirSync(outDir)
-    .filter((fileName) => /^frame-\d{5}\.webp$/.test(fileName))
-    .sort();
-  assert.equal(
-    files.length,
-    config.count,
-    `${name}: expected ${config.count} frames, got ${files.length}`,
-  );
-  assert.equal(files[0], "frame-00001.webp");
-  assert.equal(files[files.length - 1], `frame-${String(config.count).padStart(5, "0")}.webp`);
+  const files = listFrames(outDir);
+  assert.equal(files.length, config.count, `${name}: expected ${config.count}, got ${files.length}`);
   let bytes = 0;
   for (const file of files) bytes += statSync(join(outDir, file)).size;
-  assert.ok(
-    bytes <= config.maxBytes,
-    `${name}: pack ${bytes} bytes exceeds budget ${config.maxBytes}`,
-  );
+  assert.ok(bytes <= config.maxBytes, `${name}: ${bytes} exceeds ${config.maxBytes}`);
   return { files, bytes, outDir };
+}
+
+function reuseOrExport(name, config, workRoot) {
+  const priorDir =
+    priorDigest && existsSync(join(webRoot, "public/assets", `cinematic-frames.${priorDigest}`, name))
+      ? join(webRoot, "public/assets", `cinematic-frames.${priorDigest}`, name)
+      : null;
+  if (priorDir && (name === "desktop" || name === "mobile")) {
+    const dest = join(workRoot, name);
+    cpSync(priorDir, dest, { recursive: true });
+    const files = listFrames(dest);
+    assert.equal(files.length, config.count, `${name}: reused count mismatch`);
+    const bytes = bytesOf(dest);
+    console.log(`Reused ${name} from ${priorDigest} (${bytes} bytes)`);
+    return { files, bytes, outDir: dest };
+  }
+  return exportPack(name, config, workRoot);
 }
 
 function compareWaypoint(sourcePath, framePath, frameIndex, fps) {
   const reference = join(tmpdir(), `mokaid-ref-${frameIndex}.png`);
   const candidate = join(tmpdir(), `mokaid-cand-${frameIndex}.png`);
-  // Extract the exact same fps-subsampled frame the pack used (select by 0-based index).
   const zeroBased = frameIndex - 1;
   run("ffmpeg", [
     "-hide_banner",
@@ -156,23 +191,11 @@ function compareWaypoint(sourcePath, framePath, frameIndex, fps) {
   ]);
   const result = spawnSync(
     "ffmpeg",
-    [
-      "-hide_banner",
-      "-i",
-      reference,
-      "-i",
-      candidate,
-      "-lavfi",
-      "psnr",
-      "-f",
-      "null",
-      "-",
-    ],
+    ["-hide_banner", "-i", reference, "-i", candidate, "-lavfi", "psnr", "-f", "null", "-"],
     { encoding: "utf8" },
   );
   const match = /average:([0-9.]+|inf)/.exec(result.stderr || "");
-  const raw = match?.[1];
-  const psnr = raw === "inf" ? Infinity : Number(raw || 0);
+  const psnr = match?.[1] === "inf" ? Infinity : Number(match?.[1] || 0);
   rmSync(reference, { force: true });
   rmSync(candidate, { force: true });
   return psnr;
@@ -180,9 +203,8 @@ function compareWaypoint(sourcePath, framePath, frameIndex, fps) {
 
 assert.ok(existsSync(sourceMp4), `Missing source film: ${sourceMp4}`);
 const sourceMeta = probe(sourceMp4);
-const sourceVideo = sourceMeta.streams.find((stream) => stream.codec_type === "video");
-assert.ok(sourceVideo, "Source has no video stream");
-assert.ok(Math.abs(Number(sourceMeta.format.duration) - story.duration) < 0.05, "Duration mismatch");
+assert.ok(sourceMeta.streams.find((stream) => stream.codec_type === "video"));
+assert.ok(Math.abs(Number(sourceMeta.format.duration) - story.duration) < 0.05);
 
 const workRoot = join(tmpdir(), `mokaid-cinema-frames-${process.pid}`);
 rmSync(workRoot, { recursive: true, force: true });
@@ -190,7 +212,19 @@ mkdirSync(workRoot, { recursive: true });
 
 const packResults = {};
 for (const [name, config] of Object.entries(packs)) {
-  packResults[name] = { ...exportPack(name, config, workRoot), ...config };
+  packResults[name] = { ...reuseOrExport(name, config, workRoot), ...config };
+}
+
+// Mobile lock: count/fps/width identical; bytes must match prior when reused.
+assert.equal(packResults.mobile.count, MOBILE_LOCK.count);
+assert.equal(packResults.mobile.fps, MOBILE_LOCK.fps);
+assert.equal(packResults.mobile.width, MOBILE_LOCK.width);
+if (priorDigest) {
+  assert.equal(
+    packResults.mobile.bytes,
+    MOBILE_LOCK.expectedBytes,
+    "Mobile pack bytes must remain identical to the locked release",
+  );
 }
 
 const hash = createHash("sha256");
@@ -204,7 +238,6 @@ for (const name of Object.keys(packs)) {
 const digest = hash.digest("hex");
 const short = digest.slice(0, 12);
 
-// Remove previous frame packs under public/assets.
 for (const entry of readdirSync(join(webRoot, "public/assets"))) {
   if (entry.startsWith("cinematic-frames.")) {
     rmSync(join(webRoot, "public/assets", entry), { recursive: true, force: true });
@@ -213,7 +246,6 @@ for (const entry of readdirSync(join(webRoot, "public/assets"))) {
 
 const publicDir = join(webRoot, "public/assets", `cinematic-frames.${short}`);
 mkdirSync(publicDir, { recursive: true });
-
 for (const [name, result] of Object.entries(packResults)) {
   const dest = join(publicDir, name);
   mkdirSync(dest, { recursive: true });
@@ -225,44 +257,40 @@ for (const [name, result] of Object.entries(packResults)) {
 const qualityReport = [];
 for (const time of waypoints.slice(0, 6)) {
   const index = Math.min(
-    packs.desktop.count,
-    Math.max(1, Math.round(time * packs.desktop.fps) + 1),
+    DESKTOP_HIGH.count,
+    Math.max(1, Math.round(time * DESKTOP_HIGH.fps) + 1),
   );
   const frameName = `frame-${String(index).padStart(5, "0")}.webp`;
-  const framePath = join(publicDir, "desktop", frameName);
-  assert.ok(existsSync(framePath), `Missing quality sample frame ${framePath}`);
-  const frameTime = Math.min(story.duration - 0.05, (index - 1) / packs.desktop.fps);
-  const psnr = compareWaypoint(sourceMp4, framePath, index, packs.desktop.fps);
-  qualityReport.push({ time, frameTime, frame: frameName, psnrAverage: psnr });
-  // Round-trip vs same fps subsample: WebP q55 should stay comfortably above 28 dB.
+  const framePath = join(publicDir, "desktop-high", frameName);
+  assert.ok(existsSync(framePath), framePath);
+  const frameTime = Math.min(story.duration - 0.05, (index - 1) / DESKTOP_HIGH.fps);
+  const psnr = compareWaypoint(sourceMp4, framePath, index, DESKTOP_HIGH.fps);
+  qualityReport.push({ time, frameTime, frame: frameName, psnrAverage: psnr, pack: "desktop-high" });
   assert.ok(psnr === Infinity || psnr >= 28, `PSNR too low at t=${time}: ${psnr}`);
 }
+
+const packMeta = (name, result) => ({
+  pattern: `/assets/cinematic-frames.${short}/${name}/frame-%05d.webp`,
+  firstIndex: 1,
+  count: result.count,
+  fps: result.fps,
+  width: result.width,
+  height: result.height,
+  bytes: result.bytes,
+});
 
 const frames = {
   digest: short,
   sha256: digest,
   quality: {
-    desktop: packs.desktop.quality,
-    mobile: packs.mobile.quality,
+    desktop: { base: DESKTOP_BASE.quality, high: DESKTOP_HIGH.quality },
+    mobile: MOBILE_LOCK.quality,
   },
   desktop: {
-    pattern: `/assets/cinematic-frames.${short}/desktop/frame-%05d.webp`,
-    firstIndex: 1,
-    count: packs.desktop.count,
-    fps: packs.desktop.fps,
-    width: packs.desktop.width,
-    height: packs.desktop.height,
-    bytes: packResults.desktop.bytes,
+    base: packMeta("desktop", packResults.desktop),
+    high: packMeta("desktop-high", packResults["desktop-high"]),
   },
-  mobile: {
-    pattern: `/assets/cinematic-frames.${short}/mobile/frame-%05d.webp`,
-    firstIndex: 1,
-    count: packs.mobile.count,
-    fps: packs.mobile.fps,
-    width: packs.mobile.width,
-    height: packs.mobile.height,
-    bytes: packResults.mobile.bytes,
-  },
+  mobile: packMeta("mobile", packResults.mobile),
 };
 
 const nextStory = { ...story, frames };
@@ -281,7 +309,8 @@ console.log(
   JSON.stringify(
     {
       digest: short,
-      desktopBytes: frames.desktop.bytes,
+      desktopBaseBytes: frames.desktop.base.bytes,
+      desktopHighBytes: frames.desktop.high.bytes,
       mobileBytes: frames.mobile.bytes,
       qualityReport,
       publicDir,

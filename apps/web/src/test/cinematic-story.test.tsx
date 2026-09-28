@@ -17,6 +17,10 @@ const mocks = vi.hoisted(() => ({
     redraw: ReturnType<typeof vi.fn>;
     dispose: ReturnType<typeof vi.fn>;
     options: {
+      pack?: { fps: number; count: number; pattern: string };
+      upgradePack?: { fps: number; count: number; pattern: string };
+      upgradeEnabled?: boolean;
+      upgradeDelayMs?: number;
       onReady: () => void;
       onPresented: (time: number) => void;
       onError: () => void;
@@ -107,8 +111,12 @@ afterEach(() => {
 
 function ready() {
   const controller = mocks.controllers.at(-1)!;
+  const desktop =
+    "base" in cinematicStory.frames.desktop
+      ? cinematicStory.frames.desktop.base
+      : cinematicStory.frames.desktop;
   act(() => {
-    controller.options.onProgress?.(cinematicStory.frames.desktop.count, cinematicStory.frames.desktop.count);
+    controller.options.onProgress?.(desktop.count, desktop.count);
     controller.options.onReady();
     controller.options.onPresented(storyTimeAtProgress(progress));
   });
@@ -254,13 +262,57 @@ describe("cinematic story lifecycle", () => {
   });
 
   it("exposes fingerprinted frame packs in the story manifest", () => {
-    expect(cinematicStory.frames.desktop.count).toBe(222);
+    const desktop =
+      "base" in cinematicStory.frames.desktop
+        ? cinematicStory.frames.desktop.base
+        : cinematicStory.frames.desktop;
+    const high =
+      "base" in cinematicStory.frames.desktop ? cinematicStory.frames.desktop.high : undefined;
+    expect(desktop.count).toBe(222);
+    expect(desktop.fps).toBe(3);
+    expect(desktop.pattern).toContain("cinematic-frames.");
+    expect(desktop.firstIndex).toBe(1);
+    expect(desktop.bytes).toBeLessThanOrEqual(8 * 1024 * 1024);
     expect(cinematicStory.frames.mobile.count).toBe(148);
-    expect(cinematicStory.frames.desktop.fps).toBe(3);
     expect(cinematicStory.frames.mobile.fps).toBe(2);
-    expect(cinematicStory.frames.desktop.pattern).toContain("cinematic-frames.");
-    expect(cinematicStory.frames.desktop.firstIndex).toBe(1);
-    expect(cinematicStory.frames.desktop.bytes).toBeLessThanOrEqual(8 * 1024 * 1024);
-    expect(cinematicStory.frames.mobile.bytes).toBeLessThanOrEqual(Math.round(2.5 * 1024 * 1024));
+    expect(cinematicStory.frames.mobile.bytes).toBe(1973430);
+    expect(high?.count).toBe(888);
+    expect(high?.fps).toBe(12);
+    expect(high?.width).toBe(1280);
+  });
+
+  it("enables desktop densify upgrade and never on mobile", () => {
+    render(<CinematicStory />);
+    const desktop = mocks.controllers.at(-1)!;
+    expect(desktop.options.upgradeEnabled).toBe(true);
+    expect(desktop.options.upgradePack?.fps).toBe(12);
+    expect(desktop.options.pack?.fps).toBe(3);
+    cleanup();
+    mocks.controllers.length = 0;
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((media: string) => {
+        if (media.includes("orientation: portrait")) {
+          return Object.assign(new EventTarget(), { matches: true, media });
+        }
+        query.matches = eligible;
+        query.media = media;
+        return query;
+      }),
+    );
+    render(<CinematicStory />);
+    const mobile = mocks.controllers.at(-1)!;
+    expect(mobile.options.upgradeEnabled).toBe(false);
+    expect(mobile.options.pack?.fps).toBe(2);
+  });
+
+  it("keeps Save-Data desktop on the base pack only", () => {
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      onLine: true,
+      connection: { saveData: true, effectiveType: "4g", downlink: 50 },
+    });
+    render(<CinematicStory />);
+    expect(mocks.controllers.at(-1)!.options.upgradeEnabled).toBe(false);
   });
 });

@@ -5,9 +5,11 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { cinematicStory, cueAtTime, cueOpacity, storyTimeAtProgress } from "@/data/cinematic-story";
 import {
   createCinematicFrameController,
+  desktopHighPack,
   MOBILE_FRAME_QUERY,
   selectFramePack,
 } from "@/lib/cinematic-frame-controller";
+import { readNavigatorConnection, resolveDesktopTier } from "@/lib/cinematic-network-tier";
 import "./cinematic-story.css";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -141,9 +143,21 @@ export function CinematicStory() {
     if (!loadFrames || !canvas) return;
     let disposed = false;
     const mobileQuery = window.matchMedia(MOBILE_FRAME_QUERY);
+    const isMobile = mobileQuery.matches;
     const pack = selectFramePack(cinematicStory.frames, mobileQuery);
+    const high = !isMobile ? desktopHighPack(cinematicStory.frames) : undefined;
+    const hasNetInfo = Boolean(readNavigatorConnection());
+    const tier = !isMobile
+      ? resolveDesktopTier({
+          allowMissingApiUpgrade: true,
+        })
+      : "base";
     const controller = createCinematicFrameController({
       pack,
+      upgradePack: high,
+      upgradeEnabled: Boolean(high && tier === "high"),
+      // Safari / missing NetInfo: densify after ~1s idle once base is ready.
+      upgradeDelayMs: !isMobile && !hasNetInfo && tier === "high" ? 1000 : 0,
       duration: cinematicStory.duration,
       canvas,
       onReady() {

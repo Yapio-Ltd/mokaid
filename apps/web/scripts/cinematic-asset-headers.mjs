@@ -10,7 +10,10 @@ const config = `${root}infra/docker/nginx.conf`;
 const story = JSON.parse(
   await readFile(new URL("../src/data/cinematic-story.json", import.meta.url), "utf8"),
 );
-const sample = story.frames.desktop.pattern.replace("%05d", "00001");
+const sample = (story.frames.desktop.base || story.frames.desktop).pattern.replace(
+  "%05d",
+  "00001",
+);
 const bytes = (await stat(`${dist}${sample}`)).size;
 const image = process.argv[2] || "nginx:1.30.4-alpine";
 const name = `mokaid-cinema-header-qa-${process.pid}`;

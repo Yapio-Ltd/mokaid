@@ -211,23 +211,37 @@
     }
   ],
   "frames": {
-    "digest": "3f9f6089cd65",
-    "sha256": "3f9f6089cd65cd6ff75ec8c669b6ac27096eef00c5a55d9cd42272f717710302",
+    "digest": "19b90b15d9d1",
+    "sha256": "19b90b15d9d1f0b32187b1e634c9d83d095788d8e3e9e2262c3a0c41f082fbeb",
     "quality": {
-      "desktop": 55,
+      "desktop": {
+        "base": 55,
+        "high": 65
+      },
       "mobile": 50
     },
     "desktop": {
-      "pattern": "/assets/cinematic-frames.3f9f6089cd65/desktop/frame-%05d.webp",
-      "firstIndex": 1,
-      "count": 222,
-      "fps": 3,
-      "width": 720,
-      "height": 405,
-      "bytes": 5181240
+      "base": {
+        "pattern": "/assets/cinematic-frames.19b90b15d9d1/desktop/frame-%05d.webp",
+        "firstIndex": 1,
+        "count": 222,
+        "fps": 3,
+        "width": 720,
+        "height": 405,
+        "bytes": 5181240
+      },
+      "high": {
+        "pattern": "/assets/cinematic-frames.19b90b15d9d1/desktop-high/frame-%05d.webp",
+        "firstIndex": 1,
+        "count": 888,
+        "fps": 12,
+        "width": 1280,
+        "height": 720,
+        "bytes": 43601120
+      }
     },
     "mobile": {
-      "pattern": "/assets/cinematic-frames.3f9f6089cd65/mobile/frame-%05d.webp",
+      "pattern": "/assets/cinematic-frames.19b90b15d9d1/mobile/frame-%05d.webp",
       "firstIndex": 1,
       "count": 148,
       "fps": 2,

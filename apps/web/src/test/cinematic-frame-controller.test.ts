@@ -121,9 +121,95 @@ describe("frame pack selection", () => {
     expect(selectFramePack(cinematicStory.frames, { matches: true })).toBe(
       cinematicStory.frames.mobile,
     );
-    expect(selectFramePack(cinematicStory.frames, { matches: false })).toBe(
-      cinematicStory.frames.desktop,
+    expect(selectFramePack(cinematicStory.frames, { matches: false })).toEqual(
+      "base" in cinematicStory.frames.desktop
+        ? cinematicStory.frames.desktop.base
+        : cinematicStory.frames.desktop,
     );
+  });
+});
+
+describe("desktop densify upgrade", () => {
+  const highPack: FramePack = {
+    pattern: "/high/frame-%05d.webp",
+    firstIndex: 1,
+    count: 24,
+    fps: 24,
+    width: 128,
+    height: 72,
+  };
+
+  it("becomes ready on base before high finishes, then densifies", async () => {
+    const highBlobs = new Map<string, Blob>();
+    for (let index = 1; index <= highPack.count; index += 1) {
+      highBlobs.set(
+        highPack.pattern.replace("%05d", String(index).padStart(5, "0")),
+        new Blob([`high-${index}`], { type: "image/webp" }),
+      );
+    }
+    const onUpgradeActive = vi.fn();
+    const onReady = vi.fn();
+    const createBitmap = vi.fn(async (blob: Blob) => {
+      const text = await blob.text();
+      const label = text.startsWith("high-")
+        ? Number(text.replace("high-", "")) + 1000
+        : Number(text.replace("frame-", ""));
+      return fakeBitmap(label);
+    });
+    // Gate high responses so base can ready before densify starts presenting.
+    let releaseHigh = false;
+    const pendingHigh: Array<() => void> = [];
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/high/")) {
+        if (!releaseHigh) {
+          await new Promise<void>((resolve) => pendingHigh.push(resolve));
+        }
+        const blob = highBlobs.get(url);
+        if (!blob) return new Response(null, { status: 404 });
+        return new Response(blob, { status: 200 });
+      }
+      const baseBlob = new Blob(
+        [`frame-${Number(url.match(/frame-(\d+)/)?.[1] ?? "0")}`],
+        { type: "image/webp" },
+      );
+      return new Response(baseBlob, { status: 200 });
+    });
+    const { controller, onPresented } = setup({
+      onReady,
+      onUpgradeActive,
+      upgradePack: highPack,
+      upgradeEnabled: true,
+      createBitmap,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      prefetchRadius: 1,
+      maxConcurrent: 2,
+      upgradeMaxConcurrent: 2,
+    });
+    await vi.waitFor(() => expect(onReady).toHaveBeenCalledOnce());
+    expect(onUpgradeActive).not.toHaveBeenCalled();
+    expect(fetchImpl.mock.calls.some((call) => String(call[0]).includes("/high/"))).toBe(true);
+    releaseHigh = true;
+    for (const resolve of pendingHigh.splice(0)) resolve();
+    controller.request(1);
+    for (let i = 0; i < 30; i += 1) {
+      controller.tick(i + 1);
+      await flush();
+    }
+    await vi.waitFor(() => expect(onUpgradeActive).toHaveBeenCalled());
+    expect(onPresented.mock.calls.length).toBeGreaterThan(0);
+    controller.dispose();
+  });
+
+  it("does not fetch high when upgrade is disabled (saveData / slow)", async () => {
+    const { controller, onReady, fetchImpl } = setup({
+      upgradePack: highPack,
+      upgradeEnabled: false,
+    });
+    await vi.waitFor(() => expect(onReady).toHaveBeenCalledOnce());
+    await flush();
+    expect(fetchImpl.mock.calls.every((call) => !String(call[0]).includes("/high/"))).toBe(true);
+    controller.dispose();
   });
 });
 

@@ -1,4 +1,4 @@
-/** Scroll-linked frame pack: progressive window load, nearest-frame draw, cover canvas. */
+/** Scroll-linked frame packs: base TTI + optional desktop densify upgrade. */
 
 export interface FramePack {
   pattern: string;
@@ -10,12 +10,19 @@ export interface FramePack {
 }
 
 export interface FrameControllerOptions {
+  /** Bootstrap pack (mobile or desktop base). Ready gates on this pack. */
   pack: FramePack;
+  /** Optional denser desktop pack loaded after ready when upgradeEnabled. */
+  upgradePack?: FramePack;
+  upgradeEnabled?: boolean;
+  /** Delay high fetch after base ready (Safari / missing NetInfo idle gate). */
+  upgradeDelayMs?: number;
   duration: number;
   canvas: HTMLCanvasElement;
   maxDecoded?: number;
   prefetchRadius?: number;
   maxConcurrent?: number;
+  upgradeMaxConcurrent?: number;
   fetchImpl?: typeof fetch;
   createBitmap?: (blob: Blob) => Promise<ImageBitmap>;
   now?: () => number;
@@ -23,6 +30,21 @@ export interface FrameControllerOptions {
   onPresented: (time: number) => void;
   onError: () => void;
   onProgress?: (loaded: number, total: number) => void;
+  onUpgradeActive?: () => void;
+}
+
+type PackId = "base" | "high";
+
+interface PackState {
+  id: PackId;
+  pack: FramePack;
+  blobs: Map<number, Blob>;
+  bitmaps: Map<number, ImageBitmap>;
+  loading: Set<number>;
+  queue: number[];
+  queued: Set<number>;
+  inFlight: number;
+  maxConcurrent: number;
 }
 
 function frameUrl(pack: FramePack, index: number): string {
@@ -44,34 +66,66 @@ function coverDraw(
   ctx.drawImage(bitmap, x, y, drawW, drawH);
 }
 
+function timeToIndex(pack: FramePack, duration: number, time: number) {
+  const clamped = Math.max(0, Math.min(duration, time));
+  const zeroBased = Math.round(clamped * pack.fps);
+  return Math.min(pack.count, Math.max(pack.firstIndex, zeroBased + pack.firstIndex));
+}
+
+function indexToTime(pack: FramePack, duration: number, index: number) {
+  return Math.max(0, Math.min(duration, (index - pack.firstIndex) / pack.fps));
+}
+
 /**
- * Ready on first presented frame; priority window + background fill.
- * Missing targets hold the nearest loaded frame. tick() uses the GSAP ticker.
+ * Ready on first base frame; optional high pack densifies presentation afterward.
  */
 export function createCinematicFrameController(options: FrameControllerOptions) {
-  const pack = options.pack;
+  const basePack = options.pack;
+  const highPack = options.upgradePack;
+  const upgradeWanted = Boolean(options.upgradeEnabled && highPack);
   const fetchImpl = options.fetchImpl ?? fetch.bind(globalThis);
   const createBitmap =
     options.createBitmap ?? ((blob: Blob) => createImageBitmap(blob));
   const maxDecoded = options.maxDecoded ?? 48;
   const prefetchRadius = options.prefetchRadius ?? 16;
-  const maxConcurrent = options.maxConcurrent ?? (pack.width <= 640 ? 6 : 10);
   const clock = options.now ?? (() => performance.now() / 1000);
 
   let disposed = false;
   let failed = false;
   let ready = false;
+  let upgradeActive = false;
   let target = 0;
-  let presentedIndex = -1;
+  let presented: { id: PackId; index: number } | null = null;
   let decodeInFlight: Promise<void> | null = null;
   let loadStartedAt = 0;
-  let inFlight = 0;
-  const blobs = new Map<number, Blob>();
-  const bitmaps = new Map<number, ImageBitmap>();
-  const decodeOrder: number[] = [];
-  const loading = new Set<number>();
-  const queue: number[] = [];
-  const queued = new Set<number>();
+  let upgradeTimer: ReturnType<typeof setTimeout> | null = null;
+  const decodeOrder: string[] = [];
+
+  const base: PackState = {
+    id: "base",
+    pack: basePack,
+    blobs: new Map(),
+    bitmaps: new Map(),
+    loading: new Set(),
+    queue: [],
+    queued: new Set(),
+    inFlight: 0,
+    maxConcurrent: options.maxConcurrent ?? (basePack.width <= 640 ? 6 : 10),
+  };
+  const high: PackState | null =
+    highPack && upgradeWanted
+      ? {
+          id: "high",
+          pack: highPack,
+          blobs: new Map(),
+          bitmaps: new Map(),
+          loading: new Set(),
+          queue: [],
+          queued: new Set(),
+          inFlight: 0,
+          maxConcurrent: options.upgradeMaxConcurrent ?? 8,
+        }
+      : null;
 
   const fail = () => {
     if (disposed || failed) return;
@@ -79,31 +133,28 @@ export function createCinematicFrameController(options: FrameControllerOptions) 
     options.onError();
   };
 
-  const timeToIndex = (time: number) => {
-    const clamped = Math.max(0, Math.min(options.duration, time));
-    const zeroBased = Math.round(clamped * pack.fps);
-    return Math.min(pack.count, Math.max(pack.firstIndex, zeroBased + pack.firstIndex));
-  };
+  const slotKey = (id: PackId, index: number) => `${id}:${index}`;
 
-  const indexToTime = (index: number) =>
-    Math.max(0, Math.min(options.duration, (index - pack.firstIndex) / pack.fps));
-
-  const touchDecoded = (index: number) => {
-    const at = decodeOrder.indexOf(index);
+  const touchDecoded = (id: PackId, index: number) => {
+    const key = slotKey(id, index);
+    const at = decodeOrder.indexOf(key);
     if (at >= 0) decodeOrder.splice(at, 1);
-    decodeOrder.push(index);
+    decodeOrder.push(key);
     while (decodeOrder.length > maxDecoded) {
       const evict = decodeOrder.shift();
-      if (evict === undefined) break;
-      const bitmap = bitmaps.get(evict);
+      if (!evict) break;
+      const [packId, indexText] = evict.split(":");
+      const store = packId === "high" ? high : base;
+      const evictIndex = Number(indexText);
+      const bitmap = store?.bitmaps.get(evictIndex);
       if (bitmap) {
         bitmap.close();
-        bitmaps.delete(evict);
+        store.bitmaps.delete(evictIndex);
       }
     }
   };
 
-  const resizeCanvas = () => {
+  const resizeCanvas = (pack: FramePack) => {
     const canvas = options.canvas;
     const dprCap = pack.width <= 640 ? 1.5 : 2;
     const dpr = Math.min(globalThis.devicePixelRatio || 1, dprCap);
@@ -118,11 +169,11 @@ export function createCinematicFrameController(options: FrameControllerOptions) 
     return { width, height };
   };
 
-  const nearestLoaded = (wanted: number) => {
-    if (blobs.has(wanted)) return wanted;
+  const nearestLoaded = (store: PackState, wanted: number) => {
+    if (store.blobs.has(wanted)) return wanted;
     let best = -1;
     let bestDist = Number.POSITIVE_INFINITY;
-    for (const index of blobs.keys()) {
+    for (const index of store.blobs.keys()) {
       const dist = Math.abs(index - wanted);
       if (dist < bestDist || (dist === bestDist && index < best)) {
         best = index;
@@ -132,130 +183,204 @@ export function createCinematicFrameController(options: FrameControllerOptions) 
     return best;
   };
 
-  const present = async (index: number) => {
+  const progressTotal = () => {
+    const highCount = high ? high.pack.count : 0;
+    return base.pack.count + highCount;
+  };
+
+  const progressLoaded = () => base.blobs.size + (high?.blobs.size ?? 0);
+
+  const present = async (store: PackState, index: number) => {
     if (disposed || failed) return;
-    let bitmap = bitmaps.get(index);
+    let bitmap = store.bitmaps.get(index);
     if (!bitmap) {
-      const blob = blobs.get(index);
+      const blob = store.blobs.get(index);
       if (!blob) return;
       try {
         bitmap = await createBitmap(blob);
       } catch {
-        fail();
+        if (store.id === "base" && !ready) fail();
         return;
       }
       if (disposed || failed) {
         bitmap.close();
         return;
       }
-      bitmaps.set(index, bitmap);
-      touchDecoded(index);
+      store.bitmaps.set(index, bitmap);
+      touchDecoded(store.id, index);
     } else {
-      touchDecoded(index);
+      touchDecoded(store.id, index);
     }
     const ctx = options.canvas.getContext("2d");
     if (!ctx) {
       fail();
       return;
     }
-    const { width, height } = resizeCanvas();
+    const { width, height } = resizeCanvas(store.pack);
     coverDraw(ctx, bitmap, width, height);
-    presentedIndex = index;
+    presented = { id: store.id, index };
     if (!ready) {
       ready = true;
       options.onReady();
+      if (high) {
+        const delay = Math.max(0, options.upgradeDelayMs ?? 0);
+        if (delay > 0) {
+          upgradeTimer = setTimeout(() => {
+            upgradeTimer = null;
+            if (!disposed && !failed) startUpgrade();
+          }, delay);
+        } else {
+          startUpgrade();
+        }
+      }
     }
-    options.onPresented(indexToTime(index));
+    if (store.id === "high" && !upgradeActive) {
+      upgradeActive = true;
+      options.onUpgradeActive?.();
+    }
+    options.onPresented(indexToTime(store.pack, options.duration, index));
   };
 
-  const pump = () => {
-    while (inFlight < maxConcurrent && queue.length > 0 && !disposed && !failed) {
-      const index = queue.shift();
+  const pump = (store: PackState) => {
+    while (
+      store.inFlight < store.maxConcurrent &&
+      store.queue.length > 0 &&
+      !disposed &&
+      !failed
+    ) {
+      const index = store.queue.shift();
       if (index === undefined) break;
-      queued.delete(index);
-      if (blobs.has(index) || loading.has(index)) continue;
-      loading.add(index);
-      inFlight += 1;
+      store.queued.delete(index);
+      if (store.blobs.has(index) || store.loading.has(index)) continue;
+      store.loading.add(index);
+      store.inFlight += 1;
       void (async () => {
         try {
-          const response = await fetchImpl(frameUrl(pack, index));
+          const response = await fetchImpl(frameUrl(store.pack, index));
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const blob = await response.blob();
           if (disposed || failed) return;
-          blobs.set(index, blob);
-          options.onProgress?.(blobs.size, pack.count);
-          const wanted = timeToIndex(target);
-          if (index === wanted || (!ready && index === pack.firstIndex)) {
-            await present(index);
-          } else if (ready && presentedIndex < 0) {
-            await present(index);
-          } else if (ready && !blobs.has(wanted)) {
-            const near = nearestLoaded(wanted);
-            if (near === index) await present(index);
+          store.blobs.set(index, blob);
+          options.onProgress?.(progressLoaded(), progressTotal());
+          const wanted = timeToIndex(store.pack, options.duration, target);
+          if (store.id === "base") {
+            if (index === wanted || (!ready && index === store.pack.firstIndex)) {
+              await present(store, index);
+            } else if (ready && !store.blobs.has(wanted)) {
+              const near = nearestLoaded(store, wanted);
+              if (near === index) await present(store, index);
+            }
+          } else if (ready) {
+            // Prefer high once available near the playhead.
+            const near = nearestLoaded(store, wanted);
+            if (near === index && Math.abs(index - wanted) <= prefetchRadius) {
+              await present(store, index);
+            }
           }
         } catch {
-          // Background gaps are expected; only the opening frame is fatal.
-          if (!ready && index === pack.firstIndex) fail();
+          if (store.id === "base" && !ready && index === store.pack.firstIndex) fail();
         } finally {
-          loading.delete(index);
-          inFlight -= 1;
-          if (!disposed && !failed) pump();
+          store.loading.delete(index);
+          store.inFlight -= 1;
+          if (!disposed && !failed) pump(store);
         }
       })();
     }
   };
 
-  const enqueue = (index: number, priority: "front" | "back" = "back") => {
+  const enqueue = (store: PackState, index: number, priority: "front" | "back" = "back") => {
     if (
       disposed ||
       failed ||
-      index < pack.firstIndex ||
-      index > pack.count ||
-      blobs.has(index) ||
-      loading.has(index) ||
-      queued.has(index)
+      index < store.pack.firstIndex ||
+      index > store.pack.count ||
+      store.blobs.has(index) ||
+      store.loading.has(index) ||
+      store.queued.has(index)
     ) {
       return;
     }
-    queued.add(index);
-    if (priority === "front") queue.unshift(index);
-    else queue.push(index);
-    pump();
+    store.queued.add(index);
+    if (priority === "front") store.queue.unshift(index);
+    else store.queue.push(index);
+    pump(store);
   };
 
-  const ensureWindow = (center: number) => {
-    const start = Math.max(pack.firstIndex, center - prefetchRadius);
-    const end = Math.min(pack.count, center + prefetchRadius);
+  const ensureWindow = (store: PackState, center: number) => {
+    const start = Math.max(store.pack.firstIndex, center - prefetchRadius);
+    const end = Math.min(store.pack.count, center + prefetchRadius);
     const neighbors: number[] = [];
     for (let index = start; index <= end; index += 1) neighbors.push(index);
     neighbors.sort((a, b) => Math.abs(a - center) - Math.abs(b - center) || a - b);
-    for (const index of neighbors) enqueue(index, "front");
+    for (const index of neighbors) enqueue(store, index, "front");
   };
 
-  const fillBackground = () => {
-    // Remaining frames, nearest to current target first so scrub stays warm.
-    const center = timeToIndex(target);
+  const fillBackground = (store: PackState) => {
+    const center = timeToIndex(store.pack, options.duration, target);
     const rest: number[] = [];
-    for (let index = pack.firstIndex; index <= pack.count; index += 1) {
-      if (!blobs.has(index) && !loading.has(index) && !queued.has(index)) rest.push(index);
+    for (let index = store.pack.firstIndex; index <= store.pack.count; index += 1) {
+      if (!store.blobs.has(index) && !store.loading.has(index) && !store.queued.has(index)) {
+        rest.push(index);
+      }
     }
     rest.sort((a, b) => Math.abs(a - center) - Math.abs(b - center) || a - b);
-    for (const index of rest) enqueue(index, "back");
+    for (const index of rest) enqueue(store, index, "back");
   };
 
+  const startUpgrade = () => {
+    if (!high) return;
+    const center = timeToIndex(high.pack, options.duration, target);
+    enqueue(high, center, "front");
+    ensureWindow(high, center);
+    fillBackground(high);
+  };
+
+  const pickPresentable = (): { store: PackState; index: number } | null => {
+    if (high && high.blobs.size > 0) {
+      const wantedHigh = timeToIndex(high.pack, options.duration, target);
+      const nearHigh = nearestLoaded(high, wantedHigh);
+      if (nearHigh >= 0) {
+        const highTime = indexToTime(high.pack, options.duration, nearHigh);
+        // Use high when within half a base-frame of the target time.
+        if (Math.abs(highTime - target) <= 0.5 / Math.max(1, base.pack.fps) + 1 / high.pack.fps) {
+          return { store: high, index: nearHigh };
+        }
+        // Or when high is simply closer in time than base nearest.
+        const wantedBase = timeToIndex(base.pack, options.duration, target);
+        const nearBase = nearestLoaded(base, wantedBase);
+        if (nearBase < 0) return { store: high, index: nearHigh };
+        const baseTime = indexToTime(base.pack, options.duration, nearBase);
+        if (Math.abs(highTime - target) <= Math.abs(baseTime - target)) {
+          return { store: high, index: nearHigh };
+        }
+      }
+    }
+    const wantedBase = timeToIndex(base.pack, options.duration, target);
+    const nearBase = blobsNearestOrWanted(base, wantedBase);
+    if (nearBase < 0) return null;
+    return { store: base, index: nearBase };
+  };
+
+  const blobsNearestOrWanted = (store: PackState, wanted: number) =>
+    store.blobs.has(wanted) ? wanted : nearestLoaded(store, wanted);
+
   loadStartedAt = clock();
-  // Kick frame 0 (or first) immediately, then warm window + background fill.
-  enqueue(pack.firstIndex, "front");
-  ensureWindow(pack.firstIndex);
-  fillBackground();
+  enqueue(base, base.pack.firstIndex, "front");
+  ensureWindow(base, base.pack.firstIndex);
+  fillBackground(base);
 
   return {
     request(time: number) {
       if (!Number.isFinite(time) || disposed || failed) return;
       target = Math.max(0, Math.min(options.duration, time));
-      const index = timeToIndex(target);
-      enqueue(index, "front");
-      ensureWindow(index);
+      const baseIndex = timeToIndex(base.pack, options.duration, target);
+      enqueue(base, baseIndex, "front");
+      ensureWindow(base, baseIndex);
+      if (high && ready) {
+        const highIndex = timeToIndex(high.pack, options.duration, target);
+        enqueue(high, highIndex, "front");
+        ensureWindow(high, highIndex);
+      }
     },
     tick(nowSeconds: number) {
       if (disposed || failed) return;
@@ -263,23 +388,25 @@ export function createCinematicFrameController(options: FrameControllerOptions) 
         if (loadStartedAt && nowSeconds - loadStartedAt > 8) fail();
         return;
       }
-      const wanted = timeToIndex(target);
-      if (wanted === presentedIndex && bitmaps.has(wanted)) return;
-
-      const presentable = blobs.has(wanted) ? wanted : nearestLoaded(wanted);
-      if (presentable < 0) {
-        enqueue(wanted, "front");
+      const pick = pickPresentable();
+      if (!pick) {
+        enqueue(base, timeToIndex(base.pack, options.duration, target), "front");
         return;
       }
-      if (presentable === presentedIndex && bitmaps.has(presentable) && presentable !== wanted) {
-        enqueue(wanted, "front");
-        ensureWindow(wanted);
+      if (
+        presented &&
+        presented.id === pick.store.id &&
+        presented.index === pick.index &&
+        pick.store.bitmaps.has(pick.index)
+      ) {
+        if (high) ensureWindow(high, timeToIndex(high.pack, options.duration, target));
         return;
       }
       if (decodeInFlight) return;
-      decodeInFlight = present(presentable)
+      decodeInFlight = present(pick.store, pick.index)
         .then(() => {
-          ensureWindow(wanted);
+          ensureWindow(base, timeToIndex(base.pack, options.duration, target));
+          if (high) ensureWindow(high, timeToIndex(high.pack, options.duration, target));
         })
         .finally(() => {
           decodeInFlight = null;
@@ -289,28 +416,56 @@ export function createCinematicFrameController(options: FrameControllerOptions) 
       loadStartedAt = clock();
     },
     redraw() {
-      if (presentedIndex >= pack.firstIndex) void present(presentedIndex);
+      if (presented) {
+        const store = presented.id === "high" && high ? high : base;
+        void present(store, presented.index);
+      }
     },
     dispose() {
       disposed = true;
-      for (const bitmap of bitmaps.values()) bitmap.close();
-      bitmaps.clear();
-      blobs.clear();
+      if (upgradeTimer) {
+        clearTimeout(upgradeTimer);
+        upgradeTimer = null;
+      }
+      for (const store of [base, high]) {
+        if (!store) continue;
+        for (const bitmap of store.bitmaps.values()) bitmap.close();
+        store.bitmaps.clear();
+        store.blobs.clear();
+        store.queue.length = 0;
+        store.queued.clear();
+        store.loading.clear();
+      }
       decodeOrder.length = 0;
-      queue.length = 0;
-      queued.clear();
-      loading.clear();
     },
   };
 }
 
-/** Pick desktop vs mobile pack from viewport / orientation. */
+export interface StoryFramesManifest {
+  desktop: FramePack | { base: FramePack; high?: FramePack };
+  mobile: FramePack;
+}
+
+/** Normalize legacy flat desktop pack or { base, high } tiers. */
+export function desktopBasePack(frames: StoryFramesManifest): FramePack {
+  const desktop = frames.desktop;
+  if ("base" in desktop) return desktop.base;
+  return desktop;
+}
+
+export function desktopHighPack(frames: StoryFramesManifest): FramePack | undefined {
+  const desktop = frames.desktop;
+  if ("base" in desktop) return desktop.high;
+  return undefined;
+}
+
+/** Pick mobile pack or desktop base from viewport / orientation. */
 export function selectFramePack(
-  frames: { desktop: FramePack; mobile: FramePack },
+  frames: StoryFramesManifest,
   query: { matches: boolean } | null,
 ): FramePack {
   if (query?.matches) return frames.mobile;
-  return frames.desktop;
+  return desktopBasePack(frames);
 }
 
 export const MOBILE_FRAME_QUERY = "(orientation: portrait) and (max-width: 900px)";

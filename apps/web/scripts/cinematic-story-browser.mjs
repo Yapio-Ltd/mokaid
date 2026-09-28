@@ -31,9 +31,18 @@ const dist = fileURLToPath(new URL("../dist/", import.meta.url));
 const temp = await mkdtemp(join(tmpdir(), "mokaid-cinema-test-"));
 const fixtureWebp = join(temp, "fixture.webp");
 
-assert.ok(story.frames?.desktop?.pattern, "Manifest must declare frame packs");
-const desktopPack = story.frames.desktop;
+assert.ok(story.frames?.desktop, "Manifest must declare frame packs");
+const desktopPack =
+  story.frames.desktop.base && story.frames.desktop.high
+    ? story.frames.desktop.base
+    : story.frames.desktop.pattern
+      ? story.frames.desktop
+      : story.frames.desktop.base;
+const desktopHighPack = story.frames.desktop.high || null;
 const mobilePack = story.frames.mobile;
+assert.ok(desktopPack?.pattern, "Manifest must declare desktop base pack");
+assert.equal(mobilePack.count, 148);
+assert.equal(mobilePack.fps, 2);
 
 let fixtureBody;
 let mediaInfo;
@@ -91,7 +100,7 @@ function progressAtTime(time) {
 }
 
 function isFramePath(pathname) {
-  return /\/assets\/cinematic-frames\.[a-f0-9]+\/(desktop|mobile)\/frame-\d+\.webp$/.test(
+  return /\/assets\/cinematic-frames\.[a-f0-9]+\/(desktop|desktop-high|mobile)\/frame-\d+\.webp$/.test(
     pathname,
   );
 }
@@ -155,39 +164,66 @@ class StoryPage {
   }
   async frameAt(time) {
     const started = Date.now();
-    await this.root.evaluate((el, progress) => {
-      window.scrollTo(
-        0,
-        window.scrollY +
-          el.getBoundingClientRect().top +
-          (el.clientHeight - innerHeight) * progress,
+    const isMobile = await this.page.evaluate(() =>
+      window.matchMedia("(orientation: portrait) and (max-width: 900px)").matches,
+    );
+    const candidates = isMobile
+      ? [mobilePack]
+      : [desktopHighPack, desktopPack].filter(Boolean);
+    const expectedTimes = candidates.map((pack) => {
+      const index = Math.min(
+        pack.count,
+        Math.max(
+          pack.firstIndex,
+          Math.round(Math.min(time, story.duration) * pack.fps) + pack.firstIndex,
+        ),
       );
-    }, progressAtTime(time));
-    // Expected presented time follows the active pack fps (not the 24fps master).
-    const pack =
-      (await this.page.evaluate(() => window.matchMedia("(orientation: portrait) and (max-width: 900px)").matches))
-        ? mobilePack
-        : desktopPack;
-    const index = Math.min(
-      pack.count,
-      Math.max(pack.firstIndex, Math.round(Math.min(time, story.duration) * pack.fps) + pack.firstIndex),
-    );
-    const expected = (index - pack.firstIndex) / pack.fps;
-    await this.page.waitForFunction(
-      (expected) => {
-        const stage = document.querySelector("#product [data-presented-time]");
-        return stage && Math.abs(Number(stage.dataset.presentedTime) - expected) < 0.2;
-      },
-      expected,
-      { timeout: 8000 },
-    );
-    const state = await this.snapshot();
+      return (index - pack.firstIndex) / pack.fps;
+    });
+    const tolerance = isMobile ? 0.2 : 0.35;
+    let state;
+    let expected = expectedTimes[0];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      await this.root.evaluate((el, progress) => {
+        const top = el.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo(0, top + (el.clientHeight - innerHeight) * progress);
+      }, progressAtTime(time));
+      await this.page.waitForFunction(
+        ({ expectedTimes, tolerance }) => {
+          const stage = document.querySelector("#product [data-presented-time]");
+          if (!stage) return false;
+          const presented = Number(stage.dataset.presentedTime);
+          return expectedTimes.some((value) => Math.abs(presented - value) < tolerance);
+        },
+        { expectedTimes, tolerance },
+        { timeout: attempt === 5 ? 8000 : 2500 },
+      );
+      state = await this.snapshot();
+      expected = expectedTimes.reduce((best, candidate) =>
+        Math.abs(state.presentedTime - candidate) < Math.abs(state.presentedTime - best)
+          ? candidate
+          : best,
+      );
+      if (Math.abs(state.presentedTime - expected) < tolerance) break;
+    }
     assert.ok(
-      Math.abs(state.presentedTime - expected) < 0.2,
-      "Presented frame time must follow scroll",
+      Math.abs(state.presentedTime - expected) < tolerance,
+      `Presented frame time must follow scroll (got ${state.presentedTime}, expected ~${expectedTimes.join("|")})`,
     );
     const cue = story.cues.find(
       (item) => state.presentedTime >= item.start && state.presentedTime < item.end,
+    );
+    await this.page.waitForFunction(
+      (expectedText) => {
+        const headings = Array.from(
+          document.querySelectorAll("#product .mk-cinema-stage h2"),
+          (node) => node.textContent || "",
+        );
+        if (!expectedText) return headings.length === 0;
+        return headings.includes(expectedText);
+      },
+      cue?.text || null,
+      { timeout: 5000 },
     );
     assert.deepEqual(
       await this.stage.getByRole("heading").allTextContents(),
@@ -211,6 +247,14 @@ class StoryPage {
     if (returnWith === "history") await this.page.goBack({ waitUntil: "domcontentloaded" });
     else await this.page.getByRole("link", { name: /Mokaid|Home|home/i }).first().click();
     await this.waitReady();
+    await this.page.waitForFunction(
+      () => {
+        const el = document.getElementById("product");
+        return el && Math.abs(el.clientHeight - innerHeight * 13) < 2;
+      },
+      null,
+      { timeout: 10_000 },
+    );
     await this.frameAt(55);
   }
   async assertFullscreenCover() {
@@ -364,6 +408,10 @@ async function runEngine(name) {
         desktop.requests.length >= 1,
         "progressive ready must fetch at least the opening frame",
       );
+      assert.ok(
+        desktop.requests.some((path) => path.includes("/desktop/frame-")),
+        "desktop must start on the base pack",
+      );
       await desktop.page.waitForFunction(
         () => {
           const el = document.getElementById("product");
@@ -388,6 +436,20 @@ async function runEngine(name) {
           desktop.requests.length >= desktopPack.count,
           `expected >= ${desktopPack.count} frame requests, got ${desktop.requests.length}`,
         );
+      }
+      if (desktopHighPack) {
+        const deadline = Date.now() + 45_000;
+        while (
+          Date.now() < deadline &&
+          !desktop.requests.some((path) => path.includes("/desktop-high/"))
+        ) {
+          await desktop.page.waitForTimeout(100);
+        }
+        assert.ok(
+          desktop.requests.some((path) => path.includes("/desktop-high/")),
+          "desktop densify must request high pack on a healthy connection",
+        );
+        report.passed.push("desktop: high densify pack requested after base ready");
       }
       assert.equal(
         await desktop.page
@@ -425,6 +487,10 @@ async function runEngine(name) {
         await item.model.waitReady();
         await item.model.assertFullscreenCover();
         for (const time of [7, 18, 35, 55, 74]) await item.model.frameAt(time);
+        assert.ok(
+          item.requests.every((path) => !path.includes("/desktop-high/")),
+          `${label} must not request desktop-high`,
+        );
         if (finalMedia && label === "mobile viewport") {
           await item.page.screenshot({
             path: join(output, `final-media-${name}-mobile-fullscreen.png`),

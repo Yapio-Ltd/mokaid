@@ -1,23 +1,37 @@
 {
   "sourceMp4": "/Users/olimservice/mokaid/artifacts/mokaid-cinema-2026-09-25/deliveries/mokaid-office-journey.adac1c365481.mp4",
   "frames": {
-    "digest": "3f9f6089cd65",
-    "sha256": "3f9f6089cd65cd6ff75ec8c669b6ac27096eef00c5a55d9cd42272f717710302",
+    "digest": "19b90b15d9d1",
+    "sha256": "19b90b15d9d1f0b32187b1e634c9d83d095788d8e3e9e2262c3a0c41f082fbeb",
     "quality": {
-      "desktop": 55,
+      "desktop": {
+        "base": 55,
+        "high": 65
+      },
       "mobile": 50
     },
     "desktop": {
-      "pattern": "/assets/cinematic-frames.3f9f6089cd65/desktop/frame-%05d.webp",
-      "firstIndex": 1,
-      "count": 222,
-      "fps": 3,
-      "width": 720,
-      "height": 405,
-      "bytes": 5181240
+      "base": {
+        "pattern": "/assets/cinematic-frames.19b90b15d9d1/desktop/frame-%05d.webp",
+        "firstIndex": 1,
+        "count": 222,
+        "fps": 3,
+        "width": 720,
+        "height": 405,
+        "bytes": 5181240
+      },
+      "high": {
+        "pattern": "/assets/cinematic-frames.19b90b15d9d1/desktop-high/frame-%05d.webp",
+        "firstIndex": 1,
+        "count": 888,
+        "fps": 12,
+        "width": 1280,
+        "height": 720,
+        "bytes": 43601120
+      }
     },
     "mobile": {
-      "pattern": "/assets/cinematic-frames.3f9f6089cd65/mobile/frame-%05d.webp",
+      "pattern": "/assets/cinematic-frames.19b90b15d9d1/mobile/frame-%05d.webp",
       "firstIndex": 1,
       "count": 148,
       "fps": 2,
@@ -31,38 +45,44 @@
       "time": 0,
       "frameTime": 0,
       "frame": "frame-00001.webp",
-      "psnrAverage": 33.616692
+      "psnrAverage": 36.265387,
+      "pack": "desktop-high"
     },
     {
       "time": 7,
       "frameTime": 7,
-      "frame": "frame-00022.webp",
-      "psnrAverage": 33.782186
+      "frame": "frame-00085.webp",
+      "psnrAverage": 36.565989,
+      "pack": "desktop-high"
     },
     {
       "time": 13,
       "frameTime": 13,
-      "frame": "frame-00040.webp",
-      "psnrAverage": 31.863418
+      "frame": "frame-00157.webp",
+      "psnrAverage": 34.665925,
+      "pack": "desktop-high"
     },
     {
       "time": 20,
       "frameTime": 20,
-      "frame": "frame-00061.webp",
-      "psnrAverage": 32.172261
+      "frame": "frame-00241.webp",
+      "psnrAverage": 35.089706,
+      "pack": "desktop-high"
     },
     {
       "time": 32,
       "frameTime": 32,
-      "frame": "frame-00097.webp",
-      "psnrAverage": 32.209644
+      "frame": "frame-00385.webp",
+      "psnrAverage": 34.835632,
+      "pack": "desktop-high"
     },
     {
       "time": 42,
       "frameTime": 42,
-      "frame": "frame-00127.webp",
-      "psnrAverage": 33.012998
+      "frame": "frame-00505.webp",
+      "psnrAverage": 35.571937,
+      "pack": "desktop-high"
     }
   ],
-  "publicDir": "/Users/olimservice/mokaid/apps/web/public/assets/cinematic-frames.3f9f6089cd65"
+  "publicDir": "/Users/olimservice/mokaid/apps/web/public/assets/cinematic-frames.19b90b15d9d1"
 }
